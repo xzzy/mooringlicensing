@@ -24,7 +24,7 @@
             {% bootstrap_css %}
                 <link type="text/css" href="{% static 'mooringlicensing/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
-	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/static/css/app.css' %}?v={{build_tag}}">
+	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{build_tag}}">
             {% endif %}
             {% block extra_css %}
             {% endblock %}
@@ -40,7 +40,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
     </head>
     <body>
-        <header class="topmast">
+        <header class="topmast-rottnest">
             {% block header %}
                 {% include 'mooringlicensing/header.html' %}
             {% endblock %}
@@ -174,14 +174,17 @@
         {% block modals %}
         {% endblock %}
         {% if not dev %}
-            <!--<script type="text/javascript" src="https://static.dpaw.wa.gov.au/static/cdnjs/ajax/libs/jquery/2.1.2/jquery.min.js"></script>
-            <script type="text/javascript" src="https://static.dpaw.wa.gov.au/static/cdnjs/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
-	<script type="text/javascript" src="{% static 'mooringlicensing_vue/static/js/manifest.js' %}?v={{build_tag}}"></script>
-	<script type="text/javascript" src="{% static 'mooringlicensing_vue/static/js/vendor.js' %}?v={{build_tag}}"></script>
-	<script type="text/javascript" src="{% static 'mooringlicensing_vue/static/js/app.js' %}?v={{build_tag}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/manifest.js' %}?v={{build_tag}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/vendor.js' %}?v={{build_tag}}"></script>
+            {% if app_build_url %}
+                <script type="text/javascript" src="{{ app_build_url }}"></script>
+            {% else %}
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{build_tag}}"></script>
+            {% endif %}
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}
+
         {% block custom_js %}
         {% endblock %}
     </body>

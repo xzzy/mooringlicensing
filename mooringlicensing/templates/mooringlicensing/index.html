@@ -5,7 +5,7 @@
 {% load static %}
 
 {% block extra_css %}
-    <link type="text/css" href="{% static 'wl/css/index.css' %}" rel="stylesheet">
+    <link type="text/css" href="{% static 'mooringlicensing/css/base.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block left_menu_items %}
@@ -20,9 +20,11 @@
     <div class="container">
         <div class="row">
             <div class="col-md-8">
-                <h2>
-                    Welcome to the {{system_name}} System
-                </h2>
+                <div class="row">
+                    <h2>
+                        Welcome to the {{system_name}} System
+                    </h2>
+                </div>
             </div>
             <div class="col-md-4">
                 {% if not request.user.is_authenticated %}
