@@ -1,13 +1,13 @@
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
 from mooringlicensing.components.proposals import models
-from mooringlicensing.components.bookings.models import ApplicationFeeInvoice
+#from mooringlicensing.components.bookings.models import ApplicationFeeInvoice
 from mooringlicensing.components.proposals import forms
 from mooringlicensing.components.main.models import (
     SystemMaintenance,
     ApplicationType,
-    OracleCode,
-    RequiredDocument,
+    #OracleCode,
+    #RequiredDocument,
     Question,
     GlobalSettings,
 )
@@ -16,15 +16,15 @@ from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.template.response import TemplateResponse
 from django.http import HttpResponse, HttpResponseRedirect
-from mooringlicensing.utils import create_helppage_object
+#from mooringlicensing.utils import create_helppage_object
 # Register your models here.
 
 # Commented since COLS does not use schema - so will not require direct editing by user in Admin (although a ProposalType is still required for ApplicationType)
 #@admin.register(models.ProposalType)
-class ProposalTypeAdmin(admin.ModelAdmin):
-    list_display = ['name','description', 'version']
-    ordering = ('name', '-version')
-    list_filter = ('name',)
+#class ProposalTypeAdmin(admin.ModelAdmin):
+#    list_display = ['name','description', 'version']
+#    ordering = ('name', '-version')
+#    list_filter = ('name',)
     #exclude=("site",)
 
 class ProposalDocumentInline(admin.TabularInline):
@@ -41,10 +41,10 @@ class ProposalAdmin(VersionAdmin):
 
 @admin.register(models.ProposalAssessorGroup)
 class ProposalAssessorGroupAdmin(admin.ModelAdmin):
-    list_display = ['name','default']
+    #list_display = ['name','default']
     filter_horizontal = ('members',)
     form = forms.ProposalAssessorGroupAdminForm
-    readonly_fields = ['default']
+    #readonly_fields = ['default']
     #readonly_fields = ['regions', 'activities']
 
     def get_actions(self, request):
@@ -66,10 +66,10 @@ class ProposalAssessorGroupAdmin(admin.ModelAdmin):
 
 @admin.register(models.ProposalApproverGroup)
 class ProposalApproverGroupAdmin(admin.ModelAdmin):
-    list_display = ['name','default']
+    #list_display = ['name','default']
     filter_horizontal = ('members',)
     form = forms.ProposalApproverGroupAdminForm
-    readonly_fields = ['default']
+    #readonly_fields = ['default']
     #readonly_fields = ['default', 'regions', 'activities']
 
     def get_actions(self, request):
@@ -93,29 +93,29 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     list_display = ['code','text','obsolete', 'application_type', 'participant_number_required', 'default']
 
 #@admin.register(models.HelpPage)
-class HelpPageAdmin(admin.ModelAdmin):
-    list_display = ['application_type','help_type', 'description', 'version']
-    form = forms.MooringLicensingHelpPageAdminForm
-    change_list_template = "mooringlicensing/help_page_changelist.html"
-    ordering = ('application_type', 'help_type', '-version')
-    list_filter = ('application_type', 'help_type')
-
-
-    def get_urls(self):
-        urls = super(HelpPageAdmin, self).get_urls()
-        my_urls = [
-            url('create_mooringlicensing_help/', self.admin_site.admin_view(self.create_mooringlicensing_help)),
-            url('create_mooringlicensing_help_assessor/', self.admin_site.admin_view(self.create_mooringlicensing_help_assessor)),
-        ]
-        return my_urls + urls
-
-    def create_mooringlicensing_help(self, request):
-        create_helppage_object(application_type='T Class', help_type=models.HelpPage.HELP_TEXT_EXTERNAL)
-        return HttpResponseRedirect("../")
-
-    def create_mooringlicensing_help_assessor(self, request):
-        create_helppage_object(application_type='T Class', help_type=models.HelpPage.HELP_TEXT_INTERNAL)
-        return HttpResponseRedirect("../")
+#class HelpPageAdmin(admin.ModelAdmin):
+#    list_display = ['application_type','help_type', 'description', 'version']
+#    form = forms.MooringLicensingHelpPageAdminForm
+#    change_list_template = "mooringlicensing/help_page_changelist.html"
+#    ordering = ('application_type', 'help_type', '-version')
+#    list_filter = ('application_type', 'help_type')
+#
+#
+#    def get_urls(self):
+#        urls = super(HelpPageAdmin, self).get_urls()
+#        my_urls = [
+#            url('create_mooringlicensing_help/', self.admin_site.admin_view(self.create_mooringlicensing_help)),
+#            url('create_mooringlicensing_help_assessor/', self.admin_site.admin_view(self.create_mooringlicensing_help_assessor)),
+#        ]
+#        return my_urls + urls
+#
+#    def create_mooringlicensing_help(self, request):
+#        create_helppage_object(application_type='T Class', help_type=models.HelpPage.HELP_TEXT_EXTERNAL)
+#        return HttpResponseRedirect("../")
+#
+#    def create_mooringlicensing_help_assessor(self, request):
+#        create_helppage_object(application_type='T Class', help_type=models.HelpPage.HELP_TEXT_INTERNAL)
+#        return HttpResponseRedirect("../")
 
 @admin.register(models.ChecklistQuestion)
 class ChecklistQuestionAdmin(admin.ModelAdmin):
@@ -169,12 +169,12 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 #        return form
 
 
-class OracleCodeInline(admin.TabularInline):
-    model = OracleCode
-    exclude = ['archive_date']
-    extra = 3
-    max_num = 3
-    can_delete = False
+#class OracleCodeInline(admin.TabularInline):
+#    model = OracleCode
+#    exclude = ['archive_date']
+#    extra = 3
+#    max_num = 3
+#    can_delete = False
 
 #@admin.register(models.Vessel)
 #class VesselAdmin(admin.ModelAdmin):

@@ -1,31 +1,22 @@
 {% load bootstrap3 %}
-{% load utils %}
-
-{% system_name as system_name %}
 
 {% load static %}
+
+<div class="">
     <div class="container">
         <div class="masthead">
             <div class="row">
                 <div class="col-lg-8">
                     <div class="agency-freespace">
-
-  		      <h1 id="site-title" class="site-logo" style="color: white;">
-                        <div class="col-sm-5">
-                            <a href="{%url 'home'%}">
-                                <img src="/static/mooringlicensing/img/logo-park-stay-trunc.gif" alt="Department of Biodiversity, Conservation and Attractions" class="img-responsive"/>
-                            </a>
-                        </div>
-                        <div class="col-sm-7">
-                            <!--div class="pull-right"-->
-                            <div>
-                                {{ system_name }}<a href="{%url 'home'%}">
-                            </div>
-                        </div>
-                      </h1>
-
+                        <h1 id="site-title" class="site-logo">
+                           <a href="{%url 'home'%}">
+                              <img src="/static/mooringlicensing/img/rottnest-island-logo.png" alt="Rottnest Island Authority - Mooring" class="img-responsive"/>
+                           </a>
+                        </h1>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+

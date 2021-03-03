@@ -42,6 +42,11 @@ INSTALLED_APPS += [
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',
+    'mooringlicensing.components.organisations',
+    'mooringlicensing.components.users',
+    'mooringlicensing.components.proposals',
+    'mooringlicensing.components.approvals',
+    'mooringlicensing.components.compliances',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -62,17 +67,18 @@ REST_FRAMEWORK = {
 
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
-BOOTSTRAP3 = {
-    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
-    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
-    'css_url': 'ledger/css/bootstrap.min.css',
-    'theme_url': None,
-    'javascript_url': None,
-    'javascript_in_head': False,
-    'include_jquery': False,
-    'required_css_class': 'required-form-field',
-    'set_placeholder': False,
-}
+del BOOTSTRAP3['css_url']
+#BOOTSTRAP3 = {
+#    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
+#    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
+#    'css_url': 'ledger/css/bootstrap.min.css',
+#    'theme_url': None,
+#    'javascript_url': None,
+#    'javascript_in_head': False,
+#    'include_jquery': False,
+#    'required_css_class': 'required-form-field',
+#    'set_placeholder': False,
+#}
 
 CACHES = {
     'default': {
@@ -80,7 +86,7 @@ CACHES = {
         'LOCATION': os.path.join(BASE_DIR, 'mooringlicensing', 'cache'),
     }
 }
-STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_fw')
+STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ml')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
@@ -91,8 +97,8 @@ DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by 
 BUILD_TAG = env('BUILD_TAG', hashlib.md5(os.urandom(32)).hexdigest())
 
 # Department details
-SYSTEM_NAME = env('SYSTEM_NAME', 'Fee waiver')
-SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'FW')
+SYSTEM_NAME = env('SYSTEM_NAME', 'Mooring Licensing')
+SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'ML')
 SITE_PREFIX = env('SITE_PREFIX', '')
 SITE_DOMAIN = env('SITE_DOMAIN', '')
 SUPPORT_EMAIL = env('SUPPORT_EMAIL', 'mooringlicensing@' + SITE_DOMAIN).lower()
