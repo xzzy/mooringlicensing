@@ -42,6 +42,8 @@ INSTALLED_APPS += [
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',
+    'mooringlicensing.components.main',
+    'mooringlicensing.components.emails',
     'mooringlicensing.components.organisations',
     'mooringlicensing.components.users',
     'mooringlicensing.components.proposals',
