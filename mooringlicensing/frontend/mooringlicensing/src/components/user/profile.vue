@@ -420,6 +420,8 @@ export default {
             errorListContact:[],
             showContactError: false,
             role : null,
+            phoneNumberReadonly: false,
+            mobileNumberReadonly: false,
         }
     },
     watch: {

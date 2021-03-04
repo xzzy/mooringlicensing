@@ -9,8 +9,6 @@
 {% endblock %}
 
 {% block left_menu_items %}
-    <li><a  href="{% url 'ds_contact' %}">Contact Us</a></li>
-    <li><a  href="{% url 'ds_further_info' %}">Further Information</a></li>
 {% endblock %}
 
 {% block messages %}
@@ -19,12 +17,33 @@
 {% block content %}
     <div class="container">
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <div class="row">
                     <h2>
                         Welcome to the {{system_name}} System
                     </h2>
                 </div>
+                <div class="row">
+                    Login to the system to apply for an annual admission permit, authorised user permit or to be listed on the waiting list for a mooring license.
+                </div>
+                <div class="row">
+                    <h3>
+                        Daily admission fees
+                    </h3>
+                </div>
+                <div class="row">
+                    Click here if you want to book at mooring and/or want to pay your daily admission fees.
+                </div>
+                <div class="row">
+                    <h3>
+                        DCV permits and admission fees
+                    </h3>
+                </div>
+                <div class="row">
+                    Click here if you want to pay for a DCV permit or here is you want to pay for DVC admission fees.
+                </div>
+            </div>
+            <div class="col-md-2">
             </div>
             <div class="col-md-4">
                 {% if not request.user.is_authenticated %}
