@@ -43,6 +43,6 @@ def basket_total_price(lines):
     return "{:.2f}".format(round(total, 2))
 
 @register.simple_tag()
-def build_tag():
-    return settings.BUILD_TAG
+def GIT_COMMIT_HASH():
+    return settings.GIT_COMMIT_HASH
 

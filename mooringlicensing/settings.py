@@ -1,6 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 
-import os, hashlib
+import os
 import confy
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
@@ -96,7 +96,17 @@ if DEV_STATIC and not DEV_STATIC_URL:
     raise ImproperlyConfigured('If running in DEV_STATIC, DEV_STATIC_URL has to be set')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
-BUILD_TAG = env('BUILD_TAG', hashlib.md5(os.urandom(32)).hexdigest())
+
+# Use git commit hash for purging cache in browser for deployment changes
+GIT_COMMIT_HASH = ''
+GIT_COMMIT_DATE = ''
+if  os.path.isdir(BASE_DIR+'/.git/') is True:
+    GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
+    GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+if len(GIT_COMMIT_HASH) == 0: 
+    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
+    if len(GIT_COMMIT_HASH) == 0:
+       print ("ERROR: No git hash provided")
 
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Mooring Licensing')

@@ -14,7 +14,7 @@
 {% system_name_short as system_name_short %}
 {% support_email as support_email %}
 {% is_payment_officer as is_payment_officer %}
-{% build_tag as build_tag %}
+{% GIT_COMMIT_HASH as GIT_COMMIT_HASH %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +24,7 @@
             {% bootstrap_css %}
                 <link type="text/css" href="{% static 'mooringlicensing/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
-	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{build_tag}}">
+	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{GIT_COMMIT_HASH}}">
             {% endif %}
             {% block extra_css %}
             {% endblock %}
@@ -67,9 +67,6 @@
                                         <li><a href="/internal/compliances">Compliance with Requirements</a></li>
                                         <li><a href="/internal/organisations/access">Organisation Access</a></li>
                                         <li><a href="/internal/search">Search</a></li>
-                                        <li><a href="/internal/payment">Park Entry Fees</a></li>
-                                        {% else %}
-                                        <li><a href="/external/payment">Park Entry Fees</a></li>
                                         {% endif %}
                                     {% endblock %}
                                 </ul>
@@ -174,12 +171,12 @@
         {% block modals %}
         {% endblock %}
         {% if not dev %}
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/manifest.js' %}?v={{build_tag}}"></script>
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/vendor.js' %}?v={{build_tag}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/manifest.js' %}?v={{GIT_COMMIT_HASH}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/vendor.js' %}?v={{GIT_COMMIT_HASH}}"></script>
             {% if app_build_url %}
                 <script type="text/javascript" src="{{ app_build_url }}"></script>
             {% else %}
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{build_tag}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{GIT_COMMIT_HASH}}"></script>
             {% endif %}
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
