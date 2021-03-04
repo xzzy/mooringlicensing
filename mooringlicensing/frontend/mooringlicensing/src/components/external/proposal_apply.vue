@@ -3,7 +3,7 @@
         <div class="row">
             <div class="col-sm-12">
                 <form class="form-horizontal" name="personal_form" method="post">
-
+                    <!-- should probably use FormSection here instead-->
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <h3 class="panel-title">Applicant <small>The applicant will be the licensee.</small><i class="fa fa-question-circle" data-toggle="tooltip" data-placement="bottom" style="color:blue" title="Please ensure the applicant is the same as the insured party on your public liability on your public liability insurance certificate.">&nbsp;</i>
@@ -76,6 +76,7 @@
 </template>
 <script>
 import Vue from 'vue'
+import FormSection from '@/components/forms/section_toggle.vue'
 import {
   api_endpoints,
   helpers
