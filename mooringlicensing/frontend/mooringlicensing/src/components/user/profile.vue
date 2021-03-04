@@ -200,7 +200,7 @@
             </div>
         </div-->
 
-        <div v-if="!isApplication" class="row">
+        <!--div v-if="!isApplication" class="row">
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
@@ -274,11 +274,9 @@
                                       <input type="text" class="form-control" name="abn" v-model="newOrg.abn" placeholder="">
                                   </div>
                                   <div class="col-sm-2">
-                                      <!--<button @click.prevent="checkOrganisation()" class="btn btn-primary">Check Details</button>-->
                                       <button v-if="newOrg.detailsChecked" @click.prevent="checkOrganisation()" class="btn btn-primary">Check Details</button>
                                   </div>
                               </div>
-                              <!--<div class="form-group" v-if="newOrg.detailsChecked">-->
                               <div class="form-group">
                                     <label class="col-sm-12" style="text-align:left;">
                                       Please upload a letter on organisation letter head stating that you are a consultant for the organisation.
@@ -361,7 +359,7 @@
                   </div>
                 </div>
             </div>
-        </div>
+        </div-->
       </div>
     </div>
 </template>
