@@ -42,7 +42,7 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
     email = serializers.SerializerMethodField()
     is_consultant = serializers.SerializerMethodField(read_only=True)
     is_admin = serializers.SerializerMethodField(read_only=True)
-    active_proposals = serializers.SerializerMethodField(read_only=True)
+    #active_proposals = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Organisation
@@ -53,7 +53,7 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
             'email',
             'is_consultant',
             'is_admin',
-            'active_proposals',
+            #'active_proposals',
         )
 
     def get_is_admin(self, obj):
@@ -68,13 +68,13 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         email = EmailUser.objects.get(id=self.context.get('user_id')).email
         return email
 
-    def get_active_proposals(self, obj):
-        _list = []
-        #for application_type in ['T Class', 'Filming', 'Event']:
-        for application_type in [ApplicationType.TCLASS, ApplicationType.FILMING, ApplicationType.EVENT ]:
-            qs = Proposal.objects.filter(application_type__name=application_type, org_applicant=obj).exclude(processing_status__in=['approved', 'declined', 'discarded']).values_list('lodgement_number', flat=True)
-            _list.append( dict(application_type=application_type, proposals=list(qs)) )
-        return _list
+    #def get_active_proposals(self, obj):
+    #    _list = []
+    #    #for application_type in ['T Class', 'Filming', 'Event']:
+    #    for application_type in [ApplicationType.TCLASS, ApplicationType.FILMING, ApplicationType.EVENT ]:
+    #        qs = Proposal.objects.filter(application_type__name=application_type, org_applicant=obj).exclude(processing_status__in=['approved', 'declined', 'discarded']).values_list('lodgement_number', flat=True)
+    #        _list.append( dict(application_type=application_type, proposals=list(qs)) )
+    #    return _list
 
 
 class UserFilterSerializer(serializers.ModelSerializer):
