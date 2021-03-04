@@ -7,9 +7,7 @@ ENV PRODUCTION_EMAIL=False
 ENV EMAIL_INSTANCE="DEV"
 ENV NON_PROD_EMAIL="brendan.blackford@dbca.wa.gov.au,walter.genuit@dbca.wa.gov.au,aaron.farr@dbca.wa.gov.au"
 ENV SECRET_KEY="ThisisNotRealKey"
-#ARG build_tag=0.0.0
-#ENV BUILD_TAG=$build_tag
-#RUN echo "*************************************************** Build TAG = $build_tag ***************************************************"
+
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get upgrade -y
@@ -22,8 +20,10 @@ RUN pip install --upgrade pip
 # Install Python libs from requirements.txt.
 FROM builder_base_moorlinglicensing as python_libs_mooringlicencing
 WORKDIR /app
+
+COPY .git/refs/heads/main /app/git_hash
+
 COPY requirements.txt ./
-RUN touch /app/git_hash
 RUN pip install --no-cache-dir -r requirements.txt \
   # Update the Django <1.11 bug in django/contrib/gis/geos/libgeos.py
   # Reference: https://stackoverflow.com/questions/18643998/geodjango-geosexception-error
