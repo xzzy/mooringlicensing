@@ -27,6 +27,7 @@ import LicencesAndPermitsTable from "@/components/common/table_licences_and_perm
 import CompliancesTable from "@/components/common/table_compliances"
 import AuthorisedUserApplicationsTable from "@/components/common/table_authorised_user_applications"
 import { api_endpoints, helpers } from '@/utils/hooks'
+
 export default {
     name: 'ExternalDashboard',
     data() {
