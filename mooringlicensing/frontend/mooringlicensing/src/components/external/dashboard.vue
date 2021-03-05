@@ -1,19 +1,19 @@
 <template>
     <div class="container" id="externalDash">
         <FormSection :formCollapse="true" label="Applications" Index="applications">
-
+            <ApplicationsTable />
         </FormSection>
         <FormSection :formCollapse="true" label="Waiting List" Index="waiting_list">
-
+            <WaitingListTable />
         </FormSection>
         <FormSection :formCollapse="true" label="Licences and Permits" Index="licences_and_permits">
-
+            <LicencesAndPermitsTable />
         </FormSection>
         <FormSection :formCollapse="true" label="Compliances" Index="compliances">
-
+            <CompliancesTable />
         </FormSection>
         <FormSection :formCollapse="true" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
-
+            <AuthorisedUserApplicationsTable />
         </FormSection>
     </div>
 </template>
@@ -21,6 +21,11 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
+import ApplicationsTable from "@/components/common/table_applications"
+import WaitingListTable from "@/components/common/table_waiting_list"
+import LicencesAndPermitsTable from "@/components/common/table_licences_and_permits"
+import CompliancesTable from "@/components/common/table_compliances"
+import AuthorisedUserApplicationsTable from "@/components/common/table_authorised_user_applications"
 import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
     name: 'ExternalDashboard',
@@ -46,6 +51,11 @@ export default {
     },
     components:{
         FormSection,
+        ApplicationsTable,
+        WaitingListTable,
+        LicencesAndPermitsTable,
+        CompliancesTable,
+        AuthorisedUserApplicationsTable,
     },
     watch: {},
     computed: {
