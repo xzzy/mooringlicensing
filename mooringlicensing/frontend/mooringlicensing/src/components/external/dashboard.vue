@@ -1,28 +1,27 @@
 <template>
-<div class="container" id="externalDash">
-    <div class="row">
-        <div class="col-sm-12">
+    <div class="container" id="externalDash">
+        <FormSection :formCollapse="true" label="Applications" Index="applications">
 
-        </div>
+        </FormSection>
+        <FormSection :formCollapse="true" label="Waiting List" Index="waiting_list">
+
+        </FormSection>
+        <FormSection :formCollapse="true" label="Licences and Permits" Index="licences_and_permits">
+
+        </FormSection>
+        <FormSection :formCollapse="true" label="Compliances" Index="compliances">
+
+        </FormSection>
+        <FormSection :formCollapse="true" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
+
+        </FormSection>
     </div>
-    <!--
-    <ProposalDashTable level='external' :url='proposals_url'/>
-    <ApprovalDashTable level='external' :url='approvals_url'/>
-    <ComplianceDashTable level='external' :url='compliances_url'/>
-    -->
-</div>
 </template>
-<script>
 
+<script>
 import datatable from '@/utils/vue/datatable.vue'
-//import ProposalDashTable from '@common-utils/proposals_dashboard.vue'
-//import ApprovalDashTable from '@common-utils/approvals_dashboard.vue'
-//import ComplianceDashTable from '@common-utils/compliances_dashboard.vue'
-import {
-  api_endpoints,
-  helpers
-}
-from '@/utils/hooks'
+import FormSection from "@/components/forms/section_toggle.vue"
+import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
     name: 'ExternalDashboard',
     data() {
@@ -46,9 +45,7 @@ export default {
         }
     },
     components:{
-        //ProposalDashTable,
-        //ApprovalDashTable,
-        //ComplianceDashTable
+        FormSection,
     },
     watch: {},
     computed: {
@@ -75,6 +72,5 @@ export default {
         //    console.log(err);
         //});
     },
-
 }
 </script>
