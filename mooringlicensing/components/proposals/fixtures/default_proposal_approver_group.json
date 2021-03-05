@@ -1,0 +1,10 @@
+[
+    {
+        "model": "mooringlicensing.proposalapprovergroup",
+        "fields":
+        {
+            "name":"Default Group",
+            "default": true
+        }
+    }
+]
