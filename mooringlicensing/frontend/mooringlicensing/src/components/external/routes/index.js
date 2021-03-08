@@ -1,5 +1,5 @@
-/*
 import ExternalDashboard from '../dashboard.vue'
+/*
 import Proposal from '../proposal.vue'
 */
 import ProposalApply from '../proposal_apply.vue'
@@ -22,13 +22,11 @@ export default
         }
     },
     children: [
-        /*
         {
             path: '/',
             component: ExternalDashboard,
-            name: 'external-proposals-dash'
+            name: 'external-dashboard'
         },
-        */
         {
             path: 'organisations/manage/:org_id',
             component: Organisation

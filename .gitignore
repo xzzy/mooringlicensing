@@ -2,6 +2,7 @@
 .env
 venv/
 venv2/
+venv3.8/
 node_modules/
 #cronjobs
 .ropeproject/
