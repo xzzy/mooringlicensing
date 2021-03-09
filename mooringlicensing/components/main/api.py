@@ -11,13 +11,13 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, B
 from rest_framework.pagination import PageNumberPagination
 from django.urls import reverse
 from mooringlicensing.components.main.models import (#Region, District, Tenure, 
-        ApplicationType, #ActivityMatrix, AccessType, Park, Trail, ActivityCategory, Activity, 
+        #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, ActivityCategory, Activity, 
         #RequiredDocument, 
         Question, 
         GlobalSettings
         )
 from mooringlicensing.components.main.serializers import (#RegionSerializer, DistrictSerializer, TenureSerializer, 
-        ApplicationTypeSerializer, #ActivityMatrixSerializer,  AccessTypeSerializer, ParkSerializer, ParkFilterSerializer, TrailSerializer, ActivitySerializer, ActivityCategorySerializer, 
+        #ApplicationTypeSerializer, #ActivityMatrixSerializer,  AccessTypeSerializer, ParkSerializer, ParkFilterSerializer, TrailSerializer, ActivitySerializer, ActivityCategorySerializer, 
         #RequiredDocumentSerializer, 
         QuestionSerializer, 
         GlobalSettingsSerializer, 
@@ -38,13 +38,13 @@ import logging
 logger = logging.getLogger('payment_checkout')
 
 
-class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    #queryset = ApplicationType.objects.all().order_by('order')
-    queryset = ApplicationType.objects.none()
-    serializer_class = ApplicationTypeSerializer
-
-    def get_queryset(self):
-        return ApplicationType.objects.order_by('order').filter(visible=True)
+#class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
+#    #queryset = ApplicationType.objects.all().order_by('order')
+#    queryset = ApplicationType.objects.none()
+#    serializer_class = ApplicationTypeSerializer
+#
+#    def get_queryset(self):
+#        return ApplicationType.objects.order_by('order').filter(visible=True)
 
 
 class GlobalSettingsViewSet(viewsets.ReadOnlyModelViewSet):
