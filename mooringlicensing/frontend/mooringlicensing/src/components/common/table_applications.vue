@@ -68,7 +68,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: false,
+                searching: true,
                 ajax: {
                     "url": "/api/proposal_paginated/list_external?format=datatables",
                     "dataSrc": 'data',
@@ -105,13 +105,13 @@ export default {
                         data: "id",
                         orderable: true,
                         searchable: true,
-                        visible: false,
+                        visible: true,
                         'render': function(row, type, full){
                             return full.id
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 2. Lodgement Number
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -121,53 +121,53 @@ export default {
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 3. Type
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 4. Application Type
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 5. Status
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 6. Lodged
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return full.lodgement_date
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 7. Action
                         data: "id",
                         orderable: true,
                         searchable: true,
-                        visible: false,
+                        visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     //{

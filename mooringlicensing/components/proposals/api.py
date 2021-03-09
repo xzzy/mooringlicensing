@@ -72,7 +72,7 @@ from mooringlicensing.components.proposals.serializers import (
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, ListProposalSerializer,
+    ProposalAssessmentAnswerSerializer, ListProposalSerializer, ProposalSerializerTest,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -187,6 +187,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
+        return Proposal.objects.all()
         user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
@@ -203,7 +204,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
-
+        aho = qs[0]
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         # applicant_id = request.GET.get('org_id')
         # if applicant_id:
@@ -211,7 +212,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
+        # serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
+        serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
