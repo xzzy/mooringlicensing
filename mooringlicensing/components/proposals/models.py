@@ -389,20 +389,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 )
 
 
-    APPLICATION_TYPE_CHOICES = (
+    PROPOSAL_TYPE_CHOICES = (
         ('new_proposal', 'New Application'),
         ('amendment', 'Amendment'),
         ('renewal', 'Renewal'),
         ('external', 'External'),
     )
 
-    proposal_type = models.CharField('Application Status Type', max_length=40, choices=APPLICATION_TYPE_CHOICES,
-                                        default=APPLICATION_TYPE_CHOICES[0][0])
+    proposal_type = models.CharField('Proposal Status Type', max_length=40, choices=PROPOSAL_TYPE_CHOICES,
+                                        default=PROPOSAL_TYPE_CHOICES[0][0])
 
-    data = JSONField(blank=True, null=True)
+    #data = JSONField(blank=True, null=True)
     assessor_data = JSONField(blank=True, null=True)
     comment_data = JSONField(blank=True, null=True)
-    schema = JSONField(blank=False, null=False)
+    #schema = JSONField(blank=False, null=False)
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
@@ -424,32 +424,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     processing_status = models.CharField('Processing Status', max_length=30, choices=PROCESSING_STATUS_CHOICES,
                                          default=PROCESSING_STATUS_CHOICES[1][0])
     prev_processing_status = models.CharField(max_length=30, blank=True, null=True)
-    #id_check_status = models.CharField('Identification Check Status', max_length=30, choices=ID_CHECK_STATUS_CHOICES,
-     #                                  default=ID_CHECK_STATUS_CHOICES[0][0])
-    #compliance_check_status = models.CharField('Return Check Status', max_length=30, choices=COMPLIANCE_CHECK_STATUS_CHOICES,
-     #                                       default=COMPLIANCE_CHECK_STATUS_CHOICES[0][0])
-    #character_check_status = models.CharField('Character Check Status', max_length=30,
-     #                                         choices=CHARACTER_CHECK_STATUS_CHOICES,
-      #                                        default=CHARACTER_CHECK_STATUS_CHOICES[0][0])
-    #review_status = models.CharField('Review Status', max_length=30, choices=REVIEW_STATUS_CHOICES,
-     #                                default=REVIEW_STATUS_CHOICES[0][0])
 
     approval = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True)
 
-    previous_application = models.ForeignKey('self', blank=True, null=True)
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
-    #activity = models.CharField(max_length=255,null=True,blank=True)
-    ##region = models.CharField(max_length=255,null=True,blank=True)
-    #tenure = models.CharField(max_length=255,null=True,blank=True)
-    #region = models.ForeignKey(Region, null=True, blank=True)
-    #district = models.ForeignKey(District, null=True, blank=True)
-    application_type = models.ForeignKey(ApplicationType)
     approval_level = models.CharField('Activity matrix approval level', max_length=255,null=True,blank=True)
     approval_level_document = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='approval_level_document')
     approval_comment = models.TextField(blank=True)
     #If the proposal is created as part of migration of approvals
     migrated=models.BooleanField(default=False)
+    #application_type = models.ForeignKey(ApplicationType)
 
     #fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
@@ -459,15 +444,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         verbose_name_plural = "Applications"
 
     def __str__(self):
-        return str(self.id)
+        return str(self.lodgement_number)
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
-        application_type_acronym = self.application_type.acronym if self.application_type else None
-        if self.lodgement_number == '' and application_type_acronym:
-            new_lodgment_id = '{}{0:06d}'.format(application_type_acronym, self.pk)
-            self.lodgement_number = new_lodgment_id
-            self.save()
+        #application_type_acronym = self.application_type.acronym if self.application_type else None
+        #if self.lodgement_number == '':
+        #    new_lodgment_id = '{1}{0:06d}'.format(self.pk, 'P')
+        #    self.lodgement_number = new_lodgment_id
+        #    self.save()
 
     ##Append 'P' to Proposal id to generate Lodgement number. Lodgement number and lodgement sequence are used to generate Reference.
     #def save(self, *args, **kwargs):
@@ -1539,6 +1524,97 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
                 #proposal.save()
             return proposal
+        
+    @property
+    def application_type(self):
+        if hasattr(self, 'waitinglistapplication'):
+            return self.waitinglistapplication.code
+        elif hasattr(self, 'annualadmissionapplication'):
+            return self.annualadmissionapplication.code
+        elif hasattr(self, 'authoriseduserapplication'):
+            return self.authoriseduserapplication.code
+        elif hasattr(self, 'mooringlicenseapplication'):
+            return self.mooringlicenseapplication.code
+
+
+class WaitingListApplication(Proposal):
+    proposal = models.OneToOneField(Proposal, parent_link=True)
+    code = 'wla'
+    prefix = 'WL'
+    description = 'Waiting List Application'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        #application_type_acronym = self.application_type.acronym if self.application_type else None
+        super(Proposal, self).save(*args,**kwargs)
+        if self.lodgement_number == '':
+            new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
+            self.lodgement_number = new_lodgment_id
+            self.save()
+
+
+class AnnualAdmissionApplication(Proposal):
+    proposal = models.OneToOneField(Proposal, parent_link=True)
+    code = 'aaa'
+    prefix = 'AA'
+    description = 'Annual Admission Application'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        #application_type_acronym = self.application_type.acronym if self.application_type else None
+        super(Proposal, self).save(*args,**kwargs)
+        if self.lodgement_number == '':
+            new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
+            self.lodgement_number = new_lodgment_id
+            self.save()
+
+
+class AuthorisedUserApplication(Proposal):
+    proposal = models.OneToOneField(Proposal, parent_link=True)
+    code = 'aua'
+    prefix = 'AU'
+    description = 'Authorised User Application'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        #application_type_acronym = self.application_type.acronym if self.application_type else None
+        super(Proposal, self).save(*args,**kwargs)
+        if self.lodgement_number == '':
+            new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
+            self.lodgement_number = new_lodgment_id
+            self.save()
+
+
+class MooringLicenseApplication(Proposal):
+    proposal = models.OneToOneField(Proposal, parent_link=True)
+    code = 'mla'
+    prefix = 'ML'
+    description = 'Mooring License Application'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        #application_type_acronym = self.application_type.acronym if self.application_type else None
+        super(Proposal, self).save(*args,**kwargs)
+        if self.lodgement_number == '':
+            new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
+            self.lodgement_number = new_lodgment_id
+            self.save()
+
+
+
+
 
 
 class ProposalLogDocument(Document):
