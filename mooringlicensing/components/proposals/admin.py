@@ -5,7 +5,7 @@ from mooringlicensing.components.proposals import models
 from mooringlicensing.components.proposals import forms
 from mooringlicensing.components.main.models import (
     SystemMaintenance,
-    ApplicationType,
+    #ApplicationType,
     #OracleCode,
     #RequiredDocument,
     Question,
@@ -90,7 +90,14 @@ class ProposalApproverGroupAdmin(admin.ModelAdmin):
 
 @admin.register(models.ProposalStandardRequirement)
 class ProposalStandardRequirementAdmin(admin.ModelAdmin):
-    list_display = ['code','text','obsolete', 'application_type', 'participant_number_required', 'default']
+    list_display = [
+            'code',
+            'text',
+            'obsolete', 
+            #'application_type', 
+            'participant_number_required', 
+            'default'
+            ]
 
 #@admin.register(models.HelpPage)
 #class HelpPageAdmin(admin.ModelAdmin):
@@ -119,7 +126,13 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
 
 @admin.register(models.ChecklistQuestion)
 class ChecklistQuestionAdmin(admin.ModelAdmin):
-    list_display = ['text', 'application_type','list_type', 'obsolete','answer_type', 'order']
+    list_display = ['text', 
+            #'application_type',
+            'list_type', 
+            'obsolete',
+            'answer_type', 
+            'order'
+            ]
     ordering = ('order',)
 
 @admin.register(SystemMaintenance)
@@ -129,9 +142,9 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
     readonly_fields = ('duration',)
     form = forms.SystemMaintenanceAdminForm
 
-@admin.register(ApplicationType)
-class ApplicationTypeAdmin(admin.ModelAdmin):
-    ordering = ('order',)
+#@admin.register(ApplicationType)
+#class ApplicationTypeAdmin(admin.ModelAdmin):
+#    ordering = ('order',)
 
 #@admin.register(ApplicationType)
 #class ApplicationTypeAdmin(admin.ModelAdmin):
@@ -188,6 +201,8 @@ class GlobalSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ['question_text', 'answer_one', 'answer_two', 'answer_three', 'answer_four', 'application_type',]
+    list_display = ['question_text', 'answer_one', 'answer_two', 'answer_three', 'answer_four', 
+            #application_type',
+            ]
     ordering = ('question_text',)
 
