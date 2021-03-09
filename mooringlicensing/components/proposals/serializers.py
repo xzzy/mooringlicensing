@@ -170,6 +170,17 @@ class ProposalAssessmentSerializer(serializers.ModelSerializer):
         return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
+class ProposalSerializerTest(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proposal
+        fields = (
+            'id',
+            'lodgement_number',
+            'lodgement_date',
+        )
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -186,7 +197,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'id',
                 'application_type',
                 'proposal_type',
-                'activity',
+                # 'activity',
                 'approval_level',
                 'title',
                 'customer_status',
@@ -265,7 +276,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'id',
                 'application_type',
                 'proposal_type',
-                'activity',
+                # 'activity',
                 'approval_level',
                 'title',
                 'customer_status',
