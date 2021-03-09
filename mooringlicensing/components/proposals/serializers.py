@@ -1,6 +1,6 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
-from mooringlicensing.components.main.models import ApplicationType
+#from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.proposals.models import (
                                     #ProposalType,
                                     Proposal,
@@ -681,4 +681,10 @@ class SearchKeywordSerializer(serializers.Serializer):
 class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
+
+#class ApplicationTypeDescriptionsSerializer(serializers.Serializer):
+#    descriptions = serializers.SerializerMethodField()
+#
+#    def get_descriptions(self, obj):
+#        return Proposal.application_type_descriptions
 

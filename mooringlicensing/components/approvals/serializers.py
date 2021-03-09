@@ -1,7 +1,7 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 from mooringlicensing.components.proposals.serializers import ProposalSerializer, InternalProposalSerializer
-from mooringlicensing.components.main.serializers import ApplicationTypeSerializer
+#from mooringlicensing.components.main.serializers import ApplicationTypeSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,

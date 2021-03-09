@@ -30,7 +30,7 @@ from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
-from mooringlicensing.components.proposals.models import Proposal, ApplicationType
+from mooringlicensing.components.proposals.models import Proposal#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalDocument

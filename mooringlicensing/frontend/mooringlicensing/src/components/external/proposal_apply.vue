@@ -4,7 +4,7 @@
             <div class="col-sm-12">
                 <form class="form-horizontal" name="personal_form" method="post">
                     <!-- should probably use FormSection here instead-->
-                    <div class="panel panel-default">
+                    <!--div class="panel panel-default">
                         <div class="panel-heading">
                             <h3 class="panel-title">Applicant <small>The applicant will be the licensee.</small><i class="fa fa-question-circle" data-toggle="tooltip" data-placement="bottom" style="color:blue" title="Please ensure the applicant is the same as the insured party on your public liability on your public liability insurance certificate.">&nbsp;</i>
                                 <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
@@ -33,33 +33,24 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div-->
 
-                    <div v-if="org_applicant != ''||yourself!=''" class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Apply for
-                                <a :href="'#'+pBody2" data-toggle="collapse"  data-parent="#userInfo2" expanded="true" :aria-controls="pBody2">
-                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                </a>
-                            </h3>
-                        </div>
-                        <div class="panel-body collapse in" :id="pBody2">
-                            <div>
-                                <label for="" class="control-label" >Licence Type * <a :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
-                                <div class="col-sm-12">
-                                    <div class="form-group">
-                                        <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
-											<option value="" selected disabled>Select Licence type*</option>
-                                            <option v-for="application_type in application_types" :value="application_type.value">
-                                                {{ application_type.text }}
-                                            </option>
-                                        </select>
-                                    </div>
+                    <!--div v-if="org_applicant != ''||yourself!=''" class="panel panel-default"-->
+                    <FormSection label="Apply for">
+                        <div>
+                            <label for="" class="control-label" >Licence Type * <a :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <select class="form-control" style="width:40%" v-model="selected_application_id" @change="chainedSelectAppType(selected_application_id)">
+                                        <option value="" selected disabled>Select Licence type*</option>
+                                        <option v-for="application_type in application_types" :value="application_type">
+                                            {{ application_type }}
+                                        </option>
+                                    </select>
                                 </div>
                             </div>
-
                         </div>
-                    </div>
+                    </FormSection>
 
                     <!--div class="col-sm-12" v-show="has_active_proposals()">
                         <p style="color:red;"> An active application already exists in the system: </p>
@@ -110,6 +101,7 @@ export default {
     }
   },
   components: {
+      FormSection
   },
   computed: {
     isLoading: function() {
@@ -220,15 +212,19 @@ export default {
 		//let vm = this;
 
 		this.$http.get(api_endpoints.application_types).then((response) => {
-				this.api_app_types = response.body;
+				//this.api_app_types = response.body;
 				//console.log('api_app_types ' + response.body);
-
+            for (let app_type of response.body) {
+                this.application_types.push(app_type)
+            }
+                /*(
                 for (var i = 0; i < this.api_app_types.length; i++) {
-                    this.application_types.push( {
+                    this.application_types.push({
                         text: this.api_app_types[i].name, 
                         value: this.api_app_types[i].id, 
-                    } );
+                    });
                 }
+                */
 		},(error) => {
 			console.log(error);
 		})

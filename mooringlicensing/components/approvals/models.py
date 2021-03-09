@@ -20,7 +20,7 @@ from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
-from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document, ApplicationType
+from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
     send_approval_cancel_email_notification,
@@ -242,13 +242,6 @@ class Approval(RevisionedMixin):
         else:
             return False
 
-
-
-    @property
-    def can_extend(self):
-        if self.current_proposal.application_type.name == 'E Class':
-            return self.current_proposal.application_type.max_renewals > self.renewal_count
-        return False
 
 
     @property
