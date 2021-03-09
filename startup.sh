@@ -13,7 +13,7 @@
 #fi
 
 # Start the second process
-gunicorn feewaiver.wsgi --bind :8080 --config /app/gunicorn.ini
+gunicorn mooringlicensing.wsgi --bind :8080 --config /app/gunicorn.ini
 status=$?
 if [ $status -ne 0 ]; then
   echo "Failed to start gunicorn: $status"
