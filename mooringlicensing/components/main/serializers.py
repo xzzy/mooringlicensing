@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db.models import Sum, Max
 from mooringlicensing.components.main.models import (
         CommunicationsLogEntry, #Region, District, Tenure, 
-        ApplicationType, #ActivityMatrix, AccessType, Park, Trail, Activity, ActivityCategory, Section, Zone, 
+        #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, Activity, ActivityCategory, Section, Zone, 
         #RequiredDocument, 
         Question, GlobalSettings
         )#, ParkPrice
@@ -37,16 +37,10 @@ class CommunicationLogEntrySerializer(serializers.ModelSerializer):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
 
-class ApplicationTypeSerializer(serializers.ModelSerializer):
-    #regions = RegionSerializer(many=True)
-    #activity_app_types = ActivitySerializer(many=True)
-    #tenure_app_types = TenureSerializer(many=True)
-    class Meta:
-        model = ApplicationType
-        #fields = ('id', 'name', 'activity_app_types', 'tenure_app_types')
-        #fields = ('id', 'name', 'tenure_app_types')
-        fields = '__all__'
-        #extra_fields = ['pizzas']
+#class ApplicationTypeSerializer(serializers.ModelSerializer):
+#    class Meta:
+#        model = ApplicationType
+#        fields = '__all__'
 
 
 class GlobalSettingsSerializer(serializers.ModelSerializer):

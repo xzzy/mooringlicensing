@@ -31,7 +31,7 @@ from mooringlicensing.components.main.models import (
         UserAction, 
         Document, 
         #Region, District, Tenure, 
-        ApplicationType, 
+        #ApplicationType, 
         #Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
         )
 from mooringlicensing.components.main.utils import get_department_user
@@ -1536,6 +1536,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         elif hasattr(self, 'mooringlicenseapplication'):
             return self.mooringlicenseapplication.code
 
+    @classmethod
+    def application_type_descriptions(self):
+        #import ipdb; ipdb.set_trace();
+        type_list = []
+        for application_type in Proposal.__subclasses__():
+            type_list.append(application_type.description)
+        return type_list
+
 
 class WaitingListApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -1786,7 +1794,7 @@ class ProposalStandardRequirement(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
-    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
+    #application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
     participant_number_required=models.BooleanField(default=False)
     default=models.BooleanField(default=False)
 
@@ -1964,7 +1972,7 @@ class ChecklistQuestion(RevisionedMixin):
                                          default=ANSWER_TYPE_CHOICES[0][0])
 
     #correct_answer= models.BooleanField(default=False)
-    application_type = models.ForeignKey(ApplicationType,blank=True, null=True)
+    #application_type = models.ForeignKey(ApplicationType,blank=True, null=True)
     obsolete = models.BooleanField(default=False)
     order = models.PositiveSmallIntegerField(default=1)
 
@@ -2305,7 +2313,7 @@ class HelpPage(models.Model):
         (HELP_TEXT_INTERNAL, 'Internal'),
     )
 
-    application_type = models.ForeignKey(ApplicationType)
+    #application_type = models.ForeignKey(ApplicationType)
     content = RichTextField()
     description = models.CharField(max_length=256, blank=True, null=True)
     help_type = models.SmallIntegerField('Help Type', choices=HELP_TYPE_CHOICES, default=HELP_TEXT_EXTERNAL)
@@ -2313,7 +2321,11 @@ class HelpPage(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
-        unique_together = ('application_type', 'help_type', 'version')
+        unique_together = (
+                #'application_type', 
+                'help_type', 
+                'version'
+                )
 
 
 #import reversion

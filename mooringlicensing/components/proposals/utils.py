@@ -312,7 +312,7 @@ def save_proponent_data(instance,request,viewset,parks=None,trails=None):
         save_proponent_data_tclass(instance,request,viewset,parks=None,trails=None)
 
 
-from mooringlicensing.components.main.models import ApplicationType
+#from mooringlicensing.components.main.models import ApplicationType
 
 def save_assessor_data(instance,request,viewset):
     with transaction.atomic():
