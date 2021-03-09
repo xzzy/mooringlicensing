@@ -1,5 +1,5 @@
 # Prepare the base environment.
-FROM ubuntu:20.04 as builder_base_mooringlicencing
+FROM ubuntu:20.04 as builder_base_mooringlicensing
 MAINTAINER asi@dbca.wa.gov.au
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Australia/Perth
@@ -18,7 +18,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python && \
     ln -s /usr/bin/pip3 /usr/bin/pip
 RUN pip install --upgrade pip
 # Install Python libs from requirements.txt.
-FROM builder_base_moorlinglicensing as python_libs_mooringlicencing
+FROM builder_base_mooringlicensing as python_libs_mooringlicensing
 WORKDIR /app
 
 COPY .git/refs/heads/main /app/git_hash
@@ -35,9 +35,9 @@ RUN patch /usr/local/lib/python3.8/dist-packages/django/contrib/gis/geos/libgeos
 RUN rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
-FROM python_libs_feewaiver
+FROM python_libs_mooringlicensing
 
-COPY gunicorn.ini manage_fw.py ./
+COPY gunicorn.ini manage_ml.py ./
 #COPY ledger ./ledger
 COPY timezone /etc/timezone
 ENV TZ=Australia/Perth
