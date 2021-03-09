@@ -28,9 +28,9 @@
         </div>
 
         <div class="row">
-            <div class="col-lg-12" style="margin-top: 1em;" >
+            <div class="col-lg-12">
                 <datatable 
-                    ref="proposal_datatable" 
+                    ref="application_datatable" 
                     :id="datatable_id" 
                     :dtOptions="application_options" 
                     :dtHeaders="application_headers"
@@ -59,9 +59,11 @@ export default {
             application_types: ['test1', 'test2'],
             application_statuses: ['test3', 'test4'],
 
+            // Datatable settings
             application_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Action'],
             application_options: {
-                
+                searching: false
+
                 // TODO: retrieve contents
 
             },
