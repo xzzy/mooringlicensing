@@ -35,7 +35,7 @@ from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from mooringlicensing.components.main.models import (
         Document, #Region, District, Tenure, 
-        ApplicationType, 
+        #ApplicationType, 
         )
 from mooringlicensing.components.proposals.models import (
     #ProposalType,
@@ -107,6 +107,16 @@ logger = logging.getLogger(__name__)
 #            return Response(serializer.data)
 #        else:
 #            return Response({'error': 'There is currently no application type.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetApplicationTypeDescriptions(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        #serializer = ApplicationTypeDescriptionsSerializer(Proposal.application_type_descriptions(), many=True)
+        #return Response(serializer.data)
+        return Response(Proposal.application_type_descriptions())
+
 
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]

@@ -3,7 +3,7 @@ from ledger.accounts.models import EmailUser,Address, Profile,EmailIdentity, Ema
 from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
-from mooringlicensing.components.main.models import UserSystemSettings, Document, ApplicationType
+from mooringlicensing.components.main.models import UserSystemSettings, Document#, ApplicationType
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from mooringlicensing.helpers import is_mooringlicensing_admin 
