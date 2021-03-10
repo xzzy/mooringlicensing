@@ -204,7 +204,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
-        aho = qs[0]
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         # applicant_id = request.GET.get('org_id')
         # if applicant_id:

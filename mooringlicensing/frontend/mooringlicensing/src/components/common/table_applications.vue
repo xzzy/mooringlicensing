@@ -103,16 +103,16 @@ export default {
                     {
                         // 1. ID
                         data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
                         'render': function(row, type, full){
                             return full.id
                         }
                     },
                     {
                         // 2. Lodgement Number
-                        data: "id",
+                        data: "lodgement_number",
                         orderable: true,
                         searchable: true,
                         visible: true,
