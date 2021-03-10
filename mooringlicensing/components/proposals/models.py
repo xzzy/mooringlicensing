@@ -1544,11 +1544,27 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             type_list.append(application_type.description)
         return type_list
 
+    @classmethod
+    def application_type_dict(self):
+        #import ipdb; ipdb.set_trace();
+        type_list = []
+        for application_type in Proposal.__subclasses__():
+            if application_type.apply_page_visibility:
+                type_list.append({
+                    "code": application_type.code,
+                    "description": application_type.description,
+                    "new_application_text": application_type.new_application_text
+                    })
+        return type_list
+
+
 
 class WaitingListApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'wla'
     prefix = 'WL'
+    new_application_text = "to be included on the waiting list for a mooring license"
+    apply_page_visibility = True
     description = 'Waiting List Application'
 
     class Meta:
@@ -1568,6 +1584,8 @@ class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
+    new_application_text = "for an authorised user permit"
+    apply_page_visibility = True
     description = 'Annual Admission Application'
 
     class Meta:
@@ -1587,6 +1605,8 @@ class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
+    new_application_text = "for an annual admission permit"
+    apply_page_visibility = True
     description = 'Authorised User Application'
 
     class Meta:
@@ -1606,6 +1626,8 @@ class MooringLicenseApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
+    new_application_text = ""
+    apply_page_visibility = False
     description = 'Mooring License Application'
 
     class Meta:
@@ -1664,8 +1686,8 @@ class Vessel(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
-    def __str__(self):
-        return self.nominated_vessel
+    #def __str__(self):
+     #   return self.nominated_vessel
 
 class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set')
