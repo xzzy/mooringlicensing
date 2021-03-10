@@ -1,6 +1,6 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
-from mooringlicensing.components.main.models import ApplicationType
+#from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.proposals.models import (
                                     #ProposalType,
                                     Proposal,
@@ -170,6 +170,17 @@ class ProposalAssessmentSerializer(serializers.ModelSerializer):
         return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
+class ProposalSerializerTest(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proposal
+        fields = (
+            'id',
+            'lodgement_number',
+            'lodgement_date',
+        )
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -186,7 +197,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'id',
                 'application_type',
                 'proposal_type',
-                'activity',
+                # 'activity',
                 'approval_level',
                 'title',
                 'customer_status',
@@ -265,7 +276,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'id',
                 'application_type',
                 'proposal_type',
-                'activity',
+                # 'activity',
                 'approval_level',
                 'title',
                 'customer_status',
@@ -681,4 +692,10 @@ class SearchKeywordSerializer(serializers.Serializer):
 class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
+
+#class ApplicationTypeDescriptionsSerializer(serializers.Serializer):
+#    descriptions = serializers.SerializerMethodField()
+#
+#    def get_descriptions(self, obj):
+#        return Proposal.application_type_descriptions
 

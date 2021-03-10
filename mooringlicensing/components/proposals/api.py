@@ -35,7 +35,7 @@ from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from mooringlicensing.components.main.models import (
         Document, #Region, District, Tenure, 
-        ApplicationType, 
+        #ApplicationType, 
         )
 from mooringlicensing.components.proposals.models import (
     #ProposalType,
@@ -72,7 +72,7 @@ from mooringlicensing.components.proposals.serializers import (
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, ListProposalSerializer,
+    ProposalAssessmentAnswerSerializer, ListProposalSerializer, ProposalSerializerTest,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -107,6 +107,16 @@ logger = logging.getLogger(__name__)
 #            return Response(serializer.data)
 #        else:
 #            return Response({'error': 'There is currently no application type.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetApplicationTypeDescriptions(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        #serializer = ApplicationTypeDescriptionsSerializer(Proposal.application_type_descriptions(), many=True)
+        #return Response(serializer.data)
+        return Response(Proposal.application_type_descriptions())
+
 
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -146,6 +156,8 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if application_type and not application_type.lower() =='all':
             queryset = queryset.filter(application_type__name=application_type)
 
+        filter_application_type = request.GET.get('filter_application_type')
+        filter_application_status = request.GET.get('filter_application_status')
         # date_from = request.GET.get('date_from')
         # date_to = request.GET.get('date_to')
         # if queryset.model is Proposal:
@@ -187,6 +199,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
+        return Proposal.objects.all()
         user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
@@ -203,7 +216,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
-
         # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
         # applicant_id = request.GET.get('org_id')
         # if applicant_id:
@@ -211,7 +223,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
+        # serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
+        serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 

@@ -68,20 +68,15 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: false,
+                searching: true,
                 ajax: {
                     "url": "/api/proposal_paginated/list_external?format=datatables",
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        //d.regions = vm.filterProposalRegion.join();
-                        //d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        //d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        //d.application_type = vm.filterProposalApplicationType;
-                        //d.proposal_activity = vm.filterProposalActivity;
-                        //d.submitter = vm.filterProposalSubmitter;
-                        //d.proposal_status = vm.filterProposalStatus;
+                        d.filter_application_type = vm.filterApplicationType;
+                        d.filter_application_status = vm.filterApplicationStatus;
                     }
                 },
                 dom: 'lBfrtip',
@@ -103,16 +98,16 @@ export default {
                     {
                         // 1. ID
                         data: "id",
-                        orderable: true,
-                        searchable: true,
+                        orderable: false,
+                        searchable: false,
                         visible: false,
                         'render': function(row, type, full){
                             return full.id
                         }
                     },
                     {
-                        // 2. Lodgement number
-                        data: "id",
+                        // 2. Lodgement Number
+                        data: "lodgement_number",
                         orderable: true,
                         searchable: true,
                         visible: true,
@@ -121,53 +116,53 @@ export default {
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 3. Type
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 4. Application Type
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 5. Status
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 6. Lodged
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return full.lodgement_date
                         }
                     },
                     {
-                        // 2. Lodgement number
+                        // 7. Action
                         data: "id",
                         orderable: true,
                         searchable: true,
-                        visible: false,
+                        visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'not implemented'
                         }
                     },
                     //{
@@ -311,6 +306,24 @@ export default {
         datatable
     },
     watch: {
+        filterApplicationStatus: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            //if (vm.filterApplicationStatus != 'All') {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
+            //} else {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
+            //}
+        },
+        filterApplicationType: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            //if (vm.filterApplicationType != 'All') {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
+            //} else {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationType).draw();
+            //}
+        },
 
     },
     computed: {
