@@ -75,13 +75,8 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        //d.regions = vm.filterProposalRegion.join();
-                        //d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        //d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        //d.application_type = vm.filterProposalApplicationType;
-                        //d.proposal_activity = vm.filterProposalActivity;
-                        //d.submitter = vm.filterProposalSubmitter;
-                        //d.proposal_status = vm.filterProposalStatus;
+                        d.filter_application_type = vm.filterApplicationType;
+                        d.filter_application_status = vm.filterApplicationStatus;
                     }
                 },
                 dom: 'lBfrtip',
@@ -311,6 +306,24 @@ export default {
         datatable
     },
     watch: {
+        filterApplicationStatus: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            //if (vm.filterApplicationStatus != 'All') {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
+            //} else {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
+            //}
+        },
+        filterApplicationType: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            //if (vm.filterApplicationType != 'All') {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
+            //} else {
+            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationType).draw();
+            //}
+        },
 
     },
     computed: {
