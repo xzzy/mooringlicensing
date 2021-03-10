@@ -146,6 +146,8 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if application_type and not application_type.lower() =='all':
             queryset = queryset.filter(application_type__name=application_type)
 
+        filter_application_type = request.GET.get('filter_application_type')
+        filter_application_status = request.GET.get('filter_application_status')
         # date_from = request.GET.get('date_from')
         # date_to = request.GET.get('date_to')
         # if queryset.model is Proposal:
