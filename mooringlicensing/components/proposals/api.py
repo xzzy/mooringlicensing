@@ -60,20 +60,19 @@ from mooringlicensing.components.proposals.serializers import (
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
-    #PropedDeclineSerializer,
+    # PropedDeclineSerializer,
     AmendmentRequestSerializer,
-    #SearchReferenceSerializer,
-    #SearchKeywordSerializer,
-    #ListProposalSerializer,
-    #AmendmentRequestDisplaySerializer,
+    # SearchReferenceSerializer,
+    # SearchKeywordSerializer,
+    # ListProposalSerializer,
+    # AmendmentRequestDisplaySerializer,
     VesselSerializer,
-    #OnHoldSerializer,
-    #ProposalOtherDetailsSerializer,
-    #SaveProposalOtherDetailsSerializer,
+    # OnHoldSerializer,
+    # ProposalOtherDetailsSerializer,
+    # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer,
-    #ApplicationTypeDescriptionsSerializer,
+    ProposalAssessmentAnswerSerializer, ListProposalSerializer, ProposalSerializerTest,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -144,9 +143,92 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
         return Response(_version_serializer.data)
 
 
+class ProposalFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        regions = request.GET.get('regions')
+        if regions:
+            if queryset.model is Proposal:
+                queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
+
+        application_type = request.GET.get('application_type')
+        if application_type and not application_type.lower() =='all':
+            queryset = queryset.filter(application_type__name=application_type)
+
+        filter_application_type = request.GET.get('filter_application_type')
+        filter_application_status = request.GET.get('filter_application_status')
+        # date_from = request.GET.get('date_from')
+        # date_to = request.GET.get('date_to')
+        # if queryset.model is Proposal:
+        #     if date_from:
+        #         queryset = queryset.filter(lodgement_date__gte=date_from)
+        #
+        #     if date_to:
+        #         queryset = queryset.filter(lodgement_date__lte=date_to)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class ProposalRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class ProposalPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (ProposalFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (ProposalRenderer,)
+    queryset = Proposal.objects.none()
+    serializer_class = ListProposalSerializer
+    search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        return Proposal.objects.all()
+        user = self.request.user
+        if is_internal(self.request):
+            return Proposal.objects.all()
+        elif is_customer(self.request):
+            # user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            qs = Proposal.objects.filter(Q(proxy_applicant=user))
+            return qs
+        return Proposal.objects.none()
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+        # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
+        # applicant_id = request.GET.get('org_id')
+        # if applicant_id:
+        #     qs = qs.filter(applicant_id=applicant_id)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        # serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
+        serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
+
+
 class ProposalViewSet(viewsets.ModelViewSet):
-#class ProposalViewSet(VersionableModelViewSetMixin):
-    #queryset = Proposal.objects.all()
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
     lookup_field = 'id'
@@ -154,13 +236,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if is_internal(self.request):
-            qs= Proposal.objects.all()
+            qs = Proposal.objects.all()
             #return qs.exclude(migrated=True)
             return qs
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
-            queryset =  Proposal.objects.filter( Q(org_applicant_id__in = user_orgs) | Q(submitter = user) )
-            return queryset.exclude(application_type=self.excluded_type)
+            queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=user))
+            # return queryset.exclude(application_type=self.excluded_type)
+            return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
@@ -251,18 +334,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return Response(urls)
 
 
-    @list_route(methods=['GET',])
-    def list_paginated(self, request, *args, **kwargs):
-        """
-        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-        """
-        proposals = self.get_queryset()
-        paginator = PageNumberPagination()
-        #paginator = LimitOffsetPagination()
-        paginator.page_size = 5
-        result_page = paginator.paginate_queryset(proposals, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
+    # @list_route(methods=['GET',])
+    # def list_paginated(self, request, *args, **kwargs):
+    #     """
+    #     https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
+    #     """
+    #     proposals = self.get_queryset()
+    #     paginator = PageNumberPagination()
+    #     #paginator = LimitOffsetPagination()
+    #     paginator.page_size = 5
+    #     result_page = paginator.paginate_queryset(proposals, request)
+    #     serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+    #     return paginator.get_paginated_response(serializer.data)
 
 
     @detail_route(methods=['GET',])
@@ -422,7 +505,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         paginator = DatatablesPageNumberPagination()
         paginator.page_size = proposals.count()
         result_page = paginator.paginate_queryset(proposals, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return paginator.get_paginated_response(serializer.data)
 
     @detail_route(methods=['GET',])

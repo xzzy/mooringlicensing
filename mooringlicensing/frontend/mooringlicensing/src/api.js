@@ -14,6 +14,8 @@ module.exports = {
     countries: "https://restcountries.eu/rest/v1/?fullText=true",
 
     /*
+    proposals_paginated_external:   "/api/proposal_paginated/proposals_external/?format=datatables",
+    proposals_paginated_internal:   "/api/proposal_paginated/proposals_internal/?format=datatables",
     mooringlicensings: '/api/mooringlicensings/',
     participants: '/api/participants/participants_list',
     parks: '/api/parks/parks_list',
