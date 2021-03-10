@@ -2,6 +2,7 @@
 module.exports = {
     //application_types:"/api/application_types.json",
     application_types:"/api/application_types",
+    application_types_dict:"/api/application_types_dict",
     profile: '/api/profile',
     organisations: '/api/organisations.json',
     filtered_organisations: '/api/filtered_organisations',

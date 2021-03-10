@@ -119,6 +119,15 @@ class GetApplicationTypeDescriptions(views.APIView):
         return Response(Proposal.application_type_descriptions())
 
 
+class GetApplicationTypeDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        #serializer = ApplicationTypeDescriptionsSerializer(Proposal.application_type_descriptions(), many=True)
+        #return Response(serializer.data)
+        return Response(Proposal.application_type_dict())
+
+
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
