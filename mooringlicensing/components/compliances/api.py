@@ -35,7 +35,7 @@ from mooringlicensing.components.compliances.models import (
    ComplianceAmendmentRequest,
    ComplianceAmendmentReason
 )
-from mooringlicensing.components.main.models import ApplicationType
+#rom mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.compliances.serializers import (
     ComplianceSerializer,
     InternalComplianceSerializer,
