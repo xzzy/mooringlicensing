@@ -6,7 +6,7 @@
                     <label for="">Type</label>
                     <select class="form-control" v-model="filterApplicationType">
                         <option value="All">All</option>
-                        <option v-for="r in application_types" :value="r">{{r}}</option>
+                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
                     </select>
                 </div>
             </div>
@@ -15,7 +15,7 @@
                     <label for="">Status</label>
                     <select class="form-control" v-model="filterApplicationStatus">
                         <option value="All">All</option>
-                        <option v-for="a in application_statuses" :value="a">{{a}}</option>
+                        <option v-for="status in application_statuses" :value="status.code">{{ status.description }}</option>
                     </select>
                 </div>
             </div>
@@ -23,7 +23,7 @@
 
         <div class="row">
             <div class="col-md-12">
-                <button type="button" class="btn btn-primary pull-right">New Application</button>
+                <button type="button" class="btn btn-primary pull-right" @click="new_application_button_clicked">New Application</button>
             </div>
         </div>
 
@@ -107,32 +107,33 @@ export default {
                     },
                     {
                         // 2. Lodgement Number
-                        data: "lodgement_number",
+                        data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.lodgement_number
                         }
                     },
                     {
-                        // 3. Type
+                        // 3. Type (This corresponds to the 'ApplicationType' at the backend)
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.application_type_dict.description
                         }
                     },
                     {
-                        // 4. Application Type
+                        // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.proposal_type
                         }
                     },
                     {
@@ -142,7 +143,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.customer_status
                         }
                     },
                     {
@@ -165,34 +166,6 @@ export default {
                             return 'not implemented'
                         }
                     },
-                    //{
-                    //    // 2. Region
-                    //    data: "region",
-                    //    'render': function (value) {
-                    //        return helpers.dtPopover(value);
-                    //    },
-                    //    'createdCell': helpers.dtPopoverCellFn,
-                    //    visible: false,
-                    //    name: 'region__name',
-                    //    searchable: true,
-                    //},
-                    //{
-                    //    // 3. Activity/Application Type
-                    //    data: "activity",
-                    //    searchable: true,
-                    //    name: 'activity',
-                    //},
-                    //{
-                    //    // 3.5 Title
-                    //    data: "title",
-                    //    'render': function (value) {
-                    //        return helpers.dtPopover(value);
-                    //    },
-                    //    'createdCell': helpers.dtPopoverCellFn,
-                    //    visible: false,
-                    //    name: 'title',
-                    //    searchable: true,
-                    //},
                     //{
                     //    // 4. Submitter
                     //    data: "submitter",
@@ -330,10 +303,24 @@ export default {
 
     },
     methods: {
-
+        new_application_button_clicked: function(){
+            this.$router.push({
+                name: 'apply_proposal'
+            })
+        },
+        fetchFilterLists: function(){
+            let vm = this;
+            vm.$http.get('/api/proposal/filter_list').then((response) => {
+                console.log(response)
+                vm.application_types = response.body.application_types
+                vm.application_statuses = response.body.application_statuses
+            },(error) => {
+                console.log(error);
+            })
+        },
     },
     created: function(){
-
+        this.fetchFilterLists()
     },
     mounted: function(){
 
