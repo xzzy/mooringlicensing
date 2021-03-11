@@ -170,17 +170,6 @@ class ProposalAssessmentSerializer(serializers.ModelSerializer):
         return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
-class ProposalSerializerTest(serializers.ModelSerializer):
-
-    class Meta:
-        model = Proposal
-        fields = (
-            'id',
-            'lodgement_number',
-            'lodgement_date',
-        )
-
-
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -261,73 +250,83 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 class ListProposalSerializer(BaseProposalSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(read_only=True)
-    processing_status = serializers.SerializerMethodField(read_only=True)
-    review_status = serializers.SerializerMethodField(read_only=True)
-    customer_status = serializers.SerializerMethodField(read_only=True)
-    assigned_officer = serializers.SerializerMethodField(read_only=True)
+    processing_status = serializers.SerializerMethodField()
+    # review_status = serializers.SerializerMethodField(read_only=True)
+    customer_status = serializers.SerializerMethodField()
+    assigned_officer = serializers.SerializerMethodField()
+    application_type_dict = serializers.SerializerMethodField()
 
-    application_type = serializers.CharField(source='application_type.name', read_only=True)
-    assessor_process = serializers.SerializerMethodField(read_only=True)
-    fee_invoice_url = serializers.SerializerMethodField()
+    # application_type = serializers.CharField(source='application_type.name', read_only=True)
+    # assessor_process = serializers.SerializerMethodField(read_only=True)
+    # fee_invoice_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
         fields = (
                 'id',
-                'application_type',
+                # 'application_type',
+                'application_type_dict',
                 'proposal_type',
                 # 'activity',
-                'approval_level',
-                'title',
+                # 'approval_level',
+                # 'title',
                 'customer_status',
                 'processing_status',
-                'review_status',
+                # 'review_status',
                 'applicant',
-                'proxy_applicant',
+                # 'proxy_applicant',
                 'submitter',
                 'assigned_officer',
-                'previous_application',
-                'get_history',
+                # 'previous_application',
+                # 'get_history',
                 'lodgement_date',
-                'modified_date',
-                'readonly',
-                'can_user_edit',
-                'can_user_view',
-                'reference',
+                # 'modified_date',
+                # 'readonly',
+                # 'can_user_edit',
+                # 'can_user_view',
+                # 'reference',
                 'lodgement_number',
-                'lodgement_sequence',
-                'can_officer_process',
-                'assessor_process',
-                'allowed_assessors',
-                'proposal_type',
-                'fee_invoice_url',
-                'fee_invoice_reference',
-                'fee_paid',
+                # 'lodgement_sequence',
+                # 'can_officer_process',
+                # 'assessor_process',
+                # 'allowed_assessors',
+                # 'proposal_type',
+                # 'fee_invoice_url',
+                # 'fee_invoice_reference',
+                # 'fee_paid',
+                # 'aho',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
-                'id',
+                # 'id',
                 'proposal_type',
-                'activity',
-                'title',
+                # 'activity',
+                # 'title',
                 'customer_status',
-                'processing_status',
-                'applicant',
-                'submitter',
-                'assigned_officer',
+                'application_type_dict',
+                # 'processing_status',
+                # 'applicant',
+                # 'submitter',
+                # 'assigned_officer',
                 'lodgement_date',
-                'can_user_edit',
-                'can_user_view',
-                'reference',
+                # 'can_user_edit',
+                # 'can_user_view',
+                # 'reference',
                 'lodgement_number',
-                'can_officer_process',
-                'assessor_process',
-                'allowed_assessors',
-                'fee_invoice_url',
-                'fee_invoice_reference',
-                'fee_paid',
+                # 'can_officer_process',
+                # 'assessor_process',
+                # 'allowed_assessors',
+                # 'fee_invoice_url',
+                # 'fee_invoice_reference',
+                # 'fee_paid',
                 )
+
+    def get_application_type_dict(self, obj):
+        return {
+            'code': obj.child_obj.code,
+            'description': obj.child_obj.description,
+        }
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
