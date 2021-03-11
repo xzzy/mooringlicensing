@@ -1549,11 +1549,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
     @classmethod
-    def application_type_dict(self):
-        #import ipdb; ipdb.set_trace();
+    def application_type_dict(self, include_all=False):
         type_list = []
         for application_type in Proposal.__subclasses__():
-            if application_type.apply_page_visibility:
+            if application_type.apply_page_visibility or include_all:
                 type_list.append({
                     "code": application_type.code,
                     "description": application_type.description,

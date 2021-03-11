@@ -956,7 +956,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         data = dict(
-            application_types=Proposal.application_type_dict(),
+            application_types=Proposal.application_type_dict(include_all=True),
             application_statuses=[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES],
         )
         return Response(data)
