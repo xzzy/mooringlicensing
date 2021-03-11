@@ -1524,17 +1524,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
                 #proposal.save()
             return proposal
-        
+
     @property
-    def application_type(self):
+    def child_obj(self):
         if hasattr(self, 'waitinglistapplication'):
-            return self.waitinglistapplication.code
+            return self.waitinglistapplication
         elif hasattr(self, 'annualadmissionapplication'):
-            return self.annualadmissionapplication.code
+            return self.annualadmissionapplication
         elif hasattr(self, 'authoriseduserapplication'):
-            return self.authoriseduserapplication.code
+            return self.authoriseduserapplication
         elif hasattr(self, 'mooringlicenseapplication'):
-            return self.mooringlicenseapplication.code
+            return self.mooringlicenseapplication
+
+    @property
+    def application_type_code(self):
+        return self.child_obj.code
 
     @classmethod
     def application_type_descriptions(self):
