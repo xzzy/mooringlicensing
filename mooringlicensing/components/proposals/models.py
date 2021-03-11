@@ -1558,7 +1558,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
 
-
 class WaitingListApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'wla'
@@ -1641,10 +1640,6 @@ class MooringLicenseApplication(Proposal):
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
-
-
-
-
 
 
 class ProposalLogDocument(Document):

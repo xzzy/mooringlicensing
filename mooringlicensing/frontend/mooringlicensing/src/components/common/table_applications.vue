@@ -23,7 +23,7 @@
 
         <div class="row">
             <div class="col-md-12">
-                <button type="button" class="btn btn-primary pull-right">New Application</button>
+                <button type="button" class="btn btn-primary pull-right" @click="new_application_button_clicked">New Application</button>
             </div>
         </div>
 
@@ -330,7 +330,12 @@ export default {
 
     },
     methods: {
-
+        new_application_button_clicked: function(){
+            console.log('in new_application_button_clicked')
+            this.$router.push({
+                name: 'apply_proposal'
+            })
+        }
     },
     created: function(){
 
