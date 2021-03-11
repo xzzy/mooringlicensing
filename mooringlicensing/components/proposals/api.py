@@ -246,12 +246,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()
-            #return qs.exclude(migrated=True)
             return qs
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
             queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=user))
-            # return queryset.exclude(application_type=self.excluded_type)
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
