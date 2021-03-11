@@ -208,7 +208,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        return Proposal.objects.all()
+        return Proposal.objects.all()  # TODO: remove this line and return proper results
         user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
@@ -232,8 +232,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        # serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        # serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
@@ -341,21 +339,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         urls = ['?version_id2={}&version_id1={}'.format(version_ids[0], version_ids[i+1]) for i in range(len(version_ids)-1)]
         return Response(urls)
 
-
-    # @list_route(methods=['GET',])
-    # def list_paginated(self, request, *args, **kwargs):
-    #     """
-    #     https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-    #     """
-    #     proposals = self.get_queryset()
-    #     paginator = PageNumberPagination()
-    #     #paginator = LimitOffsetPagination()
-    #     paginator.page_size = 5
-    #     result_page = paginator.paginate_queryset(proposals, request)
-    #     serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-    #     return paginator.get_paginated_response(serializer.data)
-
-
     @detail_route(methods=['GET',])
     def action_log(self, request, *args, **kwargs):
         try:
@@ -460,7 +443,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['GET',])
     def vessels(self, request, *args, **kwargs):
         try:
@@ -501,21 +483,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @list_route(methods=['GET',])
-    def list_paginated(self, request, *args, **kwargs):
-        """
-        Placing Paginator class here (instead of settings.py) allows specific method for desired behaviour),
-        otherwise all serializers will use the default pagination class
-
-        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-        """
-        proposals = self.get_queryset()
-        paginator = DatatablesPageNumberPagination()
-        paginator.page_size = proposals.count()
-        result_page = paginator.paginate_queryset(proposals, request)
-        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
-
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -551,7 +518,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
@@ -705,7 +671,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             if hasattr(e,'message'):
                     raise serializers.ValidationError(e.message)
-
 
     @detail_route(methods=['POST',])
     def proposed_approval(self, request, *args, **kwargs):
@@ -890,7 +855,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def assessor_save(self, request, *args, **kwargs):
@@ -994,6 +958,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET',])
+    def filter_list(self, request, *args, **kwargs):
+        data = dict(
+            application_types=Proposal.application_type_dict(),
+            application_statuses=[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES],
+        )
+        return Response(data)
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
