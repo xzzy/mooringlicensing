@@ -72,7 +72,7 @@ from mooringlicensing.components.proposals.serializers import (
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, ListProposalSerializer, ProposalSerializerTest,
+    ProposalAssessmentAnswerSerializer, ListProposalSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -233,7 +233,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         # serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
+        # serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 

@@ -107,32 +107,33 @@ export default {
                     },
                     {
                         // 2. Lodgement Number
-                        data: "lodgement_number",
+                        data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.lodgement_number
                         }
                     },
                     {
-                        // 3. Type
+                        // 3. Type (This corresponds to the 'ApplicationType' at the backend)
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.application_type_dict.description
                         }
                     },
                     {
-                        // 4. Application Type
+                        // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.proposal_type
                         }
                     },
                     {
@@ -142,7 +143,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.customer_status
                         }
                     },
                     {
