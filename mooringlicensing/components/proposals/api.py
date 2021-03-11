@@ -156,25 +156,19 @@ class ProposalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
-        regions = request.GET.get('regions')
-        if regions:
-            if queryset.model is Proposal:
-                queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
-
-        application_type = request.GET.get('application_type')
-        if application_type and not application_type.lower() =='all':
-            queryset = queryset.filter(application_type__name=application_type)
-
         filter_application_type = request.GET.get('filter_application_type')
+        if filter_application_type and not filter_application_type.lower() == 'all':
+            q = None
+            for item in Proposal.__subclasses__():
+                if item.code == filter_application_type:
+                    lookup = "{}__isnull".format(item._meta.model_name)
+                    q = Q(**{lookup: False})
+                    break
+            queryset = queryset.filter(q) if q else queryset
+
         filter_application_status = request.GET.get('filter_application_status')
-        # date_from = request.GET.get('date_from')
-        # date_to = request.GET.get('date_to')
-        # if queryset.model is Proposal:
-        #     if date_from:
-        #         queryset = queryset.filter(lodgement_date__gte=date_from)
-        #
-        #     if date_to:
-        #         queryset = queryset.filter(lodgement_date__lte=date_to)
+        if filter_application_status and not filter_application_status.lower() == 'all':
+            queryset = queryset.filter(customer_status=filter_application_status)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
