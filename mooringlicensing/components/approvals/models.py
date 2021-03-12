@@ -78,7 +78,7 @@ class Approval(RevisionedMixin):
                                        default=STATUS_CHOICES[0][0])
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
-    replaced_by = models.OneToOneField('self', blank=True, null=True)
+    replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals', null=True)
 #    activity = models.CharField(max_length=255)
