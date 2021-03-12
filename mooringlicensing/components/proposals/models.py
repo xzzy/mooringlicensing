@@ -1549,15 +1549,23 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
     @classmethod
-    def application_type_dict(self, include_all=False):
+    def application_type_dict(cls, apply_page):
         type_list = []
         for application_type in Proposal.__subclasses__():
-            if application_type.apply_page_visibility or include_all:
+            if apply_page:
+                if application_type.apply_page_visibility:
+                    type_list.append({
+                        "code": application_type.code,
+                        "description": application_type.description,
+                        "new_application_text": application_type.new_application_text
+                        })
+            else:
                 type_list.append({
                     "code": application_type.code,
                     "description": application_type.description,
                     "new_application_text": application_type.new_application_text
-                    })
+                })
+
         return type_list
 
 
