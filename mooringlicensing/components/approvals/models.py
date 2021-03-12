@@ -78,7 +78,7 @@ class Approval(RevisionedMixin):
                                        default=STATUS_CHOICES[0][0])
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
-    replaced_by = models.ForeignKey('self', blank=True, null=True)
+    replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals', null=True)
 #    activity = models.CharField(max_length=255)
@@ -494,6 +494,46 @@ class Approval(RevisionedMixin):
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
+
+
+class WaitingListAllocation(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'wla'
+    prefix = 'WLA'
+    description = 'Waiting List Allocation'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AnnualAdmissionPermit(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'aap'
+    prefix = 'AAP'
+    description = 'Annual Admission Permit'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AuthorisedUserPermit(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'aup'
+    prefix = 'AUP'
+    description = 'Authorised User Permit'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class MooringLicence(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'ml'
+    prefix = 'ML'
+    description = 'Mooring Licence'
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class PreviewTempApproval(Approval):
