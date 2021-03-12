@@ -112,7 +112,6 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            console.log(full)
                             return full.lodgement_number
                         }
                     },
@@ -310,10 +309,18 @@ export default {
         },
         fetchFilterLists: function(){
             let vm = this;
-            vm.$http.get('/api/proposal/filter_list').then((response) => {
-                console.log(response)
-                vm.application_types = response.body.application_types
-                vm.application_statuses = response.body.application_statuses
+
+            // Application Types
+            this.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
+                vm.application_types = response.body
+            },(error) => {
+                console.log(error);
+            })
+
+            // Application Statuses
+            this.$http.get(api_endpoints.application_statuses_dict).then((response) => {
+                console.log(response.body)
+                vm.application_statuses = response.body
             },(error) => {
                 console.log(error);
             })

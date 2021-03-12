@@ -7,10 +7,10 @@
         <div class="row">
             <div class="col-lg-12">
                 <datatable 
-                    ref="licences_and_permits_datatable" 
+                    ref="to_be_endorsed_datatable" 
                     :id="datatable_id" 
-                    :dtOptions="licences_and_permits_options" 
-                    :dtHeaders="licences_and_permits_headers"
+                    :dtOptions="to_be_endorsed_options" 
+                    :dtHeaders="to_be_endorsed_headers"
                 />
             </div>
         </div>
@@ -22,19 +22,19 @@ import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
-    name: 'TableLicencesAndPermits',
+    name: 'TableCompliances',
     data() {
         let vm = this;
         return {
-            datatable_id: 'licences_and_permits-datatable-' + vm._uid,
+            datatable_id: 'to_be_endorsed-datatable-' + vm._uid,
 
             // selected values for filtering
             filterApplicationType: null,
             filterApplicationStatus: null,
 
             // Datatable settings
-            licences_and_permits_headers: ['Number', 'Type', 'Sticker Number', 'Status', 'Issue Date', 'Expiry Date', 'Vessel', 'Action'],
-            licences_and_permits_options: {
+            to_be_endorsed_headers: ['Number', 'Mooring', 'Applicant', 'Status', 'Action'],
+            to_be_endorsed_options: {
                 searching: false
 
                 // TODO: retrieve contents
