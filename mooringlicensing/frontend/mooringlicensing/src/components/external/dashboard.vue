@@ -25,7 +25,7 @@ import ApplicationsTable from "@/components/common/table_applications"
 import WaitingListTable from "@/components/common/table_waiting_list"
 import LicencesAndPermitsTable from "@/components/common/table_licences_and_permits"
 import CompliancesTable from "@/components/common/table_compliances"
-import AuthorisedUserApplicationsTable from "@/components/common/table_authorised_user_applications"
+import AuthorisedUserApplicationsTable from "@/components/common/table_to_be_endorsed"
 import { api_endpoints, helpers } from '@/utils/hooks'
 
 export default {
