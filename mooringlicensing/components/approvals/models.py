@@ -499,12 +499,41 @@ class Approval(RevisionedMixin):
 class WaitingListAllocation(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'wla'
-    prefix = 'WL'
+    prefix = 'WLA'
     description = 'Waiting List Allocation'
 
     class Meta:
         app_label = 'mooringlicensing'
 
+
+class AnnualAdmissionPermit(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'aap'
+    prefix = 'AAP'
+    description = 'Annual Admission Permit'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AuthorisedUserPermit(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'aup'
+    prefix = 'AUP'
+    description = 'Authorised User Permit'
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class MooringLicence(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'ml'
+    prefix = 'ML'
+    description = 'Mooring Licence'
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class PreviewTempApproval(Approval):
