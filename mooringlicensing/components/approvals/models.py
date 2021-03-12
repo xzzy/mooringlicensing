@@ -496,14 +496,14 @@ class Approval(RevisionedMixin):
                 raise
 
 
-# class WaitingListAllocation(Approval):
-#     approval = models.OneToOneField(Approval, parent_link=True)
-#     code = 'wla'
-#     prefix = 'WL'
-#     description = 'Waiting List Allocation'
-#
-#     class Meta:
-#         app_label = 'mooringlicensing'
+class WaitingListAllocation(Approval):
+    approval = models.OneToOneField(Approval, parent_link=True)
+    code = 'wla'
+    prefix = 'WL'
+    description = 'Waiting List Allocation'
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 
