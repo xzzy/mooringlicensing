@@ -11,8 +11,8 @@
                 <datatable 
                     ref="waiting_list_datatable" 
                     :id="datatable_id" 
-                    :dtOptions="waiting_list_options" 
-                    :dtHeaders="waiting_list_headers"
+                    :dtOptions="datatable_options" 
+                    :dtHeaders="datatable_headers"
                 />
             </div>
         </div>
@@ -35,12 +35,146 @@ export default {
             //filterApplicationStatus: null,
 
             // Datatable settings
-            waiting_list_headers: ['Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
-            waiting_list_options: {
-                searching: false
+            datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
+            datatable_options: {
+                autoWidth: false,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                searching: true,
+                ajax: {
+                    "url": api_endpoints.approvals_paginated_external + '?format=datatables',
+                    "dataSrc": 'data',
 
-                // TODO: retrieve contents
-
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        d.filter_application_type = vm.filterApplicationType;
+                        d.filter_application_status = vm.filterApplicationStatus;
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+                columns: [
+                    {
+                        // 1. ID
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.id
+                        }
+                    },
+                    {
+                        // 2. Lodgement Number
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.lodgement_number
+                        }
+                    },
+                    {
+                        // 3. Type (This corresponds to the 'ApplicationType' at the backend)
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 4.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 5.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 6.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 7.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 8.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 9.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 10.
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                ],
+                processing: true,
+                initComplete: function() {
+                    console.log('in initComplete')
+                },
             },
         }
     },
