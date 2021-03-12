@@ -45,7 +45,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalStandardRequirement,
     AmendmentRequest,
     AmendmentReason,
-    Vessel,
+    #Vessel,
     ChecklistQuestion,
     ProposalAssessment,
     ProposalAssessmentAnswer,
@@ -66,7 +66,7 @@ from mooringlicensing.components.proposals.serializers import (
     # SearchKeywordSerializer,
     # ListProposalSerializer,
     # AmendmentRequestDisplaySerializer,
-    VesselSerializer,
+    #VesselSerializer,
     # OnHoldSerializer,
     # ProposalOtherDetailsSerializer,
     # SaveProposalOtherDetailsSerializer,
@@ -426,24 +426,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = instance.amendment_requests
             qs = qs.filter(status = 'requested')
             serializer = AmendmentRequestDisplaySerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-    @detail_route(methods=['GET',])
-    def vessels(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.vessels
-            #qs = qs.filter(status = 'requested')
-            serializer = VesselSerializer(qs,many=True)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1212,52 +1194,52 @@ class SearchReferenceView(views.APIView):
             raise serializers.ValidationError(str(e))
 
 
-class VesselViewSet(viewsets.ModelViewSet):
-    queryset = Vessel.objects.all().order_by('id')
-    serializer_class = VesselSerializer
-
-    @detail_route(methods=['post'])
-    def edit_vessel(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = VesselSerializer(instance, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            instance.proposal.log_user_action(ProposalUserAction.ACTION_EDIT_VESSEL.format(instance.id),request)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-    def create(self, request, *args, **kwargs):
-        try:
-            #instance = self.get_object()
-            serializer = VesselSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance=serializer.save()
-            instance.proposal.log_user_action(ProposalUserAction.ACTION_CREATE_VESSEL.format(instance.id),request)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+#class VesselViewSet(viewsets.ModelViewSet):
+#    queryset = Vessel.objects.all().order_by('id')
+#    serializer_class = VesselSerializer
+#
+#    @detail_route(methods=['post'])
+#    def edit_vessel(self, request, *args, **kwargs):
+#        try:
+#            instance = self.get_object()
+#            serializer = VesselSerializer(instance, data=request.data)
+#            serializer.is_valid(raise_exception=True)
+#            serializer.save()
+#            instance.proposal.log_user_action(ProposalUserAction.ACTION_EDIT_VESSEL.format(instance.id),request)
+#            return Response(serializer.data)
+#        except serializers.ValidationError:
+#            print(traceback.print_exc())
+#            raise
+#        except ValidationError as e:
+#            if hasattr(e,'error_dict'):
+#                raise serializers.ValidationError(repr(e.error_dict))
+#            else:
+#                if hasattr(e,'message'):
+#                    raise serializers.ValidationError(e.message)
+#        except Exception as e:
+#            print(traceback.print_exc())
+#            raise serializers.ValidationError(str(e))
+#
+#    def create(self, request, *args, **kwargs):
+#        try:
+#            #instance = self.get_object()
+#            serializer = VesselSerializer(data=request.data)
+#            serializer.is_valid(raise_exception=True)
+#            instance=serializer.save()
+#            instance.proposal.log_user_action(ProposalUserAction.ACTION_CREATE_VESSEL.format(instance.id),request)
+#            return Response(serializer.data)
+#        except serializers.ValidationError:
+#            print(traceback.print_exc())
+#            raise
+#        except ValidationError as e:
+#            if hasattr(e,'error_dict'):
+#                raise serializers.ValidationError(repr(e.error_dict))
+#            else:
+#                if hasattr(e,'message'):
+#                    raise serializers.ValidationError(e.message)
+#        except Exception as e:
+#            print(traceback.print_exc())
+#            raise serializers.ValidationError(str(e))
 
 class AssessorChecklistViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ChecklistQuestion.objects.none()

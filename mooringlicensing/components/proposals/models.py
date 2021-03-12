@@ -1624,13 +1624,13 @@ class AuthorisedUserApplication(Proposal):
             self.save()
 
 
-class MooringLicenseApplication(Proposal):
+class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
     new_application_text = ""
     apply_page_visibility = False
-    description = 'Mooring License Application'
+    description = 'Mooring Licence Application'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1669,23 +1669,88 @@ class ProposalLogEntry(CommunicationsLogEntry):
         super(ProposalLogEntry, self).save(**kwargs)
 
 
-class Vessel(models.Model):
-    nominated_vessel = models.CharField(max_length=200, blank=True)
-    spv_no = models.CharField(max_length=200, blank=True)
-    hire_rego = models.CharField(max_length=200, blank=True)
-    craft_no = models.CharField(max_length=200, blank=True)
-    size = models.CharField(max_length=200, blank=True)
-    #rego_expiry= models.DateField(blank=True, null=True)
-    proposal = models.ForeignKey(Proposal, related_name='vessels')
+class VesselSizeCategory(models.Model):
+
+    STATUS = (
+        (0, 'Inactive'),
+        (1, 'Active'),
+    )
+
+    name = models.CharField(max_length=100)
+    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') 
+    end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    status = models.SmallIntegerField(choices=STATUS, default=1)
+    #mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{} - {}'.format(self.spv_no, self.nominated_vessel)
+        return self.name
 
     class Meta:
+        verbose_name_plural = "Vessel Size Categories"
         app_label = 'mooringlicensing'
 
-    #def __str__(self):
-     #   return self.nominated_vessel
+
+# Master record for Vessels 
+# - Update this table every hour from Moorings System
+class VesselDetail(models.Model):
+    rego_no = models.CharField(max_length=200)
+    vessel_name = models.CharField(max_length=400) 
+    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Vessel Details"
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return self.rego_no
+
+
+# Vessel details per Proposal 
+# - allows for customer to edit vessel details during application process
+class VesselRelations(models.Model):
+    vessel_id = models.ForeignKey(VesselDetail, blank=False, null=False)
+    proposal_id = models.ForeignKey(Proposal, blank=False, null=False)
+    rego_no = models.CharField(max_length=200)
+    vessel_name = models.CharField(max_length=400) 
+    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Vessel Relations"
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return self.rego_no
+
+
+#class Vessel(models.Model):
+#    nominated_vessel = models.CharField(max_length=200, blank=True)
+#    spv_no = models.CharField(max_length=200, blank=True)
+#    hire_rego = models.CharField(max_length=200, blank=True)
+#    craft_no = models.CharField(max_length=200, blank=True)
+#    size = models.CharField(max_length=200, blank=True)
+#    #rego_expiry= models.DateField(blank=True, null=True)
+#    proposal = models.ForeignKey(Proposal, related_name='vessels')
+#
+#    def __str__(self):
+#        return '{} - {}'.format(self.spv_no, self.nominated_vessel)
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#
+#    #def __str__(self):
+#     #   return self.nominated_vessel
 
 class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set')
@@ -2334,6 +2399,7 @@ class HelpPage(models.Model):
     )
 
     #application_type = models.ForeignKey(ApplicationType)
+    #application_type = models.CharField(max_length=10, blank=True, null=True)
     content = RichTextField()
     description = models.CharField(max_length=256, blank=True, null=True)
     help_type = models.SmallIntegerField('Help Type', choices=HELP_TYPE_CHOICES, default=HELP_TEXT_EXTERNAL)
