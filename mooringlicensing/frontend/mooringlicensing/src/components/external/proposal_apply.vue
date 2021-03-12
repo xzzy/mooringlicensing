@@ -152,7 +152,7 @@ export default {
         return [];
     },
     fetchApplicationTypes: function(){
-		this.$http.get(api_endpoints.application_types_dict).then((response) => {
+        this.$http.get(api_endpoints.application_types_dict+'?apply_page=True').then((response) => {
             for (let app_type of response.body) {
                 this.application_types.push(app_type)
             }
