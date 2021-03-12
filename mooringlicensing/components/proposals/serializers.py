@@ -18,7 +18,7 @@ from mooringlicensing.components.proposals.models import (
                                     #ProposalPark,
                                     #ProposalParkActivity,
                                     #Vehicle,
-                                    Vessel,
+                                    #Vessel,
                                     #ProposalTrail,
                                     #QAOfficerReferral,
                                     #ProposalParkAccess,
@@ -651,11 +651,11 @@ class PropedDeclineSerializer(serializers.Serializer):
 class OnHoldSerializer(serializers.Serializer):
     comment = serializers.CharField()
 
-
-class VesselSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Vessel
-        fields = '__all__'
+#
+#class VesselSerializer(serializers.ModelSerializer):
+#    class Meta:
+#        model = Vessel
+#        fields = '__all__'
 
 class AmendmentRequestSerializer(serializers.ModelSerializer):
     #reason = serializers.SerializerMethodField()
