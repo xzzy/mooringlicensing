@@ -72,7 +72,7 @@ from mooringlicensing.components.proposals.serializers import (
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, ListProposalSerializer, ProposalSerializerTest,
+    ProposalAssessmentAnswerSerializer, ListProposalSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -156,25 +156,19 @@ class ProposalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
-        regions = request.GET.get('regions')
-        if regions:
-            if queryset.model is Proposal:
-                queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
-
-        application_type = request.GET.get('application_type')
-        if application_type and not application_type.lower() =='all':
-            queryset = queryset.filter(application_type__name=application_type)
-
         filter_application_type = request.GET.get('filter_application_type')
+        if filter_application_type and not filter_application_type.lower() == 'all':
+            q = None
+            for item in Proposal.__subclasses__():
+                if item.code == filter_application_type:
+                    lookup = "{}__isnull".format(item._meta.model_name)
+                    q = Q(**{lookup: False})
+                    break
+            queryset = queryset.filter(q) if q else queryset
+
         filter_application_status = request.GET.get('filter_application_status')
-        # date_from = request.GET.get('date_from')
-        # date_to = request.GET.get('date_to')
-        # if queryset.model is Proposal:
-        #     if date_from:
-        #         queryset = queryset.filter(lodgement_date__gte=date_from)
-        #
-        #     if date_to:
-        #         queryset = queryset.filter(lodgement_date__lte=date_to)
+        if filter_application_status and not filter_application_status.lower() == 'all':
+            queryset = queryset.filter(customer_status=filter_application_status)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
@@ -208,7 +202,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        return Proposal.objects.all()
+        return Proposal.objects.all()  # TODO: remove this line and return proper results
         user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
@@ -232,8 +226,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
-        # serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        serializer = ProposalSerializerTest(result_page, context={'request': request}, many=True)
+        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
@@ -246,12 +239,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()
-            #return qs.exclude(migrated=True)
             return qs
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
             queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=user))
-            # return queryset.exclude(application_type=self.excluded_type)
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
@@ -341,21 +332,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         version_ids = [i.id for i in versions]
         urls = ['?version_id2={}&version_id1={}'.format(version_ids[0], version_ids[i+1]) for i in range(len(version_ids)-1)]
         return Response(urls)
-
-
-    # @list_route(methods=['GET',])
-    # def list_paginated(self, request, *args, **kwargs):
-    #     """
-    #     https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-    #     """
-    #     proposals = self.get_queryset()
-    #     paginator = PageNumberPagination()
-    #     #paginator = LimitOffsetPagination()
-    #     paginator.page_size = 5
-    #     result_page = paginator.paginate_queryset(proposals, request)
-    #     serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-    #     return paginator.get_paginated_response(serializer.data)
-
 
     @detail_route(methods=['GET',])
     def action_log(self, request, *args, **kwargs):
@@ -461,7 +437,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['GET',])
     def vessels(self, request, *args, **kwargs):
         try:
@@ -502,21 +477,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @list_route(methods=['GET',])
-    def list_paginated(self, request, *args, **kwargs):
-        """
-        Placing Paginator class here (instead of settings.py) allows specific method for desired behaviour),
-        otherwise all serializers will use the default pagination class
-
-        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-        """
-        proposals = self.get_queryset()
-        paginator = DatatablesPageNumberPagination()
-        paginator.page_size = proposals.count()
-        result_page = paginator.paginate_queryset(proposals, request)
-        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
-
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -552,7 +512,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
@@ -706,7 +665,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             if hasattr(e,'message'):
                     raise serializers.ValidationError(e.message)
-
 
     @detail_route(methods=['POST',])
     def proposed_approval(self, request, *args, **kwargs):
@@ -891,7 +849,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def assessor_save(self, request, *args, **kwargs):
@@ -995,6 +952,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET',])
+    def filter_list(self, request, *args, **kwargs):
+        data = dict(
+            application_types=Proposal.application_type_dict(include_all=True),
+            application_statuses=[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES],
+        )
+        return Response(data)
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
