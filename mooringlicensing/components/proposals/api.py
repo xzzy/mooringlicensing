@@ -122,9 +122,17 @@ class GetApplicationTypeDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        #serializer = ApplicationTypeDescriptionsSerializer(Proposal.application_type_descriptions(), many=True)
-        #return Response(serializer.data)
-        return Response(Proposal.application_type_dict())
+        apply_page = request.GET.get('apply_page', 'false')
+        apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
+        return Response(Proposal.application_type_dict(apply_page=apply_page))
+
+
+class GetApplicationStatusesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
+        return Response(data)
 
 
 class GetEmptyList(views.APIView):
@@ -952,14 +960,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
-    @list_route(methods=['GET',])
-    def filter_list(self, request, *args, **kwargs):
-        data = dict(
-            application_types=Proposal.application_type_dict(include_all=True),
-            application_statuses=[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES],
-        )
-        return Response(data)
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
