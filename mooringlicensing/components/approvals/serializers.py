@@ -1,5 +1,7 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
+
+from mooringlicensing.components.main import serializers
 from mooringlicensing.components.proposals.serializers import ProposalSerializer, InternalProposalSerializer
 #from mooringlicensing.components.main.serializers import ApplicationTypeSerializer
 from mooringlicensing.components.approvals.models import (
@@ -276,3 +278,19 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
+
+
+class ListApprovalSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'lodgement_number',
+        )
+        # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
+        # also require the following additional fields for some of the mRender functions
+        datatables_always_serialize = (
+            'id',
+            'lodgement_number',
+        )
