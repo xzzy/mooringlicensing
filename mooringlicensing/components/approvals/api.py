@@ -3,6 +3,7 @@ import os
 import datetime
 import base64
 import geojson
+from rest_framework_datatables.renderers import DatatablesRenderer
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
 from django.db.models import Q, Min
@@ -43,7 +44,7 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
-    ApprovalPaymentSerializer
+    ApprovalPaymentSerializer, ListApprovalSerializer
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -86,6 +87,84 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
             data.append(dict(lodgement_number=approval.lodgement_number, current_proposal=approval.current_proposal_id))
         return Response(data)
         #return Response(self.get_queryset().values_list('lodgement_number','current_proposal_id'))
+
+
+class ApprovalFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        filter_application_type = request.GET.get('filter_application_type')
+        if filter_application_type and not filter_application_type.lower() == 'all':
+            q = None
+            for item in Approval.__subclasses__():
+                if item.code == filter_application_type:
+                    lookup = "{}__isnull".format(item._meta.model_name)
+                    q = Q(**{lookup: False})
+                    break
+            queryset = queryset.filter(q) if q else queryset
+
+        filter_application_status = request.GET.get('filter_application_status')
+        if filter_application_status and not filter_application_status.lower() == 'all':
+            queryset = queryset.filter(customer_status=filter_application_status)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class ApprovalRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(ApprovalRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (ApprovalFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (ApprovalRenderer,)
+    queryset = Approval.objects.none()
+    serializer_class = ListApprovalSerializer
+    search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        return Approval.objects.all()  # TODO: remove this line and return proper results
+        user = self.request.user
+        if is_internal(self.request):
+            return Approval.objects.all()
+        elif is_customer(self.request):
+            # user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            qs = Approval.objects.filter(Q(proxy_applicant=user))
+            return qs
+        return Approval.objects.none()
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+        # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
+        # applicant_id = request.GET.get('org_id')
+        # if applicant_id:
+        #     qs = qs.filter(applicant_id=applicant_id)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
 
 
 class ApprovalViewSet(viewsets.ModelViewSet):
