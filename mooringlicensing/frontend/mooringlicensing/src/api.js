@@ -15,8 +15,9 @@ module.exports = {
     filtered_users: '/api/filtered_users',
     countries: "https://restcountries.eu/rest/v1/?fullText=true",
 
+    proposals_paginated_external: '/api/proposals_paginated/list_external',
+    approvals_paginated_external: '/api/approvals_paginated/list_external'
     /*
-    proposals_paginated_external:   "/api/proposal_paginated/proposals_external/?format=datatables",
     proposals_paginated_internal:   "/api/proposal_paginated/proposals_internal/?format=datatables",
     mooringlicensings: '/api/mooringlicensings/',
     participants: '/api/participants/participants_list',
