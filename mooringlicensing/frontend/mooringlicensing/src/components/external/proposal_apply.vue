@@ -9,7 +9,7 @@
                             <label>Do you want to apply</label>
                             <div class="col-sm-12">
                                 <div class="form-group">
-                                    <select class="form-control" style="width:40%" v-model="selectedApplication">
+                                    <select class="form-control" style="width:50%" v-model="selectedApplication">
                                         <!--option value="" selected disabled>Select Licence type*</option-->
                                         <option v-for="application_type in application_types" :value="application_type">
                                             {{ application_type.new_application_text }}
