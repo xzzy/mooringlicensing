@@ -194,8 +194,8 @@ class Approval(RevisionedMixin):
     @property
     def next_id(self):
         #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
-        ids = map(int,[i.split('L')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
-        return max(ids) + 1 if ids else 1
+        ids = map(int, [i.split('L')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
+        return max(ids) + 1 if list(ids) else 1
 
     def save(self, *args, **kwargs):
         if self.lodgement_number in ['', None]:

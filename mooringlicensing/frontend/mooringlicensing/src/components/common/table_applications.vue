@@ -32,8 +32,8 @@
                 <datatable 
                     ref="application_datatable" 
                     :id="datatable_id" 
-                    :dtOptions="application_options" 
-                    :dtHeaders="application_headers"
+                    :dtOptions="datatable_options" 
+                    :dtHeaders="datatable_headers"
                 />
             </div>
         </div>
@@ -43,7 +43,7 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
-import { api_endpoints, helpers }from '@/utils/hooks'
+import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
     name: 'TableApplications',
     data() {
@@ -60,8 +60,8 @@ export default {
             application_statuses: ['test3', 'test4'],
 
             // Datatable settings
-            application_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Action'],
-            application_options: {
+            datatable_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Action'],
+            datatable_options: {
                 autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -70,7 +70,7 @@ export default {
                 serverSide: true,
                 searching: true,
                 ajax: {
-                    "url": "/api/proposal_paginated/list_external?format=datatables",
+                    "url": api_endpoints.proposals_paginated_external + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -270,7 +270,6 @@ export default {
                 initComplete: function() {
                     console.log('in initComplete')
                 },
-
             },
         }
     },
@@ -311,15 +310,14 @@ export default {
             let vm = this;
 
             // Application Types
-            this.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
+            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
                 vm.application_types = response.body
             },(error) => {
                 console.log(error);
             })
 
             // Application Statuses
-            this.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                console.log(response.body)
+            vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
                 vm.application_statuses = response.body
             },(error) => {
                 console.log(error);
