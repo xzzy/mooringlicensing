@@ -9,7 +9,7 @@ from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError, MultipleObjectsReturned
+from django.core.exceptions import ValidationError, MultipleObjectsReturned, ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
@@ -437,6 +437,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #application_type = models.ForeignKey(ApplicationType)
 
     #fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    vessel_details = models.ManyToManyField('VesselDetails')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1535,6 +1536,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.authoriseduserapplication
         elif hasattr(self, 'mooringlicenseapplication'):
             return self.mooringlicenseapplication
+        else:
+            raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
     @property
     def application_type_code(self):
@@ -1700,10 +1703,19 @@ class VesselSizeCategory(models.Model):
         app_label = 'mooringlicensing'
 
 
-# Master record for Vessels 
-# - Update this table every hour from Moorings System
-class VesselDetail(models.Model):
-    rego_no = models.CharField(max_length=200)
+class Vessel(models.Model):
+    rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
+
+    class Meta:
+        verbose_name_plural = "Vessels"
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return self.rego_no
+
+
+class VesselDetails(models.Model):
+    vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400) 
     vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -1711,6 +1723,10 @@ class VesselDetail(models.Model):
     vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=50) # can be approved, old, draft, declined
+    #owner = models.ForeignKey('Owner') # this owner can edit
+    # for cron job
+    exported = models.BooleanField(default=False) # must be False after every add/edit
 
     class Meta:
         verbose_name_plural = "Vessel Details"
@@ -1719,27 +1735,66 @@ class VesselDetail(models.Model):
     def __str__(self):
         return self.rego_no
 
+    #def save() - do not allow multiple draft or approved status per vessel_id
 
-# Vessel details per Proposal 
-# - allows for customer to edit vessel details during application process
-class VesselRelations(models.Model):
-    vessel_id = models.ForeignKey(VesselDetail, blank=False, null=False)
-    proposal_id = models.ForeignKey(Proposal, blank=False, null=False)
-    rego_no = models.CharField(max_length=200)
-    vessel_name = models.CharField(max_length=400) 
-    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created = models.DateTimeField(default=timezone.now)
-    updated = models.DateTimeField(auto_now=True)
+
+class VesselDetailsOwnership(models.Model):
+    owner = models.ForeignKey('Owner')
+    vessel = models.ForeignKey(Vessel)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    editable = models.BooleanField(default=False) # must be False after every add/edit
+    #start_date = models.DateTimeField(auto_now_add=True)
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True)
 
     class Meta:
-        verbose_name_plural = "Vessel Relations"
+        verbose_name_plural = "Vessel Details Ownership"
+        app_label = 'mooringlicensing'
+
+
+class Owner(models.Model):
+    emailuser = models.ForeignKey(EmailUser) # mandatory?
+    org_name = models.CharField(max_length=200, blank=True)
+    vessels = models.ManyToManyField(Vessel, through=VesselDetailsOwnership) # these owner/vessel association
+
+    class Meta:
+        verbose_name_plural = "Owners"
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.rego_no
+        return self.owner_name
+
+    @property
+    def owner_name(self):
+        if self.org_name:
+            return self.org_contact
+        else:
+            self.emailuser.get_full_name()
+
+
+# Vessel details per Proposal 
+# - allows for customer to edit vessel details during application process
+#class VesselRelations(models.Model):
+#    vessel = models.ForeignKey(Vessel, blank=False, null=False)
+#    #status = models.CharField() # can be approved, old
+#    #proposal = models.ForeignKey(Proposal, null=False)
+#    proposal = models.ForeignKey(Proposal, null=True)
+#    rego_no = models.CharField(max_length=200)
+#    vessel_name = models.CharField(max_length=400)
+#    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#    created = models.DateTimeField(default=timezone.now)
+#    updated = models.DateTimeField(auto_now=True)
+#
+#    class Meta:
+#        unique_together = ('vessel', 'proposal')
+#        verbose_name_plural = "Vessel Relations"
+#        app_label = 'mooringlicensing'
+#
+#    def __str__(self):
+#        return self.rego_no
 
 
 #class Vessel(models.Model):
