@@ -313,25 +313,28 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     APPLICANT_TYPE_PROXY = 'PRX'
     APPLICANT_TYPE_SUBMITTER = 'SUB'
 
-    CUSTOMER_STATUS_TEMP = 'temp'
+    # CUSTOMER_STATUS_TEMP = 'temp'
+    CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
     CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DECLINED = 'declined'
     CUSTOMER_STATUS_DISCARDED = 'discarded'
-    CUSTOMER_STATUS_PARTIALLY_APPROVED = 'partially_approved'
-    CUSTOMER_STATUS_PARTIALLY_DECLINED = 'partially_declined'
+    # CUSTOMER_STATUS_PARTIALLY_APPROVED = 'partially_approved'
+    # CUSTOMER_STATUS_PARTIALLY_DECLINED = 'partially_declined'
     CUSTOMER_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
-    CUSTOMER_STATUS_CHOICES = ((CUSTOMER_STATUS_TEMP, 'Temporary'), ('draft', 'Draft'),
-                               (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
-                               (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
-                               (CUSTOMER_STATUS_APPROVED, 'Approved'),
-                               (CUSTOMER_STATUS_DECLINED, 'Declined'),
-                               (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
-                               (CUSTOMER_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
-                               (CUSTOMER_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
-                               (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
-                               )
+    CUSTOMER_STATUS_CHOICES = (
+        # (CUSTOMER_STATUS_TEMP, 'Temporary'),
+        (CUSTOMER_STATUS_DRAFT, 'Draft'),
+        (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
+        (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
+        (CUSTOMER_STATUS_APPROVED, 'Approved'),
+        (CUSTOMER_STATUS_DECLINED, 'Declined'),
+        (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
+        # (CUSTOMER_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
+        # (CUSTOMER_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
+        (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        )
 
     # List of statuses from above that allow a customer to edit an application.
     CUSTOMER_EDITABLE_STATE = ['temp',
