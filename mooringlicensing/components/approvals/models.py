@@ -110,6 +110,8 @@ class Approval(RevisionedMixin):
     #for eclass licence as it can be extended/ renewed once
     extended = models.BooleanField(default=False)
     expiry_notice_sent = models.BooleanField(default=False)
+    # for cron job
+    exported = models.BooleanField(default=False) # must be False after every add/edit
 
     class Meta:
         app_label = 'mooringlicensing'
