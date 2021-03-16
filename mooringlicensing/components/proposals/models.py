@@ -1600,7 +1600,7 @@ class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
-    new_application_text = "for an authorised user permit"
+    new_application_text = "for an annual admission permit"
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
@@ -1621,7 +1621,7 @@ class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
-    new_application_text = "for an annual admission permit"
+    new_application_text = "for an an authorised user permit"
     apply_page_visibility = True
     description = 'Authorised User Application'
 
