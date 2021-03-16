@@ -56,8 +56,8 @@ export default {
             filterApplicationStatus: null,
 
             // filtering options
-            application_types: ['test1', 'test2'],
-            application_statuses: ['test3', 'test4'],
+            application_types: [],
+            application_statuses: [],
 
             // Datatable settings
             datatable_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Action'],

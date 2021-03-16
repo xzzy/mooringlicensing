@@ -93,19 +93,19 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
-        filter_application_type = request.GET.get('filter_application_type')
-        if filter_application_type and not filter_application_type.lower() == 'all':
+        filter_approval_type = request.GET.get('filter_approval_type')
+        if filter_approval_type and not filter_approval_type.lower() == 'all':
             q = None
             for item in Approval.__subclasses__():
-                if item.code == filter_application_type:
+                if item.code == filter_approval_type:
                     lookup = "{}__isnull".format(item._meta.model_name)
                     q = Q(**{lookup: False})
                     break
             queryset = queryset.filter(q) if q else queryset
 
-        filter_application_status = request.GET.get('filter_application_status')
-        if filter_application_status and not filter_application_status.lower() == 'all':
-            queryset = queryset.filter(customer_status=filter_application_status)
+        filter_approval_status = request.GET.get('filter_approval_status')
+        if filter_approval_status and not filter_approval_status.lower() == 'all':
+            queryset = queryset.filter(customer_status=filter_approval_status)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
@@ -194,19 +194,19 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @list_route(methods=['GET',])
-    def filter_list(self, request, *args, **kwargs):
-        """ Used by the external dashboard filters """
-        region_qs =  self.get_queryset().filter(current_proposal__region__isnull=False).values_list('current_proposal__region__name', flat=True).distinct()
-        activity_qs =  self.get_queryset().filter(current_proposal__activity__isnull=False).values_list('current_proposal__activity', flat=True).distinct()
-        application_types=ApplicationType.objects.all().values_list('name', flat=True)
-        data = dict(
-            regions=region_qs,
-            activities=activity_qs,
-            approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
-            application_types=application_types,
-        )
-        return Response(data)
+    # @list_route(methods=['GET',])
+    # def filter_list(self, request, *args, **kwargs):
+    #     """ Used by the external dashboard filters """
+    #     region_qs =  self.get_queryset().filter(current_proposal__region__isnull=False).values_list('current_proposal__region__name', flat=True).distinct()
+    #     activity_qs =  self.get_queryset().filter(current_proposal__activity__isnull=False).values_list('current_proposal__activity', flat=True).distinct()
+    #     application_types=ApplicationType.objects.all().values_list('name', flat=True)
+    #     data = dict(
+    #         regions=region_qs,
+    #         activities=activity_qs,
+    #         approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
+    #         application_types=application_types,
+    #     )
+    #     return Response(data)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))

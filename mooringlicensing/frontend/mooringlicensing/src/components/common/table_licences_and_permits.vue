@@ -29,8 +29,8 @@ export default {
             datatable_id: 'licences_and_permits-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterApplicationType: null,
-            filterApplicationStatus: null,
+            //filterApplicationType: null,
+            //filterApplicationStatus: null,
 
             // Datatable settings
             licences_and_permits_headers: ['Number', 'Type', 'Sticker Number', 'Status', 'Issue Date', 'Expiry Date', 'Vessel', 'Action'],
