@@ -29,10 +29,7 @@ export default {
         let vm = this;
         return {
             datatable_id: 'waiting_lists-datatable-' + vm._uid,
-
-            // selected values for filtering
-            //filterApplicationType: null,
-            //filterApplicationStatus: null,
+            filterApprovalType: 'wla',
 
             // Datatable settings
             datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
@@ -50,8 +47,7 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_application_type = vm.filterApplicationType;
-                        d.filter_application_status = vm.filterApplicationStatus;
+                        d.filter_approval_type = vm.filterApprovalType;
                     }
                 },
                 dom: 'lBfrtip',
@@ -91,7 +87,7 @@ export default {
                         }
                     },
                     {
-                        // 3. Type (This corresponds to the 'ApplicationType' at the backend)
+                        // 3. Bay
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -101,7 +97,7 @@ export default {
                         }
                     },
                     {
-                        // 4.
+                        // 4. Application number in Bay
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -111,7 +107,17 @@ export default {
                         }
                     },
                     {
-                        // 5.
+                        // 5. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.status
+                        }
+                    },
+                    {
+                        // 6. Vessel Registration
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -121,7 +127,7 @@ export default {
                         }
                     },
                     {
-                        // 6.
+                        // 7. Vessel Name
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -131,7 +137,7 @@ export default {
                         }
                     },
                     {
-                        // 7.
+                        // 8. Issue Date
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -141,7 +147,7 @@ export default {
                         }
                     },
                     {
-                        // 8.
+                        // 9. Expiry Date
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -151,17 +157,7 @@ export default {
                         }
                     },
                     {
-                        // 9.
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                    {
-                        // 10.
+                        // 10. Action
                         data: "id",
                         orderable: true,
                         searchable: true,
