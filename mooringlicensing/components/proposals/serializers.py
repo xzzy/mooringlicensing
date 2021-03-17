@@ -191,14 +191,14 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'title',
                 'customer_status',
                 'processing_status',
-                'review_status',
+                #'review_status',
                 'applicant_type',
                 'applicant',
                 'org_applicant',
                 'proxy_applicant',
                 'submitter',
                 'assigned_officer',
-                'previous_application',
+                #'previous_application',
                 'get_history',
                 'lodgement_date',
                 'modified_date',
@@ -208,7 +208,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'can_user_edit',
                 'can_user_view',
                 'documents_url',
-                'reference',
+                #'reference',
                 'lodgement_number',
                 'lodgement_sequence',
                 'can_officer_process',
@@ -233,8 +233,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     def get_processing_status(self,obj):
         return obj.get_processing_status_display()
 
-    def get_review_status(self,obj):
-        return obj.get_review_status_display()
+    #def get_review_status(self,obj):
+     #   return obj.get_review_status_display()
 
     def get_customer_status(self,obj):
         return obj.get_customer_status_display()
@@ -354,7 +354,7 @@ class ListProposalSerializer(BaseProposalSerializer):
 class ProposalSerializer(BaseProposalSerializer):
     submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
-    review_status = serializers.SerializerMethodField(read_only=True)
+    #review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
 
     application_type = serializers.CharField(source='application_type.name', read_only=True)
