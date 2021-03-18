@@ -50,6 +50,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalAssessment,
     ProposalAssessmentAnswer,
     RequirementDocument,
+    WaitingListApplication,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -236,6 +237,31 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+
+class WaitingListApplicationViewSet(viewsets.ModelViewSet):
+    queryset = WaitingListApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = WaitingListApplication.objects.all()
+            return qs
+        elif is_customer(self.request):
+            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            queryset = WaitingListApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return WaitingListApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        obj = WaitingListApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -856,62 +882,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        try:
-            http_status = status.HTTP_200_OK
-            application_type = request.data.get('application')
-            region = request.data.get('region')
-            district = request.data.get('district')
-            #tenure = request.data.get('tenure')
-            activity = request.data.get('activity')
-            sub_activity1 = request.data.get('sub_activity1')
-            sub_activity2 = request.data.get('sub_activity2')
-            category = request.data.get('category')
-            approval_level = request.data.get('approval_level')
-
-            application_name = ApplicationType.objects.get(id=application_type).name
-            # Get most recent versions of the Proposal Types
-            qs_proposal_type = ProposalType.objects.all().order_by('name', '-version').distinct('name')
-            proposal_type = qs_proposal_type.get(name=application_name)
-
-
-            data = {
-                #'schema': qs_proposal_type.order_by('-version').first().schema,
-                'schema': proposal_type.schema,
-                'submitter': request.user.id,
-                'org_applicant': request.data.get('org_applicant'),
-                'application_type': application_type,
-                'region': region,
-                'district': district,
-                'activity': activity,
-                'approval_level': approval_level,
-                #'other_details': {},
-                #'tenure': tenure,
-                'data': [
-                    {
-                        u'regionActivitySection': [{
-                            'Region': Region.objects.get(id=region).name if region else None,
-                            'District': District.objects.get(id=district).name if district else None,
-                            #'Tenure': Tenure.objects.get(id=tenure).name if tenure else None,
-                            #'ApplicationType': ApplicationType.objects.get(id=application_type).name
-                            'ActivityType': activity,
-                            'Sub-activity level 1': sub_activity1,
-                            'Sub-activity level 2': sub_activity2,
-                            'Management area': category,
-                        }]
-                    }
-
-                ],
-            }
-            serializer = SaveProposalSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            #serializer.save()
-            instance=serializer.save()
-
-            serializer = SaveProposalSerializer(instance)
-            return Response(serializer.data)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        raise NotImplementedError("Parent objects should not be created directly")
 
     def update(self, request, *args, **kwargs):
         try:
