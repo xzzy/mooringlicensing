@@ -679,38 +679,40 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return True
         return False
 
-    #def __assessor_group(self):
-    #    # TODO get list of assessor groups based on region and activity
-    #    if self.region and self.activity:
-    #        try:
-    #            check_group = ProposalAssessorGroup.objects.filter(
-    #                #activities__name__in=[self.activity],
-    #                region__name__in=self.regions_list
-    #            ).distinct()
-    #            if check_group:
-    #                return check_group[0]
-    #        except ProposalAssessorGroup.DoesNotExist:
-    #            pass
-    #    default_group = ProposalAssessorGroup.objects.get(default=True)
+    def __assessor_group(self):
+        # TODO get list of assessor groups based on region and activity
+        #if self.region and self.activity:
+        #    try:
+        #        check_group = ProposalAssessorGroup.objects.filter(
+        #            #activities__name__in=[self.activity],
+        #            region__name__in=self.regions_list
+        #        ).distinct()
+        #        if check_group:
+        #            return check_group[0]
+        #    except ProposalAssessorGroup.DoesNotExist:
+        #        pass
+        #default_group = ProposalAssessorGroup.objects.get(default=True)
+        return ProposalAssessorGroup.objects.first()
 
-    #    return default_group
+        #return default_group
 
 
-    #def __approver_group(self):
-    #    # TODO get list of approver groups based on region and activity
-    #    if self.region and self.activity:
-    #        try:
-    #            check_group = ProposalApproverGroup.objects.filter(
-    #                #activities__name__in=[self.activity],
-    #                region__name__in=self.regions_list
-    #            ).distinct()
-    #            if check_group:
-    #                return check_group[0]
-    #        except ProposalApproverGroup.DoesNotExist:
-    #            pass
-    #    default_group = ProposalApproverGroup.objects.get(default=True)
+    def __approver_group(self):
+        # TODO get list of approver groups based on region and activity
+        #if self.region and self.activity:
+        #    try:
+        #        check_group = ProposalApproverGroup.objects.filter(
+        #            #activities__name__in=[self.activity],
+        #            region__name__in=self.regions_list
+        #        ).distinct()
+        #        if check_group:
+        #            return check_group[0]
+        #    except ProposalApproverGroup.DoesNotExist:
+        #        pass
+        #default_group = ProposalApproverGroup.objects.get(default=True)
+        return ProposalApproverGroup.objects.first()
 
-    #    return default_group
+        #return default_group
 
     def __check_proposal_filled_out(self):
         if not self.data:
@@ -1547,7 +1549,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return self.child_obj.code
 
     @classmethod
-    def application_type_descriptions(self):
+    def application_type_descriptions(cls):
         #import ipdb; ipdb.set_trace();
         type_list = []
         for application_type in Proposal.__subclasses__():
@@ -1600,7 +1602,7 @@ class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
-    new_application_text = "for an authorised user permit"
+    new_application_text = "for an annual admission permit"
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
@@ -1621,7 +1623,7 @@ class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
-    new_application_text = "for an annual admission permit"
+    new_application_text = "for an an authorised user permit"
     apply_page_visibility = True
     description = 'Authorised User Application'
 
@@ -2480,7 +2482,10 @@ class HelpPage(models.Model):
                 )
 
 
-#import reversion
+import reversion
+reversion.register(Proposal)
+reversion.register(WaitingListApplication)
+
 #reversion.register(Referral, follow=['referral_documents', 'assessment'])
 #reversion.register(ReferralDocument, follow=['referral_document'])
 #
