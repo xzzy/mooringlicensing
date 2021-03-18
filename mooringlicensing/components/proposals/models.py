@@ -1549,7 +1549,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return self.child_obj.code
 
     @classmethod
-    def application_type_descriptions(self):
+    def application_type_descriptions(cls):
         #import ipdb; ipdb.set_trace();
         type_list = []
         for application_type in Proposal.__subclasses__():

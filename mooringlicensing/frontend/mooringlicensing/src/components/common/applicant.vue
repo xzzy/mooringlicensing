@@ -11,7 +11,7 @@
                                         </a>
                                     </h3> 
                                 </div>
-                                <div v-if="applicantType == 'ORG'" class="panel-body panel-collapse collapse in" :id="detailsBody">
+                                <!--div v-if="applicantType == 'ORG'" class="panel-body panel-collapse collapse in" :id="detailsBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Name</label>
@@ -33,7 +33,7 @@
                                           </div>
 
                                       </form>
-                                </div>
+                                </div-->
                                 <div v-if="applicantType == 'SUB'" class="panel-body panel-collapse collapse in" :id="detailsBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
@@ -63,7 +63,7 @@
                                         </a>
                                     </h3> 
                                 </div>
-                                <div v-if="applicantType == 'ORG' && proposal.org_applicant.address" class="panel-body panel-collapse collapse" :id="addressBody">
+                                <!--div v-if="applicantType == 'ORG' && proposal.org_applicant.address" class="panel-body panel-collapse collapse" :id="addressBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Street</label>
@@ -94,7 +94,7 @@
                                             </div>
                                           </div>
                                        </form>
-                                </div>
+                                </div-->
                                 <div v-if="applicantType == 'SUB' && proposal.submitter.residential_address" class="panel-body panel-collapse collapse" :id="addressBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
@@ -140,10 +140,10 @@
                                         </a>
                                     </h3>
                                 </div>
-                                <div v-if="applicantType == 'ORG'" class="panel-body panel-collapse collapse" :id="contactsBody">
+                                <!--div v-if="applicantType == 'ORG'" class="panel-body panel-collapse collapse" :id="contactsBody">
                                     <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
                                     </table>
-                                </div>
+                                </div-->
                                 <div v-if="applicantType == 'SUB'" class="panel-body panel-collapse collapse" :id="contactsBody">
                                   <form class="form-horizontal">
                                       <div class="form-group">
