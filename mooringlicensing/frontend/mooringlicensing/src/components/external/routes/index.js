@@ -1,10 +1,7 @@
 import ExternalDashboard from '../dashboard.vue'
-/*
 import Proposal from '../proposal.vue'
-*/
 import ProposalApply from '../proposal_apply.vue'
-
-//import ProposalSubmit from '../proposal_submit.vue'
+import ProposalSubmit from '../proposal_submit.vue'
 import Organisation from '../organisations/manage.vue'
 /*
 import Compliance from '../compliances/access.vue'
@@ -61,7 +58,6 @@ export default
                     component: ProposalApply,
                     name:"apply_proposal"
                 },
-                /*
                 {
                     path: 'submit',
                     component: ProposalSubmit,
@@ -72,7 +68,6 @@ export default
                     component: Proposal,
                     name:"draft_proposal"
                 },
-                */
             ]
         }
     ]
