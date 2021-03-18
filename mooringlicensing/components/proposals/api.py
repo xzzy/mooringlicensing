@@ -211,13 +211,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        return Proposal.objects.all()  # TODO: remove this line and return proper results
-        user = self.request.user
+        request_user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
-            qs = Proposal.objects.filter(Q(proxy_applicant=user))
+            qs = Proposal.objects.filter(Q(submitter=request_user))
             return qs
         return Proposal.objects.none()
 
