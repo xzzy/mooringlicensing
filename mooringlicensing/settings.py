@@ -68,6 +68,10 @@ REST_FRAMEWORK = {
     ),
 }
 
+MIDDLEWARE_CLASSES += [
+    'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
+    'mooringlicensing.middleware.RevisionOverrideMiddleware',
+]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
 del BOOTSTRAP3['css_url']
