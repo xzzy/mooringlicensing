@@ -175,30 +175,35 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     documents_url = serializers.SerializerMethodField()
     proposal_type = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
+    submitter = EmailUserSerializer()
     other_details = serializers.SerializerMethodField()
 
     get_history = serializers.ReadOnlyField()
     fee_invoice_url = serializers.SerializerMethodField()
+    application_type_code = serializers.SerializerMethodField()
+    application_type_dict = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
         fields = (
                 'id',
-                'application_type',
+                #'application_type',
+                'application_type_code',
+                'application_type_dict',
                 'proposal_type',
                 # 'activity',
                 'approval_level',
                 'title',
                 'customer_status',
                 'processing_status',
-                'review_status',
+                #'review_status',
                 'applicant_type',
                 'applicant',
-                'org_applicant',
-                'proxy_applicant',
+                #'org_applicant',
+                #'proxy_applicant',
                 'submitter',
                 'assigned_officer',
-                'previous_application',
+                #'previous_application',
                 'get_history',
                 'lodgement_date',
                 'modified_date',
@@ -208,7 +213,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'can_user_edit',
                 'can_user_view',
                 'documents_url',
-                'reference',
+                #'reference',
                 'lodgement_number',
                 'lodgement_sequence',
                 'can_officer_process',
@@ -224,6 +229,12 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
+    def get_application_type_code(self, obj):
+        return obj.application_type_code
+
+    def get_application_type_dict(self, obj):
+        return obj.application_type_dict(apply_page=False)
+
     def get_documents_url(self,obj):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
 
@@ -233,8 +244,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     def get_processing_status(self,obj):
         return obj.get_processing_status_display()
 
-    def get_review_status(self,obj):
-        return obj.get_review_status_display()
+    #def get_review_status(self,obj):
+     #   return obj.get_review_status_display()
 
     def get_customer_status(self,obj):
         return obj.get_customer_status_display()
@@ -354,10 +365,10 @@ class ListProposalSerializer(BaseProposalSerializer):
 class ProposalSerializer(BaseProposalSerializer):
     submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
-    review_status = serializers.SerializerMethodField(read_only=True)
+    #review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
 
-    application_type = serializers.CharField(source='application_type.name', read_only=True)
+    #application_type = serializers.CharField(source='application_type.name', read_only=True)
 
     def get_readonly(self,obj):
         return obj.can_user_view
@@ -402,20 +413,20 @@ class SaveProposalSerializer(BaseProposalSerializer):
         read_only_fields=('documents','requirements',)
 
 
-# TODO: rename to Org applicant?
-class ApplicantSerializer(serializers.ModelSerializer):
-    from mooringlicensing.components.organisations.serializers import OrganisationAddressSerializer
-    address = OrganisationAddressSerializer(read_only=True)
-    class Meta:
-        model = Organisation
-        fields = (
-                    'id',
-                    'name',
-                    'abn',
-                    'address',
-                    'email',
-                    'phone_number',
-                )
+## TODO: rename to Org applicant?
+#class ApplicantSerializer(serializers.ModelSerializer):
+#    from mooringlicensing.components.organisations.serializers import OrganisationAddressSerializer
+#    address = OrganisationAddressSerializer(read_only=True)
+#    class Meta:
+#        model = Organisation
+#        fields = (
+#                    'id',
+#                    'name',
+#                    'abn',
+#                    'address',
+#                    'email',
+#                    'phone_number',
+#                )
 
 
 class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
@@ -426,7 +437,7 @@ class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
 
 class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
-    org_applicant = OrganisationSerializer()
+    #org_applicant = OrganisationSerializer()
     processing_status = serializers.SerializerMethodField(read_only=True)
     review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)

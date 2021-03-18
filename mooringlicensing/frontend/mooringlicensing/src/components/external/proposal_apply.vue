@@ -5,16 +5,19 @@
                 <form class="form-horizontal" name="personal_form" method="post">
                     <FormSection label="Apply for">
                         <div>
-                            <!--label for="" class="control-label" >Licence Type * <a :href="proposal_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label-->
-                            <label>Do you want to apply</label>
-                            <div class="col-sm-12">
+                            <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
-                                    <select class="form-control" style="width:50%" v-model="selectedApplication">
-                                        <!--option value="" selected disabled>Select Licence type*</option-->
+                                    <label>Do you want to apply</label>
+                                    <div v-for="application_type in application_types">
+                                        <input type="radio" name="applicationType" value="application_type" @change="selectApplication(application_type)">
+                                            {{ application_type.new_application_text }}
+                                        </input>
+                                    </div>
+                                    <!--select class="form-control" style="width:50%" v-model="selectedApplication">
                                         <option v-for="application_type in application_types" :value="application_type">
                                             {{ application_type.new_application_text }}
                                         </option>
-                                    </select>
+                                    </select-->
                                 </div>
                             </div>
                         </div>
@@ -36,6 +39,7 @@
 <script>
 import Vue from 'vue'
 import FormSection from '@/components/forms/section_toggle.vue'
+//require('bootstrap/dist/css/bootstrap.css')
 import {
   api_endpoints,
   helpers
@@ -94,6 +98,9 @@ export default {
 
   },
   methods: {
+    selectApplication(applicationType) {
+        this.selectedApplication = Object.assign({}, applicationType)
+    },
     submit: function() {
         //let vm = this;
         swal({
@@ -103,6 +110,7 @@ export default {
             showCancelButton: true,
             confirmButtonText: 'Accept'
         }).then(() => {
+            this.createProposal();
             /*
             if (!vm.has_active_proposals()) {
          	    vm.createProposal();
@@ -112,35 +120,26 @@ export default {
         });
     },
 
-    createProposal:function () {
-        let vm = this;
-        vm.creatingProposal = true;
-        if(vm.org_applicant=='yourself'){
-            vm.org_applicant='';
-        }
-		vm.$http.post('/api/proposal.json',{
-			//behalf_of: vm.behalf_of,
-            org_applicant:vm.org_applicant,
-			application: vm.selected_application_id,
-			region: vm.selected_region,
-			district: vm.selected_district,
-			//tenure: vm.selected_tenure,
-			activity: vm.selected_activity,
-            sub_activity1: vm.selected_sub_activity1,
-            sub_activity2: vm.selected_sub_activity2,
+    createProposal: async function () {
+        this.creatingProposal = true;
+        const payload = {
+			//application: vm.selected_application_id,
+            /*
             category: vm.selected_category,
             approval_level: vm.approval_level
-		}).then(res => {
-		    vm.proposal = res.body;
-			vm.$router.push({
-			    name:"draft_proposal",
-				params:{proposal_id:vm.proposal.id}
-			});
-            vm.creatingProposal = false;
-		},
-		err => {
-			console.log(err);
+            */
+        }
+        let res = null;
+        if (this.selectApplication && this.selectedApplication.code === 'wla') {
+            res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
+        }
+        console.log(res);
+        const proposal = res.body;
+		this.$router.push({
+			name:"draft_proposal",
+			params:{proposal_id:proposal.id}
 		});
+        this.creatingProposal = false;
     },
 	searchList: function(id, search_list){
         /* Searches for dictionary in list */
@@ -201,5 +200,8 @@ input[type=text], select{
 	border-style: solid;
 	border-width: thin;
 	border-color: #FFFFFF;
+}
+.radio-buttons {
+    padding: 5px;
 }
 </style>
