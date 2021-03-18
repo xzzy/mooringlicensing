@@ -256,6 +256,13 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListApplication.objects.none()
 
+    def create(self, request, *args, **kwargs):
+        obj = WaitingListApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
+
 
 class ProposalViewSet(viewsets.ModelViewSet):
     queryset = Proposal.objects.none()

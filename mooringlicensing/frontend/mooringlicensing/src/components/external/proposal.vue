@@ -39,6 +39,12 @@
             <!--ProposalTClass v-if="proposal && proposal_parks && proposal.application_type==application_type_tclass" :proposal="proposal" id="proposalStart"  :canEditActivities="canEditActivities" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_tclass"></ProposalTClass>
             <ProposalFilming v-else-if="proposal && proposal.application_type==application_type_filming" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_filming"></ProposalFilming>
             <ProposalEvent v-else-if="proposal && proposal.application_type==application_type_event" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_event"></ProposalEvent-->
+            <WaitingListApplication
+            v-if="proposal && proposal.application_type_code==='wla'"
+            :proposal="proposal" 
+            :is_external="true" 
+            ref="waiting_list_application"
+            />
 
             <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -68,7 +74,7 @@
                                     </div>
                                     <div v-else class="container">
                                       <p class="pull-right" style="margin-top:5px;">
-                                        <router-link class="btn btn-primary" :to="{name: 'external-proposals-dash'}">Back to Dashboard</router-link>
+                                        <router-link class="btn btn-primary" :to="{name: 'external-dashboard'}">Back to Dashboard</router-link>
                                       </p>
                                     </div>
                                   </div>
@@ -87,6 +93,7 @@ import ProposalTClass from '../form_tclass.vue'
 import ProposalFilming from '../form_filming.vue'
 import ProposalEvent from '../form_event.vue'
 */
+import WaitingListApplication from '../form_wla.vue';
 import Vue from 'vue' 
 import {
   api_endpoints,
@@ -115,6 +122,7 @@ export default {
     }
   },
   components: {
+      WaitingListApplication
       /*
       ProposalTClass,
       ProposalFilming,
@@ -747,33 +755,23 @@ export default {
             vm.loading.push('fetching proposal')
             vm.proposal = res.body;
             //used in activities_land for T Class licence
-            vm.proposal.selected_trails_activities=[];
-            vm.proposal.selected_parks_activities=[];
-            vm.proposal.marine_parks_activities=[];
             vm.loading.splice('fetching proposal', 1);
             vm.setdata(vm.proposal.readonly);
-            vm.fetchProposalParks(to.params.proposal_id);
-            // Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/parks_and_trails')).then(response => {
-            //     vm.parks = helpers.copyObject(response.body);
-            //     console.log(vm.parks)
-            // },
-            //   error => {
-            // });
-            
+              /*
             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
-                     
                       vm.setAmendmentData(res.body);
-                  
                 },
               err => { 
                         console.log(err);
                   });
+              */
               });
           },
         err => {
           console.log(err);
-        });    
+        });
     }
+      /*
     else {
       Vue.http.post('/api/proposal.json').then(res => {
           next(vm => {
@@ -786,6 +784,7 @@ export default {
           console.log(err);
         });
     }
+    */
   }
 }
 </script>

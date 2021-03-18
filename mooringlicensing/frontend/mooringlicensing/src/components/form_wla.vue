@@ -84,6 +84,7 @@
     import Profile from '@/components/user/profile.vue'
     //import Organisation from '@/components/external/organisations/manage.vue'
     import Applicant from '@/components/common/applicant.vue'
+    import Confirmation from '@/components/common/confirmation.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
     import ActivitiesLand from '@/components/common/tclass/activities_land.vue'
@@ -93,6 +94,7 @@
     import Confirmation from '@/components/common/tclass/confirmation.vue'
     */
     export default {
+        name: 'WaitingListApplication',
         props:{
             proposal:{
                 type: Object,
@@ -138,12 +140,12 @@
         },
         components: {
             Applicant,
+            Confirmation,
             /*
             ActivitiesLand,
             ActivitiesMarine,
             OtherDetails,
             OnlineTraining,
-            Confirmation,
             */
             Profile,
             /*
