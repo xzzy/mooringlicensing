@@ -4,6 +4,8 @@ module.exports = {
     application_types:"/api/application_types",
     application_types_dict:"/api/application_types_dict",
     application_statuses_dict:"/api/application_statuses_dict",
+    approval_types_dict:"/api/approval_types_dict",
+    approval_statuses_dict:"/api/approval_statuses_dict",
     profile: '/api/profile',
     organisations: '/api/organisations.json',
     filtered_organisations: '/api/filtered_organisations',

@@ -1,7 +1,24 @@
 <template>
     <div>
         <div class="row">
-
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Type</label>
+                    <select class="form-control" v-model="filterApprovalType">
+                        <option value="All">All</option>
+                        <option v-for="type in approval_types" :value="type.code">{{ type.description }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Status</label>
+                    <select class="form-control" v-model="filterApprovalStatus">
+                        <option value="All">All</option>
+                        <option v-for="status in approval_statuses" :value="status.code">{{ status.description }}</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="row">
@@ -27,18 +44,150 @@ export default {
         let vm = this;
         return {
             datatable_id: 'licences_and_permits-datatable-' + vm._uid,
+            approvalTypesToDisplay: ['aap', 'aup', 'ml'],
 
             // selected values for filtering
-            //filterApplicationType: null,
-            //filterApplicationStatus: null,
+            filterApprovalType: null,
+            filterApprovalStatus: null,
+
+            // filtering options
+            approval_types: [],
+            approval_statuses: [],
 
             // Datatable settings
-            licences_and_permits_headers: ['Number', 'Type', 'Sticker Number', 'Status', 'Issue Date', 'Expiry Date', 'Vessel', 'Action'],
+            licences_and_permits_headers: ['Id', 'Number', 'Type', 'Sticker Number', 'Status', 'Issue Date', 'Expiry Date', 'Vessel', 'Action'],
             licences_and_permits_options: {
-                searching: false
+                autoWidth: false,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                searching: false,
+                ajax: {
+                    "url": api_endpoints.approvals_paginated_external + '?format=datatables',
+                    "dataSrc": 'data',
 
-                // TODO: retrieve contents
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        d.filter_approval_types = vm.approvalTypesToDisplay.join(',');
 
+                        // Add filters selected
+                        d.filter_approval_type = vm.filterApprovalType;
+                        d.filter_approval_status = vm.filterApprovalStatus;
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons:[
+                    //{
+                    //    extend: 'excel',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                ],
+                columns: [
+                    {
+                        // 1. ID
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.id
+                        }
+                    },
+                    {
+                        // 2. Lodgement Number
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.lodgement_number
+                        }
+                    },
+                    {
+                        // 3. Bay
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 4. Approval number in Bay
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 5. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.status
+                        }
+                    },
+                    {
+                        // 6. Vessel Registration
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 7. Vessel Name
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 8. Issue Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 10. Action
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                ],
+                processing: true,
+                initComplete: function() {
+                    console.log('in initComplete')
+                },
             },
         }
     },
@@ -46,16 +195,39 @@ export default {
         datatable
     },
     watch: {
-
+        filterApprovalStatus: function() {
+            let vm = this;
+            vm.$refs.licences_and_permits_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        },
+        filterApprovalType: function() {
+            let vm = this;
+            vm.$refs.licences_and_permits_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        },
     },
     computed: {
 
     },
     methods: {
+        fetchFilterLists: function(){
+            let vm = this;
 
+            // Approval Types
+            vm.$http.get(api_endpoints.approval_types_dict+'?apply_page=False').then((response) => {
+                vm.approval_types = response.body
+            },(error) => {
+                console.log(error);
+            })
+
+            // Approval Statuses
+            vm.$http.get(api_endpoints.approval_statuses_dict).then((response) => {
+                vm.approval_statuses = response.body
+            },(error) => {
+                console.log(error);
+            })
+        },
     },
     created: function(){
-
+        this.fetchFilterLists()
     },
     mounted: function(){
 

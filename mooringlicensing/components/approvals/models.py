@@ -197,7 +197,8 @@ class Approval(RevisionedMixin):
     def next_id(self):
         #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
         ids = map(int, [i.split('L')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
-        return max(ids) + 1 if list(ids) else 1
+        ids = list(ids)
+        return max(ids) + 1 if len(ids) else 1
 
     def save(self, *args, **kwargs):
         if self.lodgement_number in ['', None]:
@@ -496,6 +497,18 @@ class Approval(RevisionedMixin):
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
+
+    @classmethod
+    def approval_type_dict(cls):
+        type_list = []
+        for approval_type in Approval.__subclasses__():
+            if hasattr(approval_type, 'code'):
+                type_list.append({
+                    "code": approval_type.code,
+                    "description": approval_type.description,
+                })
+
+        return type_list
 
 
 class WaitingListAllocation(Approval):

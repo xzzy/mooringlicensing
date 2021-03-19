@@ -68,7 +68,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: true,
+                searching: false,
                 ajax: {
                     "url": api_endpoints.proposals_paginated_external + '?format=datatables',
                     "dataSrc": 'data',
@@ -81,18 +81,18 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
+                    //{
+                    //    extend: 'excel',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
                 ],
                 columns: [
                     {

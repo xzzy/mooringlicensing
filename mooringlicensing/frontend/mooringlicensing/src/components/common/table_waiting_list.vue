@@ -29,7 +29,7 @@ export default {
         let vm = this;
         return {
             datatable_id: 'waiting_lists-datatable-' + vm._uid,
-            filterApprovalType: 'wla',
+            approvalTypesToDisplay: ['wla'],
 
             // Datatable settings
             datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
@@ -40,30 +40,30 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: true,
+                searching: false,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_external + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_type = vm.filterApprovalType;
+                        d.filter_approval_types = vm.approvalTypesToDisplay.join(',');
                     }
                 },
-                dom: 'lBfrtip',
+                dom: 'frt', //'lBfrtip',
                 buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
+                    //{
+                    //    extend: 'excel',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
                 ],
                 columns: [
                     {
