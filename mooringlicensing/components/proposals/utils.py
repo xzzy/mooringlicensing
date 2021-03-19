@@ -11,7 +11,11 @@ from mooringlicensing.components.proposals.models import (
         ProposalAssessment, 
         ProposalAssessmentAnswer, 
         ChecklistQuestion,
-        ProposalStandardRequirement
+        ProposalStandardRequirement,
+        WaitingListApplication,
+        AnnualAdmissionApplication,
+        AuthorisedUserApplication,
+        MooringLicenceApplication,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -303,14 +307,18 @@ class SpecialFieldsSearch(object):
         return item_data
 
 
-def save_proponent_data(instance,request,viewset,parks=None,trails=None):
-    if instance.application_type.name==ApplicationType.FILMING:
-        save_proponent_data_filming(instance,request,viewset,parks=None,trails=None)
-    elif instance.application_type.name==ApplicationType.EVENT:
-        save_proponent_data_event(instance,request,viewset,parks=None,trails=None)
-    else:
-        save_proponent_data_tclass(instance,request,viewset,parks=None,trails=None)
+def save_proponent_data(instance, request, viewset):
+    if type(instance.child_obj) == WaitingListApplication:
+        save_proponent_data_wla(instance, request, viewset)
+    elif type(instance.child_obj) == AnnualAdmissionApplication:
+        save_proponent_data_aaa(instance, request, viewset)
+    elif type(instance.child_obj) == AuthorisedUserApplication:
+        save_proponent_data_aua(instance, request, viewset)
+    elif type(instance.child_obj) == MooringLicenceApplication:
+        save_proponent_data_mla(instance, request, viewset)
 
+def save_proponent_data_wla(instance, request, viewset):
+    print("save wla")
 
 #from mooringlicensing.components.main.models import ApplicationType
 
