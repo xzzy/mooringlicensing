@@ -169,7 +169,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_application_type and not filter_application_type.lower() == 'all':
             q = None
             for item in Proposal.__subclasses__():
-                if item.code == filter_application_type:
+                if hasattr(item, 'code') and item.code == filter_application_type:
                     lookup = "{}__isnull".format(item._meta.model_name)
                     q = Q(**{lookup: False})
                     break
