@@ -325,6 +325,7 @@ export default {
         },
     },
     created: function(){
+        console.log('table_applications created')
         this.fetchFilterLists()
     },
     mounted: function(){

@@ -58,9 +58,9 @@ class GetApprovalTypeDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        # apply_page = request.GET.get('apply_page', 'false')
-        # apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        types = Approval.approval_type_dict()
+        include_codes = request.GET.get('include_codes', '')
+        include_codes = include_codes.split(',')
+        types = Approval.approval_type_dict(include_codes)
         return Response(types)
 
 
@@ -123,7 +123,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         filter_approval_status = request.GET.get('filter_approval_status')
         if filter_approval_status and not filter_approval_status.lower() == 'all':
-            queryset = queryset.filter(customer_status=filter_approval_status)
+            queryset = queryset.filter(status=filter_approval_status)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)

@@ -499,14 +499,15 @@ class Approval(RevisionedMixin):
                 raise
 
     @classmethod
-    def approval_type_dict(cls):
+    def approval_type_dict(cls, include_codes=[]):
         type_list = []
         for approval_type in Approval.__subclasses__():
             if hasattr(approval_type, 'code'):
-                type_list.append({
-                    "code": approval_type.code,
-                    "description": approval_type.description,
-                })
+                if approval_type.code in include_codes:
+                    type_list.append({
+                        "code": approval_type.code,
+                        "description": approval_type.description,
+                    })
 
         return type_list
 

@@ -26,8 +26,8 @@
                 <datatable 
                     ref="licences_and_permits_datatable" 
                     :id="datatable_id" 
-                    :dtOptions="licences_and_permits_options" 
-                    :dtHeaders="licences_and_permits_headers"
+                    :dtOptions="datatable_options" 
+                    :dtHeaders="datatable_headers"
                 />
             </div>
         </div>
@@ -55,8 +55,8 @@ export default {
             approval_statuses: [],
 
             // Datatable settings
-            licences_and_permits_headers: ['Id', 'Number', 'Type', 'Sticker Number', 'Status', 'Issue Date', 'Expiry Date', 'Vessel', 'Action'],
-            licences_and_permits_options: {
+            datatable_headers: ['Id', 'Number', 'Type', 'Sticker Number', 'Status', 'Issue Date', 'Expiry Date', 'Vessel', 'Action'],
+            datatable_options: {
                 autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -212,7 +212,8 @@ export default {
             let vm = this;
 
             // Approval Types
-            vm.$http.get(api_endpoints.approval_types_dict+'?apply_page=False').then((response) => {
+            let include_codes = vm.approvalTypesToDisplay.join(',');
+            vm.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + include_codes).then((response) => {
                 vm.approval_types = response.body
             },(error) => {
                 console.log(error);
