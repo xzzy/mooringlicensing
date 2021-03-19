@@ -409,7 +409,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
-                                       default=CUSTOMER_STATUS_CHOICES[1][0])
+                                       default=CUSTOMER_STATUS_CHOICES[0][0])
     org_applicant = models.ForeignKey(
         Organisation,
         blank=True,
@@ -450,6 +450,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    # TODO: should be NotImplementedError?
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
         #application_type_acronym = self.application_type.acronym if self.application_type else None
