@@ -363,7 +363,7 @@ class ListProposalSerializer(BaseProposalSerializer):
         return ''
 
 class ProposalSerializer(BaseProposalSerializer):
-    submitter = serializers.CharField(source='submitter.get_full_name')
+    #submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
     #review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
