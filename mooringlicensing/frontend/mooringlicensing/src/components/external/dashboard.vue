@@ -1,18 +1,18 @@
 <template>
     <div class="container" id="externalDash">
-        <FormSection :formCollapse="false" label="Applications" Index="applications">
+        <FormSection :formCollapse="true" label="Applications" Index="applications">
             <ApplicationsTable />
         </FormSection>
-        <FormSection :formCollapse="true" label="Waiting List" Index="waiting_list">
+        <FormSection :formCollapse="false" label="Waiting List" Index="waiting_list">
             <WaitingListTable />
         </FormSection>
-        <FormSection :formCollapse="true" label="Licences and Permits" Index="licences_and_permits">
+        <FormSection :formCollapse="false" label="Licences and Permits" Index="licences_and_permits">
             <LicencesAndPermitsTable />
         </FormSection>
-        <FormSection :formCollapse="true" label="Compliances" Index="compliances">
+        <FormSection :formCollapse="false" label="Compliances" Index="compliances">
             <CompliancesTable />
         </FormSection>
-        <FormSection :formCollapse="true" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
+        <FormSection :formCollapse="false" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
             <AuthorisedUserApplicationsTable />
         </FormSection>
     </div>
