@@ -179,6 +179,16 @@
                     <input type="radio" name="electoral_roll_silent" value="silent" v-model="profile.electoral_roll">
                     I am a silent elector
                     </input>
+                    <div v-if="profile.electoral_roll==='silent'">
+                        <FileField
+                            label="Provide evidence"
+                            ref="electoral_roll_documents"
+                            name="electoral-roll-documents"
+                            :isRepeatable="true"
+                            :documentActionUrl="electoralRollDocumentUrl"
+                            :replace_button_by_text="true"
+                        />
+                    </div>
                 </div>
             </div>
         </FormSection>
@@ -191,6 +201,7 @@ import Vue from 'vue'
 import $ from 'jquery'
 import { api_endpoints, helpers } from '@/utils/hooks'
 import FormSection from '@/components/forms/section_toggle.vue'
+import FileField from '@/components/forms/filefield_immediate.vue'
 export default {
     name: 'Profile',
     props:{
@@ -248,6 +259,7 @@ export default {
     },
     components: {
         FormSection,
+        FileField,
     },
     watch: {
         managesOrg: function() {
@@ -274,6 +286,16 @@ export default {
         },
     },
     computed: {
+        electoralRollDocumentUrl: function() {
+            let url = '';
+            if (this.profile && this.profile.id) {
+                url = helpers.add_endpoint_join(
+                    '/api/users/',
+                    this.profile.id + '/process_electoral_roll_document/'
+                )
+            }
+            return url;
+        },
         classCompute:function(){
           return this.isApplication? 'row' : 'container';
         },
