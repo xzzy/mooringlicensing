@@ -41,11 +41,111 @@ export default {
             compliance_statuses: [],
 
             // Datatable settings
-            compliances_headers: ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'],
+            compliances_headers: ['Id', 'Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'],
             compliances_options: {
-                searching: false
+                searching: false,
+                autoWidth: false,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
 
-                // TODO: retrieve contents
+                ajax: {
+                    "url": api_endpoints.compliances_paginated_external + '?format=datatables',
+                    "dataSrc": 'data',
+
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        // Add filters selected
+                        d.filter_compliance_status = vm.filterComplianceStatus;
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons:[
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                ],
+                columns: [
+                    {
+                        // 1. ID
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.id
+                        }
+                    },
+                    {
+                        // 2. Lodgement Number
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.lodgement_number
+                        }
+                    },
+                    {
+                        // 3. Licence/Permit
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 4. Condition
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 5. Due Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                    {
+                        // 6. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.status
+                        }
+                    },
+                    {
+                        // 7. Action
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    },
+                ],
+                processing: true,
+                initComplete: function() {
+                    console.log('in initComplete')
+                },
 
             },
         }

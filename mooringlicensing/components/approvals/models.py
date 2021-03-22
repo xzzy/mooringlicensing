@@ -50,11 +50,10 @@ class ApprovalDocument(Document):
             return super(ApprovalDocument, self).delete()
         logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
 
-
     class Meta:
         app_label = 'mooringlicensing'
 
-#class Approval(models.Model):
+
 class Approval(RevisionedMixin):
     APPROVAL_STATUS_CURRENT = 'current'
     APPROVAL_STATUS_EXPIRED = 'expired'
