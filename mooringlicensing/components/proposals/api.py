@@ -45,7 +45,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalStandardRequirement,
     AmendmentRequest,
     AmendmentReason,
-    #Vessel,
+    VesselDetails,
     ChecklistQuestion,
     ProposalAssessment,
     ProposalAssessmentAnswer,
@@ -133,6 +133,14 @@ class GetApplicationStatusesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
+        return Response(data)
+
+
+class GetVesselTypesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'code': i[0], 'description': i[1]} for i in VesselDetails.VESSEL_TYPES]
         return Response(data)
 
 
