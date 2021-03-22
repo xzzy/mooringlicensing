@@ -72,7 +72,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(proposal__org_applicant_id=org_id)
         submitter_id = request.GET.get('submitter_id', None)
         if submitter_id:
-            qs = qs.filter(proposal__submitter_id=submitter_id)
+            queryset = queryset.filter(proposal__submitter_id=submitter_id)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -390,8 +390,6 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-
-
 class ComplianceAmendmentReasonChoicesView(views.APIView):
 
     renderer_classes = [JSONRenderer,]
@@ -403,4 +401,13 @@ class ComplianceAmendmentReasonChoicesView(views.APIView):
             for c in choices:
                 choices_list.append({'key': c.id,'value': c.reason})
         return Response(choices_list)
+
+
+class GetComplianceStatusesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
+        return Response(data)
+
 

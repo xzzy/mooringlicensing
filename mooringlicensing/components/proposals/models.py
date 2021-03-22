@@ -1558,7 +1558,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
     @classmethod
-    def application_type_dict(cls, apply_page):
+    def application_types_dict(cls, apply_page):
         type_list = []
         for application_type in Proposal.__subclasses__():
             if apply_page:

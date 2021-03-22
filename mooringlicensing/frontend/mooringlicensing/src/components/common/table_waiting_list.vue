@@ -32,8 +32,7 @@ export default {
             approvalTypesToDisplay: ['wla'],
 
             // Datatable settings
-            datatable_headers: ['Id', 'Number', 'Bay', 'number', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
-            //datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
+            datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
             datatable_options: {
                 autoWidth: false,
                 language: {

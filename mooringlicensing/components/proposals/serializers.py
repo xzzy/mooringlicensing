@@ -233,7 +233,10 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         return obj.application_type_code
 
     def get_application_type_dict(self, obj):
-        return obj.application_type_dict(apply_page=False)
+        return {
+            'code': obj.child_obj.code,
+            'description': obj.child_obj.description,
+        }
 
     def get_documents_url(self,obj):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
@@ -332,12 +335,6 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_reference',
                 # 'fee_paid',
                 )
-
-    def get_application_type_dict(self, obj):
-        return {
-            'code': obj.child_obj.code,
-            'description': obj.child_obj.description,
-        }
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:

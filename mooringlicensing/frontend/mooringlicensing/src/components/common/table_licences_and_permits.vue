@@ -114,17 +114,17 @@ export default {
                         }
                     },
                     {
-                        // 3. Bay
+                        // 3. Type
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.approval_type_dict.description
                         }
                     },
                     {
-                        // 4. Approval number in Bay
+                        // 4. Sticker Number
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -144,7 +144,7 @@ export default {
                         }
                     },
                     {
-                        // 6. Vessel Registration
+                        // 6. Issue Date
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -154,7 +154,7 @@ export default {
                         }
                     },
                     {
-                        // 7. Vessel Name
+                        // 7. Expiry Date
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -164,7 +164,7 @@ export default {
                         }
                     },
                     {
-                        // 8. Issue Date
+                        // 8. Vessel
                         data: "id",
                         orderable: true,
                         searchable: true,

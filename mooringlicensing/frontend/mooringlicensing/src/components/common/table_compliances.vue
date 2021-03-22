@@ -1,7 +1,15 @@
 <template>
     <div>
         <div class="row">
-
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Status</label>
+                    <select class="form-control" v-model="filterComplianceStatus">
+                        <option value="All">All</option>
+                        <option v-for="status in compliance_statuses" :value="status.code">{{ status.description }}</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="row">
@@ -29,8 +37,8 @@ export default {
             datatable_id: 'compliances-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterApplicationType: null,
-            filterApplicationStatus: null,
+            filterComplianceStatus: null,
+            compliance_statuses: [],
 
             // Datatable settings
             compliances_headers: ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'],
@@ -52,10 +60,19 @@ export default {
 
     },
     methods: {
+        fetchFilterLists: function(){
+            let vm = this;
 
+            // Statuses
+            vm.$http.get(api_endpoints.compliance_statuses_dict).then((response) => {
+                vm.compliance_statuses = response.body
+            },(error) => {
+                console.log(error);
+            })
+        },
     },
     created: function(){
-
+        this.fetchFilterLists()
     },
     mounted: function(){
 
