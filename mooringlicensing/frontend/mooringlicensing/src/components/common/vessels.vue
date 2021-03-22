@@ -1,7 +1,7 @@
 <template lang="html">
 
-    <div class="col-sm-12" id="vessels">
-      <form class="form-horizontal">
+    <div class="row">
+        <div class="col-sm-12" id="vessels">
         <FormSection label="Registration Details">
             <div class="form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
@@ -83,31 +83,14 @@
                 </div>
             </div>
         </FormSection>
-        <!--div class="well">
-            <div v-if="proposal.fee_paid" class="row">
-                <div class="col-sm-12">
-                    <h2>Application Fee: Paid</h2>
-                    <p>A confirmation email has been sent to {{proposal.applicant }}. </p>
-                </div>
-            </div>
-            <div v-else class="row">
-                <div class="col-sm-12">
-                    <h2>Application Fee: Unpaid</h2>
-                </div>
-            </div>
-        </div>
-        <div v-if="proposal.fee_paid" class="row">
-            <div class="col-sm-12" style="margin-top: 1em">
-                <a :href="proposal.fee_invoice_url" class="btn btn-info btn-lg"  target="_blank">Invoice</a>
-            </div>
-        </div-->
-      </form>
+    </div>
     </div>
 
 </template>
 <script>
 import Vue from 'vue'
 import FormSection from '@/components/forms/section_toggle.vue'
+import FileField from '@/components/forms/filefield_immediate.vue'
 import {
   api_endpoints,
   helpers
