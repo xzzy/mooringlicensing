@@ -228,13 +228,14 @@ class SystemMaintenance(models.Model):
     def __str__(self):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
 
-
+# Not currently used
 class TemporaryDocumentCollection(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
 
 
+# Not currently used
 class TemporaryDocument(Document):
     temp_document_collection = models.ForeignKey(
         TemporaryDocumentCollection,
@@ -243,6 +244,23 @@ class TemporaryDocument(Document):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+def update_electoral_roll_doc_filename(instance, filename):
+    return '{}/emailusers/{}/documents/{}'.format(settings.MEDIA_APP_DIR, instance.emailuser.id,filename)
+
+
+class ElectoralRollDocument(Document):
+    emailuser = models.ForeignKey(EmailUser,related_name='electoral_roll_documents')
+    _file = models.FileField(upload_to=update_electoral_roll_doc_filename, max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Electoral Roll Document"
 
 #import reversion
 #reversion.register(UserAction)
