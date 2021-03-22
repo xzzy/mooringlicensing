@@ -162,204 +162,36 @@
                 </div>
             </div>
         </div>
-
-        <!--div v-if="profile.is_staff" class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">System Settings <small>Set up preferences in using this system</small>
-                        <a class="panelClicker" :href="'#'+sBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="sBody">
-                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                        </a>
-                    </h3>
-                  </div>
-                  <div class="panel-body collapse" :id="sBody">
-                      <form class="form-horizontal" action="index.html" method="post">
-                          <div class="form-group">
-                            <label for="" class="col-sm-3">Park Entry Fees dashboard view</label>
-                            <div class="col-sm-3">
-                               <label>
-                                    <input type="radio" value="true" v-model="profile.system_settings.one_row_per_park" />One row per Park
-                                </label>          
-                            </div>
-                            <div class="col-sm-3">
-                                <label>
-                                    <input type="radio" value="false" v-model="profile.system_settings.one_row_per_park"  />One row per Booking
-                                </label>   
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <div class="col-sm-12">
-                                <button v-if="!updatingSystemSettings" class="pull-right btn btn-primary" @click.prevent="updateSystemSettings()">Update</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-                            </div>
-                          </div>
-                       </form>
-                  </div>
+        <FormSection label="WA State Electoral Roll">
+            <div class="form-group">
+                <div class="col-sm-8">
+                    <label for="electoral_roll" class="control-label">
+                        You must be on the WA state electoral roll to make an application
+                    </label>
+                </div>
+                <div class="col-sm-8">
+                    <input type="radio" name="electoral_roll_yes" value="yes" v-model="profile.electoral_roll">
+                    Yes, I am on the 
+                    <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
+                    </input>
+                </div>
+                <div class="col-sm-8">
+                    <input type="radio" name="electoral_roll_silent" value="silent" v-model="profile.electoral_roll">
+                    I am a silent elector
+                    </input>
+                    <div v-if="profile.electoral_roll==='silent'">
+                        <FileField
+                            label="Provide evidence"
+                            ref="electoral_roll_documents"
+                            name="electoral-roll-documents"
+                            :isRepeatable="true"
+                            :documentActionUrl="electoralRollDocumentUrl"
+                            :replace_button_by_text="true"
+                        />
+                    </div>
                 </div>
             </div>
-        </div-->
-
-        <!--div v-if="!isApplication" class="row">
-            <div class="col-sm-12">
-                <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">Organisation <small>Link to the organisations you are an employee of and for which you are managing licences</small>
-                        <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="oBody">
-                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                        </a>
-                    </h3>
-                  </div>
-                  <div class="panel-body collapse" :id="oBody">
-                      <form class="form-horizontal" name="orgForm" method="post">
-                          <div class="form-group">
-                            <label for="" class="col-sm-5 control-label">Do you manage licences on behalf of an organisation? <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="bottom" style="color:blue" title="Answer with Yes if you are applying for a licence in an organisation or incorporated body name.">&nbsp;</i></label>
-                            <div class="col-sm-4">
-                                <label class="radio-inline">
-                                  <input type="radio" name="behalf_of_org" v-model="managesOrg" value="Yes"> Yes
-                                </label>
-                                <label class="radio-inline">
-                                  <input :disabled="hasOrgs" type="radio" name="behalf_of_org" v-model="managesOrg" value="No" > No
-                                </label>
-                                <label class="radio-inline">
-                                  <input type="radio" name="behalf_of_org" v-model="managesOrg" value="Consultant"> Yes, as a consultant
-                                </label>
-                            </div>
-                          </div>
-                          <div class="form-group" v-if="managesOrg=='Yes'">
-                            <div class="col-sm-12">
-                                <button class="btn btn-primary pull-right" v-if="hasOrgs && !addingCompany" @click.prevent="addCompany()">Add Another Organisation</button>   
-                            </div>
-                          </div>
-
-                          <div v-for="org in profile.mooringlicensing_organisations">
-                              <div class="form-group">
-                                <label for="" class="col-sm-2 control-label" >Organisation</label>
-                                <div class="col-sm-3"> 
-                                    <input type="text" disabled class="form-control" name="organisation" v-model="org.name" placeholder="">
-                                </div>
-                                <label for="" class="col-sm-2 control-label" >ABN/ACN</label>
-                                <div class="col-sm-3"> 
-                                    <input type="text" disabled class="form-control" name="organisation" v-model="org.abn" placeholder="">
-                                </div>
-                                <a style="cursor:pointer;text-decoration:none;" @click.prevent="unlinkUser(org)"><i class="fa fa-chain-broken fa-2x" ></i>&nbsp;Unlink</a>
-                              </div>
-                          </div>
-
-                          <div v-for="orgReq in orgRequest_list">
-                              <div class="form-group">
-                                <label for="" class="col-sm-2 control-label" >Organisation</label>
-                                <div class="col-sm-3"> 
-                                    <input type="text" disabled class="form-control" name="organisation" v-model="orgReq.name" placeholder="">
-                                </div>
-                                <label for="" class="col-sm-2 control-label" >ABN/ACN</label>
-                                <div class="col-sm-3"> 
-                                    <input type="text" disabled class="form-control" name="organisation" v-model="orgReq.abn" placeholder="">
-                                </div>
-                                <lable>&nbsp;Pending for approval</lable>
-                              </div>
-                          </div>
-
-                           <div v-if="managesOrg=='Consultant'">
-                              <h3>New Organisation (as consultant)</h3>
-                              <div class="form-group">
-                                  <label for="" class="col-sm-2 control-label" >Organisation</label>
-                                  <div class="col-sm-6">
-                                      <input type="text" class="form-control" name="organisation" v-model="newOrg.name" placeholder="">
-                                  </div>
-                              </div>
-                              <div class="form-group">
-                                  <label for="" class="col-sm-2 control-label" >ABN/ACN</label>
-                                  <div class="col-sm-6">
-                                      <input type="text" class="form-control" name="abn" v-model="newOrg.abn" placeholder="">
-                                  </div>
-                                  <div class="col-sm-2">
-                                      <button v-if="newOrg.detailsChecked" @click.prevent="checkOrganisation()" class="btn btn-primary">Check Details</button>
-                                  </div>
-                              </div>
-                              <div class="form-group">
-                                    <label class="col-sm-12" style="text-align:left;">
-                                      Please upload a letter on organisation letter head stating that you are a consultant for the organisation.
-                                        <span class="btn btn-info btn-file">
-                                            Attach File <input type="file" ref="uploadedFile" @change="readFile()"/>
-                                        </span>
-                                        <span  style="margin-left:10px;margin-top:10px;">{{uploadedFileName}}</span>
-                                    </label>
-                                    </br>
-
-                                    <label for="" class="col-sm-10 control-label" style="text-align:left;">You will be notified by email once the Department has checked the organisation details.
-                                    </label>
-
-
-                                    <div class="col-sm-12">
-                                      <button v-if="!registeringOrg" @click.prevent="orgConsultRequest()" class="btn btn-primary pull-left">Submit</button>
-                                      <button v-else disabled class="btn btn-primary pull-right"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                    </div>
-                              </div>
-                           </div>
-
-
-                          <div style="margin-top:15px;" v-if="addingCompany">
-                              <h3> New Organisation</h3>
-                              <div class="form-group">
-                                <label for="" class="col-sm-2 control-label" >Organisation</label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control" name="organisation" v-model="newOrg.name" placeholder="">
-                                </div>
-                              </div>
-                              <div class="form-group">
-                                <label for="" class="col-sm-2 control-label" >ABN/ACN <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="bottom" style="color:blue" title="If you are applying as a sole trader please supply your ABN.">&nbsp;</i></label>
-                                <div class="col-sm-6">
-                                    <input type="text" class="form-control" name="abn" v-model="newOrg.abn" placeholder="" style="width: 40%">
-                                </div>
-                                <div class="col-sm-2">
-                                    <button :disabled="!isNewOrgDetails" @click.prevent="checkOrganisation()" class="btn btn-primary">Check Details</button>
-                                </div>
-                              </div>
-                              <div class="form-group" v-if="newOrg.exists && newOrg.detailsChecked">
-                                  <label class="col-sm-12" style="text-align:left;margin-bottom:20px;">
-                                    This organisation has already been  registered with the system.Please enter the two pin codes:</br>
-                                    These pin codes can be retrieved from ({{newOrg.first_five}})
-                                  </label>
-                                  <label for="" class="col-sm-2 control-label" >Pin 1</label>
-                                  <div class="col-sm-2">
-                                    <input type="text" class="form-control" name="abn" v-model="newOrg.pin1" placeholder="">
-                                  </div>
-                                  <label for="" class="col-sm-2 control-label" >Pin 2</label>
-                                  <div class="col-sm-2">
-                                    <input type="text" class="form-control" name="abn" v-model="newOrg.pin2" placeholder="">
-                                  </div>
-                                  <div class="col-sm-2">
-                                    <button v-if="!completedProfile && !validatingPins" disabled title="Please complete all the personal details." class="btn btn-primary pull-left">Validate</button>
-
-                                    <button v-else-if="!validatingPins && completedProfile" @click.prevent="validatePins()" class="btn btn-primary pull-left">Validate</button>
-                                    <button v-else class="btn btn-primary pull-left"><i class="fa fa-spin fa-spinner"></i>&nbsp;Validating Pins</button>
-                                  </div>
-                              </div>
-                              <div class="form-group" v-else-if="!newOrg.exists && newOrg.detailsChecked">
-                                  <label class="col-sm-12" style="text-align:left;">
-                                    This organisation has not yet been registered with this system. Please upload a letter on organisation head stating that you are an employee of this origanisation.</br>
-                                  </label>
-                                  <div class="col-sm-12">
-                                    <span class="btn btn-primary btn-file pull-left">
-                                        Attach File <input type="file" ref="uploadedFile" @change="readFile()"/>
-                                    </span>
-                                    <span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedFileName}}</span>
-                                  </div>
-                                  <label for="" class="col-sm-10 control-label" style="text-align:left;">You will be notified by email once the Department has checked the organisation details.</label>
-                                  <div class="col-sm-12">
-                                    <button v-if="!completedProfile" disabled title="Please complete details" class="btn btn-primary pull-right">Submit</button>
-                                    <button v-else-if="!registeringOrg" :disabled="!isFileUploaded" @click.prevent="orgRequest()" class="btn btn-primary pull-right">Submit</button>
-                                    <button v-else disabled class="btn btn-primary pull-right"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
-                                  </div>
-                              </div>
-                              
-                        </div>
-                       </form>
-                  </div>
-                </div>
-            </div>
-        </div-->
+        </FormSection>
       </div>
     </div>
 </template>
@@ -368,6 +200,8 @@
 import Vue from 'vue'
 import $ from 'jquery'
 import { api_endpoints, helpers } from '@/utils/hooks'
+import FormSection from '@/components/forms/section_toggle.vue'
+import FileField from '@/components/forms/filefield_immediate.vue'
 export default {
     name: 'Profile',
     props:{
@@ -389,7 +223,8 @@ export default {
               first_name: '',
                 last_name: '',
                 mooringlicensing_organisations:[],
-                residential_address : {}
+                residential_address : {},
+                electoral_roll: null,
             },
             newOrg: {
                 'detailsChecked': false,
@@ -422,6 +257,10 @@ export default {
             mobileNumberReadonly: false,
         }
     },
+    components: {
+        FormSection,
+        FileField,
+    },
     watch: {
         managesOrg: function() {
             if (this.managesOrg == 'Yes'){
@@ -447,6 +286,16 @@ export default {
         },
     },
     computed: {
+        electoralRollDocumentUrl: function() {
+            let url = '';
+            if (this.profile && this.profile.id) {
+                url = helpers.add_endpoint_join(
+                    '/api/users/',
+                    this.profile.id + '/process_electoral_roll_document/'
+                )
+            }
+            return url;
+        },
         classCompute:function(){
           return this.isApplication? 'row' : 'container';
         },
@@ -473,6 +322,9 @@ export default {
         },
     },
     methods: {
+        uploadProofElectoralRoll: function() {
+            console.log("proof");
+        },
         readFile: function() {
             let vm = this;
             let _file = null;
