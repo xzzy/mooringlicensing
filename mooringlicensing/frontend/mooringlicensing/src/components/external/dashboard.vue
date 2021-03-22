@@ -1,7 +1,9 @@
 <template>
     <div class="container" id="externalDash">
         <FormSection :formCollapse="true" label="Applications" Index="applications">
-            <ApplicationsTable />
+            <ApplicationsTable
+                level="external"
+            />
         </FormSection>
         <FormSection :formCollapse="false" label="Waiting List" Index="waiting_list">
             <WaitingListTable />
@@ -58,12 +60,13 @@ export default {
         CompliancesTable,
         AuthorisedUserApplicationsTable,
     },
-    watch: {},
+    watch: {
+
+    },
     computed: {
 
     },
     methods: {
-        
     },
     mounted: function () {
 

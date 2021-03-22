@@ -271,7 +271,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     application_type_dict = serializers.SerializerMethodField()
 
     # application_type = serializers.CharField(source='application_type.name', read_only=True)
-    # assessor_process = serializers.SerializerMethodField(read_only=True)
+    assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -296,13 +296,13 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'lodgement_date',
                 # 'modified_date',
                 # 'readonly',
-                # 'can_user_edit',
-                # 'can_user_view',
+                'can_user_edit',
+                'can_user_view',
                 # 'reference',
                 'lodgement_number',
                 # 'lodgement_sequence',
                 # 'can_officer_process',
-                # 'assessor_process',
+                'assessor_process',
                 # 'allowed_assessors',
                 # 'proposal_type',
                 # 'fee_invoice_url',
@@ -324,12 +324,12 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'submitter',
                 # 'assigned_officer',
                 'lodgement_date',
-                # 'can_user_edit',
-                # 'can_user_view',
+                'can_user_edit',
+                'can_user_view',
                 # 'reference',
                 'lodgement_number',
                 # 'can_officer_process',
-                # 'assessor_process',
+                'assessor_process',
                 # 'allowed_assessors',
                 # 'fee_invoice_url',
                 # 'fee_invoice_reference',
