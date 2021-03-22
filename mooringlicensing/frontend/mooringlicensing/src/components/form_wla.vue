@@ -7,6 +7,11 @@
                   1. Applicant
                 </a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" id="pills-vessels-tab" data-toggle="pill" href="#pills-vessels" role="tab" aria-controls="pills-vessels" aria-selected="false">
+                  2. Vessel
+                </a>
+              </li>
               <!--li class="nav-item">
                 <a class="nav-link" id="pills-activities-land-tab" data-toggle="pill" href="#pills-activities-land" role="tab" aria-controls="pills-activities-land" aria-selected="false">
                   2. Activities (land)
@@ -52,12 +57,20 @@
                     <Profile :isApplication="true" v-if="applicantType == 'SUB'" ref="profile"></Profile>
                   </div>
                   <div v-else>
-                    <Applicant :proposal="proposal" id="proposalStartApplicant"></Applicant>
-
+                    <Applicant 
+                    :proposal="proposal" 
+                    id="proposalStartApplicant"
+                    />
                   </div>
               </div>
+              <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
+                  <Vessels 
+                  :proposal="proposal" 
+                  id="proposalStartVessels" 
+                  ref="vessels"
+                  />
+              </div>
               <!--div class="tab-pane fade" id="pills-activities-land" role="tabpanel" aria-labelledby="pills-activities-land-tab">
-
                 <ActivitiesLand :proposal="proposal" id="proposalStartActivitiesLand" :canEditActivities="canEditActivities" :proposal_parks="proposal_parks" ref="activities_land"></ActivitiesLand>
               </div>
               <div class="tab-pane fade" id="pills-activities-marine" role="tabpanel" aria-labelledby="pills-activities-marine-tab">
@@ -71,10 +84,10 @@
               </div>
               <div class="tab-pane fade" id="pills-payment" role="tabpanel" aria-labelledby="pills-payment-tab">
                 <!-- This is a Dummy Tab -->
-              </div>
+              </div-->
               <div class="tab-pane fade" id="pills-confirm" role="tabpanel" aria-labelledby="pills-confirm-tab">
                 <Confirmation :proposal="proposal" id="proposalStartConfirmation"></Confirmation>
-              </div-->
+              </div>
             </div>
         </div>
     </div>
@@ -85,6 +98,7 @@
     //import Organisation from '@/components/external/organisations/manage.vue'
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
+    import Vessels from '@/components/common/vessels.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
     import ActivitiesLand from '@/components/common/tclass/activities_land.vue'
@@ -141,6 +155,7 @@
         components: {
             Applicant,
             Confirmation,
+            Vessels,
             /*
             ActivitiesLand,
             ActivitiesMarine,

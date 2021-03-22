@@ -172,14 +172,14 @@ export default {
   },
   methods: {
     proposal_refs:function(){
-      let vm=this;
-      if(vm.proposal.application_type == vm.application_type_tclass) {
-          return vm.$refs.proposal_tclass;
-      } else if(vm.proposal.application_type == vm.application_type_filming) {
+      if(this.proposal.application_type_code == 'wla') {
+          return this.$refs.waiting_list_application;
+      } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
       } else if(vm.proposal.application_type == vm.application_type_event) {
           return vm.$refs.proposal_event;
       }
+      */
     },
 
     submit_text: function() {
@@ -196,33 +196,19 @@ export default {
           return 'Pay and Submit';
       }
     },
-    _save_applicant_data:function(){
-      let vm=this;
-      let proposal_type = vm.$refs.proposal_tclass
-      if(vm.proposal.applicant_type == 'SUB')
-      {
-        vm.$refs.proposal_tclass.$refs.profile.updatePersonal();
-        vm.$refs.proposal_tclass.$refs.profile.updateAddress();
-        vm.$refs.proposal_tclass.$refs.profile.updateContact();
-      }
-      if(vm.proposal.applicant_type == 'ORG'){
-        vm.$refs.proposal_tclass.$refs.organisation.updateDetails_noconfirm();
-        //vm.$refs.proposal_tclass.$refs.organisation.updateDetails();
-        vm.$refs.proposal_tclass.$refs.organisation.updateAddress();
-      }
-    },
     save_applicant_data:function(){
-      let vm=this;
-      if(vm.proposal.applicant_type == 'SUB')
+      if(this.proposal.applicant_type == 'SUB')
       {
-        vm.proposal_refs().$refs.profile.updatePersonal();
-        vm.proposal_refs().$refs.profile.updateAddress();
-        vm.proposal_refs().$refs.profile.updateContact();
+        this.proposal_refs().$refs.profile.updatePersonal();
+        this.proposal_refs().$refs.profile.updateAddress();
+        this.proposal_refs().$refs.profile.updateContact();
       }
+        /*
       if(vm.proposal.applicant_type == 'ORG'){
         vm.proposal_refs().$refs.organisation.updateDetails();
         vm.proposal_refs().$refs.organisation.updateAddress();
       }
+      */
     },
 
 
