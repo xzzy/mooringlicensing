@@ -900,11 +900,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request,*args,**kwargs):
+    def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,{'processing_status':'discarded', 'previous_application': None},partial=True)
+            serializer = SaveProposalSerializer(instance, {
+                'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                'previous_application': None
+            }, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             return Response(serializer.data,status=http_status)
