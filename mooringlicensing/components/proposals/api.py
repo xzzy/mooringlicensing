@@ -125,7 +125,7 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        return Response(Proposal.application_type_dict(apply_page=apply_page))
+        return Response(Proposal.application_types_dict(apply_page=apply_page))
 
 
 class GetApplicationStatusesDict(views.APIView):

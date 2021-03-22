@@ -60,7 +60,7 @@ class GetApprovalTypeDict(views.APIView):
     def get(self, request, format=None):
         include_codes = request.GET.get('include_codes', '')
         include_codes = include_codes.split(',')
-        types = Approval.approval_type_dict(include_codes)
+        types = Approval.approval_types_dict(include_codes)
         return Response(types)
 
 

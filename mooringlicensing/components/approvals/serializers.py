@@ -282,6 +282,7 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
 class ListApprovalSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    approval_type_dict = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -289,6 +290,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'status',
+            'approval_type_dict',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -296,7 +298,14 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'status',
+            'approval_type_dict',
         )
 
     def get_status(self, obj):
         return obj.get_status_display()
+
+    def get_approval_type_dict(self, obj):
+        return {
+            'code': obj.child_obj.code,
+            'description': obj.child_obj.description,
+        }
