@@ -43,6 +43,8 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
         elif input_name:
             if document_type == 'electoral_roll_document':
                 documents_qs = instance.electoral_roll_documents
+            elif document_type == 'vessel_registration_document':
+                documents_qs = instance.vessel_registration_documents
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
             return { 'filedata': returned_file_data }
         else:
@@ -60,6 +62,9 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         if document_type == 'electoral_roll_document':
             document_id = request.data.get('document_id')
             document = instance.electoral_roll_documents.get(id=document_id)
+        elif document_type == 'vessel_registration_document':
+            document_id = request.data.get('document_id')
+            document = instance.vessel_registration_documents.get(id=document_id)
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document_id = request.data.get('document_id')
         #    document = instance.deed_poll_documents.get(id=document_id)
@@ -91,6 +96,8 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 def cancel_document(request, instance, comms_instance, document_type, input_name=None):
         if document_type == 'electoral_roll_document':
             document_id = request.data.get('document_id')
+        if document_type == 'vessel_registration_document':
+            document_id = request.data.get('document_id')
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document_list = instance.deed_poll_documents.all()
         #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
@@ -112,6 +119,7 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
 
 
 def save_document(request, instance, comms_instance, document_type, input_name=None):
+    #import ipdb; ipdb.set_trace()
     # Match model related_name to instance or comms_instance, eg.
     # sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='documents')..
     # this document can be accessed or created by 'instance.documents'
@@ -124,6 +132,9 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'electoral_roll_document':
             document = instance.electoral_roll_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/emailuser/{}/electoral_roll_documents/{}'
+        if document_type == 'vessel_registration_document':
+            document = instance.vessel_registration_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document = instance.deed_poll_documents.get_or_create(input_name=input_name, name=filename)[0]
         #    path_format_string = '{}/proposals/{}/deed_poll_documents/{}'
