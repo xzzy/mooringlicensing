@@ -82,7 +82,14 @@ from mooringlicensing.components.approvals.serializers import ApprovalSerializer
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.compliances.serializers import ComplianceSerializer
 from ledger.payments.invoice.models import Invoice
-
+from mooringlicensing.components.main.process_document import (
+        process_generic_document, 
+        )
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from mooringlicensing.helpers import is_customer, is_internal
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -365,6 +372,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #        approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
     #    )
     #    return Response(data)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_vessel_registration_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['GET',])
     def compare_list(self, request, *args, **kwargs):
