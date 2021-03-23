@@ -206,12 +206,10 @@ export default {
     },
     watch: {
         filterApprovalStatus: function() {
-            let vm = this;
-            vm.$refs.licences_and_permits_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            this.$refs.licences_and_permits_datatable.vmDataTable.ajax.reload()
         },
         filterApprovalType: function() {
-            let vm = this;
-            vm.$refs.licences_and_permits_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            this.$refs.licences_and_permits_datatable.vmDataTable.ajax.reload()
         },
     },
     computed: {
