@@ -550,6 +550,8 @@ class AuthorisedUserPermit(Approval):
     prefix = 'AUP'
     description = 'Authorised User Permit'
 
+    endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
+
     class Meta:
         app_label = 'mooringlicensing'
 
