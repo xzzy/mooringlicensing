@@ -46,6 +46,16 @@ import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
     name: 'TableApplications',
+    props: {
+        level:{
+            type: String,
+            required: true,
+            validator: function(val) {
+                let options = ['internal', 'referral', 'external'];
+                return options.indexOf(val) != -1 ? true: false;
+            }
+        },
+    },
     data() {
         let vm = this;
         return {
@@ -68,7 +78,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: true,
+                searching: false,
                 ajax: {
                     "url": api_endpoints.proposals_paginated_external + '?format=datatables',
                     "dataSrc": 'data',
@@ -81,18 +91,18 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
+                    //{
+                    //    extend: 'excel',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
                 ],
                 columns: [
                     {
@@ -162,7 +172,25 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            console.log(full)
+                            let links = '';
+                            if (!vm.is_external){
+                                if(full.assessor_process){
+                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                                } else {
+                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                                }
+                            }
+                            else{
+                                if (full.can_user_edit) {
+                                    links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
+                                    links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
+                                }
+                                else if (full.can_user_view) {
+                                    links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
+                                }
+                            }
+                            return links;
                         }
                     },
                     //{
@@ -298,13 +326,43 @@ export default {
 
     },
     computed: {
-
+        is_external: function() {
+            return this.level == 'external'
+        },
     },
     methods: {
         new_application_button_clicked: function(){
             this.$router.push({
                 name: 'apply_proposal'
             })
+        },
+        discardProposal: function(proposal_id) {
+            let vm = this;
+            swal({
+                title: "Discard Application",
+                text: "Are you sure you want to discard this proposal?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Discard Application',
+                confirmButtonColor:'#dc3545'
+            }).then(() => {
+                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
+                .then((response) => {
+                    console.log('response: ')
+                    console.log(response)
+                    swal(
+                        'Discarded',
+                        'Your proposal has been discarded',
+                        'success'
+                    )
+                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
+                    vm.$refs.application_datatable.vmDataTable.draw();
+                }, (error) => {
+                    console.log(error);
+                });
+            },(error) => {
+
+            });
         },
         fetchFilterLists: function(){
             let vm = this;
@@ -323,12 +381,24 @@ export default {
                 console.log(error);
             })
         },
+        addEventListeners: function(){
+            let vm = this
+            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-discard-proposal');
+                vm.discardProposal(id)
+            });
+        },
     },
     created: function(){
+        console.log('table_applications created')
         this.fetchFilterLists()
     },
     mounted: function(){
-
+        let vm = this;
+        this.$nextTick(() => {
+            vm.addEventListeners();
+        });
     }
 }
 </script>
