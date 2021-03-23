@@ -6,7 +6,7 @@ from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.contrib.sites.models import Site
@@ -50,11 +50,10 @@ class ApprovalDocument(Document):
             return super(ApprovalDocument, self).delete()
         logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
 
-
     class Meta:
         app_label = 'mooringlicensing'
 
-#class Approval(models.Model):
+
 class Approval(RevisionedMixin):
     APPROVAL_STATUS_CURRENT = 'current'
     APPROVAL_STATUS_EXPIRED = 'expired'
@@ -65,13 +64,13 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
 
     STATUS_CHOICES = (
-        (APPROVAL_STATUS_CURRENT ,'Current'),
-        (APPROVAL_STATUS_EXPIRED ,'Expired'),
-        (APPROVAL_STATUS_CANCELLED ,'Cancelled'),
-        (APPROVAL_STATUS_SURRENDERED ,'Surrendered'),
-        (APPROVAL_STATUS_SUSPENDED ,'Suspended'),
-        (APPROVAL_STATUS_EXTENDED ,'extended'),
-        (APPROVAL_STATUS_AWAITING_PAYMENT ,'Awaiting Payment'),
+        (APPROVAL_STATUS_CURRENT, 'Current'),
+        (APPROVAL_STATUS_EXPIRED, 'Expired'),
+        (APPROVAL_STATUS_CANCELLED, 'Cancelled'),
+        (APPROVAL_STATUS_SURRENDERED, 'Surrendered'),
+        (APPROVAL_STATUS_SUSPENDED, 'Suspended'),
+        (APPROVAL_STATUS_EXTENDED, 'Extended'),
+        (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
@@ -197,7 +196,8 @@ class Approval(RevisionedMixin):
     def next_id(self):
         #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
         ids = map(int, [i.split('L')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
-        return max(ids) + 1 if list(ids) else 1
+        ids = list(ids)
+        return max(ids) + 1 if len(ids) else 1
 
     def save(self, *args, **kwargs):
         if self.lodgement_number in ['', None]:
@@ -496,6 +496,32 @@ class Approval(RevisionedMixin):
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
+
+    @property
+    def child_obj(self):
+        if hasattr(self, 'waitinglistallocation'):
+            return self.waitinglistallocation
+        elif hasattr(self, 'annualadmissionpermit'):
+            return self.annualadmissionpermit
+        elif hasattr(self, 'authoriseduserpermit'):
+            return self.authoriseduserpermit
+        elif hasattr(self, 'mooringlicence'):
+            return self.mooringlicence
+        else:
+            raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AAP, AUP or ML")
+
+    @classmethod
+    def approval_types_dict(cls, include_codes=[]):
+        type_list = []
+        for approval_type in Approval.__subclasses__():
+            if hasattr(approval_type, 'code'):
+                if approval_type.code in include_codes:
+                    type_list.append({
+                        "code": approval_type.code,
+                        "description": approval_type.description,
+                    })
+
+        return type_list
 
 
 class WaitingListAllocation(Approval):

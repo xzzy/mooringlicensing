@@ -337,13 +337,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         )
 
     # List of statuses from above that allow a customer to edit an application.
-    CUSTOMER_EDITABLE_STATE = ['temp',
-                                'draft',
-                                'amendment_required',
-                            ]
+    CUSTOMER_EDITABLE_STATE = [
+        #'temp',
+        CUSTOMER_STATUS_DRAFT,
+        CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+    ]
 
     # List of statuses from above that allow a customer to view an application (read-only)
-    CUSTOMER_VIEWABLE_STATE = ['with_assessor', 'under_review', 'id_required', 'returns_required', 'awaiting_payment', 'approved', 'declined','partially_approved', 'partially_declined']
+    CUSTOMER_VIEWABLE_STATE = [
+        CUSTOMER_STATUS_WITH_ASSESSOR,
+        CUSTOMER_STATUS_WITH_ASSESSOR,
+        # 'id_required',
+        # 'returns_required',
+        CUSTOMER_STATUS_AWAITING_PAYMENT,
+        CUSTOMER_STATUS_APPROVED,
+        CUSTOMER_STATUS_DECLINED,
+        # 'partially_approved',
+        # 'partially_declined'
+    ]
 
     PROCESSING_STATUS_TEMP = 'temp'
     PROCESSING_STATUS_DRAFT = 'draft'
@@ -800,6 +811,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
+    @property
+    def is_submitted(self):
+        return True if self.lodgement_date else False
+
     # TODO: is this used or utils..proposal_submit() ?
     def submit(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
@@ -965,23 +980,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #        for req in default_requirements:
     #            r, created=ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date= due_date)
 
-    def move_to_status(self,request,status, approver_comment):
+    def move_to_status(self, request, status, approver_comment):
         if not self.can_assess(request.user):
             raise exceptions.ProposalNotAuthorized()
-        if status in ['with_assessor','with_assessor_requirements','with_approver']:
-            if self.processing_status == 'with_referral' or self.can_user_edit:
+        if status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
+            if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
                 raise ValidationError('You cannot change the current status at this time')
             if self.processing_status != status:
-                #import ipdb; ipdb.set_trace()
-                if self.processing_status =='with_approver':
-                    self.approver_comment=''
+                if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
+                    self.approver_comment = ''
                     if approver_comment:
                         self.approver_comment = approver_comment
                         self.save()
                         send_proposal_approver_sendback_email_notification(request, self)
                 self.processing_status = status
                 self.save()
-                if status=='with_assessor_requirements':
+                if status == 'with_assessor_requirements':
                     self.add_default_requirements()
 
                 # Create a log entry for the proposal
@@ -1024,7 +1038,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     raise ValidationError('Cannot reissue Approval. User not permitted.')
             else:
                 raise ValidationError('Cannot reissue Approval')
-
 
     def proposed_decline(self,request,details):
         with transaction.atomic():
@@ -1558,7 +1571,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
     @classmethod
-    def application_type_dict(cls, apply_page):
+    def application_types_dict(cls, apply_page):
         type_list = []
         for application_type in Proposal.__subclasses__():
             if apply_page:
