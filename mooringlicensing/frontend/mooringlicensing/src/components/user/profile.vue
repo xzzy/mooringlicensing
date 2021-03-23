@@ -176,11 +176,12 @@
                     </input>
                 </div>
                 <div class="col-sm-8">
-                    <input type="radio" name="electoral_roll_silent" value="silent" v-model="profile.electoral_roll">
+                    <input class="mb-3" type="radio" name="electoral_roll_silent" value="silent" v-model="profile.electoral_roll">
                     I am a silent elector
                     </input>
                     <div v-if="profile.electoral_roll==='silent'">
                         <FileField
+                            headerCSS="ml-3"
                             label="Provide evidence"
                             ref="electoral_roll_documents"
                             name="electoral-roll-documents"
@@ -840,4 +841,8 @@ export default {
     cursor: inherit;
     display: block;
 }
+.mb-3 {
+    margin-bottom: 1em !important;
+}
+
 </style>
