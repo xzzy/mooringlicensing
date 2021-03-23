@@ -1,6 +1,7 @@
 <template lang="html">
-    <div class="ffu-wrapper">
-        <label :id="id" :num_files="num_documents()" style="display: none;">{{label}}</label>
+    <div :class="headerCSS">
+        <!--label :id="id" :num_files="num_documents()" style="display: none;">{{label}}</label-->
+        <label :id="id" :num_files="num_documents()">{{label}}</label>
         <template v-if="files">
             <template v-for="v in documents">
                 <div>
@@ -39,6 +40,7 @@ import Vue from 'vue';
 export default {
     name: "FileField",
     props:{
+        headerCSS:String,
         name:String,
         label:String,
         id:String,
@@ -323,5 +325,27 @@ export default {
         color: #23527c;
         text-decoration: underline;
     }
+    .ml-1 {
+        margin-left: 0.25em !important;
+    }
+    .ml-2 {
+        margin-left: 0.5em !important;
+    }
+    .ml-3 {
+        margin-left: 1em !important;
+    }
+    .mt-2 {
+        margin-top: 0.5em !important;
+    }
+    .mt-3 {
+        margin-top: 1em !important;
+    }
+    .mb-3 {
+        margin-bottom: 1em !important;
+    }
+    .mb-4 {
+        margin-bottom: 2em !important;
+    }
+
 </style>
 
