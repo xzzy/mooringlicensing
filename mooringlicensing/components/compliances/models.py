@@ -41,23 +41,31 @@ from ledger.payments.invoice.models import Invoice
 import logging
 logger = logging.getLogger(__name__)
 
-#class Compliance(models.Model):
+
 class Compliance(RevisionedMixin):
-
-    PROCESSING_STATUS_CHOICES = (('due', 'Due'),
-                                 ('future', 'Future'),
-                                 ('with_assessor', 'With Assessor'),
-                                 ('approved', 'Approved'),
-                                 ('discarded', 'Discarded'),
+    PROCESSING_STATUS_DUE = 'due'
+    PROCESSING_STATUS_FUTURE = 'future'
+    PROCESSING_STATUS_WITH_ASSESSOR = 'with_assessor'
+    PROCESSING_STATUS_APPROVED = 'approved'
+    PROCESSING_STATUS_DISCARDED = 'discarded'
+    PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_DUE, 'Due'),
+                                 (PROCESSING_STATUS_FUTURE, 'Future'),
+                                 (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
+                                 (PROCESSING_STATUS_APPROVED, 'Approved'),
+                                 (PROCESSING_STATUS_DISCARDED, 'Discarded'),
                                  )
 
-    CUSTOMER_STATUS_CHOICES = (('due', 'Due'),
-                                 ('future', 'Future'),
-                                 ('with_assessor', 'Under Review'),
-                                 ('approved', 'Approved'),
-                                 ('discarded', 'Discarded'),
-                                 )
-
+    CUSTOMER_STATUS_DUE = 'due'
+    CUSTOMER_STATUS_FUTURE = 'future'
+    CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
+    CUSTOMER_STATUS_APPROVED = 'approved'
+    CUSTOMER_STATUS_DISCARDED = 'discarded'
+    CUSTOMER_STATUS_CHOICES = ((CUSTOMER_STATUS_DUE, 'Due'),
+                               (CUSTOMER_STATUS_FUTURE, 'Future'),
+                               (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
+                               (CUSTOMER_STATUS_APPROVED, 'Approved'),
+                               (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
+                               )
 
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     proposal = models.ForeignKey('mooringlicensing.Proposal',related_name='compliances')
