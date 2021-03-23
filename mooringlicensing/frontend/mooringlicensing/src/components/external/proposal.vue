@@ -229,8 +229,8 @@ export default {
         let payload = {
             "proposal": this.proposal
         }
-        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.vessels) {
-            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.vessels.vessel);
+        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.vessels) {
+            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
         }
 
         vm.$http.post(vm.proposal_form_url,payload).then(res=>{
