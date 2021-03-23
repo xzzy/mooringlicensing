@@ -25,6 +25,11 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser,Address, Profile, EmailIdentity, EmailUserAction
 from ledger.address.models import Country
 from datetime import datetime,timedelta, date
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from mooringlicensing.components.organisations.models import  (
                                     Organisation,
                                 )
@@ -45,6 +50,9 @@ from mooringlicensing.components.organisations.serializers import (
 )
 from mooringlicensing.components.main.utils import retrieve_department_users
 from mooringlicensing.components.main.models import UserSystemSettings
+from mooringlicensing.components.main.process_document import (
+        process_generic_document, 
+        )
 
 class DepartmentUserList(views.APIView):
     renderer_classes = [JSONRenderer,]
@@ -276,3 +284,16 @@ class UserViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_electoral_roll_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
+
+

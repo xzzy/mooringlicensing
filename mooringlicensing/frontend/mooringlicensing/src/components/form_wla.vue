@@ -1,5 +1,10 @@
 <template lang="html">
     <div>
+
+        <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
+            <h4>Waiting List Application: {{proposal.lodgement_number}}</h4>
+        </div>
+
         <div class="col-md-12">
             <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
               <li class="nav-item">

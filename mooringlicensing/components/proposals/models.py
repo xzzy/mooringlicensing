@@ -1734,6 +1734,13 @@ class Vessel(models.Model):
 
 
 class VesselDetails(models.Model):
+    VESSEL_TYPES = (
+            ('yacht', 'Yacht'),
+            ('cabin_cruiser', 'Cabin Cruiser'),
+            ('tender', 'Tender'),
+            ('other', 'Other'),
+            )
+    vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400) 
     vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
