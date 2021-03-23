@@ -211,30 +211,38 @@ export default {
       let vm = this;
       //vm.form=document.forms.new_proposal;
       let formData = new FormData(vm.form);
-
-      //console.log('land activities', vm.proposal.selected_parks_activities);
+      /*
       formData.append('selected_parks_activities', JSON.stringify(vm.proposal.selected_parks_activities))
       formData.append('selected_trails_activities', JSON.stringify(vm.proposal.selected_trails_activities))
       formData.append('marine_parks_activities', JSON.stringify(vm.proposal.marine_parks_activities))
+      */
 
       return formData;
     },
     save: function(e) {
-      let vm = this;
-      vm.savingProposal=true;
-      vm.save_applicant_data();
+        let vm = this;
+        vm.savingProposal=true;
+        vm.save_applicant_data();
 
-      let formData = vm.set_formData()
-      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-          swal(
-            'Saved',
-            'Your application has been saved',
-            'success'
-          );
-          vm.savingProposal=false;
-      },err=>{
-        vm.savingProposal=false;
-      });
+        //let formData = vm.set_formData()
+        //vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+        let payload = {
+            "proposal": this.proposal
+        }
+        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.vessels) {
+            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.vessels.vessel);
+        }
+
+        vm.$http.post(vm.proposal_form_url,payload).then(res=>{
+            swal(
+                'Saved',
+                'Your application has been saved',
+                'success'
+            );
+            vm.savingProposal=false;
+        },err=>{
+            vm.savingProposal=false;
+        });
     },
     save_exit: function(e) {
       let vm = this;
