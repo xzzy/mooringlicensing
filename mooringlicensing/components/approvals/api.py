@@ -111,6 +111,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
+        # Filter by types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
         if filter_approval_type and not filter_approval_type.lower() == 'all':
             q = None
@@ -120,6 +121,12 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                     q = Q(**{lookup: False})
                     break
             queryset = queryset.filter(q) if q else queryset
+
+        # Show/Hide expired and/or surrendered
+        show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
+        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
+        if not show_expired_surrendered:
+            queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
 
         filter_approval_status = request.GET.get('filter_approval_status')
         if filter_approval_status and not filter_approval_status.lower() == 'all':

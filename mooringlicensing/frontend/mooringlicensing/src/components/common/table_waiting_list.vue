@@ -2,7 +2,8 @@
     <div>
         <div class="row">
             <div class="col-lg-12">
-                <input type="checkbox"> Show expired and/or surrendered waiting list allocations
+                <input type="checkbox" id="checkbox_show_expired" v-model="show_expired_surrendered">
+                <label for="checkbox_show_expired">Show expired and/or surrendered waiting list allocations</label>
             </div>
         </div>
 
@@ -25,11 +26,22 @@ import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
     name: 'TableWaitingList',
+    props: {
+        level:{
+            type: String,
+            required: true,
+            validator: function(val) {
+                let options = ['internal', 'referral', 'external'];
+                return options.indexOf(val) != -1 ? true: false;
+            }
+        },
+    },
     data() {
         let vm = this;
         return {
             datatable_id: 'waiting_lists-datatable-' + vm._uid,
             approvalTypesToDisplay: ['wla'],
+            show_expired_surrendered: true,
 
             // Datatable settings
             datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
@@ -48,6 +60,7 @@ export default {
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         d.filter_approval_types = vm.approvalTypesToDisplay.join(',');
+                        d.show_expired_surrendered = vm.show_expired_surrendered
                     }
                 },
                 dom: 'frt', //'lBfrtip',
@@ -178,10 +191,15 @@ export default {
         datatable
     },
     watch: {
-
+        show_expired_surrendered: function(value){
+            console.log(value)
+            this.$refs.waiting_list_datatable.vmDataTable.ajax.reload()
+        }
     },
     computed: {
-
+        is_external: function() {
+            return this.level == 'external'
+        },
     },
     methods: {
 

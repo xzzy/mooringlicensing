@@ -64,13 +64,13 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
 
     STATUS_CHOICES = (
-        (APPROVAL_STATUS_CURRENT ,'Current'),
-        (APPROVAL_STATUS_EXPIRED ,'Expired'),
-        (APPROVAL_STATUS_CANCELLED ,'Cancelled'),
-        (APPROVAL_STATUS_SURRENDERED ,'Surrendered'),
-        (APPROVAL_STATUS_SUSPENDED ,'Suspended'),
-        (APPROVAL_STATUS_EXTENDED ,'Extended'),
-        (APPROVAL_STATUS_AWAITING_PAYMENT ,'Awaiting Payment'),
+        (APPROVAL_STATUS_CURRENT, 'Current'),
+        (APPROVAL_STATUS_EXPIRED, 'Expired'),
+        (APPROVAL_STATUS_CANCELLED, 'Cancelled'),
+        (APPROVAL_STATUS_SURRENDERED, 'Surrendered'),
+        (APPROVAL_STATUS_SUSPENDED, 'Suspended'),
+        (APPROVAL_STATUS_EXTENDED, 'Extended'),
+        (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,

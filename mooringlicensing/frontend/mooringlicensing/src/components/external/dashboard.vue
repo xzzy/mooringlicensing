@@ -6,16 +6,24 @@
             />
         </FormSection>
         <FormSection :formCollapse="false" label="Waiting List" Index="waiting_list">
-            <WaitingListTable />
+            <WaitingListTable 
+                level="external"
+            />
         </FormSection>
         <FormSection :formCollapse="false" label="Licences and Permits" Index="licences_and_permits">
-            <LicencesAndPermitsTable />
+            <LicencesAndPermitsTable 
+                level="external"
+            />
         </FormSection>
         <FormSection :formCollapse="false" label="Compliances" Index="compliances">
-            <CompliancesTable />
+            <CompliancesTable 
+                level="external"
+            />
         </FormSection>
         <FormSection :formCollapse="false" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
-            <AuthorisedUserApplicationsTable />
+            <AuthorisedUserApplicationsTable 
+                level="external"
+            />
         </FormSection>
     </div>
 </template>
@@ -64,6 +72,9 @@ export default {
 
     },
     computed: {
+        is_external: function() {
+            return this.level == 'external'
+        },
 
     },
     methods: {

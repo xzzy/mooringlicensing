@@ -811,6 +811,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
+    @property
+    def is_submitted(self):
+        return True if self.lodgement_date else False
+
     # TODO: is this used or utils..proposal_submit() ?
     def submit(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
