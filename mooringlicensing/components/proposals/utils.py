@@ -319,6 +319,7 @@ def save_proponent_data(instance, request, viewset):
 
 def save_proponent_data_wla(instance, request, viewset):
     print("save wla")
+    print(request.data)
 
 #from mooringlicensing.components.main.models import ApplicationType
 
