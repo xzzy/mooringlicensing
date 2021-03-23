@@ -1,6 +1,6 @@
 <template>
     <div class="container" id="externalDash">
-        <FormSection :formCollapse="true" label="Applications" Index="applications">
+        <FormSection :formCollapse="false" label="Applications" Index="applications">
             <ApplicationsTable
                 level="external"
             />

@@ -164,7 +164,9 @@ export default {
         datatable
     },
     watch: {
-
+        filterComplianceStatus: function(){
+            this.$refs.compliances_datatable.vmDataTable.ajax.reload()
+        }
     },
     computed: {
         is_external: function() {
