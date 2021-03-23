@@ -166,9 +166,10 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
+
+        # Filter by Type(s) according to the tables
         filter_approval_types = self.request.GET.get('filter_approval_types', '')
         filter_approval_types = filter_approval_types.split(',')
-
         q = Q()
         for filter_approval_type in filter_approval_types:
             if filter_approval_type:
@@ -183,9 +184,10 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             # Filter by to_be_endorsed
             filter_by_endorsement = self.request.GET.get('filter_by_endorsement', 'false')
-            filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y', ] else False
+            filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
             if filter_by_endorsement:
-                qs = qs.filter()
+                #
+                qs = qs.filter(authoriseduserpermit__endorsed_by=request_user)
             else:
                 qs = qs.filter(Q(submitter=request_user))  # Not sure if the submitter is the licence holder
             return qs
