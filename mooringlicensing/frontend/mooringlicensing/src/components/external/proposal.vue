@@ -31,11 +31,6 @@
                     </li>
                 </ul>
             </div>
-
-            <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
-                <h4>Commercial Operator - {{proposal.application_type}} application: {{proposal.lodgement_number}}</h4>
-            </div>
-
             <!--ProposalTClass v-if="proposal && proposal_parks && proposal.application_type==application_type_tclass" :proposal="proposal" id="proposalStart"  :canEditActivities="canEditActivities" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_tclass"></ProposalTClass>
             <ProposalFilming v-else-if="proposal && proposal.application_type==application_type_filming" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_filming"></ProposalFilming>
             <ProposalEvent v-else-if="proposal && proposal.application_type==application_type_event" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_event"></ProposalEvent-->
