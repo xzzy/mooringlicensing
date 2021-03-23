@@ -40,6 +40,16 @@ import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
     name: 'TableLicencesAndPermits',
+    props: {
+        level:{
+            type: String,
+            required: true,
+            validator: function(val) {
+                let options = ['internal', 'referral', 'external'];
+                return options.indexOf(val) != -1 ? true: false;
+            }
+        },
+    },
     data() {
         let vm = this;
         return {
@@ -205,6 +215,9 @@ export default {
         },
     },
     computed: {
+        is_external: function() {
+            return this.level == 'external'
+        },
 
     },
     methods: {

@@ -348,12 +348,15 @@ export default {
             }).then(() => {
                 vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
                 .then((response) => {
+                    console.log('response: ')
+                    console.log(response)
                     swal(
                         'Discarded',
                         'Your proposal has been discarded',
                         'success'
                     )
-                    vm.$refs.application_datatable.vmDataTable.ajax.reload();
+                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
+                    vm.$refs.application_datatable.vmDataTable.draw();
                 }, (error) => {
                     console.log(error);
                 });

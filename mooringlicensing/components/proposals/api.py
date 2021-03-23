@@ -904,13 +904,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance, {
-                'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
-                'previous_application': None
-            }, partial=True)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data,status=http_status)
+            if instance.is_submitted:
+                # This proposal has been submitted at least once.  Therefore we update its status to 'discarded' rather than deleting it.
+                serializer = SaveProposalSerializer(instance, {
+                    'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                    'previous_application': None
+                }, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                return Response(serializer.data, status=http_status)
+            else:
+                # This proposal has not been submitted yet, we can delete it from the database
+                # instance.delete()
+                return Response({})
+
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
