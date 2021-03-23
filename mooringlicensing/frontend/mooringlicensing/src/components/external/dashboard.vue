@@ -1,19 +1,29 @@
 <template>
     <div class="container" id="externalDash">
         <FormSection :formCollapse="false" label="Applications" Index="applications">
-            <ApplicationsTable />
+            <ApplicationsTable
+                level="external"
+            />
         </FormSection>
-        <FormSection :formCollapse="true" label="Waiting List" Index="waiting_list">
-            <WaitingListTable />
+        <FormSection :formCollapse="false" label="Waiting List" Index="waiting_list">
+            <WaitingListTable 
+                level="external"
+            />
         </FormSection>
-        <FormSection :formCollapse="true" label="Licences and Permits" Index="licences_and_permits">
-            <LicencesAndPermitsTable />
+        <FormSection :formCollapse="false" label="Licences and Permits" Index="licences_and_permits">
+            <LicencesAndPermitsTable 
+                level="external"
+            />
         </FormSection>
-        <FormSection :formCollapse="true" label="Compliances" Index="compliances">
-            <CompliancesTable />
+        <FormSection :formCollapse="false" label="Compliances" Index="compliances">
+            <CompliancesTable 
+                level="external"
+            />
         </FormSection>
-        <FormSection :formCollapse="true" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
-            <AuthorisedUserApplicationsTable />
+        <FormSection :formCollapse="false" label="Authorised User Applications for my Endorsement" Index="authorised_user_applications_for_my_endorsement">
+            <AuthorisedUserApplicationsTable 
+                level="external"
+            />
         </FormSection>
     </div>
 </template>
@@ -58,12 +68,16 @@ export default {
         CompliancesTable,
         AuthorisedUserApplicationsTable,
     },
-    watch: {},
+    watch: {
+
+    },
     computed: {
+        is_external: function() {
+            return this.level == 'external'
+        },
 
     },
     methods: {
-        
     },
     mounted: function () {
 

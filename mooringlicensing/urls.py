@@ -26,6 +26,7 @@ router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationVi
 #router.register(r'proposal_submit',proposal_api.ProposalSubmitViewSet)
 router.register(r'proposals_paginated', proposal_api.ProposalPaginatedViewSet)
 router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet)
+router.register(r'compliances_paginated', compliances_api.CompliancePaginatedViewSet)
 #router.register(r'booking_paginated',booking_api.BookingPaginatedViewSet)
 #router.register(r'compliance_paginated',compliances_api.CompliancePaginatedViewSet)
 router.register(r'approvals', approval_api.ApprovalViewSet)
@@ -56,6 +57,9 @@ api_patterns = [
     url(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
     url(r'^api/vessel_types_dict$', proposal_api.GetVesselTypesDict.as_view(), name='get-vessel-types-dict'),
     url(r'^api/application_statuses_dict$', proposal_api.GetApplicationStatusesDict.as_view(), name='get-application-statuses-dict'),
+    url(r'^api/approval_types_dict$', approval_api.GetApprovalTypeDict.as_view(), name='get-approval-type-dict'),
+    url(r'^api/approval_statuses_dict$', approval_api.GetApprovalStatusesDict.as_view(), name='get-approval-statuses-dict'),
+    url(r'^api/compliance_statuses_dict$', compliances_api.GetComplianceStatusesDict.as_view(), name='get-compliance-statuses-dict'),
     url(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
     url(r'^api/organisation_access_group_members',org_api.OrganisationAccessGroupMembers.as_view(),name='organisation-access-group-members'),
     url(r'^api/',include(router.urls)),
