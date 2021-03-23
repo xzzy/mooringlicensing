@@ -196,3 +196,23 @@ class CompAmendmentRequestDisplaySerializer(serializers.ModelSerializer):
         #return obj.get_reason_display()
         return obj.reason.reason if obj.reason else None
 
+
+class ListComplianceSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Compliance
+        fields = (
+            'id',
+            'lodgement_number',
+            'status',
+        )
+        datatables_always_serialize = (
+            'id',
+            'lodgement_number',
+            'status',
+        )
+
+    def get_status(self, obj):
+        return obj.get_customer_status_display()
+

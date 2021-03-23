@@ -125,7 +125,7 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        return Response(Proposal.application_type_dict(apply_page=apply_page))
+        return Response(Proposal.application_types_dict(apply_page=apply_page))
 
 
 class GetApplicationStatusesDict(views.APIView):
@@ -177,7 +177,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_application_type and not filter_application_type.lower() == 'all':
             q = None
             for item in Proposal.__subclasses__():
-                if item.code == filter_application_type:
+                if hasattr(item, 'code') and item.code == filter_application_type:
                     lookup = "{}__isnull".format(item._meta.model_name)
                     q = Q(**{lookup: False})
                     break
@@ -219,13 +219,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        return Proposal.objects.all()  # TODO: remove this line and return proper results
-        user = self.request.user
+        request_user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
-            qs = Proposal.objects.filter(Q(proxy_applicant=user))
+            qs = Proposal.objects.filter(Q(submitter=request_user))
             return qs
         return Proposal.objects.none()
 
@@ -910,14 +908,24 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request,*args,**kwargs):
+    def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,{'processing_status':'discarded', 'previous_application': None},partial=True)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data,status=http_status)
+            if instance.is_submitted:
+                # This proposal has been submitted at least once.  Therefore we update its status to 'discarded' rather than deleting it.
+                serializer = SaveProposalSerializer(instance, {
+                    'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                    'previous_application': None
+                }, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                return Response(serializer.data, status=http_status)
+            else:
+                # This proposal has not been submitted yet, we can delete it from the database
+                # instance.delete()
+                return Response({})
+
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
