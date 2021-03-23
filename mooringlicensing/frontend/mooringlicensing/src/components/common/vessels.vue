@@ -45,6 +45,15 @@
             </div>
             <div class="form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
+                <div class="col-sm-9">
+                    <!--FileField
+                        headerCSS="ml-3"
+                        ref="vessel_registration_documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="vesselRegistrationDocumentUrl"
+                        :replace_button_by_text="true"
+                    /-->
+                </div>
             </div>
         </FormSection>
         <FormSection label="Vessel Details">
@@ -107,6 +116,7 @@ from '@/utils/hooks'
         },
         components:{
             FormSection,
+            FileField,
         },
         props:{
             proposal:{
@@ -120,6 +130,16 @@ from '@/utils/hooks'
             }
         },
         methods:{
+            vesselRegistrationDocumentUrl: function() {
+                let url = '';
+                if (this.proposal && this.proposal.id) {
+                    url = helpers.add_endpoint_join(
+                        '/api/users/',
+                        this.profile.id + '/process_electoral_roll_document/'
+                    )
+                }
+                return url;
+            },
             fetchVesselTypes: function(){
                 this.$http.get(api_endpoints.vessel_types_dict).then((response) => {
                     for (let vessel_type of response.body) {
