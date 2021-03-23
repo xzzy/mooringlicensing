@@ -181,6 +181,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     get_history = serializers.ReadOnlyField()
     fee_invoice_url = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
+    application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
 
     class Meta:
@@ -189,6 +190,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'id',
                 #'application_type',
                 'application_type_code',
+                'application_type_text',
                 'application_type_dict',
                 'proposal_type',
                 # 'activity',
@@ -229,8 +231,11 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
-    def get_application_type_code(self, obj):
+    def get_application_type_code(self, obj: ProposalLogEntry):
         return obj.application_type_code
+
+    def get_application_type_text(self, obj):
+        return obj.child_obj.description
 
     def get_application_type_dict(self, obj):
         return obj.application_type_dict(apply_page=False)
