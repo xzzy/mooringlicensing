@@ -221,7 +221,7 @@ export default {
             idBody: 'idBody'+vm._uid,
             sBody: 'sBody'+vm._uid,
             profile: {
-              first_name: '',
+                first_name: '',
                 last_name: '',
                 mooringlicensing_organisations:[],
                 residential_address : {},
@@ -774,17 +774,13 @@ export default {
             },(error) => {
             }); 
         },
-        fetchProfile: function(){
-          let vm=this;
-          Vue.http.get(api_endpoints.profile).then((response) => {
-                    vm.profile = response.body
-                    if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-                    if ( vm.profile.mooringlicensing_organisations && vm.profile.mooringlicensing_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
-                    vm.phoneNumberReadonly = vm.profile.phone_number === '' || vm.profile.phone_number === null || vm.profile.phone_number === 0 ?  false : true;
-                    vm.mobileNumberReadonly = vm.profile.mobile_number === '' || vm.profile.mobile_number === null || vm.profile.mobile_number === 0 ?  false : true;
-        },(error) => {
-            console.log(error);
-        })
+        fetchProfile: async function(){
+          const response = await Vue.http.get(api_endpoints.profile)
+          this.profile = response.body
+          if (this.profile.residential_address == null){ this.profile.residential_address = {}; }
+          if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
+          this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
+          this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
 
         },
     },
@@ -805,17 +801,20 @@ export default {
         })
     },
 
-    mounted: function(){
+    mounted: async function(){
         this.fetchCountries();
         this.fetchOrgRequestList();
-        this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
+        await this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
+        await this.$nextTick(() => {
+            this.$emit('profile-fetched', this.profile);
+        });
         this.personal_form = document.forms.personal_form;
         $('.panelClicker[data-toggle="collapse"]').on('click', function () {
             var chev = $(this).children()[0];
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
             },100);
-        }); 
+        });
     }
 }
 </script>
