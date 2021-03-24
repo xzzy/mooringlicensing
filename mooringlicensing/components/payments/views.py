@@ -3,8 +3,8 @@ import logging
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
-from oscar.apps.checkout.context_processors import checkout
 
+from mooringlicensing.components.payments.utils import checkout, create_fee_lines
 from mooringlicensing.components.proposals.models import Proposal
 
 
@@ -29,7 +29,7 @@ class ApplicationFeeView(TemplateView):
                 # else:
                 #     set_session_application_invoice(request.session, application_fee)
                 # lines, db_processes_after_success = create_fee_lines(proposal)
-                lines = ''
+                lines = create_fee_lines(proposal)
 
                 checkout_response = checkout(
                     request,
