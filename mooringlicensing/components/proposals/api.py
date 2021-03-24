@@ -73,7 +73,11 @@ from mooringlicensing.components.proposals.serializers import (
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, ListProposalSerializer,
+    ProposalAssessmentAnswerSerializer, 
+    ListProposalSerializer,
+    VesselSerializer,
+    VesselDetailsSerializer,
+    VesselOwnershipSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -100,6 +104,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from rest_framework.filters import BaseFilterBackend
 import reversion
 from reversion.models import Version
+from copy import deepcopy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -873,9 +878,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):
         try:
-            instance = self.get_object()
-            save_proponent_data(instance,request,self)
-            return redirect(reverse('external'))
+            with transaction.atomic():
+                instance = self.get_object()
+                save_proponent_data(instance,request,self)
+                return redirect(reverse('external'))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -888,6 +894,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def fetch_vessel(self, request, *args, **kwargs):
+        try:
+            #import ipdb; ipdb.set_trace()
+            instance = self.get_object()
+            vessel_details = instance.vessel_details.first() # ??????
+            vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+            vessel = vessel_details.vessel
+            vessel_serializer = VesselSerializer(vessel)
+            vessel_ownership = vessel.vesselownership_set.filter(vessel=vessel)[0] # ????????
+            vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
+            vessel_data = vessel_serializer.data
+            vessel_data["vessel_details"] = vessel_details_serializer.data
+            vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
+            vessel_ownership_data["registered_owner"] = "company_name" if vessel_ownership.owner.org_name else 'current_user'
+            vessel_data["vessel_ownership"] = vessel_ownership_data
+            return Response(vessel_data)
+        except Exception as e:
+            print(traceback.print_exc())
+            if hasattr(e,'message'):
+                    raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
