@@ -330,10 +330,10 @@ def save_proponent_data_wla(instance, request, viewset):
 #        serializer = 
 
 def save_vessel_data(instance, request):
-    proposal_data = request.data.get("proposal")
-    if proposal_data:
-        #serializer = 
-        pass
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        rego_no = vessel_date.get('rego_no').strip() # successfully avoiding dupes?
+        vessel = Vessel.object.get_or_create(rego_no=rego_no)
 
 #from mooringlicensing.components.main.models import ApplicationType
 
