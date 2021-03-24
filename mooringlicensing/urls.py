@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from mooringlicensing import views
 from mooringlicensing.admin import mooringlicensing_admin_site
+from mooringlicensing.components.payments.views import ApplicationFeeView, ApplicationFeeSuccessView
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 #from mooringlicensing.components.bookings import views as booking_views
@@ -100,6 +101,8 @@ urlpatterns = [
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
     # payment related urls
+    url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
+    url(r'^success/fee/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
     #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
     #url(r'^zero_fee_success/', booking_views.ZeroApplicationFeeView.as_view(), name='zero_fee_success'),
     #url(r'^payment_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingView.as_view(), name='deferred_invoicing'),
