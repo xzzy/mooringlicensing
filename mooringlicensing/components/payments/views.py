@@ -1,7 +1,7 @@
 import logging
 
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.views.generic import TemplateView
 
 from mooringlicensing.components.payments.utils import checkout, create_fee_lines
@@ -74,13 +74,17 @@ class ApplicationFeeView(TemplateView):
 
 
 class ApplicationFeeSuccessView(TemplateView):
-    template_name = 'disturbance/payment/success_fee.html'
+    template_name = 'mooringlicensing/payments/success_fee.html'
 
     def get(self, request, *args, **kwargs):
         proposal = None
         submitter = None
         invoice = None
         try:
+            ###################
+            raise
+            ###################
+
             # Retrieve db processes stored when calculating the fee, and delete the session
             db_operations = request.session['db_processes']
             del request.session['db_processes']
@@ -158,6 +162,15 @@ class ApplicationFeeSuccessView(TemplateView):
                     return render(request, self.template_name, context)
 
         except Exception as e:
+            ###################
+            context = {
+                'proposal': proposal,
+                'submitter': 'test submitter',
+                'fee_invoice': None
+            }
+            return render(request, self.template_name, context)
+            ###################
+
             if ('das_last_app_invoice' in request.session) and ApplicationFee.objects.filter(id=request.session['das_last_app_invoice']).exists():
                 application_fee = ApplicationFee.objects.get(id=request.session['das_last_app_invoice'])
                 proposal = application_fee.proposal
