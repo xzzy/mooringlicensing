@@ -1733,7 +1733,7 @@ class Vessel(models.Model):
         return self.rego_no
 
 
-class VesselDetails(models.Model):
+class VesselDetails(models.Model): # ManyToManyField link in Proposal
     VESSEL_TYPES = (
             ('yacht', 'Yacht'),
             ('cabin_cruiser', 'Cabin Cruiser'),
@@ -1742,7 +1742,7 @@ class VesselDetails(models.Model):
             )
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
-    vessel_name = models.CharField(max_length=400) 
+    vessel_name = models.CharField(max_length=400)
     vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -1772,6 +1772,7 @@ class VesselDetails(models.Model):
 class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
+    berth_mooring = models.CharField(max_length=200, blank=True)
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
     editable = models.BooleanField(default=False) # must be False after every add/edit
     #start_date = models.DateTimeField(auto_now_add=True)
@@ -1784,7 +1785,7 @@ class VesselOwnership(models.Model):
 
 
 class Owner(models.Model):
-    emailuser = models.ForeignKey(EmailUser) # mandatory?
+    emailuser = models.ForeignKey(EmailUser, blank=True, null=True)
     org_name = models.CharField(max_length=200, blank=True)
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
