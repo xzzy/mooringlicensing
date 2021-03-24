@@ -16,8 +16,15 @@ from mooringlicensing.components.proposals.models import (
         AnnualAdmissionApplication,
         AuthorisedUserApplication,
         MooringLicenceApplication,
+        Vessel, 
+        VesselDetails,
+        VesselOwnership,
+        Owner,
         )
-#from mooringlicensing.components.proposals.models import SaveVesselDetailsSerializer
+from mooringlicensing.components.proposals.serializers import (
+        SaveVesselDetailsSerializer,
+        SaveVesselOwnershipSerializer,
+        )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 #from mooringlicensing.components.main.models import Activity, Park, AccessType, Trail, Section, Zone
@@ -330,10 +337,71 @@ def save_proponent_data_wla(instance, request, viewset):
 #        serializer = 
 
 def save_vessel_data(instance, request):
+    import ipdb; ipdb.set_trace()
     vessel_data = request.data.get("vessel")
     if vessel_data:
-        rego_no = vessel_date.get('rego_no').strip() # successfully avoiding dupes?
-        vessel = Vessel.object.get_or_create(rego_no=rego_no)
+        rego_no = vessel_data.get('registration_number').replace(" ", "").strip() # successfully avoiding dupes?
+        vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+        
+        vessel_details_data = vessel_data.get("vessel_details")
+        # add vessel to vessel_details_data
+        vessel_details_data["vessel"] = vessel.id
+
+        ## Vessel Details
+        vessel_details = None
+        for vd in instance.vessel_details.all():
+            if vd.vessel == vessel:
+                vessel_details = vd
+        # create vessel details obj if it doesn't exist
+        if not vessel_details:
+            serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
+            serializer.is_valid(raise_exception=True)
+            vessel_details = serializer.save()
+            instance.vessel_details.add(vessel_details)
+        else:
+            serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        ## Vessel Ownership
+        vessel_ownership_data = vessel_data.get("vessel_ownership")
+        vessel_ownership_data['vessel'] = vessel.id
+        registered_owner = vessel_ownership_data.get("registered_owner")
+        registered_owner_company_name = vessel_ownership_data.get("registered_owner_company_name")
+        registered_owner_company_name_strip = registered_owner_company_name.strip() if registered_owner_company_name else None
+        #owner = None
+        # should be submitter?
+        owner = Owner.objects.create(emailuser=request.user, org_name=registered_owner_company_name_strip)
+        #if registered_owner == 'current_user':
+        #    # check for matching individuals
+        #    for o in vessel.owner_set.all():
+        #        if o.emailuser == request.user:
+        #            owner = o
+        #    if not owner:
+        #        owner = Owner.objects.create(emailuser=request.user, org_name=None)
+        #elif registered_owner_company_name:
+        #    # check for matching companies
+        #    for o in vessel.owner_set.all():
+        #        if registered_owner_company_name.strip() == o.org_name.strip():
+        #            owner = o
+        #    if not owner:
+        #        owner = Owner.objects.create(emailuser=None, org_name=registered_owner_company_name.strip())
+        # add vessel
+        #owner.vessels.add(vessel)
+        #owner.save()
+
+        vessel_ownership_data['owner'] = owner.id
+        # get or create vesselownership
+        if VesselOwnership.objects.filter(owner=owner, vessel=vessel):
+            vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel)[0]
+            serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        else:
+            serializer = SaveVesselOwnershipSerializer(data=vessel_ownership_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
 
 #from mooringlicensing.components.main.models import ApplicationType
 

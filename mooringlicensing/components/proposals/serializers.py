@@ -730,22 +730,20 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
-    pass
 
-    #class Meta:
-    #    model = VesselDetails
-    #    fields = (
-    #            'vessel_type',
-    #            'vessel', # link to rego number
-    #vessel_name = models.CharField(max_length=400) 
-    #vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
-    #vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
-    #vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    #vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    #vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
-    #created = models.DateTimeField(default=timezone.now)
-    #updated = models.DateTimeField(auto_now=True)
-    #status = models.CharField(max_length=50) # can be approved, old, draft, declined
+    class Meta:
+        model = VesselDetails
+        fields = (
+                'vessel_type',
+                'vessel', # link to rego number
+                'vessel_name', 
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_weight',
+                #status
+                #exported
+                )
 
 
 class VesselOwnershipSerializer(serializers.ModelSerializer):
@@ -753,4 +751,19 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = VesselOwnership
         fields = '__all__'
+
+
+class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'owner',
+                'vessel',
+                'berth_mooring',
+                'percentage',
+                #'editable',
+                'start_date',
+                'end_date',
+                )
 

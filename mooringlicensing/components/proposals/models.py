@@ -1760,7 +1760,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.rego_no
+        return "{}".format(self.id)
 
     @property
     def vessel_applicable_length(self):
@@ -1779,14 +1779,18 @@ class VesselOwnership(models.Model):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
 
+    def __str__(self):
+        return "{}".format(self.id)
+
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
+        unique_together = ['owner', 'vessel']
 
 
 class Owner(models.Model):
-    emailuser = models.ForeignKey(EmailUser, blank=True, null=True)
-    org_name = models.CharField(max_length=200, blank=True)
+    emailuser = models.ForeignKey(EmailUser)
+    org_name = models.CharField(max_length=200, blank=True, null=True)
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
     class Meta:
@@ -1794,7 +1798,7 @@ class Owner(models.Model):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.owner_name
+        return self.emailuser.get_full_name()
 
     @property
     def owner_name(self):

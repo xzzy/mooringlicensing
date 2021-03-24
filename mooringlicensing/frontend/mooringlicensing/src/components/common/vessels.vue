@@ -5,13 +5,13 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.registration_number" required=""/>
+                    <input type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.name" required=""/>
+                    <input type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
                 </div>
             </div>
             <div class="row form-group">
@@ -38,8 +38,8 @@
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.ownership_percentage" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" max="100" class="form-control" id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required=""/>
                 </div>
             </div>
             <div class="row form-group">
@@ -67,31 +67,31 @@
         <FormSection label="Vessel Details">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel length</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Overall length of vessel</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.overall_length" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Displacement tonnage</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.displacement_tonnage" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Draft</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.draft" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel Type</label>
-                <div class="col-sm-9">
+                <div class="col-sm-4">
                     <select class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
                         <option v-for="vesselType in vesselTypes" :value="vesselType.code">
                             {{ vesselType.description }}
@@ -119,7 +119,9 @@ from '@/utils/hooks'
             return {
                 vessel: {
                     vessel_details: {},
-                    vessel_ownership: {}
+                    vessel_ownership: {
+                        registered_owner: 'current_user',
+                    }
                 },
                 vesselTypes: [],
             }
@@ -169,11 +171,29 @@ from '@/utils/hooks'
                     console.log(error);
                 })
             },
+            fetchVessel: async function() {
+                let url = '';
+                if (this.proposal && this.proposal.id) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal/',
+                        this.proposal.id + '/fetch_vessel/'
+                    )
+                }
+                const res = await this.$http.get(url);
+                const vesselData = res.body;
+                if (vesselData && vesselData.rego_no) {
+                    this.vessel = Object.assign({}, vesselData);
+                }
+                if (!this.vessel.vessel_ownership.registered_owner) {
+                    this.vessel.vessel_ownership.registered_owner = 'current_user';
+                }
+            },
         },
         mounted:function () {
         },
         created: function() {
             this.fetchVesselTypes();
+            this.fetchVessel();
         },
     }
 </script>
