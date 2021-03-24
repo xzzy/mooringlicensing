@@ -59,7 +59,12 @@
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
-                    <Profile :isApplication="true" v-if="applicantType == 'SUB'" ref="profile"></Profile>
+                    <Profile 
+                    :isApplication="true" 
+                    v-if="applicantType == 'SUB'" 
+                    ref="profile"
+                    @profile-fetched="populateProfile"
+                    />
                   </div>
                   <div v-else>
                     <Applicant 
@@ -71,6 +76,7 @@
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                   <Vessels 
                   :proposal="proposal" 
+                  :profile="profile" 
                   id="proposalStartVessels" 
                   ref="vessels"
                   />
@@ -154,7 +160,8 @@
         },
         data:function () {
             return{
-                values:null
+                values:null,
+                profile: {},
             }
         },
         components: {
@@ -179,6 +186,9 @@
         },
         },
         methods:{
+            populateProfile: function(profile) {
+                this.profile = Object.assign({}, profile);
+            },
             set_tabs:function(){
                 let vm = this;
 
