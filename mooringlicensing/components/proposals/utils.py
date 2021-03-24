@@ -17,6 +17,7 @@ from mooringlicensing.components.proposals.models import (
         AuthorisedUserApplication,
         MooringLicenceApplication,
         )
+#from mooringlicensing.components.proposals.models import SaveVesselDetailsSerializer
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 #from mooringlicensing.components.main.models import Activity, Park, AccessType, Trail, Section, Zone
@@ -320,6 +321,19 @@ def save_proponent_data(instance, request, viewset):
 def save_proponent_data_wla(instance, request, viewset):
     print("save wla")
     print(request.data)
+    #save_proposal_data(instance, request)
+    save_vessel_data(instance, request)
+
+#def save_proposal_data(instance, request):
+#    proposal_data = request.data.get("proposal")
+#    if proposal_data:
+#        serializer = 
+
+def save_vessel_data(instance, request):
+    proposal_data = request.data.get("proposal")
+    if proposal_data:
+        #serializer = 
+        pass
 
 #from mooringlicensing.components.main.models import ApplicationType
 

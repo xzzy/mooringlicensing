@@ -34,6 +34,9 @@ from mooringlicensing.components.proposals.models import (
                                     RequirementDocument,
                                     #DistrictProposal,
                                     #DistrictProposalDeclinedDetails,
+                                    VesselDetails,
+                                    VesselOwnership,
+                                    Vessel,
                                 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -713,4 +716,44 @@ class SearchReferenceSerializer(serializers.Serializer):
 #
 #    def get_descriptions(self, obj):
 #        return Proposal.application_type_descriptions
+
+
+class VesselSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Vessel
+        fields = '__all__'
+
+
+class VesselDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselDetails
+        fields = '__all__'
+
+
+class SaveVesselDetailsSerializer(serializers.ModelSerializer):
+    pass
+
+    #class Meta:
+    #    model = VesselDetails
+    #    fields = (
+    #            'vessel_type',
+    #            'vessel', # link to rego number
+    #vessel_name = models.CharField(max_length=400) 
+    #vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    #vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
+    #vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    #vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    #vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    #created = models.DateTimeField(default=timezone.now)
+    #updated = models.DateTimeField(auto_now=True)
+    #status = models.CharField(max_length=50) # can be approved, old, draft, declined
+
+
+class VesselOwnershipSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselOwnership
+        fields = '__all__'
 

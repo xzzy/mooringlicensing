@@ -1730,10 +1730,11 @@ class VesselDetails(models.Model):
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400) 
-    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=50) # can be approved, old, draft, declined
@@ -1748,10 +1749,14 @@ class VesselDetails(models.Model):
     def __str__(self):
         return self.rego_no
 
+    @property
+    def vessel_applicable_length(self):
+        return self.vessel_overall_length
+
     #def save() - do not allow multiple draft or approved status per vessel_id
 
 
-class VesselDetailsOwnership(models.Model):
+class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
@@ -1768,7 +1773,7 @@ class VesselDetailsOwnership(models.Model):
 class Owner(models.Model):
     emailuser = models.ForeignKey(EmailUser) # mandatory?
     org_name = models.CharField(max_length=200, blank=True)
-    vessels = models.ManyToManyField(Vessel, through=VesselDetailsOwnership) # these owner/vessel association
+    vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
     class Meta:
         verbose_name_plural = "Owners"
