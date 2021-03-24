@@ -241,7 +241,10 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         return obj.child_obj.description
 
     def get_application_type_dict(self, obj):
-        return obj.application_type_dict(apply_page=False)
+        return {
+            'code': obj.child_obj.code,
+            'description': obj.child_obj.description,
+        }
 
     def get_documents_url(self,obj):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
@@ -276,7 +279,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     application_type_dict = serializers.SerializerMethodField()
 
     # application_type = serializers.CharField(source='application_type.name', read_only=True)
-    # assessor_process = serializers.SerializerMethodField(read_only=True)
+    assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -301,13 +304,13 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'lodgement_date',
                 # 'modified_date',
                 # 'readonly',
-                # 'can_user_edit',
-                # 'can_user_view',
+                'can_user_edit',
+                'can_user_view',
                 # 'reference',
                 'lodgement_number',
                 # 'lodgement_sequence',
                 # 'can_officer_process',
-                # 'assessor_process',
+                'assessor_process',
                 # 'allowed_assessors',
                 # 'proposal_type',
                 # 'fee_invoice_url',
@@ -329,23 +332,17 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'submitter',
                 # 'assigned_officer',
                 'lodgement_date',
-                # 'can_user_edit',
-                # 'can_user_view',
+                'can_user_edit',
+                'can_user_view',
                 # 'reference',
                 'lodgement_number',
                 # 'can_officer_process',
-                # 'assessor_process',
+                'assessor_process',
                 # 'allowed_assessors',
                 # 'fee_invoice_url',
                 # 'fee_invoice_reference',
                 # 'fee_paid',
                 )
-
-    def get_application_type_dict(self, obj):
-        return {
-            'code': obj.child_obj.code,
-            'description': obj.child_obj.description,
-        }
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:

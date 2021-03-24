@@ -4,6 +4,8 @@ import os
 import datetime
 import base64
 import geojson
+from rest_framework_datatables.filters import DatatablesFilterBackend
+from rest_framework_datatables.renderers import DatatablesRenderer
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
 from django.db.models import Q, Min
@@ -43,7 +45,7 @@ from mooringlicensing.components.compliances.serializers import (
     ComplianceActionSerializer,
     ComplianceCommsSerializer,
     ComplianceAmendmentRequestSerializer,
-    CompAmendmentRequestDisplaySerializer
+    CompAmendmentRequestDisplaySerializer, ListComplianceSerializer
 )
 from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
@@ -72,22 +74,22 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(proposal__org_applicant_id=org_id)
         submitter_id = request.GET.get('submitter_id', None)
         if submitter_id:
-            qs = qs.filter(proposal__submitter_id=submitter_id)
+            queryset = queryset.filter(proposal__submitter_id=submitter_id)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @list_route(methods=['GET',])
-    def filter_list(self, request, *args, **kwargs):
-        """ Used by the external dashboard filters """
-        region_qs =  self.get_queryset().filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
-        activity_qs =  self.get_queryset().filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
-        application_types=ApplicationType.objects.all().values_list('name', flat=True)
-        data = dict(
-            regions=region_qs,
-            activities=activity_qs,
-            application_types=application_types,
-        )
-        return Response(data)
+    # @list_route(methods=['GET',])
+    # def filter_list(self, request, *args, **kwargs):
+    #     """ Used by the external dashboard filters """
+    #     region_qs =  self.get_queryset().filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+    #     activity_qs =  self.get_queryset().filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
+    #     application_types=ApplicationType.objects.all().values_list('name', flat=True)
+    #     data = dict(
+    #         regions=region_qs,
+    #         activities=activity_qs,
+    #         application_types=application_types,
+    #     )
+    #     return Response(data)
 
     @detail_route(methods=['GET',])
     def internal_compliance(self, request, *args, **kwargs):
@@ -390,8 +392,6 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-
-
 class ComplianceAmendmentReasonChoicesView(views.APIView):
 
     renderer_classes = [JSONRenderer,]
@@ -403,4 +403,76 @@ class ComplianceAmendmentReasonChoicesView(views.APIView):
             for c in choices:
                 choices_list.append({'key': c.id,'value': c.reason})
         return Response(choices_list)
+
+
+class GetComplianceStatusesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
+        return Response(data)
+
+
+class ComplianceFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        filter_compliance_status = request.GET.get('filter_compliance_status')
+        if filter_compliance_status and not filter_compliance_status.lower() == 'all':
+            queryset = queryset.filter(customer_status=filter_compliance_status)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class ComplianceRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class CompliancePaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (ComplianceFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (ComplianceRenderer,)
+    queryset = Compliance.objects.none()
+    serializer_class = ListComplianceSerializer
+    search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        qs = Compliance.objects.none()
+
+        if is_internal(self.request):
+            qs = Compliance.objects.all()
+        elif is_customer(self.request):
+            qs = Compliance.objects.filter(Q(approval__submitter=request_user))
+
+        return qs
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
 
