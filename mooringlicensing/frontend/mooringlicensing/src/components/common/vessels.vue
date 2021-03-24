@@ -5,13 +5,13 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.registration_number" required=""/>
+                    <input type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.name" required=""/>
+                    <input type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
                 </div>
             </div>
             <div class="row form-group">
@@ -19,34 +19,34 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input type="radio" name="registered_owner_current_user" value="current_user" v-model="vessel.registered_owner" required="">
+                            <input type="radio" name="registered_owner_current_user" value="current_user" v-model="vessel.vessel_ownership.registered_owner" required="">
                                 {{   profileFullName }}
                             </input>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-2">
-                            <input type="radio" id="registered_owner_company" name="registered_owner_company" value="company_name" v-model="vessel.registered_owner" required="">
+                            <input type="radio" id="registered_owner_company" name="registered_owner_company" value="company_name" v-model="vessel.vessel_ownership.registered_owner" required="">
                             Your company
                             </input>
                         </div>
                         <div class="col-sm-8">
-                            <input type="text" class="form-control" id="registered_owner_company_name" placeholder="" v-model="vessel.registered_owner_company_name" required=""/>
+                            <input type="text" class="form-control" id="registered_owner_company_name" placeholder="" v-model="vessel.vessel_ownership.registered_owner_company_name" required=""/>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="ownership_percentage" placeholder="" v-model="vessel.ownership_percentage" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" max="100" class="form-control" id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Permanent or usual place of berthing/mooring of vessel</label>
                 <!--label for="" class="col-sm-3 control-label">Permanent or usual place</label-->
                 <div class="col-sm-9">
-                    <input type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.berth_mooring" required=""/>
+                    <input type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_ownership.berth_mooring" required=""/>
                 </div>
             </div>
             <div class="row form-group">
@@ -67,32 +67,32 @@
         <FormSection label="Vessel Details">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel length</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_length" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Overall length of vessel</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="overall_length" placeholder="" v-model="vessel.overall_length" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Displacement tonnage</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.displacement_tonnage" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Draft</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="draft" placeholder="" v-model="vessel.draft" required=""/>
+                <div class="col-sm-2">
+                    <input type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel Type</label>
-                <div class="col-sm-9">
-                    <select class="form-control" style="width:40%" v-model="vessel.vessel_type">
+                <div class="col-sm-4">
+                    <select class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
                         <option v-for="vesselType in vesselTypes" :value="vesselType.code">
                             {{ vesselType.description }}
                         </option>
@@ -117,7 +117,12 @@ from '@/utils/hooks'
         name:'vessels',
         data:function () {
             return {
-                vessel: {},
+                vessel: {
+                    vessel_details: {},
+                    vessel_ownership: {
+                        registered_owner: 'current_user',
+                    }
+                },
                 vesselTypes: [],
             }
         },
@@ -166,11 +171,29 @@ from '@/utils/hooks'
                     console.log(error);
                 })
             },
+            fetchVessel: async function() {
+                let url = '';
+                if (this.proposal && this.proposal.id) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal/',
+                        this.proposal.id + '/fetch_vessel/'
+                    )
+                }
+                const res = await this.$http.get(url);
+                const vesselData = res.body;
+                if (vesselData && vesselData.rego_no) {
+                    this.vessel = Object.assign({}, vesselData);
+                }
+                if (!this.vessel.vessel_ownership.registered_owner) {
+                    this.vessel.vessel_ownership.registered_owner = 'current_user';
+                }
+            },
         },
         mounted:function () {
         },
         created: function() {
             this.fetchVesselTypes();
+            this.fetchVessel();
         },
     }
 </script>
