@@ -5,13 +5,13 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
+                    <input readonly="!editableVessel" type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
+                    <input readonly="editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
                 </div>
             </div>
             <div class="row form-group">
@@ -141,6 +141,11 @@ from '@/utils/hooks'
             }
         },
         computed: {
+            editableVessel: function() {
+                if (this.proposal) {
+                    return this.proposal.editable_vessel;
+                }
+            },
             profileFullName: function() {
                 if (this.profile) {
                     return this.profile.full_name;
@@ -171,6 +176,7 @@ from '@/utils/hooks'
                     console.log(error);
                 })
             },
+            // modify this
             fetchVessel: async function() {
                 let url = '';
                 if (this.proposal && this.proposal.id) {
