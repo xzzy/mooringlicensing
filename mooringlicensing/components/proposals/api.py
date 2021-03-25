@@ -51,6 +51,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalAssessmentAnswer,
     RequirementDocument,
     WaitingListApplication,
+    VESSEL_TYPES,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -152,7 +153,7 @@ class GetVesselTypesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in VesselDetails.VESSEL_TYPES]
+        data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
         return Response(data)
 
 
@@ -900,7 +901,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             #import ipdb; ipdb.set_trace()
             instance = self.get_object()
-            vessel_details = instance.vessel_details.first() # ??????
+            vessel_details = instance.vessel_details
             vessel_details_serializer = VesselDetailsSerializer(vessel_details)
             vessel = vessel_details.vessel
             vessel_serializer = VesselSerializer(vessel)

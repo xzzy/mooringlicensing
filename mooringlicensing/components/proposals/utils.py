@@ -349,15 +349,17 @@ def save_vessel_data(instance, request):
 
         ## Vessel Details
         vessel_details = None
-        for vd in instance.vessel_details.all():
-            if vd.vessel == vessel:
-                vessel_details = vd
+        #for vd in instance.vessel_details.all():
+        #    if vd.vessel == vessel:
+        #        vessel_details = vd
         # create vessel details obj if it doesn't exist
-        if not vessel_details:
+        if not instance.vessel_details:
             serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
             serializer.is_valid(raise_exception=True)
             vessel_details = serializer.save()
-            instance.vessel_details.add(vessel_details)
+            #instance.vessel_details.add(vessel_details)
+            instance.vessel_details = vessel_details
+            instance.save()
         else:
             serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
             serializer.is_valid(raise_exception=True)

@@ -42,6 +42,12 @@
             ref="waiting_list_application"
             />
 
+            <AnnualAdmissionApplication
+            v-if="proposal && proposal.application_type_code==='aaa'"
+            :proposal="proposal" 
+            :is_external="true" 
+            ref="annual_admission_application"
+            />
             <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -90,6 +96,7 @@ import ProposalFilming from '../form_filming.vue'
 import ProposalEvent from '../form_event.vue'
 */
 import WaitingListApplication from '../form_wla.vue';
+import AnnualAdmissionApplication from '../form_aaa.vue';
 import Vue from 'vue' 
 import {
   api_endpoints,
@@ -118,7 +125,8 @@ export default {
     }
   },
   components: {
-      WaitingListApplication
+      WaitingListApplication,
+      AnnualAdmissionApplication,
       /*
       ProposalTClass,
       ProposalFilming,
