@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from ledger.checkout.utils import create_basket_session, create_checkout_session
