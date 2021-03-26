@@ -42,6 +42,12 @@
             ref="waiting_list_application"
             />
 
+            <AnnualAdmissionApplication
+            v-if="proposal && proposal.application_type_code==='aaa'"
+            :proposal="proposal" 
+            :is_external="true" 
+            ref="annual_admission_application"
+            />
             <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -90,6 +96,7 @@ import ProposalFilming from '../form_filming.vue'
 import ProposalEvent from '../form_event.vue'
 */
 import WaitingListApplication from '../form_wla.vue';
+import AnnualAdmissionApplication from '../form_aaa.vue';
 import Vue from 'vue' 
 import {
   api_endpoints,
@@ -118,7 +125,8 @@ export default {
     }
   },
   components: {
-      WaitingListApplication
+      WaitingListApplication,
+      AnnualAdmissionApplication,
       /*
       ProposalTClass,
       ProposalFilming,
@@ -170,6 +178,8 @@ export default {
     proposal_refs:function(){
       if(this.proposal.application_type_code == 'wla') {
           return this.$refs.waiting_list_application;
+      } else if (this.proposal.application_type_code == 'aaa') {
+          return this.$refs.annual_admission_application;
       } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
       } else if(vm.proposal.application_type == vm.application_type_event) {
@@ -232,6 +242,9 @@ export default {
         }
         if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.vessels) {
             payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
+        }
+        if (this.$refs.annual_admission_application && this.$refs.annual_admission_application.$refs.vessels) {
+            payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
         }
 
         vm.$http.post(vm.proposal_form_url,payload).then(res=>{

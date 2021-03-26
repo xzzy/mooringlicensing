@@ -306,6 +306,13 @@ class RequirementDocument(Document):
 #    class Meta:
 #        app_label = 'mooringlicensing'
 
+VESSEL_TYPES = (
+        ('yacht', 'Yacht'),
+        ('cabin_cruiser', 'Cabin Cruiser'),
+        ('tender', 'Tender'),
+        ('other', 'Other'),
+        )
+
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
 #class Proposal(DirtyFieldsMixin, models.Model):
@@ -451,7 +458,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #application_type = models.ForeignKey(ApplicationType)
 
     #fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    vessel_details = models.ManyToManyField('VesselDetails')
+    #vessel_details_many = models.ManyToManyField('VesselDetails', related_name="proposal_vessel_details_many")
+    vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
+    vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
+    # draft proposal status VesselDetails records - goes to VesselDetails master record after submit
+    vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
+    vessel_name = models.CharField(max_length=400, blank=True)
+    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
+    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    berth_mooring = models.CharField(max_length=200, blank=True)
+    # draft proposal status VesselOwnership records - goes to VesselOwnership master record after approval
+    org_name = models.CharField(max_length=200, blank=True, null=True)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -461,26 +482,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
-    # TODO: should be NotImplementedError?
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
-        #application_type_acronym = self.application_type.acronym if self.application_type else None
-        #if self.lodgement_number == '':
-        #    new_lodgment_id = '{1}{0:06d}'.format(self.pk, 'P')
-        #    self.lodgement_number = new_lodgment_id
-        #    self.save()
-
-    ##Append 'P' to Proposal id to generate Lodgement number. Lodgement number and lodgement sequence are used to generate Reference.
-    #def save(self, *args, **kwargs):
-    #    orig_processing_status = self._original_state['processing_status']
-    #    super(Proposal, self).save(*args,**kwargs)
-    #    if self.processing_status != orig_processing_status:
-    #        self.save(version_comment='processing_status: {}'.format(self.processing_status))
-
-    #    if self.lodgement_number == '' and self.application_type.name != 'E Class':
-    #        new_lodgment_id = 'A{0:06d}'.format(self.pk)
-    #        self.lodgement_number = new_lodgment_id
-    #        self.save(version_comment='processing_status: {}'.format(self.processing_status))
 
     @property
     def invoice(self):
@@ -1734,12 +1737,13 @@ class Vessel(models.Model):
 
 
 class VesselDetails(models.Model): # ManyToManyField link in Proposal
-    VESSEL_TYPES = (
-            ('yacht', 'Yacht'),
-            ('cabin_cruiser', 'Cabin Cruiser'),
-            ('tender', 'Tender'),
-            ('other', 'Other'),
+    STATUS_TYPES = (
+            ('approved', 'Approved'),
+            ('draft', 'Draft'),
+            ('old', 'Old'),
+            ('declined', 'Declined'),
             )
+    blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
@@ -1748,9 +1752,10 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    berth_mooring = models.CharField(max_length=200, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50) # can be approved, old, draft, declined
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
     #owner = models.ForeignKey('Owner') # this owner can edit
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
@@ -1772,12 +1777,13 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
 class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
-    berth_mooring = models.CharField(max_length=200, blank=True)
+    org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
-    editable = models.BooleanField(default=False) # must be False after every add/edit
-    #start_date = models.DateTimeField(auto_now_add=True)
+    #editable = models.BooleanField(default=False) # must be False after every add/edit
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
+    # for cron job
+    exported = models.BooleanField(default=False) # must be False after every add/edit
 
     def __str__(self):
         return "{}".format(self.id)
@@ -1785,12 +1791,13 @@ class VesselOwnership(models.Model):
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
-        unique_together = ['owner', 'vessel']
+        unique_together = ['owner', 'vessel', 'org_name']
 
 
+# Non proposal specific
 class Owner(models.Model):
-    emailuser = models.ForeignKey(EmailUser)
-    org_name = models.CharField(max_length=200, blank=True, null=True)
+    emailuser = models.OneToOneField(EmailUser)
+    # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
     class Meta:
@@ -1800,12 +1807,12 @@ class Owner(models.Model):
     def __str__(self):
         return self.emailuser.get_full_name()
 
-    @property
-    def owner_name(self):
-        if self.org_name:
-            return self.org_contact
-        else:
-            self.emailuser.get_full_name()
+    #@property
+    #def owner_name(self):
+    #    if self.org_name:
+    #        return self.org_contact
+    #    else:
+    #        self.emailuser.get_full_name()
 
 
 class VesselRegistrationDocument(Document):
@@ -2528,6 +2535,7 @@ class HelpPage(models.Model):
 import reversion
 reversion.register(Proposal)
 reversion.register(WaitingListApplication)
+reversion.register(AnnualAdmissionApplication)
 
 #reversion.register(Referral, follow=['referral_documents', 'assessment'])
 #reversion.register(ReferralDocument, follow=['referral_document'])
