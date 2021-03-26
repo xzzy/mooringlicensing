@@ -28,8 +28,6 @@ class ApplicationFeeView(TemplateView):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
 
     def post(self, request, *args, **kwargs):
-        print('ApplicationFeeView.post()')
-
         proposal = self.get_object()
         application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=request.user, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
 
@@ -65,14 +63,19 @@ class ApplicationFeeSuccessView(TemplateView):
     LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
 
     def get(self, request, *args, **kwargs):
-        print('ApplicationFeeSuccessView.get()')
+        print('in ApplicationFeeSuccessView.get()')
+
+        proposal = None
+        submitter = None
+        invoice = None
 
         try:
+            application_fee = get_session_application_invoice(request.session)  # This raises an exception when accessed 2nd time?
+
             # Retrieve db processes stored when calculating the fee, and delete the session
             db_operations = request.session['db_processes']
             del request.session['db_processes']
 
-            application_fee = get_session_application_invoice(request.session)  # This raises an exception when accessed 2nd time?
             proposal = application_fee.proposal
             recipient = proposal.applicant_email
             submitter = proposal.submitter
@@ -126,17 +129,16 @@ class ApplicationFeeSuccessView(TemplateView):
                 context = {
                     'proposal': proposal,
                     'submitter': submitter,
-                    'fee_invoice': invoice,
+                    'fee_invoice': application_fee,
                 }
                 return render(request, self.template_name, context)
 
         except Exception as e:
             print('in ApplicationFeeSuccessView.get() Exception')
+            print(e)
             if (self.LAST_APPLICATION_FEE_ID in request.session) and ApplicationFee.objects.filter(id=request.session[self.LAST_APPLICATION_FEE_ID]).exists():
                 application_fee = ApplicationFee.objects.get(id=request.session[self.LAST_APPLICATION_FEE_ID])
                 proposal = application_fee.proposal
-
-                recipient = proposal.applicant_email
                 submitter = proposal.submitter
 
             else:
