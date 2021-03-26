@@ -11,7 +11,19 @@ from mooringlicensing.components.proposals.models import (
         ProposalAssessment, 
         ProposalAssessmentAnswer, 
         ChecklistQuestion,
-        ProposalStandardRequirement
+        ProposalStandardRequirement,
+        WaitingListApplication,
+        AnnualAdmissionApplication,
+        AuthorisedUserApplication,
+        MooringLicenceApplication,
+        Vessel, 
+        VesselDetails,
+        VesselOwnership,
+        Owner,
+        )
+from mooringlicensing.components.proposals.serializers import (
+        SaveVesselDetailsSerializer,
+        SaveVesselOwnershipSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -303,13 +315,80 @@ class SpecialFieldsSearch(object):
         return item_data
 
 
-def save_proponent_data(instance,request,viewset,parks=None,trails=None):
-    if instance.application_type.name==ApplicationType.FILMING:
-        save_proponent_data_filming(instance,request,viewset,parks=None,trails=None)
-    elif instance.application_type.name==ApplicationType.EVENT:
-        save_proponent_data_event(instance,request,viewset,parks=None,trails=None)
-    else:
-        save_proponent_data_tclass(instance,request,viewset,parks=None,trails=None)
+def save_proponent_data(instance, request, viewset):
+    if type(instance.child_obj) == WaitingListApplication:
+        save_proponent_data_wla(instance, request, viewset)
+    elif type(instance.child_obj) == AnnualAdmissionApplication:
+        save_proponent_data_aaa(instance, request, viewset)
+    elif type(instance.child_obj) == AuthorisedUserApplication:
+        save_proponent_data_aua(instance, request, viewset)
+    elif type(instance.child_obj) == MooringLicenceApplication:
+        save_proponent_data_mla(instance, request, viewset)
+
+def save_proponent_data_wla(instance, request, viewset):
+    print("save wla")
+    print(request.data)
+    #save_proposal_data(instance, request)
+    save_vessel_data(instance, request)
+
+def save_proponent_data_aaa(instance, request, viewset):
+    print("save aaa")
+    print(request.data)
+    #save_proposal_data(instance, request)
+    save_vessel_data(instance, request)
+
+def save_vessel_data(instance, request):
+    #import ipdb; ipdb.set_trace()
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
+        vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+        
+        vessel_details_data = vessel_data.get("vessel_details")
+        # add vessel to vessel_details_data
+        vessel_details_data["vessel"] = vessel.id
+
+        ## Vessel Details
+        vessel_details = None
+        if not instance.vessel_details:
+            serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
+            serializer.is_valid(raise_exception=True)
+            vessel_details = serializer.save()
+            # set proposal now has sole right to edit vessel_details
+            vessel_details.blocking_proposal = instance
+            vessel_details.save()
+        else:
+            serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        # associate vessel_details with proposal
+        instance.vessel_details = vessel_details
+        instance.save()
+
+        ## Vessel Ownership
+        vessel_ownership_data = vessel_data.get("vessel_ownership")
+        vessel_ownership_data['vessel'] = vessel.id
+        registered_owner = vessel_ownership_data.get("registered_owner")
+        registered_owner_company_name = vessel_ownership_data.get("registered_owner_company_name")
+        registered_owner_company_name_strip = registered_owner_company_name.strip() if registered_owner_company_name else None
+        #owner = None
+        # should be submitter?
+        owner, created = Owner.objects.get_or_create(emailuser=request.user)
+
+        vessel_ownership_data['owner'] = owner.id
+        vessel_ownership = instance.vessel_ownership
+        if not vessel_ownership:
+            vessel_ownership, created = VesselOwnership.objects.get_or_create(
+                    owner=owner, 
+                    vessel=vessel, 
+                    org_name=registered_owner_company_name_strip
+                    )
+            # associate vessel_ownership with proposal
+            instance.vessel_ownership = vessel_ownership
+            instance.save()
+        serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
+        serializer.is_valid(raise_exception=True)
+        vessel_ownership = serializer.save()
 
 
 #from mooringlicensing.components.main.models import ApplicationType

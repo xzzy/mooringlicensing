@@ -34,6 +34,9 @@ from mooringlicensing.components.proposals.models import (
                                     RequirementDocument,
                                     #DistrictProposal,
                                     #DistrictProposalDeclinedDetails,
+                                    VesselDetails,
+                                    VesselOwnership,
+                                    Vessel,
                                 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -181,7 +184,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     get_history = serializers.ReadOnlyField()
     fee_invoice_url = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
+    application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
+    editable_vessel = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -189,6 +194,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'id',
                 #'application_type',
                 'application_type_code',
+                'application_type_text',
                 'application_type_dict',
                 'proposal_type',
                 # 'activity',
@@ -220,20 +226,47 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'allowed_assessors',
                 'pending_amendment_request',
                 'is_amendment_proposal',
-
                 # tab field models
                 'applicant_details',
                 'fee_invoice_url',
                 'fee_paid',
-
+                ## vessel fields
+                'vessel_details_id', 
+                'vessel_ownership_id', 
+                'vessel_type',
+                'vessel_name',
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_beam',
+                'vessel_weight',
+                'berth_mooring',
+                'org_name',
+                'percentage',
+                'editable_vessel',
                 )
         read_only_fields=('documents',)
+
+    def get_editable_vessel(self, obj):
+        editable = True
+        if obj.vessel_details:
+            if obj.vessel_details.status == 'draft' and (
+                    obj.vessel_details.blocking_proposal != obj or 
+                    not obj.vessel_details.blocking_proposal):
+                editable = False
+        return editable
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
 
+    def get_application_type_text(self, obj):
+        return obj.child_obj.description
+
     def get_application_type_dict(self, obj):
-        return obj.application_type_dict(apply_page=False)
+        return {
+            'code': obj.child_obj.code,
+            'description': obj.child_obj.description,
+        }
 
     def get_documents_url(self,obj):
         return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
@@ -268,7 +301,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     application_type_dict = serializers.SerializerMethodField()
 
     # application_type = serializers.CharField(source='application_type.name', read_only=True)
-    # assessor_process = serializers.SerializerMethodField(read_only=True)
+    assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -293,13 +326,13 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'lodgement_date',
                 # 'modified_date',
                 # 'readonly',
-                # 'can_user_edit',
-                # 'can_user_view',
+                'can_user_edit',
+                'can_user_view',
                 # 'reference',
                 'lodgement_number',
                 # 'lodgement_sequence',
                 # 'can_officer_process',
-                # 'assessor_process',
+                'assessor_process',
                 # 'allowed_assessors',
                 # 'proposal_type',
                 # 'fee_invoice_url',
@@ -321,23 +354,17 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'submitter',
                 # 'assigned_officer',
                 'lodgement_date',
-                # 'can_user_edit',
-                # 'can_user_view',
+                'can_user_edit',
+                'can_user_view',
                 # 'reference',
                 'lodgement_number',
                 # 'can_officer_process',
-                # 'assessor_process',
+                'assessor_process',
                 # 'allowed_assessors',
                 # 'fee_invoice_url',
                 # 'fee_invoice_reference',
                 # 'fee_paid',
                 )
-
-    def get_application_type_dict(self, obj):
-        return {
-            'code': obj.child_obj.code,
-            'description': obj.child_obj.description,
-        }
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
@@ -363,7 +390,7 @@ class ListProposalSerializer(BaseProposalSerializer):
         return ''
 
 class ProposalSerializer(BaseProposalSerializer):
-    submitter = serializers.CharField(source='submitter.get_full_name')
+    #submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
     #review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
@@ -708,4 +735,59 @@ class SearchReferenceSerializer(serializers.Serializer):
 #
 #    def get_descriptions(self, obj):
 #        return Proposal.application_type_descriptions
+
+
+class VesselSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Vessel
+        fields = '__all__'
+
+
+class VesselDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselDetails
+        fields = '__all__'
+
+
+class SaveVesselDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselDetails
+        fields = (
+                'vessel_type',
+                'vessel', # link to rego number
+                'vessel_name', 
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_weight',
+                'berth_mooring',
+                #status
+                #exported
+                )
+
+
+class VesselOwnershipSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselOwnership
+        fields = '__all__'
+
+
+class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+    org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'owner',
+                'vessel',
+                'percentage',
+                'org_name',
+                #'editable',
+                'start_date',
+                'end_date',
+                )
 

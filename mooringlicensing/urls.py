@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from mooringlicensing import views
 from mooringlicensing.admin import mooringlicensing_admin_site
+from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 #from mooringlicensing.components.bookings import views as booking_views
@@ -23,9 +24,11 @@ router = routers.DefaultRouter()
 router.register(r'organisations', org_api.OrganisationViewSet)
 router.register(r'proposal', proposal_api.ProposalViewSet)
 router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationViewSet)
+router.register(r'annualadmissionapplication', proposal_api.AnnualAdmissionApplicationViewSet)
 #router.register(r'proposal_submit',proposal_api.ProposalSubmitViewSet)
 router.register(r'proposals_paginated', proposal_api.ProposalPaginatedViewSet)
 router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet)
+router.register(r'compliances_paginated', compliances_api.CompliancePaginatedViewSet)
 #router.register(r'booking_paginated',booking_api.BookingPaginatedViewSet)
 #router.register(r'compliance_paginated',compliances_api.CompliancePaginatedViewSet)
 router.register(r'approvals', approval_api.ApprovalViewSet)
@@ -54,7 +57,11 @@ api_patterns = [
     #url(r'^api/proposal_type$', proposal_api.GetProposalType.as_view(), name='get-proposal-type'),
     url(r'^api/application_types$', proposal_api.GetApplicationTypeDescriptions.as_view(), name='get-application-type-descriptions'),
     url(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
+    url(r'^api/vessel_types_dict$', proposal_api.GetVesselTypesDict.as_view(), name='get-vessel-types-dict'),
     url(r'^api/application_statuses_dict$', proposal_api.GetApplicationStatusesDict.as_view(), name='get-application-statuses-dict'),
+    url(r'^api/approval_types_dict$', approval_api.GetApprovalTypeDict.as_view(), name='get-approval-type-dict'),
+    url(r'^api/approval_statuses_dict$', approval_api.GetApprovalStatusesDict.as_view(), name='get-approval-statuses-dict'),
+    url(r'^api/compliance_statuses_dict$', compliances_api.GetComplianceStatusesDict.as_view(), name='get-compliance-statuses-dict'),
     url(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
     url(r'^api/organisation_access_group_members',org_api.OrganisationAccessGroupMembers.as_view(),name='organisation-access-group-members'),
     url(r'^api/',include(router.urls)),
@@ -95,6 +102,8 @@ urlpatterns = [
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
     # payment related urls
+    url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
+    url(r'^success/fee/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
     #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
     #url(r'^zero_fee_success/', booking_views.ZeroApplicationFeeView.as_view(), name='zero_fee_success'),
     #url(r'^payment_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingView.as_view(), name='deferred_invoicing'),
@@ -103,7 +112,8 @@ urlpatterns = [
     #url(r'^success/fee/$', booking_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
     #url(r'^success/compliance_fee/$', booking_views.ComplianceFeeSuccessView.as_view(), name='compliance_fee_success'),
     #url(r'^success/filming_fee/$', booking_views.FilmingFeeSuccessView.as_view(), name='filming_fee_success'),
-    #url(r'cols/payments/invoice-pdf/(?P<reference>\d+)',booking_views.InvoicePDFView.as_view(), name='cols-invoice-pdf'),
+    # url(r'cols/payments/invoice-pdf/(?P<reference>\d+)',booking_views.InvoicePDFView.as_view(), name='cols-invoice-pdf'),
+    url(r'payments/invoice-pdf/(?P<reference>\d+)', InvoicePDFView.as_view(), name='invoice-pdf'),
     #url(r'cols/payments/invoice-compliance-pdf/(?P<reference>\d+)',booking_views.InvoiceCompliancePDFView.as_view(), name='cols-invoice-compliance-pdf'),
     #url(r'cols/payments/confirmation-pdf/(?P<reference>\d+)',booking_views.ConfirmationPDFView.as_view(), name='cols-confirmation-pdf'),
     #url(r'cols/payments/monthly-confirmation-pdf/booking/(?P<id>\d+)',booking_views.MonthlyConfirmationPDFBookingView.as_view(), name='cols-monthly-confirmation-pdf'),

@@ -2,7 +2,7 @@
     <div>
 
         <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
-            <h4>Waiting List Application: {{proposal.lodgement_number}}</h4>
+            <h4>Annual Admission Application: {{proposal.lodgement_number}}</h4>
         </div>
 
         <div class="col-md-12">
@@ -119,7 +119,7 @@
     import Confirmation from '@/components/common/tclass/confirmation.vue'
     */
     export default {
-        name: 'WaitingListApplication',
+        name: 'AnnualAdmissionApplication',
         props:{
             proposal:{
                 type: Object,

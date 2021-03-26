@@ -50,6 +50,7 @@ INSTALLED_APPS += [
     'mooringlicensing.components.proposals',
     'mooringlicensing.components.approvals',
     'mooringlicensing.components.compliances',
+    'mooringlicensing.components.payments_ml',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -129,7 +130,7 @@ DEP_NAME_SHORT = env('DEP_NAME_SHORT','DBCA')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
-MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'cols')
+MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'mooringlicensing')
 ADMIN_GROUP = env('ADMIN_GROUP', 'MooringLicensing Admin')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '04:05')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
@@ -151,3 +152,4 @@ CKEDITOR_CONFIGS = {
 if env('CONSOLE_EMAIL_BACKEND', False):
    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')

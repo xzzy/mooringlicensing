@@ -1,5 +1,6 @@
 <template lang="html">
     <div class="container" >
+        <button type="button" @click="test_payment">Pay test</button>
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
             <div v-if="!proposal_readonly">
               <div v-if="hasAmendmentRequest" class="row" style="color:red;">
@@ -31,11 +32,6 @@
                     </li>
                 </ul>
             </div>
-
-            <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
-                <h4>Commercial Operator - {{proposal.application_type}} application: {{proposal.lodgement_number}}</h4>
-            </div>
-
             <!--ProposalTClass v-if="proposal && proposal_parks && proposal.application_type==application_type_tclass" :proposal="proposal" id="proposalStart"  :canEditActivities="canEditActivities" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_tclass"></ProposalTClass>
             <ProposalFilming v-else-if="proposal && proposal.application_type==application_type_filming" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_filming"></ProposalFilming>
             <ProposalEvent v-else-if="proposal && proposal.application_type==application_type_event" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_event"></ProposalEvent-->
@@ -46,6 +42,12 @@
             ref="waiting_list_application"
             />
 
+            <AnnualAdmissionApplication
+            v-if="proposal && proposal.application_type_code==='aaa'"
+            :proposal="proposal" 
+            :is_external="true" 
+            ref="annual_admission_application"
+            />
             <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -94,6 +96,7 @@ import ProposalFilming from '../form_filming.vue'
 import ProposalEvent from '../form_event.vue'
 */
 import WaitingListApplication from '../form_wla.vue';
+import AnnualAdmissionApplication from '../form_aaa.vue';
 import Vue from 'vue' 
 import {
   api_endpoints,
@@ -122,7 +125,8 @@ export default {
     }
   },
   components: {
-      WaitingListApplication
+      WaitingListApplication,
+      AnnualAdmissionApplication,
       /*
       ProposalTClass,
       ProposalFilming,
@@ -172,14 +176,16 @@ export default {
   },
   methods: {
     proposal_refs:function(){
-      let vm=this;
-      if(vm.proposal.application_type == vm.application_type_tclass) {
-          return vm.$refs.proposal_tclass;
-      } else if(vm.proposal.application_type == vm.application_type_filming) {
+      if(this.proposal.application_type_code == 'wla') {
+          return this.$refs.waiting_list_application;
+      } else if (this.proposal.application_type_code == 'aaa') {
+          return this.$refs.annual_admission_application;
+      } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
       } else if(vm.proposal.application_type == vm.application_type_event) {
           return vm.$refs.proposal_event;
       }
+      */
     },
 
     submit_text: function() {
@@ -196,33 +202,19 @@ export default {
           return 'Pay and Submit';
       }
     },
-    _save_applicant_data:function(){
-      let vm=this;
-      let proposal_type = vm.$refs.proposal_tclass
-      if(vm.proposal.applicant_type == 'SUB')
-      {
-        vm.$refs.proposal_tclass.$refs.profile.updatePersonal();
-        vm.$refs.proposal_tclass.$refs.profile.updateAddress();
-        vm.$refs.proposal_tclass.$refs.profile.updateContact();
-      }
-      if(vm.proposal.applicant_type == 'ORG'){
-        vm.$refs.proposal_tclass.$refs.organisation.updateDetails_noconfirm();
-        //vm.$refs.proposal_tclass.$refs.organisation.updateDetails();
-        vm.$refs.proposal_tclass.$refs.organisation.updateAddress();
-      }
-    },
     save_applicant_data:function(){
-      let vm=this;
-      if(vm.proposal.applicant_type == 'SUB')
+      if(this.proposal.applicant_type == 'SUB')
       {
-        vm.proposal_refs().$refs.profile.updatePersonal();
-        vm.proposal_refs().$refs.profile.updateAddress();
-        vm.proposal_refs().$refs.profile.updateContact();
+        this.proposal_refs().$refs.profile.updatePersonal();
+        this.proposal_refs().$refs.profile.updateAddress();
+        this.proposal_refs().$refs.profile.updateContact();
       }
+        /*
       if(vm.proposal.applicant_type == 'ORG'){
         vm.proposal_refs().$refs.organisation.updateDetails();
         vm.proposal_refs().$refs.organisation.updateAddress();
       }
+      */
     },
 
 
@@ -230,30 +222,41 @@ export default {
       let vm = this;
       //vm.form=document.forms.new_proposal;
       let formData = new FormData(vm.form);
-
-      //console.log('land activities', vm.proposal.selected_parks_activities);
+      /*
       formData.append('selected_parks_activities', JSON.stringify(vm.proposal.selected_parks_activities))
       formData.append('selected_trails_activities', JSON.stringify(vm.proposal.selected_trails_activities))
       formData.append('marine_parks_activities', JSON.stringify(vm.proposal.marine_parks_activities))
+      */
 
       return formData;
     },
     save: function(e) {
-      let vm = this;
-      vm.savingProposal=true;
-      vm.save_applicant_data();
+        let vm = this;
+        vm.savingProposal=true;
+        vm.save_applicant_data();
 
-      let formData = vm.set_formData()
-      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-          swal(
-            'Saved',
-            'Your application has been saved',
-            'success'
-          );
-          vm.savingProposal=false;
-      },err=>{
-        vm.savingProposal=false;
-      });
+        //let formData = vm.set_formData()
+        //vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+        let payload = {
+            "proposal": this.proposal
+        }
+        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.vessels) {
+            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
+        }
+        if (this.$refs.annual_admission_application && this.$refs.annual_admission_application.$refs.vessels) {
+            payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+        }
+
+        vm.$http.post(vm.proposal_form_url,payload).then(res=>{
+            swal(
+                'Saved',
+                'Your application has been saved',
+                'success'
+            );
+            vm.savingProposal=false;
+        },err=>{
+            vm.savingProposal=false;
+        });
     },
     save_exit: function(e) {
       let vm = this;
@@ -265,6 +268,11 @@ export default {
       vm.$router.push({
         name: 'external-proposals-dash'
       });
+    },
+
+    test_payment: function(){
+        let vm = this
+        vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
     },
 
     save_wo_confirm: function(e) {

@@ -306,6 +306,13 @@ class RequirementDocument(Document):
 #    class Meta:
 #        app_label = 'mooringlicensing'
 
+VESSEL_TYPES = (
+        ('yacht', 'Yacht'),
+        ('cabin_cruiser', 'Cabin Cruiser'),
+        ('tender', 'Tender'),
+        ('other', 'Other'),
+        )
+
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
 #class Proposal(DirtyFieldsMixin, models.Model):
@@ -337,13 +344,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         )
 
     # List of statuses from above that allow a customer to edit an application.
-    CUSTOMER_EDITABLE_STATE = ['temp',
-                                'draft',
-                                'amendment_required',
-                            ]
+    CUSTOMER_EDITABLE_STATE = [
+        #'temp',
+        CUSTOMER_STATUS_DRAFT,
+        CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+    ]
 
     # List of statuses from above that allow a customer to view an application (read-only)
-    CUSTOMER_VIEWABLE_STATE = ['with_assessor', 'under_review', 'id_required', 'returns_required', 'awaiting_payment', 'approved', 'declined','partially_approved', 'partially_declined']
+    CUSTOMER_VIEWABLE_STATE = [
+        CUSTOMER_STATUS_WITH_ASSESSOR,
+        CUSTOMER_STATUS_WITH_ASSESSOR,
+        # 'id_required',
+        # 'returns_required',
+        CUSTOMER_STATUS_AWAITING_PAYMENT,
+        CUSTOMER_STATUS_APPROVED,
+        CUSTOMER_STATUS_DECLINED,
+        # 'partially_approved',
+        # 'partially_declined'
+    ]
 
     PROCESSING_STATUS_TEMP = 'temp'
     PROCESSING_STATUS_DRAFT = 'draft'
@@ -409,7 +427,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
-                                       default=CUSTOMER_STATUS_CHOICES[1][0])
+                                       default=CUSTOMER_STATUS_CHOICES[0][0])
     org_applicant = models.ForeignKey(
         Organisation,
         blank=True,
@@ -440,7 +458,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #application_type = models.ForeignKey(ApplicationType)
 
     #fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    vessel_details = models.ManyToManyField('VesselDetails')
+    #vessel_details_many = models.ManyToManyField('VesselDetails', related_name="proposal_vessel_details_many")
+    vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
+    vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
+    # draft proposal status VesselDetails records - goes to VesselDetails master record after submit
+    vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
+    vessel_name = models.CharField(max_length=400, blank=True)
+    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
+    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    berth_mooring = models.CharField(max_length=200, blank=True)
+    # draft proposal status VesselOwnership records - goes to VesselOwnership master record after approval
+    org_name = models.CharField(max_length=200, blank=True, null=True)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -452,31 +484,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
-        #application_type_acronym = self.application_type.acronym if self.application_type else None
-        #if self.lodgement_number == '':
-        #    new_lodgment_id = '{1}{0:06d}'.format(self.pk, 'P')
-        #    self.lodgement_number = new_lodgment_id
-        #    self.save()
 
-    ##Append 'P' to Proposal id to generate Lodgement number. Lodgement number and lodgement sequence are used to generate Reference.
-    #def save(self, *args, **kwargs):
-    #    orig_processing_status = self._original_state['processing_status']
-    #    super(Proposal, self).save(*args,**kwargs)
-    #    if self.processing_status != orig_processing_status:
-    #        self.save(version_comment='processing_status: {}'.format(self.processing_status))
-
-    #    if self.lodgement_number == '' and self.application_type.name != 'E Class':
-    #        new_lodgment_id = 'A{0:06d}'.format(self.pk)
-    #        self.lodgement_number = new_lodgment_id
-    #        self.save(version_comment='processing_status: {}'.format(self.processing_status))
-
-    @property
-    def invoice(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
+    # @property
+    # def invoice(self):
+    #     return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
 
     @property
     def fee_paid(self):
-        if (self.invoice and self.invoice.payment_status in ['paid','over_paid']) or self.proposal_type=='amendment':
+        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type=='amendment':
             return True
         return False
 
@@ -799,6 +814,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
+    @property
+    def is_submitted(self):
+        return True if self.lodgement_date else False
+
     # TODO: is this used or utils..proposal_submit() ?
     def submit(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
@@ -964,23 +983,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #        for req in default_requirements:
     #            r, created=ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date= due_date)
 
-    def move_to_status(self,request,status, approver_comment):
+    def move_to_status(self, request, status, approver_comment):
         if not self.can_assess(request.user):
             raise exceptions.ProposalNotAuthorized()
-        if status in ['with_assessor','with_assessor_requirements','with_approver']:
-            if self.processing_status == 'with_referral' or self.can_user_edit:
+        if status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
+            if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
                 raise ValidationError('You cannot change the current status at this time')
             if self.processing_status != status:
-                #import ipdb; ipdb.set_trace()
-                if self.processing_status =='with_approver':
-                    self.approver_comment=''
+                if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
+                    self.approver_comment = ''
                     if approver_comment:
                         self.approver_comment = approver_comment
                         self.save()
                         send_proposal_approver_sendback_email_notification(request, self)
                 self.processing_status = status
                 self.save()
-                if status=='with_assessor_requirements':
+                if status == 'with_assessor_requirements':
                     self.add_default_requirements()
 
                 # Create a log entry for the proposal
@@ -1023,7 +1041,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     raise ValidationError('Cannot reissue Approval. User not permitted.')
             else:
                 raise ValidationError('Cannot reissue Approval')
-
 
     def proposed_decline(self,request,details):
         with transaction.atomic():
@@ -1557,7 +1574,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
     @classmethod
-    def application_type_dict(cls, apply_page):
+    def application_types_dict(cls, apply_page):
         type_list = []
         for application_type in Proposal.__subclasses__():
             if apply_page:
@@ -1719,16 +1736,26 @@ class Vessel(models.Model):
         return self.rego_no
 
 
-class VesselDetails(models.Model):
+class VesselDetails(models.Model): # ManyToManyField link in Proposal
+    STATUS_TYPES = (
+            ('approved', 'Approved'),
+            ('draft', 'Draft'),
+            ('old', 'Old'),
+            ('declined', 'Declined'),
+            )
+    blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True)
+    vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
-    vessel_name = models.CharField(max_length=400) 
-    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_name = models.CharField(max_length=400)
+    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    berth_mooring = models.CharField(max_length=200, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50) # can be approved, old, draft, declined
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
     #owner = models.ForeignKey('Owner') # this owner can edit
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
@@ -1738,44 +1765,67 @@ class VesselDetails(models.Model):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.rego_no
+        return "{}".format(self.id)
+
+    @property
+    def vessel_applicable_length(self):
+        return self.vessel_overall_length
 
     #def save() - do not allow multiple draft or approved status per vessel_id
 
 
-class VesselDetailsOwnership(models.Model):
+class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
+    org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
-    editable = models.BooleanField(default=False) # must be False after every add/edit
-    #start_date = models.DateTimeField(auto_now_add=True)
+    #editable = models.BooleanField(default=False) # must be False after every add/edit
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
+    # for cron job
+    exported = models.BooleanField(default=False) # must be False after every add/edit
+
+    def __str__(self):
+        return "{}".format(self.id)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
+        unique_together = ['owner', 'vessel', 'org_name']
 
 
+# Non proposal specific
 class Owner(models.Model):
-    emailuser = models.ForeignKey(EmailUser) # mandatory?
-    org_name = models.CharField(max_length=200, blank=True)
-    vessels = models.ManyToManyField(Vessel, through=VesselDetailsOwnership) # these owner/vessel association
+    emailuser = models.OneToOneField(EmailUser)
+    # add on approval only
+    vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
     class Meta:
         verbose_name_plural = "Owners"
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.owner_name
+        return self.emailuser.get_full_name()
 
-    @property
-    def owner_name(self):
-        if self.org_name:
-            return self.org_contact
-        else:
-            self.emailuser.get_full_name()
+    #@property
+    #def owner_name(self):
+    #    if self.org_name:
+    #        return self.org_contact
+    #    else:
+    #        self.emailuser.get_full_name()
 
+
+class VesselRegistrationDocument(Document):
+    proposal = models.ForeignKey(Proposal,related_name='vessel_registration_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Vessel Registration Papers"
 
 # Vessel details per Proposal 
 # - allows for customer to edit vessel details during application process
@@ -2485,6 +2535,7 @@ class HelpPage(models.Model):
 import reversion
 reversion.register(Proposal)
 reversion.register(WaitingListApplication)
+reversion.register(AnnualAdmissionApplication)
 
 #reversion.register(Referral, follow=['referral_documents', 'assessment'])
 #reversion.register(ReferralDocument, follow=['referral_document'])
