@@ -249,8 +249,10 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
     def get_editable_vessel(self, obj):
         editable = True
-        if self.vessel_details:
-            if self.vessel_details.status == 'draft':
+        if obj.vessel_details:
+            if obj.vessel_details.status == 'draft' and (
+                    obj.vessel_details.blocking_proposal != obj or 
+                    not obj.vessel_details.blocking_proposal):
                 editable = False
         return editable
 

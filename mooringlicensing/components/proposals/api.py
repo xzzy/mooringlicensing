@@ -51,6 +51,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalAssessmentAnswer,
     RequirementDocument,
     WaitingListApplication,
+    AnnualAdmissionApplication,
     VESSEL_TYPES,
 )
 from mooringlicensing.components.proposals.serializers import (
@@ -256,6 +257,31 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+
+class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
+    queryset = AnnualAdmissionApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = AnnualAdmissionApplication.objects.all()
+            return qs
+        elif is_customer(self.request):
+            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return AnnualAdmissionApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        obj = AnnualAdmissionApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
 
 
 class WaitingListApplicationViewSet(viewsets.ModelViewSet):

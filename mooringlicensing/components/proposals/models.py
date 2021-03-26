@@ -2535,6 +2535,7 @@ class HelpPage(models.Model):
 import reversion
 reversion.register(Proposal)
 reversion.register(WaitingListApplication)
+reversion.register(AnnualAdmissionApplication)
 
 #reversion.register(Referral, follow=['referral_documents', 'assessment'])
 #reversion.register(ReferralDocument, follow=['referral_document'])
