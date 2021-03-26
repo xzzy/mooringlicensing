@@ -777,6 +777,7 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+    org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = VesselOwnership
@@ -784,6 +785,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner',
                 'vessel',
                 'percentage',
+                'org_name',
                 #'editable',
                 'start_date',
                 'end_date',

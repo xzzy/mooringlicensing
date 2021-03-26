@@ -178,6 +178,8 @@ export default {
     proposal_refs:function(){
       if(this.proposal.application_type_code == 'wla') {
           return this.$refs.waiting_list_application;
+      } else if (this.proposal.application_type_code == 'aaa') {
+          return this.$refs.annual_admission_application;
       } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
       } else if(vm.proposal.application_type == vm.application_type_event) {
@@ -240,6 +242,9 @@ export default {
         }
         if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.vessels) {
             payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
+        }
+        if (this.$refs.annual_admission_application && this.$refs.annual_admission_application.$refs.vessels) {
+            payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
         }
 
         vm.$http.post(vm.proposal_form_url,payload).then(res=>{

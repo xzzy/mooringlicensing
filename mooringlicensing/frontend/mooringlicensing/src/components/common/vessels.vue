@@ -5,13 +5,13 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
-                    <input readonly="!editableVessel" type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
+                    <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
-                    <input readonly="editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
+                    <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
                 </div>
             </div>
             <div class="row form-group">
@@ -46,14 +46,15 @@
                 <label for="" class="col-sm-3 control-label">Permanent or usual place of berthing/mooring of vessel</label>
                 <!--label for="" class="col-sm-3 control-label">Permanent or usual place</label-->
                 <div class="col-sm-9">
-                    <input type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_ownership.berth_mooring" required=""/>
+                    <input :readonly="!editableVessel" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
             <div class="row form-group">
             <!--div class="form-group"-->
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
-                    <FileField
+                    <FileField 
+                        :readonly="!editableVessel"
                         ref="vessel_registration_documents"
                         name="vessel-registration-documents"
                         :isRepeatable="true"
@@ -68,31 +69,31 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel length</label>
                 <div class="col-sm-2">
-                    <input type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
+                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Overall length of vessel</label>
                 <div class="col-sm-2">
-                    <input type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
+                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Displacement tonnage</label>
                 <div class="col-sm-2">
-                    <input type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
+                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Draft</label>
                 <div class="col-sm-2">
-                    <input type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
+                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel Type</label>
                 <div class="col-sm-4">
-                    <select class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
+                    <select :readonly="!editableVessel" class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
                         <option v-for="vesselType in vesselTypes" :value="vesselType.code">
                             {{ vesselType.description }}
                         </option>
@@ -179,7 +180,7 @@ from '@/utils/hooks'
             // modify this
             fetchVessel: async function() {
                 let url = '';
-                if (this.proposal && this.proposal.id) {
+                if (this.proposal && this.proposal.id && this.proposal.vessel_details_id) {
                     url = helpers.add_endpoint_join(
                         '/api/proposal/',
                         this.proposal.id + '/fetch_vessel/'
@@ -196,10 +197,12 @@ from '@/utils/hooks'
             },
         },
         mounted:function () {
+            this.$nextTick(() => {
+                this.fetchVesselTypes();
+                this.fetchVessel();
+            });
         },
         created: function() {
-            this.fetchVesselTypes();
-            this.fetchVessel();
         },
     }
 </script>
