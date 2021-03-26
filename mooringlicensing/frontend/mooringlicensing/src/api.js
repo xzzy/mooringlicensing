@@ -23,6 +23,7 @@ module.exports = {
     approvals_paginated_external: '/api/approvals_paginated/list_external',
     compliances_paginated_external: '/api/compliances_paginated/list_external',
     waitinglistapplication: '/api/waitinglistapplication/',
+    annualadmissionapplication: '/api/annualadmissionapplication/',
 
     discard_proposal: function (id) {
         return `/api/proposal/${id}.json`;
