@@ -7,6 +7,7 @@ from ledger.checkout.utils import create_basket_session, create_checkout_session
 from mooringlicensing import settings
 from mooringlicensing.components.payments_ml.models import ApplicationFee
 
+#test
 
 logger = logging.getLogger('payment_checkout')
 
