@@ -1733,7 +1733,7 @@ class Vessel(models.Model):
         return self.rego_no
 
 
-class VesselDetails(models.Model):
+class VesselDetails(models.Model): # ManyToManyField link in Proposal
     VESSEL_TYPES = (
             ('yacht', 'Yacht'),
             ('cabin_cruiser', 'Cabin Cruiser'),
@@ -1742,11 +1742,12 @@ class VesselDetails(models.Model):
             )
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
-    vessel_name = models.CharField(max_length=400) 
-    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_name = models.CharField(max_length=400)
+    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=50) # can be approved, old, draft, declined
@@ -1759,36 +1760,45 @@ class VesselDetails(models.Model):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.rego_no
+        return "{}".format(self.id)
+
+    @property
+    def vessel_applicable_length(self):
+        return self.vessel_overall_length
 
     #def save() - do not allow multiple draft or approved status per vessel_id
 
 
-class VesselDetailsOwnership(models.Model):
+class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
+    berth_mooring = models.CharField(max_length=200, blank=True)
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
     editable = models.BooleanField(default=False) # must be False after every add/edit
     #start_date = models.DateTimeField(auto_now_add=True)
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
 
+    def __str__(self):
+        return "{}".format(self.id)
+
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
+        unique_together = ['owner', 'vessel']
 
 
 class Owner(models.Model):
-    emailuser = models.ForeignKey(EmailUser) # mandatory?
-    org_name = models.CharField(max_length=200, blank=True)
-    vessels = models.ManyToManyField(Vessel, through=VesselDetailsOwnership) # these owner/vessel association
+    emailuser = models.ForeignKey(EmailUser)
+    org_name = models.CharField(max_length=200, blank=True, null=True)
+    vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
     class Meta:
         verbose_name_plural = "Owners"
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.owner_name
+        return self.emailuser.get_full_name()
 
     @property
     def owner_name(self):
