@@ -485,13 +485,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
 
-    @property
-    def invoice(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
+    # @property
+    # def invoice(self):
+    #     return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
 
     @property
     def fee_paid(self):
-        if (self.invoice and self.invoice.payment_status in ['paid','over_paid']) or self.proposal_type=='amendment':
+        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type=='amendment':
             return True
         return False
 
