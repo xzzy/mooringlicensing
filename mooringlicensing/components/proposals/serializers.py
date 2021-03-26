@@ -186,6 +186,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
+    editable_vessel = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -225,16 +226,37 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'allowed_assessors',
                 'pending_amendment_request',
                 'is_amendment_proposal',
-
                 # tab field models
                 'applicant_details',
                 'fee_invoice_url',
                 'fee_paid',
-
+                ## vessel fields
+                'vessel_details_id', 
+                'vessel_ownership_id', 
+                'vessel_type',
+                'vessel_name',
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_beam',
+                'vessel_weight',
+                'berth_mooring',
+                'org_name',
+                'percentage',
+                'editable_vessel',
                 )
         read_only_fields=('documents',)
 
-    def get_application_type_code(self, obj: ProposalLogEntry):
+    def get_editable_vessel(self, obj):
+        editable = True
+        if obj.vessel_details:
+            if obj.vessel_details.status == 'draft' and (
+                    obj.vessel_details.blocking_proposal != obj or 
+                    not obj.vessel_details.blocking_proposal):
+                editable = False
+        return editable
+
+    def get_application_type_code(self, obj):
         return obj.application_type_code
 
     def get_application_type_text(self, obj):
@@ -741,6 +763,7 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
                 'vessel_length',
                 'vessel_draft',
                 'vessel_weight',
+                'berth_mooring',
                 #status
                 #exported
                 )
@@ -754,14 +777,15 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+    org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = VesselOwnership
         fields = (
                 'owner',
                 'vessel',
-                'berth_mooring',
                 'percentage',
+                'org_name',
                 #'editable',
                 'start_date',
                 'end_date',
