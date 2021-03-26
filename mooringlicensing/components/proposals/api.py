@@ -45,12 +45,14 @@ from mooringlicensing.components.proposals.models import (
     ProposalStandardRequirement,
     AmendmentRequest,
     AmendmentReason,
-    #Vessel,
+    VesselDetails,
     ChecklistQuestion,
     ProposalAssessment,
     ProposalAssessmentAnswer,
     RequirementDocument,
     WaitingListApplication,
+    AnnualAdmissionApplication,
+    VESSEL_TYPES,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -73,7 +75,11 @@ from mooringlicensing.components.proposals.serializers import (
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, ListProposalSerializer,
+    ProposalAssessmentAnswerSerializer, 
+    ListProposalSerializer,
+    VesselSerializer,
+    VesselDetailsSerializer,
+    VesselOwnershipSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -82,7 +88,14 @@ from mooringlicensing.components.approvals.serializers import ApprovalSerializer
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.compliances.serializers import ComplianceSerializer
 from ledger.payments.invoice.models import Invoice
-
+from mooringlicensing.components.main.process_document import (
+        process_generic_document, 
+        )
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from mooringlicensing.helpers import is_customer, is_internal
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -93,6 +106,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from rest_framework.filters import BaseFilterBackend
 import reversion
 from reversion.models import Version
+from copy import deepcopy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -125,7 +139,7 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        return Response(Proposal.application_type_dict(apply_page=apply_page))
+        return Response(Proposal.application_types_dict(apply_page=apply_page))
 
 
 class GetApplicationStatusesDict(views.APIView):
@@ -133,6 +147,14 @@ class GetApplicationStatusesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
+        return Response(data)
+
+
+class GetVesselTypesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
         return Response(data)
 
 
@@ -169,7 +191,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_application_type and not filter_application_type.lower() == 'all':
             q = None
             for item in Proposal.__subclasses__():
-                if item.code == filter_application_type:
+                if hasattr(item, 'code') and item.code == filter_application_type:
                     lookup = "{}__isnull".format(item._meta.model_name)
                     q = Q(**{lookup: False})
                     break
@@ -211,13 +233,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        return Proposal.objects.all()  # TODO: remove this line and return proper results
-        user = self.request.user
+        request_user = self.request.user
         if is_internal(self.request):
             return Proposal.objects.all()
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
-            qs = Proposal.objects.filter(Q(proxy_applicant=user))
+            qs = Proposal.objects.filter(Q(submitter=request_user))
             return qs
         return Proposal.objects.none()
 
@@ -237,6 +257,31 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+
+class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
+    queryset = AnnualAdmissionApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = AnnualAdmissionApplication.objects.all()
+            return qs
+        elif is_customer(self.request):
+            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return AnnualAdmissionApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        obj = AnnualAdmissionApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
 
 
 class WaitingListApplicationViewSet(viewsets.ModelViewSet):
@@ -357,6 +402,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #        approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
     #    )
     #    return Response(data)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_vessel_registration_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['GET',])
     def compare_list(self, request, *args, **kwargs):
@@ -849,9 +905,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):
         try:
-            instance = self.get_object()
-            save_proponent_data(instance,request,self)
-            return redirect(reverse('external'))
+            with transaction.atomic():
+                instance = self.get_object()
+                save_proponent_data(instance,request,self)
+                return redirect(reverse('external'))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -864,6 +921,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def fetch_vessel(self, request, *args, **kwargs):
+        try:
+            #import ipdb; ipdb.set_trace()
+            instance = self.get_object()
+            vessel_details = instance.vessel_details
+            vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+            vessel = vessel_details.vessel
+            vessel_serializer = VesselSerializer(vessel)
+            vessel_ownership = instance.vessel_ownership
+            vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
+            vessel_data = vessel_serializer.data
+            vessel_data["vessel_details"] = vessel_details_serializer.data
+            vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
+            vessel_ownership_data["registered_owner"] = "company_name" if vessel_ownership.org_name else 'current_user'
+            vessel_data["vessel_ownership"] = vessel_ownership_data
+            return Response(vessel_data)
+        except Exception as e:
+            print(traceback.print_exc())
+            if hasattr(e,'message'):
+                    raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -902,14 +981,24 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request,*args,**kwargs):
+    def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            serializer = SaveProposalSerializer(instance,{'processing_status':'discarded', 'previous_application': None},partial=True)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data,status=http_status)
+            if instance.is_submitted:
+                # This proposal has been submitted at least once.  Therefore we update its status to 'discarded' rather than deleting it.
+                serializer = SaveProposalSerializer(instance, {
+                    'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
+                    'previous_application': None
+                }, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                return Response(serializer.data, status=http_status)
+            else:
+                # This proposal has not been submitted yet, we can delete it from the database
+                # instance.delete()
+                return Response({})
+
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

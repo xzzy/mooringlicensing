@@ -51,9 +51,27 @@ from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 #from mooringlicensing.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 from rest_framework_datatables.filters import DatatablesFilterBackend
-
-
 from rest_framework import filters
+
+
+class GetApprovalTypeDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        include_codes = request.GET.get('include_codes', '')
+        include_codes = include_codes.split(',')
+        types = Approval.approval_types_dict(include_codes)
+        return Response(types)
+
+
+class GetApprovalStatusesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES]
+        return Response(data)
+
+
 class ApprovalPaymentFilterViewSet(generics.ListAPIView):
     """ https://cop-internal.dbca.wa.gov.au/api/filtered_organisations?search=Org1
     """
@@ -93,6 +111,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
+        # Filter by types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
         if filter_approval_type and not filter_approval_type.lower() == 'all':
             q = None
@@ -103,9 +122,16 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                     break
             queryset = queryset.filter(q) if q else queryset
 
+        # Show/Hide expired and/or surrendered
+        show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
+        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
+        if not show_expired_surrendered:
+            queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
+
+        # Filter by status
         filter_approval_status = request.GET.get('filter_approval_status')
         if filter_approval_status and not filter_approval_status.lower() == 'all':
-            queryset = queryset.filter(customer_status=filter_approval_status)
+            queryset = queryset.filter(status=filter_approval_status)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
@@ -139,15 +165,33 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        return Approval.objects.all()  # TODO: remove this line and return proper results
-        user = self.request.user
+        request_user = self.request.user
+
+        # Filter by Type(s) according to the tables
+        filter_approval_types = self.request.GET.get('filter_approval_types', '')
+        filter_approval_types = filter_approval_types.split(',')
+        q = Q()
+        for filter_approval_type in filter_approval_types:
+            if filter_approval_type:
+                for item in Approval.__subclasses__():
+                    if hasattr(item, 'code') and item.code == filter_approval_type:
+                        lookup = "{}__isnull".format(item._meta.model_name)
+                        q |= Q(**{lookup: False})
+        qs = Approval.objects.filter(q) if q else Approval.objects.none()
+
         if is_internal(self.request):
-            return Approval.objects.all()
+            return qs.all()
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
-            qs = Approval.objects.filter(Q(proxy_applicant=user))
+            # Filter by to_be_endorsed
+            filter_by_endorsement = self.request.GET.get('filter_by_endorsement', 'false')
+            filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
+            if filter_by_endorsement:
+                #
+                qs = qs.filter(authoriseduserpermit__endorsed_by=request_user)
+            else:
+                qs = qs.filter(Q(submitter=request_user))  # Not sure if the submitter is the licence holder
             return qs
-        return Approval.objects.none()
+        return qs
 
     @list_route(methods=['GET',])
     def list_external(self, request, *args, **kwargs):

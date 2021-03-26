@@ -132,6 +132,8 @@ export default {
         let res = null;
         if (this.selectApplication && this.selectedApplication.code === 'wla') {
             res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
+        } else if (this.selectApplication && this.selectedApplication.code === 'aaa') {
+            res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
         }
         console.log(res);
         const proposal = res.body;
