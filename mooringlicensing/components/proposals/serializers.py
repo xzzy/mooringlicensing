@@ -34,6 +34,9 @@ from mooringlicensing.components.proposals.models import (
                                     RequirementDocument,
                                     #DistrictProposal,
                                     #DistrictProposalDeclinedDetails,
+                                    VesselDetails,
+                                    VesselOwnership,
+                                    Vessel,
                                 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -710,4 +713,57 @@ class SearchReferenceSerializer(serializers.Serializer):
 #
 #    def get_descriptions(self, obj):
 #        return Proposal.application_type_descriptions
+
+
+class VesselSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Vessel
+        fields = '__all__'
+
+
+class VesselDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselDetails
+        fields = '__all__'
+
+
+class SaveVesselDetailsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselDetails
+        fields = (
+                'vessel_type',
+                'vessel', # link to rego number
+                'vessel_name', 
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_weight',
+                #status
+                #exported
+                )
+
+
+class VesselOwnershipSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselOwnership
+        fields = '__all__'
+
+
+class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'owner',
+                'vessel',
+                'berth_mooring',
+                'percentage',
+                #'editable',
+                'start_date',
+                'end_date',
+                )
 
