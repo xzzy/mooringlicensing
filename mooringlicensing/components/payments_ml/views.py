@@ -4,7 +4,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 from django.views.generic import TemplateView
 
-from mooringlicensing.components.payments.utils import checkout, create_fee_lines
+from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines
 from mooringlicensing.components.proposals.models import Proposal
 
 

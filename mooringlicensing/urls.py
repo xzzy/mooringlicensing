@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from mooringlicensing import views
 from mooringlicensing.admin import mooringlicensing_admin_site
-from mooringlicensing.components.payments.views import ApplicationFeeView, ApplicationFeeSuccessView
+from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 #from mooringlicensing.components.bookings import views as booking_views
