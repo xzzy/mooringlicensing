@@ -50,6 +50,7 @@ INSTALLED_APPS += [
     'mooringlicensing.components.proposals',
     'mooringlicensing.components.approvals',
     'mooringlicensing.components.compliances',
+    'mooringlicensing.components.payments_ml',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
