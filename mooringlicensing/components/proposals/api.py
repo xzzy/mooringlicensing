@@ -51,6 +51,8 @@ from mooringlicensing.components.proposals.models import (
     ProposalAssessmentAnswer,
     RequirementDocument,
     WaitingListApplication,
+    AnnualAdmissionApplication,
+    VESSEL_TYPES,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -152,7 +154,7 @@ class GetVesselTypesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in VesselDetails.VESSEL_TYPES]
+        data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
         return Response(data)
 
 
@@ -255,6 +257,31 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+
+class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
+    queryset = AnnualAdmissionApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = AnnualAdmissionApplication.objects.all()
+            return qs
+        elif is_customer(self.request):
+            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return AnnualAdmissionApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        obj = AnnualAdmissionApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
 
 
 class WaitingListApplicationViewSet(viewsets.ModelViewSet):
@@ -900,16 +927,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             #import ipdb; ipdb.set_trace()
             instance = self.get_object()
-            vessel_details = instance.vessel_details.first() # ??????
+            vessel_details = instance.vessel_details
             vessel_details_serializer = VesselDetailsSerializer(vessel_details)
             vessel = vessel_details.vessel
             vessel_serializer = VesselSerializer(vessel)
-            vessel_ownership = vessel.vesselownership_set.filter(vessel=vessel)[0] # ????????
+            vessel_ownership = instance.vessel_ownership
             vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
             vessel_data = vessel_serializer.data
             vessel_data["vessel_details"] = vessel_details_serializer.data
             vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-            vessel_ownership_data["registered_owner"] = "company_name" if vessel_ownership.owner.org_name else 'current_user'
+            vessel_ownership_data["registered_owner"] = "company_name" if vessel_ownership.org_name else 'current_user'
             vessel_data["vessel_ownership"] = vessel_ownership_data
             return Response(vessel_data)
         except Exception as e:
