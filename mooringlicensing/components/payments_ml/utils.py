@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from django.http import HttpResponseRedirect
@@ -5,6 +6,10 @@ from django.urls import reverse
 from ledger.checkout.utils import create_basket_session, create_checkout_session
 
 from mooringlicensing import settings
+from mooringlicensing.components.payments_ml.models import ApplicationFee
+
+
+logger = logging.getLogger('payment_checkout')
 
 
 def checkout(request, proposal, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
@@ -100,7 +105,41 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
         },
     ]
 
-    # logger.info('{}'.format(line_items))
+    logger.info('{}'.format(line_items))
 
-    # return line_items, db_processes_after_success
-    return line_items
+    return line_items, db_processes_after_success
+
+
+NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
+
+
+def set_session_application_invoice(session, application_fee):
+    print('in set_session_application_invoice')
+
+    """ Application Fee session ID """
+    session[NAME_SESSION_APPLICATION_INVOICE] = application_fee.id
+    session.modified = True
+
+
+def get_session_application_invoice(session):
+    print('in get_session_application_invoice')
+
+    """ Application Fee session ID """
+    if NAME_SESSION_APPLICATION_INVOICE in session:
+        application_fee_id = session[NAME_SESSION_APPLICATION_INVOICE]
+    else:
+        raise Exception('Application not in Session')
+
+    try:
+        return ApplicationFee.objects.get(id=application_fee_id)
+    except ApplicationFee.DoesNotExist:
+        raise Exception('Application not found for application {}'.format(application_fee_id))
+
+
+def delete_session_application_invoice(session):
+    print('in delete_session_application_invoice')
+
+    """ Application Fee session ID """
+    if NAME_SESSION_APPLICATION_INVOICE in session:
+        del session[NAME_SESSION_APPLICATION_INVOICE]
+        session.modified = True

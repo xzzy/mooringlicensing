@@ -100,9 +100,10 @@ class ApplicationFee(Payment):
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     def __str__(self):
-        return 'Application {} : Invoice {}'.format(self.proposal, self.application_fee_invoices.last())
+        return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
 
     class Meta:
         app_label = 'mooringlicensing'
