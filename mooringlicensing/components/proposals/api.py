@@ -903,24 +903,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def draft(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                save_proponent_data(instance,request,self)
-                return redirect(reverse('external'))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-        raise serializers.ValidationError(str(e))
+        with transaction.atomic():
+            instance = self.get_object()
+            save_proponent_data(instance,request,self)
+            return redirect(reverse('external'))
 
     @detail_route(methods=['GET',])
     def fetch_vessel(self, request, *args, **kwargs):
