@@ -482,13 +482,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #        self.lodgement_number = new_lodgment_id
     #        self.save(version_comment='processing_status: {}'.format(self.processing_status))
 
-    @property
-    def invoice(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
+    # @property
+    # def invoice(self):
+    #     return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
 
     @property
     def fee_paid(self):
-        if (self.invoice and self.invoice.payment_status in ['paid','over_paid']) or self.proposal_type=='amendment':
+        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type=='amendment':
             return True
         return False
 
