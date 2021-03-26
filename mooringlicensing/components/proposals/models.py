@@ -1791,12 +1791,12 @@ class VesselOwnership(models.Model):
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
-        unique_together = ['owner', 'vessel']
+        unique_together = ['owner', 'vessel', 'org_name']
 
 
 # Non proposal specific
 class Owner(models.Model):
-    emailuser = models.ForeignKey(EmailUser)
+    emailuser = models.OneToOneField(EmailUser)
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
@@ -1807,12 +1807,12 @@ class Owner(models.Model):
     def __str__(self):
         return self.emailuser.get_full_name()
 
-    @property
-    def owner_name(self):
-        if self.org_name:
-            return self.org_contact
-        else:
-            self.emailuser.get_full_name()
+    #@property
+    #def owner_name(self):
+    #    if self.org_name:
+    #        return self.org_contact
+    #    else:
+    #        self.emailuser.get_full_name()
 
 
 class VesselRegistrationDocument(Document):
