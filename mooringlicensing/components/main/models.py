@@ -97,6 +97,18 @@ class Document(models.Model):
         return self.name or self.filename
 
 
+class ApplicationType(models.Model):
+    code = models.CharField(max_length=30, blank=True, null=True)
+    description = models.CharField(max_length=200, blank=True, null=True)
+
+    def __str__(self):
+        return 'id: {} code: {}'.format(self.id, self.code)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+
 #@python_2_unicode_compatible
 #class ApplicationType(models.Model):
 #    WL = 'Waiting List Application'
