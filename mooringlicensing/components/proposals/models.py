@@ -323,7 +323,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
-    CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
+    # CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DECLINED = 'declined'
     CUSTOMER_STATUS_DISCARDED = 'discarded'
@@ -334,7 +334,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # (CUSTOMER_STATUS_TEMP, 'Temporary'),
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
         (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
-        (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
+        # (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
         (CUSTOMER_STATUS_APPROVED, 'Approved'),
         (CUSTOMER_STATUS_DECLINED, 'Declined'),
         (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
@@ -347,7 +347,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_EDITABLE_STATE = [
         #'temp',
         CUSTOMER_STATUS_DRAFT,
-        CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+        # CUSTOMER_STATUS_AMENDMENT_REQUIRED,
     ]
 
     # List of statuses from above that allow a customer to view an application (read-only)

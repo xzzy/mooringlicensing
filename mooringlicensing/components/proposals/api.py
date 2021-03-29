@@ -984,7 +984,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=http_status)
             else:
                 # This proposal has not been submitted yet, we can delete it from the database
-                # instance.delete()
+                instance.delete()
                 return Response({})
 
         except Exception as e:
