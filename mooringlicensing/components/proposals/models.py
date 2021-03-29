@@ -314,6 +314,14 @@ VESSEL_TYPES = (
         )
 
 
+class ProposalType(models.Model):
+    code = models.CharField(max_length=5, blank=True, null=True)
+    name = models.CharField(max_length=200, blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
 #class Proposal(DirtyFieldsMixin, models.Model):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
@@ -409,18 +417,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
                                 )
 
+    # PROPOSAL_TYPE_CHOICES = (
+    #     ('new_proposal', 'New Application'),
+    #     ('amendment', 'Amendment'),
+    #     ('renewal', 'Renewal'),
+    #     ('external', 'External'),
+    # )
 
-    PROPOSAL_TYPE_CHOICES = (
-        ('new_proposal', 'New Application'),
-        ('amendment', 'Amendment'),
-        ('renewal', 'Renewal'),
-        ('external', 'External'),
-    )
+    # proposal_type = models.CharField('Proposal Status Type', max_length=40, choices=PROPOSAL_TYPE_CHOICES,
+    #                                     default=PROPOSAL_TYPE_CHOICES[0][0])
+    proposal_type = models.ForeignKey(ProposalType, blank=True, null=True)
 
-    proposal_type = models.CharField('Proposal Status Type', max_length=40, choices=PROPOSAL_TYPE_CHOICES,
-                                        default=PROPOSAL_TYPE_CHOICES[0][0])
-
-    #data = JSONField(blank=True, null=True)
+#data = JSONField(blank=True, null=True)
     assessor_data = JSONField(blank=True, null=True)
     comment_data = JSONField(blank=True, null=True)
     #schema = JSONField(blank=False, null=False)
