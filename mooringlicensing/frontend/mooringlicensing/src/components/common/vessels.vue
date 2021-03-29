@@ -6,8 +6,8 @@
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-4">
                     <select ref="vessel_rego_nos" class="form-control col-sm-9" v-model="vessel.rego_no">
-                        <option value="null"></option>
-                        <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option>
+                        <!--option value="null"></option>
+                        <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
                 </div>
             </div>
@@ -186,10 +186,15 @@ from '@/utils/hooks'
                 let vm = this;
                 //if (!vm.initialisedSelects){
                 $(vm.$refs.vessel_rego_nos).select2({
+                    minimumInputLength: 2,
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Vessel Registration",
                     tags: true,
+                    ajax: {
+                        url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                    }
                 }).
                 on("select2:select",function (e) {
                     console.log(e)
@@ -199,6 +204,7 @@ from '@/utils/hooks'
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
+                    vm.vessel.rego_no = '';
                     //vm.selectedRego = ''
                 });
                 console.log($(vm.$refs.vessel_rego_nos))
@@ -208,17 +214,14 @@ from '@/utils/hooks'
                 }
                     */
             },
-
+            /*
             fetchVesselRegoNos: async function() {
-                //this.loading.push('Loading Apiary Referral Groups');
                 const response = await this.$http.get(api_endpoints.vessel_rego_nos);
-
                 for (let rego of response.body) {
                     this.vesselRegoNos.push(rego)
                 }
-                //this.loading.splice('Loading Apiary Referral Groups',1);
             },
-
+            */
             fetchVesselTypes: function(){
                 this.$http.get(api_endpoints.vessel_types_dict).then((response) => {
                     for (let vessel_type of response.body) {
@@ -250,7 +253,7 @@ from '@/utils/hooks'
         mounted:function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
-                await this.fetchVesselRegoNos();
+                //await this.fetchVesselRegoNos();
                 await this.fetchVessel();
                 this.initialiseSelects();
             });

@@ -129,8 +129,13 @@ class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = Vessel.objects.values_list('rego_no', flat=True)
-        return Response(data)
+        search_term = request.GET.get('term', '')
+        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        if search_term:
+            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+            return Response({"results": data_transform})
+        return Response()
 
 
 class GetApplicationTypeDescriptions(views.APIView):
