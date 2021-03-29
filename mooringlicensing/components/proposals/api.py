@@ -80,6 +80,7 @@ from mooringlicensing.components.proposals.serializers import (
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
+    Vessel,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -122,6 +123,14 @@ logger = logging.getLogger(__name__)
 #            return Response(serializer.data)
 #        else:
 #            return Response({'error': 'There is currently no application type.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetVesselRegoNos(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = Vessel.objects.values_list('rego_no', flat=True)
+        return Response(data)
 
 
 class GetApplicationTypeDescriptions(views.APIView):

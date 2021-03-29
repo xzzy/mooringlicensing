@@ -36,15 +36,15 @@
                 <a class="nav-link" id="pills-online-training-tab" data-toggle="pill" href="#pills-online-training" role="tab" aria-controls="pills-online-training" aria-selected="false">
                   5. Questionnaire
                 </a>
-              </li>
+              </li-->
               <li v-if="is_external" class="nav-item" id="li-payment">
                 <a class="nav-link disabled" id="pills-payment-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-payment" aria-selected="false">
-                  6. Payment
+                  4. Payment
                 </a>
-              </li-->
+              </li>
               <li v-if="is_external" class="nav-item" id="li-confirm">
                 <a class="nav-link disabled" id="pills-confirm-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-confirm" aria-selected="false">
-                    7. Confirmation
+                    5. Confirmation
                     <!--
                     <span v-if="proposal.is_amendment_proposal">
                         5. Confirmation
@@ -64,6 +64,7 @@
                     v-if="applicantType == 'SUB'" 
                     ref="profile"
                     @profile-fetched="populateProfile"
+                    :showElectoralRoll="showElectoralRoll"
                     />
                   </div>
                   <div v-else>
@@ -157,6 +158,10 @@
                 type:Object,
                 default:null
             },
+            showElectoralRoll:{
+                type:Boolean,
+                default: false
+            },
         },
         data:function () {
             return{
@@ -181,9 +186,18 @@
             */
         },
         computed:{
-          applicantType: function(){
-            return this.proposal.applicant_type;
-        },
+            applicantType: function(){
+                return this.proposal.applicant_type;
+            },
+            /*
+            showElectoralRoll: function() {
+                let show = false;
+                if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+                    show = true;
+                }
+                return show;
+            },
+            */
         },
         methods:{
             populateProfile: function(profile) {

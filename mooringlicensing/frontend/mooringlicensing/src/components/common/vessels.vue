@@ -4,10 +4,19 @@
         <FormSection label="Registration Details">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
+                <div class="col-sm-4">
+                    <select ref="vessel_rego_nos" class="form-control col-sm-9" v-model="vessel.rego_no">
+                        <option value="null"></option>
+                        <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option>
+                    </select>
+                </div>
+            </div>
+            <!--div class="row form-group">
+                <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
                     <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_registration_number" placeholder="" v-model="vessel.rego_no" required=""/>
                 </div>
-            </div>
+            </div-->
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
@@ -108,6 +117,9 @@
 import Vue from 'vue'
 import FormSection from '@/components/forms/section_toggle.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import {
   api_endpoints,
   helpers
@@ -125,6 +137,8 @@ from '@/utils/hooks'
                     }
                 },
                 vesselTypes: [],
+                vesselRegoNos: [],
+                selectedRego: null,
             }
         },
         components:{
@@ -168,6 +182,43 @@ from '@/utils/hooks'
 
         },
         methods:{
+            initialiseSelects: function(){
+                let vm = this;
+                //if (!vm.initialisedSelects){
+                $(vm.$refs.vessel_rego_nos).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Vessel Registration",
+                    tags: true,
+                }).
+                on("select2:select",function (e) {
+                    console.log(e)
+                    var selected = $(e.currentTarget);
+                    //vm.selectedRego = selected.val();
+                    vm.vessel.rego_no = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    //vm.selectedRego = ''
+                });
+                console.log($(vm.$refs.vessel_rego_nos))
+                    /*
+                    vm.initialiseAssignedOfficerSelect();
+                    vm.initialisedSelects = true;
+                }
+                    */
+            },
+
+            fetchVesselRegoNos: async function() {
+                //this.loading.push('Loading Apiary Referral Groups');
+                const response = await this.$http.get(api_endpoints.vessel_rego_nos);
+
+                for (let rego of response.body) {
+                    this.vesselRegoNos.push(rego)
+                }
+                //this.loading.splice('Loading Apiary Referral Groups',1);
+            },
+
             fetchVesselTypes: function(){
                 this.$http.get(api_endpoints.vessel_types_dict).then((response) => {
                     for (let vessel_type of response.body) {
@@ -197,9 +248,11 @@ from '@/utils/hooks'
             },
         },
         mounted:function () {
-            this.$nextTick(() => {
-                this.fetchVesselTypes();
-                this.fetchVessel();
+            this.$nextTick(async () => {
+                await this.fetchVesselTypes();
+                await this.fetchVesselRegoNos();
+                await this.fetchVessel();
+                this.initialiseSelects();
             });
         },
         created: function() {
