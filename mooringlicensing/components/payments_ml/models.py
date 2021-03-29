@@ -4,6 +4,7 @@ from django.db import models
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 
+from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.proposals.models import Proposal
 
 
@@ -129,6 +130,17 @@ class FeePeriod(RevisionedMixin):
 
     def __str__(self):
         return 'Season: {}, Name: {}, Start Date: {}'.format(self.fee_season.name, self.name, self.start_date)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class FeeSeasonApplicationType(RevisionedMixin):
+    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
+    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
+
+    def __str__(self):
+        return 'ApplicationType: {}, Season: {}'.format(self.application_type.description, self.fee_season)
 
     class Meta:
         app_label = 'mooringlicensing'
