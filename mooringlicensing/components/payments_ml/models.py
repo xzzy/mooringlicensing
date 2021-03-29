@@ -107,3 +107,28 @@ class ApplicationFee(Payment):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+class FeeSeason(RevisionedMixin):
+    name = models.CharField(max_length=50, null=True, blank=True, default='')
+    start_date = models.DateField(null=True, blank=True)
+    # end_date = start_date + 1year
+
+    def __str__(self):
+        return 'Name {}, Start Date {}'.format(self.name, self.start_date)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class FeePeriod(RevisionedMixin):
+    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
+    name = models.CharField(max_length=50, null=True, blank=True, default='')
+    start_date = models.DateField(null=True, blank=True)
+    # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
+
+    def __str__(self):
+        return 'Season: {}, Name: {}, Start Date: {}'.format(self.fee_season.name, self.name, self.start_date)
+
+    class Meta:
+        app_label = 'mooringlicensing'
