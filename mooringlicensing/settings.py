@@ -153,3 +153,12 @@ if env('CONSOLE_EMAIL_BACKEND', False):
    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
+
+PROPOSAL_TYPE_NEW = 'new'
+PROPOSAL_TYPE_RENEWAL = 'renewal'
+PROPOSAL_TYPE_AMENDMENT = 'amendment'
+PROPOSAL_TYPES = [
+    (PROPOSAL_TYPE_NEW, 'New Application'),
+    (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
+    (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
+]
