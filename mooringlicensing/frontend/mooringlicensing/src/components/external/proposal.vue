@@ -255,6 +255,13 @@ export default {
             );
             vm.savingProposal=false;
         },err=>{
+            console.log(err)
+            swal({
+                title: "Please fix following errors before saving",
+                text: err.bodyText,
+                type:'error'
+            });
+
             vm.savingProposal=false;
         });
     },
