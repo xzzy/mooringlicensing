@@ -144,6 +144,8 @@ export default {
     },
     proposal_form_url: function() {
       return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
+        // revert to above
+      //return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
     },
     application_fee_url: function() {
       return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
