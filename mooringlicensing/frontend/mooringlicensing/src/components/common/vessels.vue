@@ -5,7 +5,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-4">
-                    <select ref="vessel_rego_nos" class="form-control col-sm-9" v-model="vessel.rego_no">
+                    <select id="vessel_search"  ref="vessel_rego_nos" class="form-control col-sm-9" v-model="vessel.rego_no">
                         <!--option value="null"></option>
                         <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
@@ -184,7 +184,6 @@ from '@/utils/hooks'
         methods:{
             initialiseSelects: function(){
                 let vm = this;
-                //if (!vm.initialisedSelects){
                 $(vm.$refs.vessel_rego_nos).select2({
                     minimumInputLength: 2,
                     "theme": "bootstrap",
@@ -206,13 +205,12 @@ from '@/utils/hooks'
                     var selected = $(e.currentTarget);
                     vm.vessel.rego_no = '';
                     //vm.selectedRego = ''
+                }).
+                on("select2:open",function (e) {
+                    //document.getElementsByClassName("select2-search__field")[0].focus();
+                    console.log($(".select2-search__field"));
+                    $(".select2-search__field")[0].focus();
                 });
-                console.log($(vm.$refs.vessel_rego_nos))
-                    /*
-                    vm.initialiseAssignedOfficerSelect();
-                    vm.initialisedSelects = true;
-                }
-                    */
             },
             /*
             fetchVesselRegoNos: async function() {
