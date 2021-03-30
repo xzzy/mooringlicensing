@@ -231,6 +231,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'fee_invoice_url',
                 'fee_paid',
                 ## vessel fields
+                'rego_no',
+                'vessel_id',
                 'vessel_details_id', 
                 'vessel_ownership_id', 
                 'vessel_type',
@@ -244,17 +246,12 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'org_name',
                 'percentage',
                 'editable_vessel',
+                'individual_owner',
                 )
         read_only_fields=('documents',)
 
     def get_editable_vessel(self, obj):
-        editable = True
-        if obj.vessel_details:
-            if obj.vessel_details.status == 'draft' and (
-                    obj.vessel_details.blocking_proposal != obj or 
-                    not obj.vessel_details.blocking_proposal):
-                editable = False
-        return editable
+        return obj.editable_vessel
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
@@ -400,6 +397,7 @@ class ProposalSerializer(BaseProposalSerializer):
     def get_readonly(self,obj):
         return obj.can_user_view
 
+
 class SaveProposalSerializer(BaseProposalSerializer):
     assessor_data = serializers.JSONField(required=False)
 
@@ -438,6 +436,29 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'applicant_details',
                 )
         read_only_fields=('documents','requirements',)
+
+
+class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'rego_no',
+                'vessel_id',
+                #'vessel_details_id', 
+                #'vessel_ownership_id', 
+                'vessel_type',
+                'vessel_name',
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_beam',
+                'vessel_weight',
+                'berth_mooring',
+                'org_name',
+                'percentage',
+                'individual_owner',
+                )
 
 
 ## TODO: rename to Org applicant?

@@ -129,6 +129,7 @@ class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
@@ -919,6 +920,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def draft(self, request, *args, **kwargs):
+        with transaction.atomic():
+            instance = self.get_object()
+            save_proponent_data(instance,request,self)
+            return redirect(reverse('external'))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def submit(self, request, *args, **kwargs):
         with transaction.atomic():
             instance = self.get_object()
             save_proponent_data(instance,request,self)
