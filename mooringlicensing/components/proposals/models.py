@@ -1,31 +1,19 @@
 from __future__ import unicode_literals
 
 import json
-import os
 import datetime
-import string
-from dateutil.relativedelta import relativedelta
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError, MultipleObjectsReturned, ObjectDoesNotExist
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
 from django.conf import settings
-from taggit.managers import TaggableManager
-from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
-from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.payments.models import Invoice
 #from ledger.accounts.models import EmailUser
-from ledger.licence.models import  Licence
-from ledger.address.models import Country
 from mooringlicensing import exceptions
-from mooringlicensing.components.organisations.models import Organisation, OrganisationContact, UserDelegation
+from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
         CommunicationsLogEntry, 
         UserAction, 
@@ -34,7 +22,6 @@ from mooringlicensing.components.main.models import (
         #ApplicationType, 
         #Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
         )
-from mooringlicensing.components.main.utils import get_department_user
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
@@ -52,12 +39,6 @@ import subprocess
 from django.db.models import Q
 from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
-from decimal import Decimal as D
-import csv
-import time
-from multiselectfield import MultiSelectField
-
-
 
 import logging
 logger = logging.getLogger(__name__)
@@ -1711,29 +1692,6 @@ class ProposalLogEntry(CommunicationsLogEntry):
         if not self.reference:
             self.reference = self.proposal.reference
         super(ProposalLogEntry, self).save(**kwargs)
-
-
-class VesselSizeCategory(models.Model):
-
-    STATUS = (
-        (0, 'Inactive'),
-        (1, 'Active'),
-    )
-
-    name = models.CharField(max_length=100)
-    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') 
-    end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    status = models.SmallIntegerField(choices=STATUS, default=1)
-    #mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Vessel Size Categories"
-        app_label = 'mooringlicensing'
 
 
 class Vessel(models.Model):
