@@ -112,18 +112,26 @@ class ApplicationFee(Payment):
 
 class FeeSeason(RevisionedMixin):
     name = models.CharField(max_length=50, null=True, blank=True, default='')
-    start_date = models.DateField(null=True, blank=True)
+    # start_date = models.DateField(null=True, blank=True)
     # end_date = start_date + 1year
 
     def __str__(self):
         return 'Name {}, Start Date {}'.format(self.name, self.start_date)
+
+    @property
+    def start_date(self):
+        raise NotImplementedError('Implement start_date')
+
+    @property
+    def end_date(self):
+        raise NotImplementedError('Implement start_date')
 
     class Meta:
         app_label = 'mooringlicensing'
 
 
 class FeePeriod(RevisionedMixin):
-    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
+    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True, related_name='fee_seasons')
     name = models.CharField(max_length=50, null=True, blank=True, default='')
     start_date = models.DateField(null=True, blank=True)
     # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
