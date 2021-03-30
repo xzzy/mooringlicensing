@@ -274,9 +274,49 @@ class ElectoralRollDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Electoral Roll Document"
 
+
+class VesselSizeCategory(models.Model):
+
+    # STATUS = (
+    #     (0, 'Inactive'),
+    #     (1, 'Active'),
+    # )
+
+    name = models.CharField(max_length=100)
+    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    include_start_size = models.BooleanField(default=True)  # When true, 'start_size' is included.
+    # end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    # status = models.SmallIntegerField(choices=STATUS, default=1)
+    #mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Vessel Size Categories"
+        app_label = 'mooringlicensing'
+
+
+class VesselSizeCategoryGroup(models.Model):
+    name = models.CharField(max_length=100, blank=True, default='')
+    vessel_size_category = models.ForeignKey(VesselSizeCategory, blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Vessel Size Category Group"
+        app_label = 'mooringlicensing'
+
+
 #import reversion
 #reversion.register(UserAction)
 #reversion.register(CommunicationsLogEntry)
 #reversion.register(Document)
 #reversion.register(SystemMaintenance)
+
 

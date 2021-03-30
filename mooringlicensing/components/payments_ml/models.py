@@ -4,8 +4,8 @@ from django.db import models
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 
-from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
+from mooringlicensing.components.proposals.models import Proposal, ProposalType
 
 
 class Payment(RevisionedMixin):
@@ -135,12 +135,28 @@ class FeePeriod(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
-class FeeSeasonApplicationType(RevisionedMixin):
-    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
+class FeeConstructor(RevisionedMixin):
     application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
+    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True)
 
     def __str__(self):
-        return 'ApplicationType: {}, Season: {}'.format(self.application_type.description, self.fee_season)
+        return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        unique_together = ('application_type', 'fee_season',)
+
+
+class Fee(RevisionedMixin):
+    fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True)
+    fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
+    vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
+    proposal_type = models.ForeignKey(ProposalType, null=True, blank=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+
+    def __str__(self):
+        return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_period, self.fee_constructor.application_type, self.vessel_size_category)
 
     class Meta:
         app_label = 'mooringlicensing'
