@@ -1,7 +1,7 @@
 <template lang="html">
 
     <div id="vessels">
-        <FormSection label="Registration Details">
+        <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-4">
@@ -74,7 +74,7 @@
             <!--/div-->
             </div>
         </FormSection>
-        <FormSection label="Vessel Details">
+        <FormSection label="Vessel Details" Index="vessel_details">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel length</label>
                 <div class="col-sm-2">
