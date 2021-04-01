@@ -17,12 +17,12 @@
                   2. Vessel
                 </a>
               </li>
-              <!--li class="nav-item">
-                <a class="nav-link" id="pills-activities-land-tab" data-toggle="pill" href="#pills-activities-land" role="tab" aria-controls="pills-activities-land" aria-selected="false">
-                  2. Activities (land)
+              <li class="nav-item">
+                <a class="nav-link" id="pills-insurance-tab" data-toggle="pill" href="#pills-insurance" role="tab" aria-controls="pills-insurance" aria-selected="false">
+                  3. Insurance
                 </a>
               </li>
-              <li class="nav-item">
+              <!--li class="nav-item">
                 <a class="nav-link" id="pills-activities-marine-tab" data-toggle="pill" href="#pills-activities-marine" role="tab" aria-controls="pills-activities-marine" aria-selected="false">
                   3. Activities (marine)
                 </a>
@@ -82,6 +82,14 @@
                   ref="vessels"
                   />
               </div>
+              <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
+                  <Insurance
+                  :proposal="proposal" 
+                  id="insurance" 
+                  ref="insurance"
+                  />
+              </div>
+
               <!--div class="tab-pane fade" id="pills-activities-land" role="tabpanel" aria-labelledby="pills-activities-land-tab">
                 <ActivitiesLand :proposal="proposal" id="proposalStartActivitiesLand" :canEditActivities="canEditActivities" :proposal_parks="proposal_parks" ref="activities_land"></ActivitiesLand>
               </div>
@@ -111,6 +119,7 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
+    import Insurance from '@/components/common/insurance.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
     import ActivitiesLand from '@/components/common/tclass/activities_land.vue'
@@ -173,6 +182,7 @@
             Applicant,
             Confirmation,
             Vessels,
+            Insurance,
             /*
             ActivitiesLand,
             ActivitiesMarine,
