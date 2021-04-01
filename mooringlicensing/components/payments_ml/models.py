@@ -115,7 +115,7 @@ class ApplicationFee(Payment):
 
 
 class FeeSeason(RevisionedMixin):
-    name = models.CharField(max_length=50, null=True, blank=True, default='')
+    name = models.CharField(max_length=50, null=False, blank=False)
     # start_date = models.DateField(null=True, blank=True)
     # end_date = start_date + 1year
 
