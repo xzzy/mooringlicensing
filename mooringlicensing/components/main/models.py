@@ -276,7 +276,7 @@ class ElectoralRollDocument(Document):
 
 
 class VesselSizeCategoryGroup(RevisionedMixin):
-    name = models.CharField(max_length=100, blank=True, default='')
+    name = models.CharField(max_length=100, null=False, blank=False)
     # created = models.DateTimeField(auto_now_add=True)
     # updated = models.DateTimeField(auto_now=True)
 
