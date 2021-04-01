@@ -225,14 +225,11 @@ from '@/utils/hooks'
                 }
             },
             */
-            fetchVesselTypes: function(){
-                this.$http.get(api_endpoints.vessel_types_dict).then((response) => {
-                    for (let vessel_type of response.body) {
-                        this.vesselTypes.push(vessel_type)
-                    }
-                },(error) => {
-                    console.log(error);
-                })
+            fetchVesselTypes: async function(){
+                const response = await this.$http.get(api_endpoints.vessel_types_dict);
+                for (let vessel_type of response.body) {
+                    this.vesselTypes.push(vessel_type)
+                }
             },
             // modify this
             fetchVessel: async function() {
