@@ -156,7 +156,7 @@ class FeeConstructor(RevisionedMixin):
         unique_together = ('application_type', 'fee_season',)
 
 
-class Fee(RevisionedMixin):
+class FeeItem(RevisionedMixin):
     fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True)
     fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
     vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
