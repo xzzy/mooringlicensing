@@ -454,6 +454,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
     vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
     # draft proposal status VesselDetails records - goes to VesselDetails master record after submit
+    rego_no = models.CharField(max_length=200, blank=True, null=True)
+    vessel_id = models.IntegerField(null=True,blank=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
@@ -465,6 +467,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # draft proposal status VesselOwnership records - goes to VesselOwnership master record after approval
     org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    # derive this after submit, rather than store
+    individual_owner = models.NullBooleanField()
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -480,6 +484,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # @property
     # def invoice(self):
     #     return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
+
+    @property
+    def editable_vessel(self):
+        editable = True
+        if self.vessel_details:
+            if self.vessel_details.status == 'draft' and (
+                    self.vessel_details.blocking_proposal != self or 
+                    not self.vessel_details.blocking_proposal):
+                editable = False
+        return editable
 
     @property
     def fee_paid(self):
@@ -1704,6 +1718,14 @@ class Vessel(models.Model):
     def __str__(self):
         return self.rego_no
 
+    @property
+    def latest_vessel_details(self):
+        latest = None
+        latest = self.vesseldetails_set.get(status="draft")
+        if not latest:
+            latest = self.vesseldetails_set.get(status="approved")
+        return latest
+
 
 class VesselDetails(models.Model): # ManyToManyField link in Proposal
     STATUS_TYPES = (
@@ -1740,7 +1762,16 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     def vessel_applicable_length(self):
         return self.vessel_overall_length
 
-    #def save() - do not allow multiple draft or approved status per vessel_id
+    def save(self, *args, **kwargs):
+        ## do not allow multiple draft or approved status per vessel_id
+        # restrict multiple draft records
+        if not self.pk:
+            vessel_details_set = VesselDetails.objects.filter(vessel=self.vessel)
+            for vd in vessel_details_set:
+                if vd.status == "draft":
+                    raise ValueError("Multiple draft records for the same vessel are not allowed")
+        super(VesselDetails, self).save(*args,**kwargs)
+
 
 
 class VesselOwnership(models.Model):

@@ -162,7 +162,7 @@
                 </div>
             </div>
         </div>
-        <FormSection label="WA State Electoral Roll">
+        <FormSection v-if="showElectoralRoll" label="WA State Electoral Roll">
             <div class="form-group">
                 <div class="col-sm-8">
                     <label for="electoral_roll" class="control-label">
@@ -206,10 +206,15 @@ import FileField from '@/components/forms/filefield_immediate.vue'
 export default {
     name: 'Profile',
     props:{
-      isApplication:{
+        isApplication:{
                 type: Boolean,
                 default: false
             },
+        showElectoralRoll:{
+                type: Boolean,
+                default: false
+            },
+
     },
     data () {
         let vm = this;

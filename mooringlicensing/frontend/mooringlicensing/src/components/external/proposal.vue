@@ -40,6 +40,7 @@
             :proposal="proposal" 
             :is_external="true" 
             ref="waiting_list_application"
+            :showElectoralRoll="showElectoralRoll"
             />
 
             <AnnualAdmissionApplication
@@ -47,6 +48,7 @@
             :proposal="proposal" 
             :is_external="true" 
             ref="annual_admission_application"
+            :showElectoralRoll="showElectoralRoll"
             />
             <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -70,7 +72,7 @@
                                         <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>{{ submit_text() }}&nbsp;
                                                 <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                         <!-- <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="!proposal.training_completed || saveExitProposal || savingProposal"/> -->
-                                        <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="!trainingCompleted || saveExitProposal || savingProposal"/>
+                                        <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="saveExitProposal || savingProposal"/>
                                         <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                                       </p>
                                     </div>
@@ -142,6 +144,8 @@ export default {
     },
     proposal_form_url: function() {
       return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
+        // revert to above
+      //return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
     },
     application_fee_url: function() {
       return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
@@ -171,7 +175,14 @@ export default {
           return this.proposal.applicant_training_completed;
         }
       return this.proposal.training_completed;
-    }
+    },
+    showElectoralRoll: function() {
+        let show = false;
+        if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+            show = true;
+        }
+        return show;
+    },
 
   },
   methods: {
@@ -189,18 +200,11 @@ export default {
     },
 
     submit_text: function() {
-      let vm = this;
-      //return vm.proposal.fee_paid ? 'Resubmit' : 'Pay and Submit';
-      if (vm.proposal.application_type==vm.application_type_filming) {
-          // Filming has deferred payment once assessor decides whether 'Licence' (has a fee) or 'Lawful Authority' (has no fee) is to be issued
-          return 'Submit';
-      } else if (vm.proposal.fee_paid) {
-          return 'Resubmit';
-      } else if (vm.proposal.allow_full_discount)  {
-          return 'Submit';
-      } else {
-          return 'Pay and Submit';
-      }
+        let submitText = 'Submit';
+        if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+            submitText = 'Pay and Submit';
+        }
+        return submitText;
     },
     save_applicant_data:function(){
       if(this.proposal.applicant_type == 'SUB')
@@ -757,8 +761,10 @@ export default {
   mounted: function() {
     let vm = this;
     vm.form = document.forms.new_proposal;
+      /* uncomment later - too annoying while making front end changes 
     window.addEventListener('beforeunload', vm.leaving);
     window.addEventListener('onblur', vm.leaving);
+    */
   },
   
 
