@@ -2,6 +2,7 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 from django.contrib import admin
 from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
+from mooringlicensing.components.proposals.models import ProposalType
 
 
 class FeePeriodFormSet(forms.models.BaseInlineFormSet):
@@ -59,6 +60,14 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
+    readonly_fields = ('fee_period', 'proposal_type', 'vessel_size_category')
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
+        # form = formset.form
+        # widget = form.base_fields['fee_period'].widget
+        # widget.can_change_related = False
+        return formset
 
 
 class FeeConstructorForm(forms.ModelForm):
@@ -67,10 +76,19 @@ class FeeConstructorForm(forms.ModelForm):
         fields = '__all__'
 
     def clean(self):
-        pass
+        fee_constructor = self.instance
+        proposal_types = ProposalType.objects.all()
+
+        application_type = self.cleaned_data['application_type']
+        print(application_type.description)
+        for fee_period in self.cleaned_data['fee_season'].fee_periods.all():
+            for vessel_size_category in self.cleaned_data['vessel_size_category_group'].vessel_size_categories.all():
+                for proposal_type in proposal_types:
+                    fee_item, created = FeeItem.objects.get_or_create(fee_constructor=fee_constructor, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
+                    if created:
+                        print('Created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name, proposal_type.description))
 
 
-###### Admins from here #####
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
     form = FeeSeasonForm

@@ -156,7 +156,7 @@ class FeePeriod(RevisionedMixin):
     # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
 
     def __str__(self):
-        return 'Season: {}, Name: {}, Start Date: {}'.format(self.fee_season.name, self.name, self.start_date)
+        return 'Name: {}, Start Date: {}'.format(self.name, self.start_date)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -184,7 +184,7 @@ class FeeItem(RevisionedMixin):
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
 
     def __str__(self):
-        return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_period, self.fee_constructor.application_type, self.vessel_size_category)
+        return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category)
 
     class Meta:
         app_label = 'mooringlicensing'
