@@ -1,11 +1,13 @@
 <template lang="html">
     <FormSection label="Preferred mooring area" Index="preferred_mooring_area">
         <div class="row form-group">
-            <label for="" class="col-sm-3 control-label">Select one preferred mooring area.</label>
+            <label for="" class="col-sm-9 control-label">Select one preferred mooring area. Preference cannot be changed without losing your original application date.</label>
         </div>
         <div class="row form-group">
-            <div class="col-sm-2" v-for="mooring in moorings">
-                {{ mooring }}
+            <div class="col-sm-6" v-for="mooring in moorings">
+                <input type="radio" name="mooring_name" :value="mooring" v-model="selectedMooring" required="">
+                    {{ mooring }}
+                </input>
             </div>
         </div>
     </FormSection>
@@ -26,15 +28,16 @@ import FormSection from '@/components/forms/section_toggle.vue'
         },
         data:function () {
             return {
+                selectedMooring: null,
                 moorings: [
-                    'catherine',
-                    'longreach',
-                    'narrow',
-                    'stark',
-                    'geordie',
-                    'majorie',
-                    'porpoise',
-                    'thomson'
+                    'Catherine Bay',
+                    'Longreach Bay',
+                    'Narrow Neck (Rocky Bay)',
+                    'Stark Bay',
+                    'Geordie Bay',
+                    'Majorie Bay',
+                    'Porpoise Bay',
+                    'Thomson Bay',
                 ],
             }
         },
