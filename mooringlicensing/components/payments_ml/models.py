@@ -1,8 +1,12 @@
+import datetime
 from decimal import Decimal
 
+import pytz
+from dateutil.relativedelta import relativedelta
 from django.db import models
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
+from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
@@ -116,22 +120,37 @@ class FeeSeason(RevisionedMixin):
     # end_date = start_date + 1year
 
     def __str__(self):
-        return 'Name {}, Start Date {}'.format(self.name, self.start_date)
+        if self.start_date:
+            return '{} ({} to {})'.format(self.name, self.start_date, self.end_date)
+        else:
+            return '{} (No periods found)'.format(self.name)
+
+    def get_first_period(self):
+        first_period = self.fee_periods.order_by('start_date').first()
+        return first_period
+
+    @property
+    def is_editable(self):
+        today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        return True if today_local < self.start_date else False
 
     @property
     def start_date(self):
-        raise NotImplementedError('Implement start_date')
+        first_period = self.get_first_period()
+        return first_period.start_date if first_period else None
 
     @property
     def end_date(self):
-        raise NotImplementedError('Implement start_date')
+        end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
+        return end_date
 
     class Meta:
         app_label = 'mooringlicensing'
+        verbose_name = 'season'
 
 
 class FeePeriod(RevisionedMixin):
-    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True, related_name='fee_seasons')
+    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True, related_name='fee_periods')
     name = models.CharField(max_length=50, null=True, blank=True, default='')
     start_date = models.DateField(null=True, blank=True)
     # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
@@ -141,6 +160,7 @@ class FeePeriod(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+        ordering = ['start_date']
 
 
 class FeeConstructor(RevisionedMixin):
@@ -149,7 +169,7 @@ class FeeConstructor(RevisionedMixin):
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True)
 
     def __str__(self):
-        return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
+        return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
     class Meta:
         app_label = 'mooringlicensing'
