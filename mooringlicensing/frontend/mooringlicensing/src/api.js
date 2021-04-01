@@ -4,6 +4,7 @@ module.exports = {
     application_types_dict:"/api/application_types_dict",
     application_statuses_dict:"/api/application_statuses_dict",
     vessel_types_dict:"/api/vessel_types_dict",
+    insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",
