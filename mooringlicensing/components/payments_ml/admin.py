@@ -61,6 +61,7 @@ class FeeItemInline(admin.TabularInline):
     extra = 0
     can_delete = False
     readonly_fields = ('fee_period', 'proposal_type', 'vessel_size_category')
+    max_num = 0
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
