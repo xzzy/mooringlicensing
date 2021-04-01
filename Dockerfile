@@ -14,7 +14,6 @@ RUN apt-get upgrade -y
 RUN apt-get install --no-install-recommends -y wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata cron rsyslog gunicorn libreoffice
 RUN apt-get install --no-install-recommends -y libpq-dev patch
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim ssh
-RUN apt-get install --no-install-recommends -y nodejs npm
 RUN ln -s /usr/bin/python3 /usr/bin/python && \
     ln -s /usr/bin/pip3 /usr/bin/pip
 RUN pip install --upgrade pip
@@ -46,9 +45,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
 COPY .git ./.git
 COPY mooringlicensing ./mooringlicensing
-WORKDIR /app/mooringlicensing/frontend/mooringlicensing
-RUN npm run build
-WORKDIR /app
 RUN python manage_ml.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
