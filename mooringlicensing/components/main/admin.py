@@ -10,5 +10,5 @@ class VesselSizeCategoryInline(admin.TabularInline):
 
 
 @admin.register(VesselSizeCategoryGroup)
-class FeeSeasonAdmin(admin.ModelAdmin):
+class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
     inlines = [VesselSizeCategoryInline,]
