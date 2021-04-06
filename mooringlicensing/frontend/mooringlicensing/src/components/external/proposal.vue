@@ -242,18 +242,27 @@ export default {
         //let formData = vm.set_formData()
         //vm.$http.post(vm.proposal_form_url,formData).then(res=>{
         let payload = {
-            "proposal": this.proposal
+            proposal: {},
+            vessel: {},
         }
         // WLA
-        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.vessels) {
-            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
-        }
-        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.mooring) {
-            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.mooring.selectedMooring);
+        if (this.$refs.waiting_list_application) {
+            if (this.$refs.waiting_list_application.$refs.vessels) {
+                payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+            }
+            if (this.$refs.waiting_list_application.$refs.mooring) {
+                payload.vessel.selectedMooring = this.$refs.waiting_list_application.$refs.mooring.selectedMooring;
+            }
         }
         // AAA
-        if (this.$refs.annual_admission_application && this.$refs.annual_admission_application.$refs.vessels) {
-            payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+        if (this.$refs.annual_admission_application) {
+            if (this.$refs.annual_admission_application.$refs.vessels) {
+                payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+            }
+            if (this.$refs.annual_admission_application.$refs.insurance) {
+                // modify if additional proposal attributes required
+                payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
+            }
         }
 
         vm.$http.post(vm.proposal_form_url,payload).then(res=>{
