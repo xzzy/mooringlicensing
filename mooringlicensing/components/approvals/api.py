@@ -177,7 +177,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
                     if hasattr(item, 'code') and item.code == filter_approval_type:
                         lookup = "{}__isnull".format(item._meta.model_name)
                         q |= Q(**{lookup: False})
-        qs = Approval.objects.filter(q) if q else Approval.objects.none()
+        qs = Approval.objects.filter(q).order_by('-id') if q else Approval.objects.none()
 
         if is_internal(self.request):
             return qs.all()

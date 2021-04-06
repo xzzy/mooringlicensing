@@ -177,13 +177,13 @@ class ProposalAssessmentSerializer(serializers.ModelSerializer):
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
-    proposal_type = serializers.SerializerMethodField()
+    # proposal_type = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     submitter = EmailUserSerializer()
     other_details = serializers.SerializerMethodField()
 
     get_history = serializers.ReadOnlyField()
-    fee_invoice_url = serializers.SerializerMethodField()
+    # fee_invoice_url = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
@@ -229,7 +229,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'is_amendment_proposal',
                 # tab field models
                 'applicant_details',
-                'fee_invoice_url',
+                # 'fee_invoice_url',
                 'fee_paid',
                 ## vessel fields
                 'rego_no',
@@ -283,12 +283,19 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     def get_customer_status(self,obj):
         return obj.get_customer_status_display()
 
-    def get_proposal_type(self,obj):
-        return obj.get_proposal_type_display()
+    # def get_proposal_type(self,obj):
+    #     return obj.get_proposal_type_display()
+    #     return obj.
 
-    def get_fee_invoice_url(self,obj):
-        #return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
-        return ''
+    # def get_fee_invoice_url(self,obj):
+    #     return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+
+    def get_fee_invoice_references(self, obj):
+        ret_list = []
+        if obj.application_fees.count():
+            for application_fee in obj.application_fees.all():
+                ret_list.append(application_fee.invoice_reference)
+        return ret_list
 
 
 class ListProposalSerializer(BaseProposalSerializer):
@@ -303,6 +310,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     # application_type = serializers.CharField(source='application_type.name', read_only=True)
     assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
+    fee_invoice_references = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -336,7 +344,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'allowed_assessors',
                 # 'proposal_type',
                 # 'fee_invoice_url',
-                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 # 'fee_paid',
                 # 'aho',
                 )
@@ -362,7 +370,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'assessor_process',
                 # 'allowed_assessors',
                 # 'fee_invoice_url',
-                # 'fee_invoice_reference',
+                'fee_invoice_references',
                 # 'fee_paid',
                 )
 
@@ -385,9 +393,6 @@ class ListProposalSerializer(BaseProposalSerializer):
                 return True
         return False
 
-    def get_fee_invoice_url(self,obj):
-        #return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
-        return ''
 
 class ProposalSerializer(BaseProposalSerializer):
     #submitter = serializers.CharField(source='submitter.get_full_name')
