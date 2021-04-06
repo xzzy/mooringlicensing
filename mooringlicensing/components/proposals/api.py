@@ -258,10 +258,12 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
+        all = Proposal.objects.all()
+
         if is_internal(self.request):
-            return Proposal.objects.all()
+            return all
         elif is_customer(self.request):
-            qs = Proposal.objects.filter(Q(submitter=request_user))
+            qs = all.filter(Q(submitter=request_user))
             return qs
         return Proposal.objects.none()
 
@@ -278,7 +280,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         #     qs = qs.filter(applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
-        result_page = self.paginator.paginate_queryset(qs, request)
+        result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 

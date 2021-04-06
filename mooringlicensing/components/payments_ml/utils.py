@@ -6,6 +6,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
 from ledger.settings_base import TIME_ZONE
+from rest_framework import serializers
 
 from mooringlicensing import settings
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor
@@ -97,6 +98,10 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
 
     # Retrieve FeeItem object from FeeConstructor object
     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, today)
+    if not fee_constructor:
+        # Fees have not been configured for this application type and date
+        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(proposal.application_type, today))
+
     fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_length, today)
 
     line_items = [
