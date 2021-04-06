@@ -293,6 +293,11 @@ VESSEL_TYPES = (
         ('tender', 'Tender'),
         ('other', 'Other'),
         )
+INSURANCE_CHOICES = (
+    ("five_million", "$5 million Third Party Liability insurance cover - required for vessels of length less than 6.4 metres"),
+    ("ten_million", "$10 million Third Party Liability insurance cover - required for vessels of length 6.4 metres or greater"),
+    ("over_ten", "over $10 million"),
+)
 
 
 class ProposalType(models.Model):
@@ -469,6 +474,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
     # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
+    insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1721,9 +1727,10 @@ class Vessel(models.Model):
     @property
     def latest_vessel_details(self):
         latest = None
-        latest = self.vesseldetails_set.get(status="draft")
-        if not latest:
-            latest = self.vesseldetails_set.get(status="approved")
+        if self.vesseldetails_set.filter(status="draft"):
+            latest = self.vesseldetails_set.filter(status="draft")[0]
+        elif self.vesseldetails_set.filter(status="approved"):
+            latest = self.vesseldetails_set.filter(status="approved")[0]
         return latest
 
 
