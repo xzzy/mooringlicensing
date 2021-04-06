@@ -319,28 +319,17 @@ class SpecialFieldsSearch(object):
 
 def save_proponent_data(instance, request, viewset):
     if type(instance.child_obj) == WaitingListApplication:
-        save_proponent_data_wla(instance, request, viewset)
+        save_proponent_data_common(instance, request, viewset)
     elif type(instance.child_obj) == AnnualAdmissionApplication:
-        save_proponent_data_aaa(instance, request, viewset)
+        save_proponent_data_common(instance, request, viewset)
     elif type(instance.child_obj) == AuthorisedUserApplication:
         save_proponent_data_aua(instance, request, viewset)
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
-def save_proponent_data_wla(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
-    print("save wla")
-    print(request.data)
-    #save_proposal_data(instance, request)
-    if instance.editable_vessel:
-        if viewset.action == 'draft':
-            save_vessel_data(instance, request)
-        elif viewset.action == 'submit':
-            submit_vessel_data(instance, request)
 
-def save_proponent_data_aaa(instance, request, viewset):
+def save_proponent_data_common(instance, request, viewset):
     #import ipdb; ipdb.set_trace()
-    print("save aaa")
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal')
