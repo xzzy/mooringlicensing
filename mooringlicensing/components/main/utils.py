@@ -49,6 +49,7 @@ def retrieve_mooring_areas():
     return data
 
 def retrieve_marine_parks():
+    #import ipdb; ipdb.set_trace()
     # CRON (every night?)  Plus management button for manual control.
     url = settings.MOORING_BOOKINGS_API_URL + "marine-parks/" + settings.MOORING_BOOKINGS_API_KEY
     res = requests.get(url)
@@ -57,10 +58,21 @@ def retrieve_marine_parks():
     # update MooringBay records
     with transaction.atomic():
         for bay in data:
-            if not MooringBay.objects.filter(name=bay.get("name")):
-                mooring_bay = MooringBay.objects.create(mooring_bay_id=bay.get("id"), name=bay.get("name"))
-                print(mooring_bay)
-    #return data
+            mooring_bay_qs = MooringBay.objects.filter(mooring_bookings_id=bay.get("id"))
+            if mooring_bay_qs.count() > 0:
+                mb = mooring_bay_qs[0]
+                if mb.name != bay.get("name"):
+                    mb.name=bay.get("name")
+                    mb.save()
+                else:
+                    mooring_bay = MooringBay.objects.create(mooring_bookings_id=bay.get("id"), name=bay.get("name"))
+                    print(mooring_bay)
+
+        # update active status of any MooringBay records not found in api data
+        for mooring_bay in MooringBay.objects.all():
+            if mooring_bay not in [x.get("id") for x in data]:
+                mooring_bay.active = False
+                mooring_bay.save()
 
 
 #def add_business_days(from_date, number_of_days):
