@@ -114,7 +114,8 @@ class Approval(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
-        unique_together= ('lodgement_number', 'issue_date')
+        unique_together = ('lodgement_number', 'issue_date')
+        ordering = ['-id',]
 
     @property
     def bpay_allowed(self):
