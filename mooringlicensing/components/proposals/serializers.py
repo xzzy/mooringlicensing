@@ -37,6 +37,7 @@ from mooringlicensing.components.proposals.models import (
                                     VesselDetails,
                                     VesselOwnership,
                                     Vessel,
+                                    MooringBay,
                                 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -248,6 +249,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'editable_vessel',
                 'individual_owner',
                 'insurance_choice',
+                'preferred_bay_id',
                 )
         read_only_fields=('documents',)
 
@@ -401,12 +403,14 @@ class ProposalSerializer(BaseProposalSerializer):
 
 class SaveProposalSerializer(BaseProposalSerializer):
     #assessor_data = serializers.JSONField(required=False)
+    preferred_bay_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
         fields = (
                 'id',
                 'insurance_choice',
+                'preferred_bay_id',
                 )
         read_only_fields=('id',)
 
@@ -784,4 +788,11 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'start_date',
                 'end_date',
                 )
+
+class MooringBaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MooringBay
+        fields = '__all__'
+
 

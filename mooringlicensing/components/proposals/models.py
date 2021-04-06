@@ -483,6 +483,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
+    preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1725,7 +1726,8 @@ class ProposalLogEntry(CommunicationsLogEntry):
 # not for admin - data comes from Mooring Bookings
 class MooringBay(models.Model):
     name = models.CharField(max_length=100)
-    mooring_bay_id = models.IntegerField()
+    mooring_bookings_id = models.IntegerField()
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
