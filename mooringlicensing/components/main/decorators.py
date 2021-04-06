@@ -25,7 +25,7 @@ def basic_exception_handler(func):
             print(traceback.print_exc())
             raise
         except ValidationError as e:
-            from disturbance.components.main.utils import handle_validation_error
+            from mooringlicensing.components.main.utils import handle_validation_error
             handle_validation_error(e)
         except Exception as e:
             print(traceback.print_exc())

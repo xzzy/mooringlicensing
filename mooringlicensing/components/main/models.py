@@ -97,6 +97,18 @@ class Document(models.Model):
         return self.name or self.filename
 
 
+class ApplicationType(models.Model):
+    code = models.CharField(max_length=30, blank=True, null=True, unique=True)
+    description = models.CharField(max_length=200, blank=True, null=True)
+
+    def __str__(self):
+        return 'id:{}({}) {}'.format(self.id, self.code, self.description)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+
 #@python_2_unicode_compatible
 #class ApplicationType(models.Model):
 #    WL = 'Waiting List Application'
@@ -262,9 +274,42 @@ class ElectoralRollDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Electoral Roll Document"
 
+
+class VesselSizeCategoryGroup(RevisionedMixin):
+    name = models.CharField(max_length=100, null=False, blank=False)
+    # created = models.DateTimeField(auto_now_add=True)
+    # updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Vessel Size Category Group"
+        app_label = 'mooringlicensing'
+
+
+class VesselSizeCategory(RevisionedMixin):
+    name = models.CharField(max_length=100)
+    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    include_start_size = models.BooleanField(default=True)  # When true, 'start_size' is included.
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True, related_name='vessel_size_categories')
+    # created = models.DateTimeField(auto_now_add=True)
+    # updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Vessel Size Categories"
+        app_label = 'mooringlicensing'
+
+
+
+
 #import reversion
 #reversion.register(UserAction)
 #reversion.register(CommunicationsLogEntry)
 #reversion.register(Document)
 #reversion.register(SystemMaintenance)
+
 

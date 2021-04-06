@@ -70,7 +70,7 @@ export default {
             application_statuses: [],
 
             // Datatable settings
-            datatable_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Action'],
+            datatable_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Invoice', 'Action'],
             datatable_options: {
                 autoWidth: false,
                 language: {
@@ -166,7 +166,30 @@ export default {
                         }
                     },
                     {
-                        // 7. Action
+                        // 7. Invoice
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            console.log(full)
+            
+                            let links = '';
+                            if (full.fee_invoice_references){
+                                for (let item of full.fee_invoice_references){
+                                    links += '<div>'
+                                    links +=  `<a href='/payments/invoice-pdf/${item}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${item}</a>`;
+                                    if (!vm.is_external){
+                                        links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${item}' target='_blank'>View Payment</a><br/>`;
+                                    }
+                                    links += '</div>'
+                                }
+                            }
+                            return links
+                        }
+                    },
+                    {
+                        // 8. Action
                         data: "id",
                         orderable: true,
                         searchable: true,
