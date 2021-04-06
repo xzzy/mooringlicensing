@@ -4,7 +4,8 @@ from datetime import timedelta, date, datetime
 import pytz
 from django.conf import settings
 from django.core.cache import cache
-from django.db import connection
+from django.db import connection, transaction
+from mooringlicensing.components.proposals.models import MooringBay
 
 
 def retrieve_department_users():
@@ -38,6 +39,29 @@ def check_db_connection():
             connection.connect()
     except Exception as e:
         connection.connect()
+
+## Mooring Bookings API interactions
+def retrieve_mooring_areas():
+    url = settings.MOORING_BOOKINGS_API_URL + "all-mooring/" + settings.MOORING_BOOKINGS_API_KEY
+    res = requests.get(url)
+    res.raise_for_status()
+    data = res.json().get('data')
+    return data
+
+def retrieve_marine_parks():
+    # CRON (every night?)  Plus management button for manual control.
+    url = settings.MOORING_BOOKINGS_API_URL + "marine-parks/" + settings.MOORING_BOOKINGS_API_KEY
+    res = requests.get(url)
+    res.raise_for_status()
+    data = res.json().get('data')
+    # update MooringBay records
+    with transaction.atomic():
+        for bay in data:
+            if not MooringBay.objects.filter(name=bay.get("name")):
+                mooring_bay = MooringBay.objects.create(mooring_bay_id=bay.get("id"), name=bay.get("name"))
+                print(mooring_bay)
+    #return data
+
 
 #def add_business_days(from_date, number_of_days):
 #    """ given from_date and number_of_days, returns the next weekday date i.e. excludes Sat/Sun """

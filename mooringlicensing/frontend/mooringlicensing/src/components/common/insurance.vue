@@ -35,89 +35,38 @@ from '@/utils/hooks'
             return {
                 selectedOption: null,
                 insuranceChoices: [],
-                /*
-                fiveMillion: null,
-                tenMillion: null,
-                over10: null,
-                */
             }
         },
         computed: {
-            /*
-            availableInsurance: function() {
-                return [
-                    {
-                        cover: "fiveMillion",
-                        description: "$5 million Third Party Liability insurance cover - required for vessels of length less than 6.4 metres",
-                    },
-                    {
-                        cover: "tenMillion",
-                        description: "$10 million Third Party Liability insurance cover - required for vessels of length 6.4 metres or greater",
-                    },
-                    {
-                        cover: "over10",
-                        description: "over $10 million",
-                    },
-                    ]
-            },
-            */
         },
         methods:{
             fetchInsuranceChoices: async function(){
                 const response = await this.$http.get(api_endpoints.insurance_choices_dict);
-                /*
-                let choices = [];
-                let ii = 0;
-                for (let res of response.body){
-                    choices.splice(ii++, 0, res);
-                }
-                let i = 0;
-                console.log(choices);
-                for (let choice of choices) {
-                    this.insuranceChoices.splice(i++, 0, choice);
-                }
-                */
                 for (let choice of response.body) {
                     this.insuranceChoices.push(choice);
                 }
             },
             addEventHandlers: function() {
                 let vm = this;
-                /*
-                console.log(vm.insuranceChoices[0])
-                console.log(vm.insuranceChoices)
-                */
                 for (let choice of vm.insuranceChoices) {
                     let choiceSelector = '#' + choice.code;
-                    //console.log(choiceSelector)
                     $(choiceSelector).on('change', (e) => {
-                        //console.log(e.currentTarget.value)
                         vm.selectedOption = e.currentTarget.value
                     });
                 }
-                /*
-                const fiveMillion = $('#fiveMillion');
-                fiveMillion.on('change', (e) => {
-                    console.log(e.currentTarget.value)
-                    vm.selectedOption = e.currentTarget.value
-                });
-                const tenMillion = $('#tenMillion');
-                tenMillion.on('change', (e) => {
-                    console.log(e.currentTarget.value)
-                    vm.selectedOption = e.currentTarget.value
-                });
-                const over10 = $('#over10');
-                over10.on('change', (e) => {
-                    console.log(e.currentTarget.value)
-                    vm.selectedOption = e.currentTarget.value
-                });
-                */
             },
         },
         mounted:function () {
             this.$nextTick(async () => {
                 await this.fetchInsuranceChoices();
                 this.addEventHandlers();
+                // read selectedOption from proposal
+                let vm = this;
+                if (this.proposal.insurance_choice) {
+                    this.selectedOption = this.proposal.insurance_choice;
+                    let selected = $('#' + vm.selectedOption);
+                    selected.prop('checked', true).trigger('change');
+                }
             });
         },
         created: async function() {

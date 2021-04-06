@@ -25,6 +25,7 @@ from mooringlicensing.components.proposals.serializers import (
         SaveVesselDetailsSerializer,
         SaveVesselOwnershipSerializer,
         SaveDraftProposalVesselSerializer,
+        SaveProposalSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -338,10 +339,27 @@ def save_proponent_data_wla(instance, request, viewset):
             submit_vessel_data(instance, request)
 
 def save_proponent_data_aaa(instance, request, viewset):
+    #import ipdb; ipdb.set_trace()
     print("save aaa")
     print(request.data)
-    #save_proposal_data(instance, request)
-    submit_vessel_data(instance, request)
+    # proposal
+    proposal_data = request.data.get('proposal')
+    if proposal_data:
+        serializer = SaveProposalSerializer(instance, data=proposal_data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+    # vessel
+    if instance.editable_vessel:
+        if viewset.action == 'draft':
+            save_vessel_data(instance, request)
+        elif viewset.action == 'submit':
+            submit_vessel_data(instance, request)
+
+#def save_proponent_data_aaa(instance, request, viewset):
+#    print("save aaa")
+#    print(request.data)
+#    #save_proposal_data(instance, request)
+#    submit_vessel_data(instance, request)
 
 def save_vessel_data(instance, request):
     print("save vessel data")
