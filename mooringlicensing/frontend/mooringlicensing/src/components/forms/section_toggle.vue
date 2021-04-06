@@ -55,7 +55,8 @@ export default {
         },
     },
     mounted: function() {
-        $('#' + this.custom_id).on('click',function () {
+        let vm = this;
+        $('#' + vm.custom_id).on('click',function () {
             var chev = $(this).children()[0];
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
