@@ -82,12 +82,15 @@ class FeeConstructorForm(forms.ModelForm):
 
         application_type = self.cleaned_data['application_type']
         print(application_type.description)
-        for fee_period in self.cleaned_data['fee_season'].fee_periods.all():
-            for vessel_size_category in self.cleaned_data['vessel_size_category_group'].vessel_size_categories.all():
-                for proposal_type in proposal_types:
-                    fee_item, created = FeeItem.objects.get_or_create(fee_constructor=fee_constructor, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
-                    if created:
-                        print('Created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name, proposal_type.description))
+        try:
+            for fee_period in self.cleaned_data['fee_season'].fee_periods.all():
+                for vessel_size_category in self.cleaned_data['vessel_size_category_group'].vessel_size_categories.all():
+                    for proposal_type in proposal_types:
+                        fee_item, created = FeeItem.objects.get_or_create(fee_constructor=fee_constructor, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
+                        if created:
+                            print('Created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name, proposal_type.description))
+        except Exception as e:
+            print(e)
 
 
 @admin.register(FeeSeason)

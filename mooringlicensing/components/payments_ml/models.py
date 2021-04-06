@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytz
 from dateutil.relativedelta import relativedelta
 from django.db import models
+from django.db.models import Q
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
@@ -171,10 +172,28 @@ class FeeConstructor(RevisionedMixin):
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
+    def get_fee_item(self, proposal_type, vessel_length, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
+        vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length).order_by('start_size').last()
+        fee_item = FeeItem.objects.filter(fee_constructor=self, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
+
+        if fee_item:
+            return fee_item[0]
+        else:
+            # Fees are probably not configured yet...
+            return None
+
     @classmethod
-    def get_fee_item(cls):
-        # TODO: implement
-        pass
+    def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        fee_constructor_qs = cls.objects.filter(application_type=application_type,)
+        target_fee_constructor = None
+        for fee_constructor in fee_constructor_qs:
+            if fee_constructor.fee_season.start_date <= target_date <= fee_constructor.fee_season.end_date:
+                # Seasons which have already started, but not ended yet.
+                if not target_fee_constructor or target_fee_constructor.fee_season.start_date < fee_constructor.fee_season.start_date:
+                    # Pick the season which started most recently.
+                    target_fee_constructor = fee_constructor
+        return target_fee_constructor
 
     class Meta:
         app_label = 'mooringlicensing'
