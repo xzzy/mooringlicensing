@@ -17,6 +17,11 @@
                   2. Vessel
                 </a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" id="pills-mooring-tab" data-toggle="pill" href="#pills-mooring" role="tab" aria-controls="pills-mooring" aria-selected="false">
+                  3. Mooring
+                </a>
+              </li>
               <!--li class="nav-item">
                 <a class="nav-link" id="pills-activities-land-tab" data-toggle="pill" href="#pills-activities-land" role="tab" aria-controls="pills-activities-land" aria-selected="false">
                   2. Activities (land)
@@ -82,6 +87,14 @@
                   ref="vessels"
                   />
               </div>
+              <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
+                  <Mooring
+                  :proposal="proposal" 
+                  id="mooring" 
+                  ref="mooring"
+                  />
+              </div>
+
               <!--div class="tab-pane fade" id="pills-activities-land" role="tabpanel" aria-labelledby="pills-activities-land-tab">
                 <ActivitiesLand :proposal="proposal" id="proposalStartActivitiesLand" :canEditActivities="canEditActivities" :proposal_parks="proposal_parks" ref="activities_land"></ActivitiesLand>
               </div>
@@ -111,6 +124,7 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
+    import Mooring from '@/components/common/mooring.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
     import ActivitiesLand from '@/components/common/tclass/activities_land.vue'
@@ -173,6 +187,7 @@
             Applicant,
             Confirmation,
             Vessels,
+            Mooring,
             /*
             ActivitiesLand,
             ActivitiesMarine,
