@@ -1,40 +1,28 @@
 from __future__ import unicode_literals
 
 import json
-import os
 import datetime
-import string
-from dateutil.relativedelta import relativedelta
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError, MultipleObjectsReturned, ObjectDoesNotExist
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
 from django.conf import settings
-from taggit.managers import TaggableManager
-from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
-from ledger.accounts.models import OrganisationAddress
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.payments.models import Invoice
 #from ledger.accounts.models import EmailUser
-from ledger.licence.models import  Licence
-from ledger.address.models import Country
 from mooringlicensing import exceptions
-from mooringlicensing.components.organisations.models import Organisation, OrganisationContact, UserDelegation
+from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
-        CommunicationsLogEntry, 
-        UserAction, 
-        Document, 
-        #Region, District, Tenure, 
-        #ApplicationType, 
-        #Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
-        )
-#from mooringlicensing.components.main.utils import get_department_user
+    CommunicationsLogEntry,
+    UserAction,
+    Document, ApplicationType,
+    # Region, District, Tenure,
+    # ApplicationType,
+    # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
+)
+
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
@@ -52,12 +40,6 @@ import subprocess
 from django.db.models import Q
 from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
-from decimal import Decimal as D
-import csv
-import time
-from multiselectfield import MultiSelectField
-
-
 
 import logging
 logger = logging.getLogger(__name__)
@@ -319,6 +301,17 @@ INSURANCE_CHOICES = (
 )
 
 
+class ProposalType(models.Model):
+    code = models.CharField(max_length=30, blank=True, null=True)
+    description = models.CharField(max_length=200, blank=True, null=True)
+
+    def __str__(self):
+        return 'id: {} code: {}'.format(self.id, self.code)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
 #class Proposal(DirtyFieldsMixin, models.Model):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
@@ -328,7 +321,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
-    CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
+    # CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DECLINED = 'declined'
     CUSTOMER_STATUS_DISCARDED = 'discarded'
@@ -339,7 +332,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # (CUSTOMER_STATUS_TEMP, 'Temporary'),
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
         (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
-        (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
+        # (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
         (CUSTOMER_STATUS_APPROVED, 'Approved'),
         (CUSTOMER_STATUS_DECLINED, 'Declined'),
         (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
@@ -352,7 +345,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_EDITABLE_STATE = [
         #'temp',
         CUSTOMER_STATUS_DRAFT,
-        CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+        # CUSTOMER_STATUS_AMENDMENT_REQUIRED,
     ]
 
     # List of statuses from above that allow a customer to view an application (read-only)
@@ -414,18 +407,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
                                 )
 
+    # PROPOSAL_TYPE_CHOICES = (
+    #     ('new_proposal', 'New Application'),
+    #     ('amendment', 'Amendment'),
+    #     ('renewal', 'Renewal'),
+    #     ('external', 'External'),
+    # )
 
-    PROPOSAL_TYPE_CHOICES = (
-        ('new_proposal', 'New Application'),
-        ('amendment', 'Amendment'),
-        ('renewal', 'Renewal'),
-        ('external', 'External'),
-    )
+    # proposal_type = models.CharField('Proposal Status Type', max_length=40, choices=PROPOSAL_TYPE_CHOICES,
+    #                                     default=PROPOSAL_TYPE_CHOICES[0][0])
+    proposal_type = models.ForeignKey(ProposalType, blank=True, null=True)
 
-    proposal_type = models.CharField('Proposal Status Type', max_length=40, choices=PROPOSAL_TYPE_CHOICES,
-                                        default=PROPOSAL_TYPE_CHOICES[0][0])
-
-    #data = JSONField(blank=True, null=True)
+#data = JSONField(blank=True, null=True)
     assessor_data = JSONField(blank=True, null=True)
     comment_data = JSONField(blank=True, null=True)
     #schema = JSONField(blank=False, null=False)
@@ -1570,6 +1563,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return proposal
 
     @property
+    def application_type(self):
+        application_type = ApplicationType.objects.get(code=self.application_type_code)
+        return application_type
+
+    @property
     def child_obj(self):
         if hasattr(self, 'waitinglistapplication'):
             return self.waitinglistapplication
@@ -1737,27 +1735,27 @@ class MooringBay(models.Model):
         app_label = 'mooringlicensing'
 
 
-class VesselSizeCategory(models.Model):
-
-    STATUS = (
-        (0, 'Inactive'),
-        (1, 'Active'),
-    )
-
-    name = models.CharField(max_length=100)
-    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') 
-    end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    status = models.SmallIntegerField(choices=STATUS, default=1)
-    #mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Vessel Size Categories"
-        app_label = 'mooringlicensing'
+# class VesselSizeCategory(models.Model):
+#
+#     STATUS = (
+#         (0, 'Inactive'),
+#         (1, 'Active'),
+#     )
+#
+#     name = models.CharField(max_length=100)
+#     start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     status = models.SmallIntegerField(choices=STATUS, default=1)
+#     mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
+    # created = models.DateTimeField(auto_now_add=True)
+    # updated = models.DateTimeField(auto_now=True)
+    #
+    # def __str__(self):
+    #     return self.name
+    #
+    # class Meta:
+    #     verbose_name_plural = "Vessel Size Categories"
+    #     app_label = 'mooringlicensing'
 
 
 class Vessel(models.Model):
