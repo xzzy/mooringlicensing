@@ -37,6 +37,7 @@ from mooringlicensing.components.proposals.models import (
                                     VesselDetails,
                                     VesselOwnership,
                                     Vessel,
+                                    MooringBay,
                                 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -784,4 +785,11 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'start_date',
                 'end_date',
                 )
+
+class MooringBaySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MooringBay
+        fields = '__all__'
+
 
