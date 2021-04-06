@@ -248,10 +248,10 @@ export default {
         // WLA
         if (this.$refs.waiting_list_application) {
             if (this.$refs.waiting_list_application.$refs.vessels) {
-                payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+                payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
             }
             if (this.$refs.waiting_list_application.$refs.mooring) {
-                payload.vessel.selectedMooring = this.$refs.waiting_list_application.$refs.mooring.selectedMooring;
+                payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
             }
         }
         // AAA
