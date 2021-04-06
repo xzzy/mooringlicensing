@@ -153,3 +153,7 @@ if settings.SHOW_DEBUG_TOOLBAR:
 
 if not are_migrations_running():
     DefaultDataManager()
+
+admin.site.site_header = "RIA Mooring Licensing System Administration"
+admin.site.site_title = "RIA Mooring Licensing Site"
+admin.site.index_title = "RIA Mooring Licensing"
