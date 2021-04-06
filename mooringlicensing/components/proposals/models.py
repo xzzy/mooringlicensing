@@ -34,7 +34,7 @@ from mooringlicensing.components.main.models import (
         #ApplicationType, 
         #Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
         )
-from mooringlicensing.components.main.utils import get_department_user
+#from mooringlicensing.components.main.utils import get_department_user
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
@@ -1720,6 +1720,19 @@ class ProposalLogEntry(CommunicationsLogEntry):
         if not self.reference:
             self.reference = self.proposal.reference
         super(ProposalLogEntry, self).save(**kwargs)
+
+
+# not for admin - data comes from Mooring Bookings
+class MooringBay(models.Model):
+    name = models.CharField(max_length=100)
+    mooring_bay_id = models.IntegerField()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Mooring Bays"
+        app_label = 'mooringlicensing'
 
 
 class VesselSizeCategory(models.Model):
