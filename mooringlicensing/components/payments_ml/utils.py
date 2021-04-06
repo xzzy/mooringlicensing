@@ -1,12 +1,16 @@
 import logging
 from datetime import datetime
+
+import pytz
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from ledger.checkout.utils import create_basket_session, create_checkout_session
+from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
+from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing import settings
-from mooringlicensing.components.payments_ml.models import ApplicationFee
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor
 
+#test
 
 logger = logging.getLogger('payment_checkout')
 
@@ -87,19 +91,21 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     # elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
     #     line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
     # else:
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    now = datetime.now(pytz.timezone(TIME_ZONE))
+    now_str = now.strftime('%Y-%m-%d %H:%M')
+    today = now.date()
 
-        # Non 'Apiary' proposal
-    # application_price = proposal.application_type.application_fee
+    # Retrieve FeeItem object from FeeConstructor object
+    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, today)
+    fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_length, today)
+
     line_items = [
         {
-            'ledger_description': 'Application Fee - {} - {}'.format(now, proposal.lodgement_number),
+            'ledger_description': 'Application Fee - {} - {}'.format(now_str, proposal.lodgement_number),
             # 'oracle_code': proposal.application_type.oracle_code_application,
             'oracle_code': 'aho',
-            # 'price_incl_tax':  application_price,
-            # 'price_excl_tax':  application_price if proposal.application_type.is_gst_exempt else calculate_excl_gst(application_price),
-            'price_incl_tax':  100,
-            'price_excl_tax':  100,
+            'price_incl_tax':  fee_item.amount,
+            'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
             'quantity': 1,
         },
     ]
