@@ -20,6 +20,9 @@ from mooringlicensing.components.main import api as main_api
 from ledger.urls import urlpatterns as ledger_patterns
 
 # API patterns
+from mooringlicensing.management.default_data_manager import DefaultDataManager
+from mooringlicensing.utils import are_migrations_running
+
 router = routers.DefaultRouter()
 router.register(r'organisations', org_api.OrganisationViewSet)
 router.register(r'proposal', proposal_api.ProposalViewSet)
@@ -147,3 +150,10 @@ if settings.SHOW_DEBUG_TOOLBAR:
     urlpatterns = [
         url('__debug__/', include(debug_toolbar.urls)),
     ] + urlpatterns
+
+if not are_migrations_running():
+    DefaultDataManager()
+
+admin.site.site_header = "RIA Mooring Licensing System Administration"
+admin.site.site_title = "RIA Mooring Licensing Site"
+admin.site.index_title = "RIA Mooring Licensing"
