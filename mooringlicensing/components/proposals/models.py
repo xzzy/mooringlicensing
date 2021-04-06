@@ -1563,7 +1563,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def application_type(self):
-        return ApplicationType.objects.get(code=self.application_type_code)
+        application_type = ApplicationType.objects.get(code=self.application_type_code)
+        return application_type
 
     @property
     def child_obj(self):
