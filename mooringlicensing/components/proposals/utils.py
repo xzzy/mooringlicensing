@@ -397,7 +397,7 @@ def submit_vessel_data(instance, request):
         #registered_owner = vessel_ownership_data.get("registered_owner")
         #registered_owner_company_name = vessel_ownership_data.get("registered_owner_company_name")
         #registered_owner_company_name_strip = registered_owner_company_name.strip() if registered_owner_company_name else None
-        org_name = vessel_ownership.get("org_name")
+        org_name = vessel_ownership_data.get("org_name")
         #owner = None
         # should be submitter?
         owner, created = Owner.objects.get_or_create(emailuser=request.user)

@@ -234,7 +234,7 @@ export default {
 
       return formData;
     },
-    save: function(e) {
+    save: function(withConfirm=true) {
         let vm = this;
         vm.savingProposal=true;
         vm.save_applicant_data();
@@ -244,19 +244,26 @@ export default {
         let payload = {
             "proposal": this.proposal
         }
+        // WLA
         if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.vessels) {
             payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
         }
+        if (this.$refs.waiting_list_application && this.$refs.waiting_list_application.$refs.mooring) {
+            payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.mooring.selectedMooring);
+        }
+        // AAA
         if (this.$refs.annual_admission_application && this.$refs.annual_admission_application.$refs.vessels) {
             payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
         }
 
         vm.$http.post(vm.proposal_form_url,payload).then(res=>{
-            swal(
-                'Saved',
-                'Your application has been saved',
-                'success'
-            );
+            if (withConfirm) {
+                swal(
+                    'Saved',
+                    'Your application has been saved',
+                    'success'
+                );
+            };
             vm.savingProposal=false;
         },err=>{
             console.log(err)
@@ -269,15 +276,15 @@ export default {
             vm.savingProposal=false;
         });
     },
-    save_exit: function(e) {
+    save_exit: function() {
       let vm = this;
       this.submitting = true;
       this.saveExitProposal=true;
-      this.save(e);
+      this.save();
       this.saveExitProposal=false;
       // redirect back to dashboard
       vm.$router.push({
-        name: 'external-proposals-dash'
+        name: 'external-dashboard'
       });
     },
 
@@ -285,25 +292,22 @@ export default {
         let vm = this
         vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
     },
-
-    save_wo_confirm: function(e) {
+    save_wo_confirm: function() {
+      this.save(false);
+        /*
       let vm = this;
       vm.save_applicant_data();
       let formData = vm.set_formData()
 
       vm.$http.post(vm.proposal_form_url,formData);
+      */
     },
 
-    save_and_redirect: function(e) {
-      let vm = this;
-      let formData = vm.set_formData()
+    save_and_redirect: async function() {
+        let formData = this.set_formData()
 
-      vm.save_applicant_data();
-      vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-          /* after the above save, redirect to the Django post() method in ApplicationFeeView */
-          vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-      },err=>{
-      });
+        await this.save(false);
+        await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
     },
 
     setdata: function(readonly){
@@ -506,176 +510,10 @@ export default {
       }
 
     },
-    can_submit_event: function(){
-      let vm=this;
-      let blank_fields=[]
-      if(vm.proposal.event_activity.event_name==''||vm.proposal.event_activity.event_name==null){
-        blank_fields.push(' Name of the event is missing')
-      }
-      if(vm.proposal.event_activity.commencement_date =='' || vm.proposal.event_activity.commencement_date ==null || vm.proposal.event_activity.completion_date =='' || vm.proposal.event_activity.completion_date ==''){
-        blank_fields.push(' Period of proposed event is required')
-      }
-      if(vm.proposal.event_activity.pdswa_location){
-        if(vm.$refs.proposal_event.$refs.event_activities.$refs.event_activity_pdswa_file.documents.length==0){
-            blank_fields.push(' Department of Water and Environmental Regulation application form document is missing')
-          }
-      }
-      if(vm.proposal.event_management.num_spectators==null||vm.proposal.event_management.num_spectators==''){
-        blank_fields.push(' Number of participants expected is missing')
-      }
-      if(vm.proposal.event_management.num_officials==null||vm.proposal.event_management.num_officials==''){
-        blank_fields.push(' Number of officials expected is missing')
-      }
-      if(vm.proposal.event_management.num_vehicles==null||vm.proposal.event_management.num_vehicles==''){
-        blank_fields.push(' Number of vehicles/ vessels is missing')
-      }
-      if(vm.proposal.event_management.media_involved){
-        if(vm.proposal.event_management.media_details==null||vm.proposal.event_management.media_details==''){
-          blank_fields.push(' Media involved details are missing')
-        }
-      }
-      if(vm.proposal.event_management.structure_change){
-        if(vm.proposal.event_management.structure_change_details==null||vm.proposal.event_management.structure_change_details==''){
-          blank_fields.push(' Structure change details are missing')
-        }
-      }
-      if(vm.proposal.event_management.vendor_hired){
-        if(vm.proposal.event_management.vendor_hired_details==null||vm.proposal.event_management.vendor_hired_details==''){
-          blank_fields.push(' Vendors hired details are missing')
-        }
-      }
-      if(vm.proposal.event_management.toilets_provided){
-        if(vm.proposal.event_management.toilets_provided_details==null||vm.proposal.event_management.toilets_provided_details==''){
-          blank_fields.push(' Portable toilets and/ or showers details are missing')
-        }
-      }
-      if(vm.proposal.event_management.rubbish_removal_details==null||vm.proposal.event_management.rubbish_removal_details==''){
-          blank_fields.push(' Remove waste details are missing')
-      }
-      if(vm.proposal.event_management.approvals_gained){
-        if(vm.proposal.event_management.approvals_gained_details==null||vm.proposal.event_management.approvals_gained_details==''){
-          blank_fields.push(' Necessary approvals gained details are missing')
-        }
-        if(vm.$refs.proposal_event.$refs.event_management.$refs.event_risk_management_plan.documents.length==0){
-            blank_fields.push(' Necessary approvals gained document missing')
-          }
-      }
-      if(vm.proposal.event_management.traffic_management_plan){
-        if(vm.$refs.proposal_event.$refs.event_management.$refs.event_management_traffic_management_plan.documents.length==0){
-            blank_fields.push(' Traffic management plan document missing')
-          }
-      }
-      if(vm.$refs.proposal_event.$refs.event_other_details.$refs.deed_poll_doc.documents.length==0){
-          blank_fields.push(' Deed poll document is missing')
-      }
-
-      if(vm.$refs.proposal_event.$refs.event_other_details.$refs.currency_doc.documents.length==0){
-          blank_fields.push(' Certificate of currency document is missing')
-      }
-      if(vm.proposal.event_other_details.insurance_expiry=='' || vm.proposal.event_other_details.insurance_expiry==null){
-          blank_fields.push(' Certificate of currency expiry date is missing')
-      }
-      return blank_fields;
-    },
-    can_submit_filming: function(){
-      let vm=this;
-      let blank_fields=[]
-      if (vm.proposal.filming_activity.commencement_date =='' || vm.proposal.filming_activity.commencement_date ==null || vm.proposal.filming_activity.completion_date =='' || vm.proposal.filming_activity.completion_date ==''){
-          blank_fields.push(' Period of proposed filming/ photography is required')
-      }
-      if(vm.proposal.filming_activity.film_type=='' || vm.proposal.filming_activity.film_type==null){
-          blank_fields.push(' Type of film to be undertaken is missing')
-      }
-      if(vm.proposal.filming_activity.activity_title=='' || vm.proposal.filming_activity.activity_title==null){
-          blank_fields.push(' Title of film is missing')
-      }
-      if(vm.proposal.filming_activity.sponsorship=='' || vm.proposal.filming_activity.sponsorship==null){
-          blank_fields.push(' Tourism WA sponsorship is missing')
-      }
-      if(vm.proposal.filming_activity.production_description=='' || vm.proposal.filming_activity.production_description==null){
-          blank_fields.push(' Description of production is missing')
-      }
-      if(vm.proposal.filming_activity.film_purpose=='' || vm.proposal.filming_activity.film_purpose==null){
-          blank_fields.push(' Film purpose is missing')
-      }
-      if(vm.proposal.filming_activity.film_usage=='' || vm.proposal.filming_activity.film_usage==null){
-          blank_fields.push(' Usage of film is missing')
-      }
-      if(vm.proposal.filming_access.track_use){
-        if(vm.proposal.filming_access.track_use_details=='' || vm.proposal.filming_access.track_use_details==null){
-          blank_fields.push(' Track use details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.off_road){
-        if(vm.proposal.filming_access.off_road_details=='' || vm.proposal.filming_access.off_road_details==null){
-          blank_fields.push(' Off road details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.road_closure){
-        if(vm.proposal.filming_access.road_closure_details=='' || vm.proposal.filming_access.road_closure_details==null){
-          blank_fields.push(' Roads or car park to be closed details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.camp_on_land){
-        if(vm.proposal.filming_access.camp_location=='' || vm.proposal.filming_access.camp_location==null){
-          blank_fields.push(' Camping location details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.staff_assistance){
-        if(vm.proposal.filming_access.assistance_staff_capacity=='' || vm.proposal.filming_access.assistance_staff_capacity==null){
-          blank_fields.push(' Staff assistance capacity details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.staff_to_film){
-        if(vm.proposal.filming_access.film_staff_capacity=='' || vm.proposal.filming_access.film_staff_capacity==null){
-          blank_fields.push(' Department staff to film capacity details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.cultural_significance){
-        if(vm.proposal.filming_access.cultural_significance_details=='' || vm.proposal.filming_access.cultural_significance_details==null){
-          blank_fields.push(' Items/ areas of cultural significance details are missing')
-        }
-      }
-      if(vm.proposal.filming_access.no_of_people=='' || vm.proposal.filming_access.no_of_people==null){
-          blank_fields.push(' Number of people in filming party is missing')
-      }
-      if(vm.proposal.filming_equipment.rps_used){
-        if(vm.proposal.filming_equipment.rps_used_details=='' || vm.proposal.filming_equipment.rps_used_details==null){
-          blank_fields.push(' RPA details are missing')
-        }
-        if(vm.$refs.proposal_filming.$refs.filming_equipment.$refs.rps_certificate.documents.length==0){
-            blank_fields.push(' RePL/ ReOC document missing')
-          }
-      }
-      if(vm.proposal.filming_equipment.alteration_required){
-        if(vm.proposal.filming_equipment.alteration_required_details=='' || vm.proposal.filming_equipment.alteration_required_details==null){
-          blank_fields.push(' Any alteration to occur details are missing')
-        }
-      }
-      if(vm.proposal.filming_equipment.num_cameras=='' || vm.proposal.filming_equipment.num_cameras==null){
-          blank_fields.push(' Number and type of cameras is missing')
-      }
-      if(vm.proposal.filming_equipment.other_equipments=='' || vm.proposal.filming_equipment.other_equipments==null){
-          blank_fields.push(' Other significant equipment details are missing')
-      }
-      if(vm.proposal.filming_other_details.safety_details=='' || vm.proposal.filming_other_details.safety_details==null){
-          blank_fields.push(' Safety details are missing')
-      }
-      if(vm.$refs.proposal_filming.$refs.filming_other_details.$refs.currency_doc.documents.length==0){
-          blank_fields.push(' Certificate of currency document is missing')
-      }
-      if(vm.proposal.filming_other_details.insurance_expiry=='' || vm.proposal.filming_other_details.insurance_expiry==null){
-          blank_fields.push(' Certificate of currency expiry date is missing')
-      }
-      if(vm.$refs.proposal_filming.$refs.filming_other_details.$refs.deed_poll_doc.documents.length==0){
-          blank_fields.push(' Deed poll document is missing')
-      }
-      return blank_fields
-    },
     submit: function(){
         let vm = this;
-        let formData = vm.set_formData()
-
+        //let formData = vm.set_formData()
+        /*
         var missing_data= vm.can_submit();
         if(missing_data!=true){
           swal({
@@ -686,6 +524,7 @@ export default {
           //vm.paySubmitting=false;
           return false;
         }
+        */
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
         vm.submitting = true;
@@ -701,7 +540,7 @@ export default {
           
             // Filming has deferred payment once assessor decides whether 'Licence' (fee) or 'Lawful Authority' (no fee) is to be issued
             // if (!vm.proposal.fee_paid || vm.proposal.application_type!='Filming') {
-            if (!vm.proposal.fee_paid && vm.proposal.application_type!=vm.application_type_filming) {
+            if (!vm.proposal.fee_paid) {
                 vm.save_and_redirect();
 
             } else {
