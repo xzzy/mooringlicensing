@@ -15,13 +15,13 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
-        CommunicationsLogEntry, 
-        UserAction, 
-        Document, 
-        #Region, District, Tenure, 
-        #ApplicationType, 
-        #Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
-        )
+    CommunicationsLogEntry,
+    UserAction,
+    Document, ApplicationType,
+    # Region, District, Tenure,
+    # ApplicationType,
+    # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
+)
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
@@ -1559,6 +1559,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
                 #proposal.save()
             return proposal
+
+    @property
+    def application_type(self):
+        return ApplicationType.objects.get(code=self.application_type_code)
 
     @property
     def child_obj(self):

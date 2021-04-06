@@ -98,7 +98,7 @@ class Document(models.Model):
 
 
 class ApplicationType(models.Model):
-    code = models.CharField(max_length=30, blank=True, null=True)
+    code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):

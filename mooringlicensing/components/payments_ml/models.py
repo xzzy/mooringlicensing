@@ -168,6 +168,7 @@ class FeeConstructor(RevisionedMixin):
     application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
     fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True)
+    incur_gst = models.BooleanField(default=True)
 
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
