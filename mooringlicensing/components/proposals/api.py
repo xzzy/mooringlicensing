@@ -54,6 +54,8 @@ from mooringlicensing.components.proposals.models import (
     AnnualAdmissionApplication,
     VESSEL_TYPES,
     INSURANCE_CHOICES,
+    Vessel,
+    MooringBay,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -81,7 +83,7 @@ from mooringlicensing.components.proposals.serializers import (
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
-    Vessel,
+    MooringBaySerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -1331,6 +1333,15 @@ class AssessorChecklistViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs=ChecklistQuestion.objects.filter(Q(list_type = 'assessor_list')& Q(obsolete=False))
         return qs
+
+
+class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = MooringBay.objects.none()
+    serializer_class = MooringBaySerializer
+
+    def get_queryset(self):
+        return MooringBay.objects.filter(active=True)
+
 
 class ProposalAssessmentViewSet(viewsets.ModelViewSet):
     #queryset = ProposalRequirement.objects.all()

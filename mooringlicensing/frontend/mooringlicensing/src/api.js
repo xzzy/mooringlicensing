@@ -9,6 +9,7 @@ module.exports = {
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",
     compliance_statuses_dict:"/api/compliance_statuses_dict",
+    mooring_bays:"/api/mooringbays.json",
 
     profile: '/api/profile',
     organisations: '/api/organisations.json',
