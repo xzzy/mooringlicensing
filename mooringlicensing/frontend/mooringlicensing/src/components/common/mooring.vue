@@ -5,8 +5,8 @@
         </div>
         <div class="row form-group">
             <div class="col-sm-6" v-for="mooring in mooringBays">
-                <label for="mooring_name" class="col-sm-5 control-label">{{ mooring.name }}</label>
-                <input type="radio" name="mooring_name" :value="mooring" v-model="selectedMooring" required=""/>
+                <label :for="mooring.id" class="col-sm-5 control-label">{{ mooring.name }}</label>
+                <input type="radio" :id="mooring.id" :value="mooring" v-model="selectedMooring" required=""/>
             </div>
         </div>
     </FormSection>
@@ -62,6 +62,15 @@ from '@/utils/hooks'
         mounted:function () {
             this.$nextTick(async () => {
                 await this.fetchMooringBays();
+                // read in currently selected preference from Proposal
+                if (this.proposal.preferred_bay_id) {
+                    console.log("preferred bay");
+                    for (let bay of this.mooringBays) {
+                        if (bay.id === this.proposal.preferred_bay_id) {
+                            this.selectedMooring = Object.assign({}, bay);
+                        }
+                    }
+                }
             });
 
         }
