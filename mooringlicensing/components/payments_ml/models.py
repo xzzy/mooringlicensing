@@ -171,8 +171,15 @@ class FeeConstructor(RevisionedMixin):
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
+    @classmethod
+    def get_fee_item(cls):
+        # TODO: implement
+        pass
+
     class Meta:
         app_label = 'mooringlicensing'
+        # An application type cannot have the same fee_season multiple times.
+        # Which means a vessel_size_category_group can be determined by the application_type and the fee_season
         unique_together = ('application_type', 'fee_season',)
 
 
