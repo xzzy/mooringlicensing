@@ -1732,27 +1732,27 @@ class MooringBay(models.Model):
         app_label = 'mooringlicensing'
 
 
-class VesselSizeCategory(models.Model):
-
-    STATUS = (
-        (0, 'Inactive'),
-        (1, 'Active'),
-    )
-
-    name = models.CharField(max_length=100)
-    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') 
-    end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    status = models.SmallIntegerField(choices=STATUS, default=1)
-    #mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Vessel Size Categories"
-        app_label = 'mooringlicensing'
+# class VesselSizeCategory(models.Model):
+#
+#     STATUS = (
+#         (0, 'Inactive'),
+#         (1, 'Active'),
+#     )
+#
+#     name = models.CharField(max_length=100)
+#     start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+#     status = models.SmallIntegerField(choices=STATUS, default=1)
+#     mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
+    # created = models.DateTimeField(auto_now_add=True)
+    # updated = models.DateTimeField(auto_now=True)
+    #
+    # def __str__(self):
+    #     return self.name
+    #
+    # class Meta:
+    #     verbose_name_plural = "Vessel Size Categories"
+    #     app_label = 'mooringlicensing'
 
 
 class Vessel(models.Model):
