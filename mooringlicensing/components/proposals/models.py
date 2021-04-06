@@ -483,6 +483,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
+    preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'

@@ -249,6 +249,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'editable_vessel',
                 'individual_owner',
                 'insurance_choice',
+                'preferred_bay_id',
                 )
         read_only_fields=('documents',)
 
@@ -402,12 +403,14 @@ class ProposalSerializer(BaseProposalSerializer):
 
 class SaveProposalSerializer(BaseProposalSerializer):
     #assessor_data = serializers.JSONField(required=False)
+    preferred_bay_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
         fields = (
                 'id',
                 'insurance_choice',
+                'preferred_bay_id',
                 )
         read_only_fields=('id',)
 
