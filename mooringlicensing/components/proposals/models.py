@@ -1725,7 +1725,8 @@ class ProposalLogEntry(CommunicationsLogEntry):
 # not for admin - data comes from Mooring Bookings
 class MooringBay(models.Model):
     name = models.CharField(max_length=100)
-    mooring_bay_id = models.IntegerField()
+    mooring_bookings_id = models.IntegerField()
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
