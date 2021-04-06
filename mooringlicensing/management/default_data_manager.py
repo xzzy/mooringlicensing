@@ -1,9 +1,7 @@
 import logging
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.proposals.models import ProposalType
-
+from mooringlicensing.components.proposals.models import ProposalType, Proposal
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +21,7 @@ class DefaultDataManager(object):
                 logger.error('{}, ProposalType: {}'.format(e, item[1]))
 
         # Application Types
-        for item in Approval.__subclasses__():
+        for item in Proposal.__subclasses__():
             # Create record(s) based on the existence of the subclasses
             if hasattr(item, 'code'):
                 try:
