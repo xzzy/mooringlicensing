@@ -333,6 +333,8 @@ def save_proponent_data_common(instance, request, viewset):
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal')
+    #print("proposal_data")
+    #print(proposal_data)
     if proposal_data:
         serializer = SaveProposalSerializer(instance, data=proposal_data)
         serializer.is_valid(raise_exception=True)
@@ -361,6 +363,8 @@ def save_vessel_data(instance, request):
             vessel_data.update({key: vessel_details_data.get(key)})
         for key in vessel_ownership_data.keys():
             vessel_data.update({key: vessel_ownership_data.get(key)})
+        #print("vessel_data")
+        #print(vessel_data)
 
         serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
         serializer.is_valid(raise_exception=True)
@@ -441,7 +445,6 @@ def save_assessor_data(instance,request,viewset):
         except:
             raise
 
-# TODO: is this used or Proposal.submit() ?
 def proposal_submit(proposal,request):
         with transaction.atomic():
             if proposal.can_user_edit:
