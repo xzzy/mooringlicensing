@@ -71,6 +71,7 @@
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
                     :storedSilentElector="silentElector"
+                    :proposalId="proposal.id"
                     />
                   </div>
                   <div v-else>
