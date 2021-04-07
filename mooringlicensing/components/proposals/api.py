@@ -955,6 +955,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             save_proponent_data(instance,request,self)
+            proposal_submit(instance, request)
             return redirect(reverse('external'))
 
     @detail_route(methods=['GET',])
