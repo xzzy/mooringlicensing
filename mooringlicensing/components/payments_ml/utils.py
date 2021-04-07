@@ -102,7 +102,8 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
         # Fees have not been configured for this application type and date
         raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(proposal.application_type, today))
 
-    fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_length, today)
+    # fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_length, today)
+    fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_length, today)
 
     line_items = [
         {
