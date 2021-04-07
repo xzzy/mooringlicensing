@@ -272,6 +272,9 @@ export default {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
             }
+            if (this.$refs.waiting_list_application.$refs.profile.silentElector !== null) {
+                payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
+            }
             if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
                 payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
             }
@@ -297,6 +300,10 @@ export default {
         } else if (this.$refs.mooring_licence_application) {
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
+            }
+            if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
+            //if (this.$refs.mooring_licence_application.$refs.profile.profile.hasOwnProperty('silent_elector')) {
+                payload.proposal.silent_elector = this.$refs.mooring_licence_application.$refs.profile.silentElector;
             }
             if (this.$refs.mooring_licence_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required

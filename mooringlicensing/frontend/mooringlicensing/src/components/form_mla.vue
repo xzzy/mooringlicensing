@@ -65,6 +65,8 @@
                     ref="profile"
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
+                    :storedSilentElector="silentElector"
+                    :proposalId="proposal.id"
                     />
                   </div>
                   <div v-else>
@@ -196,8 +198,15 @@
             */
         },
         computed:{
+            silentElector: function() {
+                if (this.proposal) {
+                    return this.proposal.silent_elector;
+                }
+            },
             applicantType: function(){
-                return this.proposal.applicant_type;
+                if (this.proposal) {
+                    return this.proposal.applicant_type;
+                }
             },
             /*
             showElectoralRoll: function() {

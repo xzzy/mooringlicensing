@@ -250,6 +250,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'individual_owner',
                 'insurance_choice',
                 'preferred_bay_id',
+                'silent_elector',
                 )
         read_only_fields=('documents',)
 
@@ -416,6 +417,7 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'id',
                 'insurance_choice',
                 'preferred_bay_id',
+                'silent_elector',
                 )
         read_only_fields=('id',)
 
