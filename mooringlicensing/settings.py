@@ -165,3 +165,5 @@ PROPOSAL_TYPES = [
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
+HTTP_HOST_FOR_TEST = 'localhost:8071'
+
