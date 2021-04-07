@@ -52,6 +52,8 @@ from mooringlicensing.components.proposals.models import (
     RequirementDocument,
     WaitingListApplication,
     AnnualAdmissionApplication,
+    AuthorisedUserApplication,
+    MooringLicenceApplication,
     VESSEL_TYPES,
     INSURANCE_CHOICES,
     Vessel,
@@ -157,7 +159,9 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        return Response(Proposal.application_types_dict(apply_page=apply_page))
+        #return Response(Proposal.application_types_dict(apply_page=apply_page))
+        ## Hack to temporarily show mooring licence application option on proposal_apply.vue
+        return Response(Proposal.application_types_dict(apply_page=False))
 
 
 class GetApplicationStatusesDict(views.APIView):
@@ -306,6 +310,56 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         obj = AnnualAdmissionApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
+
+
+class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
+    queryset = AuthorisedUserApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = AuthorisedUserApplication.objects.all()
+            return qs
+        elif is_customer(self.request):
+            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return AuthorisedUserApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        obj = AuthorisedUserApplication.objects.create(
+                submitter=request.user,
+                )
+        serialized_obj = ProposalSerializer(obj)
+        return Response(serialized_obj.data)
+
+
+class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
+    queryset = MooringLicenceApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = MooringLicenceApplication.objects.all()
+            return qs
+        elif is_customer(self.request):
+            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
+            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return MooringLicenceApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        obj = MooringLicenceApplication.objects.create(
                 submitter=request.user,
                 )
         serialized_obj = ProposalSerializer(obj)

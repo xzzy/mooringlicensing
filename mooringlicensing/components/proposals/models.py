@@ -1575,8 +1575,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.annualadmissionapplication
         elif hasattr(self, 'authoriseduserapplication'):
             return self.authoriseduserapplication
-        elif hasattr(self, 'mooringlicenseapplication'):
-            return self.mooringlicenseapplication
+        elif hasattr(self, 'mooringlicenceapplication'):
+            return self.mooringlicenceapplication
         else:
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
@@ -2587,6 +2587,8 @@ import reversion
 reversion.register(Proposal)
 reversion.register(WaitingListApplication)
 reversion.register(AnnualAdmissionApplication)
+reversion.register(AuthorisedUserApplication)
+reversion.register(MooringLicenceApplication)
 
 #reversion.register(Referral, follow=['referral_documents', 'assessment'])
 #reversion.register(ReferralDocument, follow=['referral_document'])
