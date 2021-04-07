@@ -42,6 +42,9 @@ from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
 
 import logging
+
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
+
 logger = logging.getLogger(__name__)
 
 
@@ -505,7 +508,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type=='amendment':
+        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False
 
@@ -704,7 +707,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def is_amendment_proposal(self):
-        if self.proposal_type=='amendment':
+        if self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False
 
@@ -1190,7 +1193,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if not self.applicant_address:
                     raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in ['renewal', 'amendment'] else None # renewals/amendments keep same licence number
+                lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] else None # renewals/amendments keep same licence number
                 preview_approval = PreviewTempApproval.objects.create(
                     current_proposal = self,
                     issue_date = timezone.now(),
@@ -1221,7 +1224,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 self.proposed_decline_status = False
 
-                if (self.processing_status==Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or (self.proposal_type=='amendment'):
+                if (self.processing_status==Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or (self.proposal_type==PROPOSAL_TYPE_AMENDMENT):
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
                 else:
@@ -1243,7 +1246,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if (self.application_type.name == ApplicationType.FILMING and self.filming_approval_type == self.LICENCE and \
                         self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER]) and \
-                        not self.proposal_type=='amendment':
+                        not self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
 
                     self.processing_status = self.PROCESSING_STATUS_AWAITING_PAYMENT
                     self.customer_status = self.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -1279,7 +1282,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if self.processing_status == self.PROCESSING_STATUS_APPROVED:
                     # TODO if it is an ammendment proposal then check appropriately
                     checking_proposal = self
-                    if self.proposal_type == 'renewal':
+                    if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
                         if self.previous_application:
                             previous_approval = self.previous_application.approval
                             approval,created = Approval.objects.update_or_create(
@@ -1302,7 +1305,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             self.reset_licence_discount(request.user)
 
-                    elif self.proposal_type == 'amendment':
+                    elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                         if self.previous_application:
                             previous_approval = self.previous_application.approval
                             approval,created = Approval.objects.update_or_create(
@@ -1341,7 +1344,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # Generate compliances
                     from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                     if created:
-                        if self.proposal_type == 'amendment':
+                        if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                             approval_compliances = Compliance.objects.filter(approval= previous_approval, proposal = self.previous_application, processing_status='future')
                             if approval_compliances:
                                 for c in approval_compliances:
@@ -1380,7 +1383,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         timedelta = datetime.timedelta
         from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
         #For amendment type of Proposal, check for copied requirements from previous proposal
-        if self.proposal_type == 'amendment':
+        if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
             try:
                 for r in self.requirements.filter(copied_from__isnull=False):
                     cs=[]
@@ -1460,7 +1463,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except Proposal.DoesNotExist:
                 previous_proposal = Proposal.objects.get(id=self.id)
                 proposal = clone_proposal_with_status_reset(previous_proposal)
-                proposal.proposal_type = 'renewal'
+                proposal.proposal_type = PROPOSAL_TYPE_RENEWAL
                 proposal.training_completed = False
                 #proposal.schema = ProposalType.objects.first().schema
                 ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
@@ -1509,7 +1512,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 amend_conditions = {
                 'previous_application': previous_proposal,
-                'proposal_type': 'amendment'
+                'proposal_type': PROPOSAL_TYPE_AMENDMENT
 
                 }
                 proposal=Proposal.objects.get(**amend_conditions)
@@ -1518,7 +1521,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except Proposal.DoesNotExist:
                 previous_proposal = Proposal.objects.get(id=self.id)
                 proposal = clone_proposal_with_status_reset(previous_proposal)
-                proposal.proposal_type = 'amendment'
+                proposal.proposal_type = PROPOSAL_TYPE_AMENDMENT
                 proposal.training_completed = True
                 #proposal.schema = ProposalType.objects.first().schema
                 ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
