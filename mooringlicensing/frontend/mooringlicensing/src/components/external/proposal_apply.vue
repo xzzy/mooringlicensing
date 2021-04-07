@@ -1,5 +1,6 @@
 <template lang="html">
     <div class="container" >
+        <button type="button" @click="createML">Mooring Licence Application</button>
         <div class="row">
             <div class="col-sm-12">
                 <form class="form-horizontal" name="personal_form" method="post">
@@ -119,7 +120,18 @@ export default {
         },(error) => {
         });
     },
-
+    createML: function() {
+        //let applicationType = null;
+        for (let appType of this.application_types) {
+            if (appType.code === 'mla') {
+                this.selectedApplication = Object.assign({}, appType);
+            }
+        }
+        this.$nextTick(() => {
+            console.log(this.selectedApplication);
+            this.createProposal();
+        });
+    },
     createProposal: async function () {
         this.creatingProposal = true;
         const payload = {
@@ -134,6 +146,10 @@ export default {
             res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
         } else if (this.selectApplication && this.selectedApplication.code === 'aaa') {
             res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
+        } else if (this.selectApplication && this.selectedApplication.code === 'aua') {
+            res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
+        } else if (this.selectApplication && this.selectedApplication.code === 'mla') {
+            res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
         }
         console.log(res);
         const proposal = res.body;
