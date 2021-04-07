@@ -475,8 +475,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
     # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
+    ## additional fields
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True)
+    silent_elector = models.NullBooleanField() # if False, user is on electoral roll
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -831,62 +833,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def is_submitted(self):
         return True if self.lodgement_date else False
-
-    # TODO: is this used or utils..proposal_submit() ?
-    def submit(self,request,viewset):
-        from mooringlicensing.components.proposals.utils import save_proponent_data
-        with transaction.atomic():
-            if self.can_user_edit:
-                # Save the data first
-                save_proponent_data(self,request,viewset)
-                # Check if the special fields have been completed
-                missing_fields = self.__check_proposal_filled_out()
-                if missing_fields:
-                    error_text = 'The proposal has these missing fields, {}'.format(','.join(missing_fields))
-                    raise exceptions.ProposalMissingFields(detail=error_text)
-                self.submitter = request.user
-                #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
-                self.lodgement_date = timezone.now()
-                if (self.amendment_requests):
-                    qs = self.amendment_requests.filter(status = "requested")
-                    if (qs):
-                        for q in qs:
-                            q.status = 'amended'
-                            q.save()
-
-                # Create a log entry for the proposal
-                self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
-                # Create a log entry for the organisation
-                #self.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
-                applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
-
-                ret1 = send_submit_email_notification(request, self)
-                ret2 = send_external_submit_email_notification(request, self)
-
-                #self.save_form_tabs(request)
-                if ret1 and ret2:
-                    self.processing_status = 'with_assessor'
-                    self.customer_status = 'with_assessor'
-                    self.documents.all().update(can_delete=False)
-                    self.save()
-                else:
-                    raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-                #Create assessor checklist with the current assessor_list type questions
-                #Assessment instance already exits then skip.
-                try:
-                    assessor_assessment=ProposalAssessment.objects.get(proposal=self,referral_group=None, referral_assessment=False)
-                except ProposalAssessment.DoesNotExist:
-                    assessor_assessment=ProposalAssessment.objects.create(proposal=self,referral_group=None, referral_assessment=False)
-                    checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', application_type=self.application_type, obsolete=False)
-                    for chk in checklist:
-                        try:
-                            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
-                        except ProposalAssessmentAnswer.DoesNotExist:
-                            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
-
-            else:
-                raise ValidationError('You can\'t edit this proposal at this moment')
 
     def update(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
