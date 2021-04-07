@@ -250,7 +250,7 @@ export default {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
             }
-            if (this.$refs.waiting_list_application.$refs.mooring) {
+            if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
                 payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
             }
         }
