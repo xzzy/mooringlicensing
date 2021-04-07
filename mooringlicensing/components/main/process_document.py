@@ -131,7 +131,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
         if document_type == 'electoral_roll_document':
             document = instance.electoral_roll_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/emailuser/{}/electoral_roll_documents/{}'
+            path_format_string = '{}/proposals/{}/electoral_roll_documents/{}'
         if document_type == 'vessel_registration_document':
             document = instance.vessel_registration_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
