@@ -10,15 +10,15 @@
                                 <div class="form-group">
                                     <label>Do you want to apply</label>
                                     <div v-for="application_type in application_types">
-                                        <input type="radio" name="applicationType" value="application_type" @change="selectApplication(application_type)">
-                                            {{ application_type.new_application_text }}
-                                        </input>
+                                        <input 
+                                        type="radio" 
+                                        name="applicationType" 
+                                        :id="application_type.code" 
+                                        value="application_type" 
+                                        @change="selectApplication(application_type)"
+                                        />
+                                        <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                     </div>
-                                    <!--select class="form-control" style="width:50%" v-model="selectedApplication">
-                                        <option v-for="application_type in application_types" :value="application_type">
-                                            {{ application_type.new_application_text }}
-                                        </option>
-                                    </select-->
                                 </div>
                             </div>
                         </div>
