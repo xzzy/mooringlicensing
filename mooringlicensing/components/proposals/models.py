@@ -1824,6 +1824,21 @@ class VesselRegistrationDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Vessel Registration Papers"
 
+
+class ElectoralRollDocument(Document):
+    #emailuser = models.ForeignKey(EmailUser,related_name='electoral_roll_documents')
+    proposal = models.ForeignKey(Proposal,related_name='electoral_roll_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Electoral Roll Document"
+
+
 # Vessel details per Proposal 
 # - allows for customer to edit vessel details during application process
 #class VesselRelations(models.Model):

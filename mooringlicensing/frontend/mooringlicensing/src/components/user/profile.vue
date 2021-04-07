@@ -181,7 +181,7 @@
                     <label for="electoral_roll_silent">
                         I am a silent elector
                     </label>
-                    <div v-if="profile.electoral_roll==='silent'">
+                    <div v-if="silentElector===true">
                         <FileField
                             headerCSS="ml-3"
                             label="Provide evidence"
@@ -208,6 +208,9 @@ import FileField from '@/components/forms/filefield_immediate.vue'
 export default {
     name: 'Profile',
     props:{
+        proposalId: {
+            type: Number,
+        },
         isApplication:{
                 type: Boolean,
                 default: false
@@ -302,8 +305,8 @@ export default {
             let url = '';
             if (this.profile && this.profile.id) {
                 url = helpers.add_endpoint_join(
-                    '/api/users/',
-                    this.profile.id + '/process_electoral_roll_document/'
+                    '/api/proposal/',
+                    this.proposalId + '/process_electoral_roll_document/'
                 )
             }
             return url;
