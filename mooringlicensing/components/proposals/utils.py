@@ -323,9 +323,9 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == AnnualAdmissionApplication:
         save_proponent_data_common(instance, request, viewset)
     elif type(instance.child_obj) == AuthorisedUserApplication:
-        save_proponent_data_aua(instance, request, viewset)
+        save_proponent_data_common(instance, request, viewset)
     elif type(instance.child_obj) == MooringLicenceApplication:
-        save_proponent_data_mla(instance, request, viewset)
+        save_proponent_data_common(instance, request, viewset)
 
 
 def save_proponent_data_common(instance, request, viewset):
