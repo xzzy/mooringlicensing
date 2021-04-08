@@ -1,6 +1,8 @@
 from dateutil.relativedelta import relativedelta
 from django import forms
 from django.contrib import admin
+from django.db.models import Min
+
 from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
 from mooringlicensing.components.proposals.models import ProposalType
 
@@ -103,3 +105,8 @@ class FeeSeasonAdmin(admin.ModelAdmin):
 class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "fee_season":
+            kwargs["queryset"] = FeeSeason.objects.annotate(s_date=Min("fee_periods__start_date")).order_by('s_date')
+        return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
