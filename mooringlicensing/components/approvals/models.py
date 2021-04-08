@@ -31,6 +31,7 @@ from mooringlicensing.components.approvals.email import (
 #from mooringlicensing.utils import search_keys, search_multiple_keys
 from mooringlicensing.helpers import is_customer
 #from mooringlicensing.components.approvals.email import send_referral_email_notification
+from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT
 
 
 def update_approval_doc_filename(instance, filename):
@@ -257,7 +258,7 @@ class Approval(RevisionedMixin):
 #            else:
             renew_conditions = {
                 'previous_application': self.current_proposal,
-                'proposal_type': 'renewal'
+                'proposal_type': PROPOSAL_TYPE_RENEWAL,
             }
             proposal=Proposal.objects.get(**renew_conditions)
             if proposal:
@@ -270,7 +271,7 @@ class Approval(RevisionedMixin):
         try:
             amend_conditions = {
                     'previous_application': self.current_proposal,
-                    'proposal_type': 'amendment'
+                    'proposal_type': PROPOSAL_TYPE_AMENDMENT,
                     }
             proposal=Proposal.objects.get(**amend_conditions)
             if proposal:
