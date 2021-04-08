@@ -377,6 +377,8 @@ def submit_vessel_data(instance, request):
     # now write to VesselDetails and VesselOwnership from Proposal, not request.data
     vessel_data = request.data.get("vessel")
     if vessel_data:
+        if not vessel_data.get('rego_no'):
+            raise ValueError("You must supply a Vessel Registration Number")
         rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
         vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
         
@@ -448,62 +450,43 @@ def save_assessor_data(instance,request,viewset):
 def proposal_submit(proposal,request):
         with transaction.atomic():
             if proposal.can_user_edit:
-                proposal.submitter = request.user
-                #proposal.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
                 proposal.lodgement_date = timezone.now()
-                proposal.training_completed = True
-                if (proposal.amendment_requests):
-                    qs = proposal.amendment_requests.filter(status = "requested")
-                    if (qs):
-                        for q in qs:
-                            q.status = 'amended'
-                            q.save()
+                #proposal.training_completed = True
+                #if (proposal.amendment_requests):
+                #    qs = proposal.amendment_requests.filter(status = "requested")
+                #    if (qs):
+                #        for q in qs:
+                #            q.status = 'amended'
+                #            q.save()
 
                 # Create a log entry for the proposal
                 proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
-                # Create a log entry for the organisation
-                #proposal.applicant.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
-                applicant_field=getattr(proposal, proposal.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
 
-                # print('requirement block')
-                # default_requirements=ProposalStandardRequirement.objects.filter(application_type=proposal.application_type, default=True, obsolete=False)
-                # print('default', default_requirements)
-                # if default_requirements:
-                #     for req in default_requirements:
-                #         print ('req',req)
-                #         try:
-                #             r, created=ProposalRequirement.objects.get_or_create(proposal=proposal, standard_requirement=req)
-                #             print(r, created, r.id)
-                #         except:
-                #             raise
-        
-                ret1 = send_submit_email_notification(request, proposal)
-                ret2 = send_external_submit_email_notification(request, proposal)
+                #ret1 = send_submit_email_notification(request, proposal)
+                #ret2 = send_external_submit_email_notification(request, proposal)
 
-                #proposal.save_form_tabs(request)
-                if ret1 and ret2:
-                    proposal.processing_status = 'with_assessor'
-                    proposal.customer_status = 'with_assessor'
-                    proposal.documents.all().update(can_delete=False)
-                    proposal.required_documents.all().update(can_delete=False)
-                    proposal.save()
-                else:
-                    raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+                #if ret1 and ret2:
+                #    proposal.processing_status = 'with_assessor'
+                #    proposal.customer_status = 'with_assessor'
+                #    #proposal.documents.all().update(can_delete=False)
+                #    #proposal.required_documents.all().update(can_delete=False)
+                #    proposal.save()
+                #else:
+                #    raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
                 #Create assessor checklist with the current assessor_list type questions
                 #Assessment instance already exits then skip.
-                try:
-                    assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
-                except ProposalAssessment.DoesNotExist:
-                    assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
-                    checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', application_type=proposal.application_type, obsolete=False)
-                    for chk in checklist:
-                        try:
-                            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
-                        except ProposalAssessmentAnswer.DoesNotExist:
-                            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
+                #try:
+                #    assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
+                #except ProposalAssessment.DoesNotExist:
+                #    assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
+                #    checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', application_type=proposal.application_type, obsolete=False)
+                #    for chk in checklist:
+                #        try:
+                #            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
+                #        except ProposalAssessmentAnswer.DoesNotExist:
+                #            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
 
-                return proposal
+                #return proposal
 
             else:
                 raise ValidationError('You can\'t edit this proposal at this moment')

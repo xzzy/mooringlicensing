@@ -433,12 +433,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         Organisation,
         blank=True,
         null=True,
-        related_name='org_applications')
+        related_name='org_applications') # not currently used in ML
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     lodgement_date = models.DateTimeField(blank=True, null=True)
 
-    proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy')
+    proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy') # not currently used by ML
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals')
 
     assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
