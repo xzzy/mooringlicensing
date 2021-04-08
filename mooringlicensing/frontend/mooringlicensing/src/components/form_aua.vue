@@ -22,6 +22,11 @@
                   3. Insurance
                 </a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" id="pills-mooring-tab" data-toggle="pill" href="#pills-mooring" role="tab" aria-controls="pills-mooring" aria-selected="false">
+                  4. Mooring
+                </a>
+              </li>
               <!--li class="nav-item">
                 <a class="nav-link" id="pills-activities-marine-tab" data-toggle="pill" href="#pills-activities-marine" role="tab" aria-controls="pills-activities-marine" aria-selected="false">
                   3. Activities (marine)
@@ -89,6 +94,13 @@
                   ref="insurance"
                   />
               </div>
+              <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
+                  <MooringAuthorisation
+                  :proposal="proposal" 
+                  id="mooring_authorisation" 
+                  ref="mooring_authorisation"
+                  />
+              </div>
 
               <!--div class="tab-pane fade" id="pills-activities-land" role="tabpanel" aria-labelledby="pills-activities-land-tab">
                 <ActivitiesLand :proposal="proposal" id="proposalStartActivitiesLand" :canEditActivities="canEditActivities" :proposal_parks="proposal_parks" ref="activities_land"></ActivitiesLand>
@@ -120,6 +132,7 @@
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
     import Insurance from '@/components/common/insurance.vue'
+    import MooringAuthorisation from '@/components/common/mooring_authorisation.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
     import ActivitiesLand from '@/components/common/tclass/activities_land.vue'
@@ -183,6 +196,7 @@
             Confirmation,
             Vessels,
             Insurance,
+            MooringAuthorisation,
             /*
             ActivitiesLand,
             ActivitiesMarine,
