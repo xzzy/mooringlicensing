@@ -35,7 +35,6 @@ class ApplicationFeeView(TemplateView):
             with transaction.atomic():
                 set_session_application_invoice(request.session, application_fee)
 
-                # TODO implement this function correctly
                 lines, db_processes_after_success = create_fee_lines(proposal)
 
                 request.session['db_processes'] = db_processes_after_success
