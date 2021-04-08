@@ -19,7 +19,7 @@ class FeePeriodFormSet(forms.models.BaseInlineFormSet):
             pass
         else:
             # There are more than one periods configured
-            # Check if all the period sit in one year span
+            # Check if all the periods sit in one year span
             sorted_cleaned_data = sorted(self.cleaned_data, key=lambda item: item['start_date'])
             start_date = sorted_cleaned_data[0]['start_date']
             end_date = sorted_cleaned_data[num_of_periods - 1]['start_date']
@@ -52,8 +52,9 @@ class FeeSeasonForm(forms.ModelForm):
         fields = '__all__'
 
     def clean(self):
-        if self.cleaned_data['name']:
-            return self.cleaned_data
+        cleaned_data = super(FeeSeasonForm, self).clean()
+        if cleaned_data['name']:
+            return cleaned_data
         else:
             raise forms.ValidationError('Please enter the name field.')
 
@@ -79,20 +80,7 @@ class FeeConstructorForm(forms.ModelForm):
         fields = '__all__'
 
     def clean(self):
-        fee_constructor = self.instance
-        proposal_types = ProposalType.objects.all()
-
-        application_type = self.cleaned_data['application_type']
-        print(application_type.description)
-        try:
-            for fee_period in self.cleaned_data['fee_season'].fee_periods.all():
-                for vessel_size_category in self.cleaned_data['vessel_size_category_group'].vessel_size_categories.all():
-                    for proposal_type in proposal_types:
-                        fee_item, created = FeeItem.objects.get_or_create(fee_constructor=fee_constructor, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
-                        if created:
-                            print('Created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name, proposal_type.description))
-        except Exception as e:
-            print(e)
+        return super(FeeConstructorForm, self).clean()
 
 
 @admin.register(FeeSeason)
@@ -105,6 +93,8 @@ class FeeSeasonAdmin(admin.ModelAdmin):
 class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
+    # list_display = ('__str__', 'incur_gst', 'enabled',)
+    list_display = ('id', 'application_type', 'fee_season', 'vessel_size_category_group', 'incur_gst', 'enabled',)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "fee_season":

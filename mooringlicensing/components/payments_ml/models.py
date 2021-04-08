@@ -1,10 +1,14 @@
 import datetime
+import logging
 from decimal import Decimal
 
 import pytz
 from dateutil.relativedelta import relativedelta
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q, Max, Min
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
@@ -165,9 +169,9 @@ class FeePeriod(RevisionedMixin):
 
 
 class FeeConstructor(RevisionedMixin):
-    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
-    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True)
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
+    fee_season = models.ForeignKey(FeeSeason, null=False, blank=False)
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False)
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
 
@@ -185,38 +189,63 @@ class FeeConstructor(RevisionedMixin):
             # Fees are probably not configured yet...
             return None
 
+    def validate_unique(self, exclude=None):
+        # Conditional unique together validation
+        # unique_together in the Meta cannot handle conditional unique_together
+        if self.enabled:
+            if FeeConstructor.objects.exclude(id=self.id).filter(enabled=True, application_type=self.application_type, fee_season=self.fee_season).exists():
+                # An application type cannot have the same fee_season multiple times.
+                # Which means a vessel_size_category_group can be determined by the application_type and the fee_season
+                raise ValidationError('Enabled Fee constructor with this Application type and Fee season already exists.')
+        super(FeeConstructor, self).validate_unique(exclude)
+
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        logger = logging.getLogger('payment_checkout')
+
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
-            fee_constructor = cls.objects.filter(application_type=application_type,)\
+            fee_constructor = None
+            fee_constructor_qs = cls.objects.filter(application_type=application_type,)\
                 .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
-                .filter(s_date__lte=target_date).order_by('s_date').last()
+                .filter(s_date__lte=target_date, enabled=True).order_by('s_date')
+
+            # Validation
+            if not fee_constructor_qs:
+                raise Exception('No fees are configured for the application type: {} on the date: {}'.format(application_type, target_date))
+            else:
+                # One or more fee constructors found
+                fee_constructor = fee_constructor_qs.last()
+
             if target_date <= fee_constructor.fee_season.end_date:
                 # fee_constructor object selected above has not ended yet
                 return fee_constructor
             else:
                 # fee_constructor object selected above has already ended
-                return None
+                raise Exception('No fees are configured for the application type: {} on the date: {}'.format(application_type, target_date))
         except Exception as e:
-            print(e)
-
-
-        # fee_constructor_qs = cls.objects.filter(application_type=application_type,)
-        # target_fee_constructor = None
-        # for fee_constructor in fee_constructor_qs:
-        #     if fee_constructor.fee_season.start_date <= target_date <= fee_constructor.fee_season.end_date:
-        #         # Seasons which have already started, but not ended yet.
-        #         if not target_fee_constructor or target_fee_constructor.fee_season.start_date < fee_constructor.fee_season.start_date:
-        #             # Pick the season which started most recently.
-        #             target_fee_constructor = fee_constructor
-        # return target_fee_constructor
+            logger.error('Error determining the fee: {}'.format(e))
+            raise
 
     class Meta:
         app_label = 'mooringlicensing'
-        # An application type cannot have the same fee_season multiple times.
-        # Which means a vessel_size_category_group can be determined by the application_type and the fee_season
-        unique_together = ('application_type', 'fee_season',)
+
+
+class FeeConstructorListener(object):
+
+    @staticmethod
+    @receiver(post_save, sender=FeeConstructor)
+    def _post_save(sender, instance, **kwargs):
+        proposal_types = ProposalType.objects.all()
+        try:
+            for fee_period in instance.fee_season.fee_periods.all():
+                for vessel_size_category in instance.vessel_size_category_group.vessel_size_categories.all():
+                    for proposal_type in proposal_types:
+                        fee_item, created = FeeItem.objects.get_or_create(fee_constructor=instance, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
+                        if created:
+                            print('Created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name, proposal_type.description))
+        except Exception as e:
+            print(e)
 
 
 class FeeItem(RevisionedMixin):
