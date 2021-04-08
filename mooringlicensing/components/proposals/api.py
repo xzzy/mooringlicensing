@@ -27,7 +27,8 @@ from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from mooringlicensing.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
-from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction
+from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
+    ProposalType
 #from mooringlicensing.utils import missing_required_fields
 from mooringlicensing.components.main.utils import check_db_connection
 
@@ -115,6 +116,9 @@ from reversion.models import Version
 from copy import deepcopy
 
 import logging
+
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW
+
 logger = logging.getLogger(__name__)
 
 
@@ -309,8 +313,11 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
         return AnnualAdmissionApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)  # TODO determine the proposal_type appropriately
+
         obj = AnnualAdmissionApplication.objects.create(
                 submitter=request.user,
+                proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
         return Response(serialized_obj.data)
@@ -384,8 +391,11 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         return WaitingListApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)  # TODO determine the proposal_type appropriately
+
         obj = WaitingListApplication.objects.create(
                 submitter=request.user,
+                proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
         return Response(serialized_obj.data)
@@ -1010,6 +1020,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             save_proponent_data(instance,request,self)
+            proposal_submit(instance, request)
             return redirect(reverse('external'))
 
     @detail_route(methods=['GET',])

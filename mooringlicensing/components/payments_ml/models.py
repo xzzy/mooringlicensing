@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytz
 from dateutil.relativedelta import relativedelta
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Max, Min
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
@@ -186,15 +186,26 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        fee_constructor_qs = cls.objects.filter(application_type=application_type,)
-        target_fee_constructor = None
-        for fee_constructor in fee_constructor_qs:
-            if fee_constructor.fee_season.start_date <= target_date <= fee_constructor.fee_season.end_date:
-                # Seasons which have already started, but not ended yet.
-                if not target_fee_constructor or target_fee_constructor.fee_season.start_date < fee_constructor.fee_season.start_date:
-                    # Pick the season which started most recently.
-                    target_fee_constructor = fee_constructor
-        return target_fee_constructor
+        # Select a fee_constructor object which has been started most recently for the application_type
+        fee_constructor = cls.objects.filter(application_type=application_type,)\
+            .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
+            .filter(s_date__lte=target_date).order_by('s_date').last()
+        if target_date <= fee_constructor.fee_season.end_date:
+            # fee_constructor object selected above has not ended yet
+            return fee_constructor
+        else:
+            # fee_constructor object selected above has already ended
+            return None
+
+        # fee_constructor_qs = cls.objects.filter(application_type=application_type,)
+        # target_fee_constructor = None
+        # for fee_constructor in fee_constructor_qs:
+        #     if fee_constructor.fee_season.start_date <= target_date <= fee_constructor.fee_season.end_date:
+        #         # Seasons which have already started, but not ended yet.
+        #         if not target_fee_constructor or target_fee_constructor.fee_season.start_date < fee_constructor.fee_season.start_date:
+        #             # Pick the season which started most recently.
+        #             target_fee_constructor = fee_constructor
+        # return target_fee_constructor
 
     class Meta:
         app_label = 'mooringlicensing'
