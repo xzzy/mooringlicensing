@@ -169,6 +169,7 @@ class FeeConstructor(RevisionedMixin):
     fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True)
     incur_gst = models.BooleanField(default=True)
+    enabled = models.BooleanField(default=True)
 
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
@@ -187,15 +188,19 @@ class FeeConstructor(RevisionedMixin):
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         # Select a fee_constructor object which has been started most recently for the application_type
-        fee_constructor = cls.objects.filter(application_type=application_type,)\
-            .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
-            .filter(s_date__lte=target_date).order_by('s_date').last()
-        if target_date <= fee_constructor.fee_season.end_date:
-            # fee_constructor object selected above has not ended yet
-            return fee_constructor
-        else:
-            # fee_constructor object selected above has already ended
-            return None
+        try:
+            fee_constructor = cls.objects.filter(application_type=application_type,)\
+                .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
+                .filter(s_date__lte=target_date).order_by('s_date').last()
+            if target_date <= fee_constructor.fee_season.end_date:
+                # fee_constructor object selected above has not ended yet
+                return fee_constructor
+            else:
+                # fee_constructor object selected above has already ended
+                return None
+        except Exception as e:
+            print(e)
+
 
         # fee_constructor_qs = cls.objects.filter(application_type=application_type,)
         # target_fee_constructor = None
