@@ -2,7 +2,7 @@
     <div>
 
         <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
-            <h4>Waiting List Application: {{proposal.lodgement_number}}</h4>
+            <h4>Mooring Licence Application: {{proposal.lodgement_number}}</h4>
         </div>
 
         <div class="col-md-12">
@@ -18,16 +18,11 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" id="pills-mooring-tab" data-toggle="pill" href="#pills-mooring" role="tab" aria-controls="pills-mooring" aria-selected="false">
-                  3. Mooring
+                <a class="nav-link" id="pills-insurance-tab" data-toggle="pill" href="#pills-insurance" role="tab" aria-controls="pills-insurance" aria-selected="false">
+                  3. Insurance
                 </a>
               </li>
               <!--li class="nav-item">
-                <a class="nav-link" id="pills-activities-land-tab" data-toggle="pill" href="#pills-activities-land" role="tab" aria-controls="pills-activities-land" aria-selected="false">
-                  2. Activities (land)
-                </a>
-              </li>
-              <li class="nav-item">
                 <a class="nav-link" id="pills-activities-marine-tab" data-toggle="pill" href="#pills-activities-marine" role="tab" aria-controls="pills-activities-marine" aria-selected="false">
                   3. Activities (marine)
                 </a>
@@ -89,11 +84,11 @@
                   ref="vessels"
                   />
               </div>
-              <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
-                  <Mooring
+              <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
+                  <Insurance
                   :proposal="proposal" 
-                  id="mooring" 
-                  ref="mooring"
+                  id="insurance" 
+                  ref="insurance"
                   />
               </div>
 
@@ -126,7 +121,7 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
-    import Mooring from '@/components/common/mooring.vue'
+    import Insurance from '@/components/common/insurance.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
     import ActivitiesLand from '@/components/common/tclass/activities_land.vue'
@@ -136,7 +131,7 @@
     import Confirmation from '@/components/common/tclass/confirmation.vue'
     */
     export default {
-        name: 'WaitingListApplication',
+        name: 'MooringLicenceApplication',
         props:{
             proposal:{
                 type: Object,
@@ -189,7 +184,7 @@
             Applicant,
             Confirmation,
             Vessels,
-            Mooring,
+            Insurance,
             /*
             ActivitiesLand,
             ActivitiesMarine,
@@ -213,6 +208,15 @@
                     return this.proposal.applicant_type;
                 }
             },
+            /*
+            showElectoralRoll: function() {
+                let show = false;
+                if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+                    show = true;
+                }
+                return show;
+            },
+            */
         },
         methods:{
             populateProfile: function(profile) {

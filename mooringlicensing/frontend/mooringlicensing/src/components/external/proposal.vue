@@ -50,6 +50,20 @@
             ref="annual_admission_application"
             :showElectoralRoll="showElectoralRoll"
             />
+            <AuthorisedUserApplication
+            v-if="proposal && proposal.application_type_code==='aua'"
+            :proposal="proposal" 
+            :is_external="true" 
+            ref="authorised_user_application"
+            />
+            <MooringLicenceApplication
+            v-if="proposal && proposal.application_type_code==='mla'"
+            :proposal="proposal" 
+            :is_external="true" 
+            ref="mooring_licence_application"
+            :showElectoralRoll="showElectoralRoll"
+            />
+
             <div>
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -99,6 +113,8 @@ import ProposalEvent from '../form_event.vue'
 */
 import WaitingListApplication from '../form_wla.vue';
 import AnnualAdmissionApplication from '../form_aaa.vue';
+import AuthorisedUserApplication from '../form_aua.vue';
+import MooringLicenceApplication from '../form_mla.vue';
 import Vue from 'vue' 
 import {
   api_endpoints,
@@ -129,6 +145,8 @@ export default {
   components: {
       WaitingListApplication,
       AnnualAdmissionApplication,
+      AuthorisedUserApplication,
+      MooringLicenceApplication,
       /*
       ProposalTClass,
       ProposalFilming,
@@ -191,6 +209,10 @@ export default {
           return this.$refs.waiting_list_application;
       } else if (this.proposal.application_type_code == 'aaa') {
           return this.$refs.annual_admission_application;
+      } else if (this.proposal.application_type_code == 'aua') {
+          return this.$refs.authorised_user_application;
+      } else if (this.proposal.application_type_code == 'mla') {
+          return this.$refs.mooring_licence_application;
       } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
       } else if(vm.proposal.application_type == vm.application_type_event) {
@@ -250,18 +272,42 @@ export default {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
             }
-            if (this.$refs.waiting_list_application.$refs.mooring) {
+            if (this.$refs.waiting_list_application.$refs.profile.silentElector !== null) {
+                payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
+            }
+            if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
                 payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
             }
-        }
         // AAA
-        if (this.$refs.annual_admission_application) {
+        } else if (this.$refs.annual_admission_application) {
             if (this.$refs.annual_admission_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
             }
-            if (this.$refs.annual_admission_application.$refs.insurance) {
+            if (this.$refs.annual_admission_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
+            }
+        // AUA
+        } else if (this.$refs.authorised_user_application) {
+            if (this.$refs.authorised_user_application.$refs.vessels) {
+                payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
+            }
+            if (this.$refs.authorised_user_application.$refs.insurance.selectedOption) {
+                // modify if additional proposal attributes required
+                payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
+            }
+        // MLA
+        } else if (this.$refs.mooring_licence_application) {
+            if (this.$refs.mooring_licence_application.$refs.vessels) {
+                payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
+            }
+            if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
+            //if (this.$refs.mooring_licence_application.$refs.profile.profile.hasOwnProperty('silent_elector')) {
+                payload.proposal.silent_elector = this.$refs.mooring_licence_application.$refs.profile.silentElector;
+            }
+            if (this.$refs.mooring_licence_application.$refs.insurance.selectedOption) {
+                // modify if additional proposal attributes required
+                payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
             }
         }
 
