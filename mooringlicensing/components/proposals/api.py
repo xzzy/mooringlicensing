@@ -313,7 +313,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
         return AnnualAdmissionApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)  # TODO determine the proposal_type appropriately
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
 
         obj = AnnualAdmissionApplication.objects.create(
                 submitter=request.user,
@@ -341,8 +341,11 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
         return AuthorisedUserApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+
         obj = AuthorisedUserApplication.objects.create(
                 submitter=request.user,
+                proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
         return Response(serialized_obj.data)
@@ -366,8 +369,11 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
         return MooringLicenceApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+
         obj = MooringLicenceApplication.objects.create(
                 submitter=request.user,
+                proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
         return Response(serialized_obj.data)
@@ -391,7 +397,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         return WaitingListApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)  # TODO determine the proposal_type appropriately
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
 
         obj = WaitingListApplication.objects.create(
                 submitter=request.user,
@@ -664,29 +670,29 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = InternalEventProposalSerializer(instance,context={'request':request})
         return Response(serializer.data)
 
-    @detail_route(methods=['post'])
-    @renderer_classes((JSONRenderer,))
-    def submit(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            #instance.submit(request,self)
-            proposal_submit(instance, request)
-            instance.save()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-            #return redirect(reverse('external'))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+    #@detail_route(methods=['post'])
+    #@renderer_classes((JSONRenderer,))
+    #def submit(self, request, *args, **kwargs):
+    #    try:
+    #        instance = self.get_object()
+    #        #instance.submit(request,self)
+    #        proposal_submit(instance, request)
+    #        instance.save()
+    #        serializer = self.get_serializer(instance)
+    #        return Response(serializer.data)
+    #        #return redirect(reverse('external'))
+    #    except serializers.ValidationError:
+    #        print(traceback.print_exc())
+    #        raise
+    #    except ValidationError as e:
+    #        if hasattr(e,'error_dict'):
+    #            raise serializers.ValidationError(repr(e.error_dict))
+    #        else:
+    #            if hasattr(e,'message'):
+    #                raise serializers.ValidationError(e.message)
+    #    except Exception as e:
+    #        print(traceback.print_exc())
+    #        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
@@ -1021,7 +1027,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             save_proponent_data(instance,request,self)
             proposal_submit(instance, request)
-            return redirect(reverse('external'))
+            #return redirect(reverse('external'))
+            #return Response(status_code=status.HTTP_200_OK)
+            return Response()
 
     @detail_route(methods=['GET',])
     def fetch_vessel(self, request, *args, **kwargs):
@@ -1043,7 +1051,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
+                raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -1070,7 +1078,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             #if application_name==ApplicationType.TCLASS:
             #    serializer = SaveProposalSerializer(instance,data=request.data)
-            #elif application_name==ApplicationType.FILMING:
+            #elif application_name==ApationType.FILMING:
             #    serializer=ProposalFilmingOtherDetailsSerializer(data=other_details_data)
             #elif application_name==ApplicationType.EVENT:
             #    serializer=ProposalEventOtherDetailsSerializer(data=other_details_data)
