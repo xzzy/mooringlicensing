@@ -256,7 +256,7 @@ export default {
 
       return formData;
     },
-    save: function(withConfirm=true) {
+    save: function(withConfirm=true, url=this.proposal_form_url) {
         let vm = this;
         vm.savingProposal=true;
         vm.save_applicant_data();
@@ -311,7 +311,8 @@ export default {
             }
         }
 
-        vm.$http.post(vm.proposal_form_url,payload).then(res=>{
+        //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
+        vm.$http.post(url, payload).then(res=>{
             if (withConfirm) {
                 swal(
                     'Saved',
@@ -361,7 +362,7 @@ export default {
     save_and_redirect: async function() {
         let formData = this.set_formData()
 
-        await this.save(false);
+        await this.save(false, this.proposal_submit_url);
         await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
     },
 
