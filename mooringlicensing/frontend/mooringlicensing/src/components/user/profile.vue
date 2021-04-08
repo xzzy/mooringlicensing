@@ -164,22 +164,24 @@
         </div>
         <FormSection v-if="showElectoralRoll" label="WA State Electoral Roll">
             <div class="form-group">
-                <div class="col-sm-8">
-                    <label for="electoral_roll" class="control-label">
+                <div class="col-sm-8 mb-3">
+                    <strong>
                         You must be on the WA state electoral roll to make an application
+                    </strong>
+                </div>
+                <div class="col-sm-8">
+                    <input type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
+                    <label for="electoral_roll_yes">
+                        Yes, I am on the 
+                        <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
                     </label>
                 </div>
                 <div class="col-sm-8">
-                    <input type="radio" name="electoral_roll_yes" value="yes" v-model="profile.electoral_roll">
-                    Yes, I am on the 
-                    <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
-                    </input>
-                </div>
-                <div class="col-sm-8">
-                    <input class="mb-3" type="radio" name="electoral_roll_silent" value="silent" v-model="profile.electoral_roll">
-                    I am a silent elector
-                    </input>
-                    <div v-if="profile.electoral_roll==='silent'">
+                    <input class="mb-3" type="radio" id="electoral_roll_silent" :value="true" v-model="silentElector"/>
+                    <label for="electoral_roll_silent">
+                        I am a silent elector
+                    </label>
+                    <div v-if="silentElector===true">
                         <FileField
                             headerCSS="ml-3"
                             label="Provide evidence"
@@ -206,6 +208,9 @@ import FileField from '@/components/forms/filefield_immediate.vue'
 export default {
     name: 'Profile',
     props:{
+        proposalId: {
+            type: Number,
+        },
         isApplication:{
                 type: Boolean,
                 default: false
@@ -214,11 +219,15 @@ export default {
                 type: Boolean,
                 default: false
             },
+        storedSilentElector:{
+                type: Boolean,
+            },
 
     },
     data () {
         let vm = this;
         return {
+            silentElector: null,
             adBody: 'adBody'+vm._uid,
             pBody: 'pBody'+vm._uid,
             cBody: 'cBody'+vm._uid,
@@ -296,8 +305,8 @@ export default {
             let url = '';
             if (this.profile && this.profile.id) {
                 url = helpers.add_endpoint_join(
-                    '/api/users/',
-                    this.profile.id + '/process_electoral_roll_document/'
+                    '/api/proposal/',
+                    this.proposalId + '/process_electoral_roll_document/'
                 )
             }
             return url;
@@ -820,6 +829,9 @@ export default {
                 $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
             },100);
         });
+        // read in storedSilentElector
+        //if (this.storedSilentElector !== null) {
+        this.silentElector = this.storedSilentElector;
     }
 }
 </script>
@@ -847,6 +859,9 @@ export default {
 }
 .mb-3 {
     margin-bottom: 1em !important;
+}
+.electoral-label {
+    margin-bottom: 25px !important;
 }
 
 </style>
