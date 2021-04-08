@@ -251,6 +251,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'insurance_choice',
                 'preferred_bay_id',
                 'silent_elector',
+                'bay_preferences_numbered',
                 )
         read_only_fields=('documents',)
 
@@ -418,6 +419,7 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'insurance_choice',
                 'preferred_bay_id',
                 'silent_elector',
+                'bay_preferences_numbered',
                 )
         read_only_fields=('id',)
 
