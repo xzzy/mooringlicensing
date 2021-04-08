@@ -256,7 +256,7 @@ export default {
 
       return formData;
     },
-    save: function(withConfirm=true, url=this.proposal_form_url) {
+    save: async function(withConfirm=true, url=this.proposal_form_url) {
         let vm = this;
         vm.savingProposal=true;
         vm.save_applicant_data();
@@ -312,7 +312,8 @@ export default {
         }
 
         //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
-        vm.$http.post(url, payload).then(res=>{
+        const res = await vm.$http.post(url, payload);
+        if (res.ok) {
             if (withConfirm) {
                 swal(
                     'Saved',
@@ -321,16 +322,16 @@ export default {
                 );
             };
             vm.savingProposal=false;
-        },err=>{
-            console.log(err)
+            console.log(res);
+            return res;
+        } else {
             swal({
                 title: "Please fix following errors before saving",
                 text: err.bodyText,
                 type:'error'
             });
-
             vm.savingProposal=false;
-        });
+        }
     },
     save_exit: function() {
       let vm = this;
@@ -359,11 +360,14 @@ export default {
       */
     },
 
-    save_and_redirect: async function() {
+    submit_and_pay: async function() {
         let formData = this.set_formData()
 
-        await this.save(false, this.proposal_submit_url);
-        await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+        const res = await this.save(false, this.proposal_submit_url);
+        console.log(res);
+        if (res.ok) {
+            await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+        }
     },
 
     setdata: function(readonly){
@@ -566,7 +570,7 @@ export default {
       }
 
     },
-    submit: function(){
+    submit: async function(){
         let vm = this;
         //let formData = vm.set_formData()
         /*
@@ -586,40 +590,36 @@ export default {
         vm.submitting = true;
         vm.paySubmitting=true;
 
-        swal({
+        await swal({
             title: vm.submit_text() + " Application",
             text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
             type: "question",
             showCancelButton: true,
             confirmButtonText: vm.submit_text()
-        }).then(() => {
-          
-            // Filming has deferred payment once assessor decides whether 'Licence' (fee) or 'Lawful Authority' (no fee) is to be issued
-            // if (!vm.proposal.fee_paid || vm.proposal.application_type!='Filming') {
-            if (!vm.proposal.fee_paid) {
-                vm.save_and_redirect();
+        })
+      
+        // Filming has deferred payment once assessor decides whether 'Licence' (fee) or 'Lawful Authority' (no fee) is to be issued
+        // if (!vm.proposal.fee_paid || vm.proposal.application_type!='Filming') {
+        if (!vm.proposal.fee_paid) {
+            await vm.submit_and_pay();
 
-            } else {
-                /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-                vm.save_wo_confirm()
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-                    vm.proposal = res.body;
-                    vm.$router.push({
-                        name: 'submit_proposal',
-                        params: { proposal: vm.proposal}
-                    });
-                },err=>{
-                    swal(
-                        'Submit Error',
-                        helpers.apiVueResourceError(err),
-                        'error'
-                    )
+        } else {
+            /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+            vm.save_wo_confirm()
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
+                vm.proposal = res.body;
+                vm.$router.push({
+                    name: 'submit_proposal',
+                    params: { proposal: vm.proposal}
                 });
-            }
-        },(error) => {
-          vm.paySubmitting=false;
-        });
-        //vm.paySubmitting=false;
+            },err=>{
+                swal(
+                    'Submit Error',
+                    helpers.apiVueResourceError(err),
+                    'error'
+                )
+            });
+        }
     },
 
     post_and_redirect: function(url, postData) {
