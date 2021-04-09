@@ -95,7 +95,7 @@ class UserFilterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    mooringlicensing_organisations = serializers.SerializerMethodField()
+    #mooringlicensing_organisations = serializers.SerializerMethodField()
     residential_address = UserAddressSerializer()
     personal_details = serializers.SerializerMethodField()
     address_details = serializers.SerializerMethodField()
@@ -119,7 +119,7 @@ class UserSerializer(serializers.ModelSerializer):
             'residential_address',
             'phone_number',
             'mobile_number',
-            'mooringlicensing_organisations',
+            #'mooringlicensing_organisations',
             'personal_details',
             'address_details',
             'contact_details',
@@ -159,12 +159,12 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_payment_admin(self, obj):
         return is_payment_admin(obj)
 
-    def get_mooringlicensing_organisations(self, obj):
-        mooringlicensing_organisations = obj.mooringlicensing_organisations
-        serialized_orgs = UserOrganisationSerializer(
-            mooringlicensing_organisations, many=True, context={
-                'user_id': obj.id}).data
-        return serialized_orgs
+    #def get_mooringlicensing_organisations(self, obj):
+    #    mooringlicensing_organisations = obj.mooringlicensing_organisations
+    #    serialized_orgs = UserOrganisationSerializer(
+    #        mooringlicensing_organisations, many=True, context={
+    #            'user_id': obj.id}).data
+    #    return serialized_orgs
 
     def get_system_settings(self, obj):
         try:
