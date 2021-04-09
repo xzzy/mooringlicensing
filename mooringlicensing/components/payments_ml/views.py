@@ -151,12 +151,13 @@ class ApplicationFeeSuccessView(TemplateView):
         return render(request, self.template_name, context)
 
     def adjust_db_operations(self, db_operations):
+        print(db_operations)
         return
 
 
-        proposal_apiary = ProposalApiary.objects.get(id=db_operations['proposal_apiary_id'])
-
-        proposal_apiary.post_payment_success()
+        # proposal_apiary = ProposalApiary.objects.get(id=db_operations['proposal_apiary_id'])
+        #
+        # proposal_apiary.post_payment_success()
         # non vacant site
         # for site_id in db_operations['apiary_site_ids']:
         #     apiary_site = ApiarySite.objects.get(id=site_id)
@@ -171,26 +172,26 @@ class ApplicationFeeSuccessView(TemplateView):
 
         # Perform database operations to remove and/or store site remainders
         # site remainders used
-        for item in db_operations['site_remainder_used']:
-            site_remainder = ApiarySiteFeeRemainder.objects.get(id=item['id'])
-            site_remainder.date_used = datetime.strptime(item['date_used'], '%Y-%m-%d')
-            site_remainder.save()
-
-        # site remainders added
-        for item in db_operations['site_remainder_to_be_added']:
-            apiary_site_fee_type = ApiarySiteFeeType.objects.get(name=item['apiary_site_fee_type_name'])
-            site_category = SiteCategory.objects.get(id=item['site_category_id'])
-            # date_expiry = datetime.strptime(item['date_expiry'], '%Y-%m-%d')
-            applicant = Organisation.objects.get(id=item['applicant_id']) if item['applicant_id'] else None
-            proxy_applicant = EmailUser.objects.get(id=item['proxy_applicant_id']) if item[
-                'proxy_applicant_id'] else None
-
-            site_remainder = ApiarySiteFeeRemainder.objects.create(
-                site_category=site_category,
-                apiary_site_fee_type=apiary_site_fee_type,
-                applicant=applicant,
-                proxy_applicant=proxy_applicant,
-            )
+        # for item in db_operations['site_remainder_used']:
+        #     site_remainder = ApiarySiteFeeRemainder.objects.get(id=item['id'])
+        #     site_remainder.date_used = datetime.strptime(item['date_used'], '%Y-%m-%d')
+        #     site_remainder.save()
+        #
+        # # site remainders added
+        # for item in db_operations['site_remainder_to_be_added']:
+        #     apiary_site_fee_type = ApiarySiteFeeType.objects.get(name=item['apiary_site_fee_type_name'])
+        #     site_category = SiteCategory.objects.get(id=item['site_category_id'])
+        #     # date_expiry = datetime.strptime(item['date_expiry'], '%Y-%m-%d')
+        #     applicant = Organisation.objects.get(id=item['applicant_id']) if item['applicant_id'] else None
+        #     proxy_applicant = EmailUser.objects.get(id=item['proxy_applicant_id']) if item[
+        #         'proxy_applicant_id'] else None
+        #
+        #     site_remainder = ApiarySiteFeeRemainder.objects.create(
+        #         site_category=site_category,
+        #         apiary_site_fee_type=apiary_site_fee_type,
+        #         applicant=applicant,
+        #         proxy_applicant=proxy_applicant,
+        #     )
 
 
 class InvoicePDFView(View):
