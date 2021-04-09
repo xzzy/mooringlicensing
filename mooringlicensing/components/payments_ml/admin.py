@@ -3,8 +3,7 @@ from django import forms
 from django.contrib import admin
 from django.db.models import Min
 
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem, ApplicationFee
-from mooringlicensing.components.proposals.models import ProposalType
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
 
 
 class FeePeriodFormSet(forms.models.BaseInlineFormSet):

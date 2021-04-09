@@ -6,15 +6,15 @@ import pytz
 from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, Max, Min
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.db.models import Min
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
+
+logger = logging.getLogger('__name__')
 
 
 class Payment(RevisionedMixin):
@@ -239,23 +239,6 @@ class FeeConstructor(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
-class FeeConstructorListener(object):
-
-    @staticmethod
-    @receiver(post_save, sender=FeeConstructor)
-    def _post_save(sender, instance, **kwargs):
-        proposal_types = ProposalType.objects.all()
-        try:
-            for fee_period in instance.fee_season.fee_periods.all():
-                for vessel_size_category in instance.vessel_size_category_group.vessel_size_categories.all():
-                    for proposal_type in proposal_types:
-                        fee_item, created = FeeItem.objects.get_or_create(fee_constructor=instance, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
-                        if created:
-                            print('Created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name, proposal_type.description))
-        except Exception as e:
-            print(e)
-
-
 class FeeItem(RevisionedMixin):
     fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True)
     fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
@@ -268,3 +251,5 @@ class FeeItem(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
