@@ -95,25 +95,33 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
+
 def send_submit_email_notification(request, proposal):
     email = SubmitSendNotificationEmail()
-    url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
+    # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
         'url': url
     }
+    to_address = proposal.assessor_recipients
+    cc = []
+    bcc = []
 
-    msg = email.send(proposal.assessor_recipients, context=context)
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
     return msg
 
 def send_external_submit_email_notification(request, proposal):
