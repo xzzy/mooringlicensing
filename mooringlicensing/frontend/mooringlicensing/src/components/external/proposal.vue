@@ -296,8 +296,15 @@ export default {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
-            if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays) {
-                payload.proposal.bay_preferences_numbered = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
+            if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
+                payload.proposal.mooring_authorisation_preference = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
+                if (payload.proposal.mooring_authorisation_preference === 'ria') { 
+                    payload.proposal.bay_preferences_numbered = 
+                        this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
+                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') { 
+                    payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
+                    payload.proposal.mooring_site_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
+                }
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
