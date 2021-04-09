@@ -84,14 +84,9 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
 def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
+    # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
 
-    # if proposal.application_type.name == ApplicationType.APIARY:
-    #     line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
-    #     # line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
-    # elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-    #     line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
-    # else:
     lodgement_datetime = proposal.lodgement_date
     lodgement_datetime_str = lodgement_datetime.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%d/%m/%Y %H:%M')
     lodgement_date = lodgement_datetime.date()
@@ -101,6 +96,7 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     if not fee_constructor:
         # Fees have not been configured for this application type and date
         raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(proposal.application_type, lodgement_date))
+    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
 
     fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_applicable_length, lodgement_date)
 
