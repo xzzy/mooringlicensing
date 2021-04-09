@@ -295,6 +295,9 @@ export default {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
+            if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays) {
+                payload.proposal.bay_preferences_numbered = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
+            }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
             if (this.$refs.mooring_licence_application.$refs.vessels) {
