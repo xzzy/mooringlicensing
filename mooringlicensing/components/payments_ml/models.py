@@ -1,16 +1,20 @@
 import datetime
+import logging
 from decimal import Decimal
 
 import pytz
 from dateutil.relativedelta import relativedelta
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, Max, Min
+from django.db.models import Min
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
+
+logger = logging.getLogger('__name__')
 
 
 class Payment(RevisionedMixin):
@@ -107,6 +111,7 @@ class ApplicationFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
@@ -121,8 +126,11 @@ class FeeSeason(RevisionedMixin):
     # end_date = start_date + 1year
 
     def __str__(self):
+        num_item = self.fee_periods.count()
+        num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
+
         if self.start_date:
-            return '{} ({} to {})'.format(self.name, self.start_date, self.end_date)
+            return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
         else:
             return '{} (No periods found)'.format(self.name)
 
@@ -165,10 +173,11 @@ class FeePeriod(RevisionedMixin):
 
 
 class FeeConstructor(RevisionedMixin):
-    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
-    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True)
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True)
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
+    fee_season = models.ForeignKey(FeeSeason, null=False, blank=False)
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False)
     incur_gst = models.BooleanField(default=True)
+    enabled = models.BooleanField(default=True)
 
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
@@ -184,34 +193,50 @@ class FeeConstructor(RevisionedMixin):
             # Fees are probably not configured yet...
             return None
 
+    @property
+    def num_of_times_used_for_payment(self):
+        return self.application_fees.count()
+
+    def validate_unique(self, exclude=None):
+        # Conditional unique together validation
+        # unique_together in the Meta cannot handle conditional unique_together
+        if self.enabled:
+            if FeeConstructor.objects.exclude(id=self.id).filter(enabled=True, application_type=self.application_type, fee_season=self.fee_season).exists():
+                # An application type cannot have the same fee_season multiple times.
+                # Which means a vessel_size_category_group can be determined by the application_type and the fee_season
+                raise ValidationError('Enabled Fee constructor with this Application type and Fee season already exists.')
+        super(FeeConstructor, self).validate_unique(exclude)
+
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        # Select a fee_constructor object which has been started most recently for the application_type
-        fee_constructor = cls.objects.filter(application_type=application_type,)\
-            .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
-            .filter(s_date__lte=target_date).order_by('s_date').last()
-        if target_date <= fee_constructor.fee_season.end_date:
-            # fee_constructor object selected above has not ended yet
-            return fee_constructor
-        else:
-            # fee_constructor object selected above has already ended
-            return None
+        logger = logging.getLogger('payment_checkout')
 
-        # fee_constructor_qs = cls.objects.filter(application_type=application_type,)
-        # target_fee_constructor = None
-        # for fee_constructor in fee_constructor_qs:
-        #     if fee_constructor.fee_season.start_date <= target_date <= fee_constructor.fee_season.end_date:
-        #         # Seasons which have already started, but not ended yet.
-        #         if not target_fee_constructor or target_fee_constructor.fee_season.start_date < fee_constructor.fee_season.start_date:
-        #             # Pick the season which started most recently.
-        #             target_fee_constructor = fee_constructor
-        # return target_fee_constructor
+        # Select a fee_constructor object which has been started most recently for the application_type
+        try:
+            fee_constructor = None
+            fee_constructor_qs = cls.objects.filter(application_type=application_type,)\
+                .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
+                .filter(s_date__lte=target_date, enabled=True).order_by('s_date')
+
+            # Validation
+            if not fee_constructor_qs:
+                raise Exception('No fees are configured for the application type: {} on the date: {}'.format(application_type, target_date))
+            else:
+                # One or more fee constructors found
+                fee_constructor = fee_constructor_qs.last()
+
+            if target_date <= fee_constructor.fee_season.end_date:
+                # fee_constructor object selected above has not ended yet
+                return fee_constructor
+            else:
+                # fee_constructor object selected above has already ended
+                raise Exception('No fees are configured for the application type: {} on the date: {}'.format(application_type, target_date))
+        except Exception as e:
+            logger.error('Error determining the fee: {}'.format(e))
+            raise
 
     class Meta:
         app_label = 'mooringlicensing'
-        # An application type cannot have the same fee_season multiple times.
-        # Which means a vessel_size_category_group can be determined by the application_type and the fee_season
-        unique_together = ('application_type', 'fee_season',)
 
 
 class FeeItem(RevisionedMixin):
@@ -226,3 +251,5 @@ class FeeItem(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
