@@ -84,30 +84,25 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
 def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
+    # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
 
-    # if proposal.application_type.name == ApplicationType.APIARY:
-    #     line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
-    #     # line_items, db_processes_after_success = create_fee_lines_apiary(proposal)  # This function returns line items and db_processes as a tuple
-    # elif proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-    #     line_items, db_processes_after_success = create_fee_lines_site_transfer(proposal)  # This function returns line items and db_processes as a tuple
-    # else:
-    now = datetime.now(pytz.timezone(TIME_ZONE))
-    now_str = now.strftime('%Y-%m-%d %H:%M')
-    today = now.date()
+    lodgement_datetime = proposal.lodgement_date
+    lodgement_datetime_str = lodgement_datetime.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%d/%m/%Y %H:%M')
+    lodgement_date = lodgement_datetime.date()
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, today)
+    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, lodgement_date)
     if not fee_constructor:
         # Fees have not been configured for this application type and date
-        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(proposal.application_type, today))
+        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(proposal.application_type, lodgement_date))
+    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
 
-    # fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_length, today)
-    fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_length, today)
+    fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_applicable_length, lodgement_date)
 
     line_items = [
         {
-            'ledger_description': 'Application Fee - {} - {}'.format(now_str, proposal.lodgement_number),
+            'ledger_description': '{} Fee: {} - {}'.format(proposal.application_type.description,  proposal.lodgement_number, lodgement_datetime_str),
             # 'oracle_code': proposal.application_type.oracle_code_application,
             'oracle_code': 'aho',
             'price_incl_tax':  fee_item.amount,

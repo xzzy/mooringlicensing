@@ -268,7 +268,8 @@ class VesselSizeCategoryGroup(RevisionedMixin):
     # updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        num_item = self.vessel_size_categories.count()
+        return '{} ({} category)'.format(self.name, num_item) if num_item == 1 else '{} ({} categories)'.format(self.name, num_item)
 
     class Meta:
         verbose_name_plural = "Vessel Size Category Group"
