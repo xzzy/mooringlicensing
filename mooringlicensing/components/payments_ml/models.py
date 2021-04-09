@@ -193,6 +193,10 @@ class FeeConstructor(RevisionedMixin):
             # Fees are probably not configured yet...
             return None
 
+    @property
+    def num_of_times_used_for_payment(self):
+        return self.application_fees.count()
+
     def validate_unique(self, exclude=None):
         # Conditional unique together validation
         # unique_together in the Meta cannot handle conditional unique_together
