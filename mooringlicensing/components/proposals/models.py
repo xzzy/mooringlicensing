@@ -8,6 +8,7 @@ from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.postgres.fields.jsonb import JSONField
+from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 from django.conf import settings
 from ledger.accounts.models import EmailUser, RevisionedMixin
@@ -482,6 +483,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True)
     silent_elector = models.NullBooleanField() # if False, user is on electoral roll
+    bay_preferences_numbered = ArrayField(
+            models.IntegerField(null=True, blank=True),
+            blank=True,null=True,
+            )
 
     class Meta:
         app_label = 'mooringlicensing'
