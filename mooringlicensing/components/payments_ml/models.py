@@ -125,8 +125,11 @@ class FeeSeason(RevisionedMixin):
     # end_date = start_date + 1year
 
     def __str__(self):
+        num_item = self.fee_periods.count()
+        num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
+
         if self.start_date:
-            return '{} ({} to {})'.format(self.name, self.start_date, self.end_date)
+            return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
         else:
             return '{} (No periods found)'.format(self.name)
 
