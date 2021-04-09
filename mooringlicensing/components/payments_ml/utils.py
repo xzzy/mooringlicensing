@@ -102,7 +102,7 @@ def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
 
     line_items = [
         {
-            'ledger_description': '{} Fee<br /> - {} - {}'.format(proposal.application_type.description, lodgement_datetime_str, proposal.lodgement_number),
+            'ledger_description': '{} Fee: {} - {}'.format(proposal.application_type.description,  proposal.lodgement_number, lodgement_datetime_str),
             # 'oracle_code': proposal.application_type.oracle_code_application,
             'oracle_code': 'aho',
             'price_incl_tax':  fee_item.amount,
