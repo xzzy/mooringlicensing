@@ -103,11 +103,12 @@ def update_proposal_comms_log_filename(instance, filename):
 #    class Meta:
 #        app_label = 'mooringlicensing'
 
+
 class ProposalAssessorGroup(models.Model):
     name = models.CharField(max_length=255)
     members = models.ManyToManyField(EmailUser)
     #region = models.ForeignKey(Region, null=True, blank=True)
-    #efault = models.BooleanField(default=False)
+    #default = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -115,7 +116,9 @@ class ProposalAssessorGroup(models.Model):
         verbose_name_plural = "Application Assessor Group"
 
     def __str__(self):
-        return self.name
+        num_of_members = self.members.count()
+        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
+        return '{} ({})'.format(self.name, num_of_members_str)
 
     #def clean(self):
     #    try:
@@ -158,6 +161,7 @@ class ProposalAssessorGroup(models.Model):
 #    class Meta:
 #        app_label = 'mooringlicensing'
 
+
 class ProposalApproverGroup(models.Model):
     name = models.CharField(max_length=255)
     members = models.ManyToManyField(EmailUser)
@@ -170,7 +174,9 @@ class ProposalApproverGroup(models.Model):
         verbose_name_plural = "Application Approver Group"
 
     def __str__(self):
-        return self.name
+        num_of_members = self.members.count()
+        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
+        return '{} ({})'.format(self.name, num_of_members_str)
 
     #def clean(self):
     #    try:
@@ -768,17 +774,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 missing_fields.append(v)
         return missing_fields
 
-    #@property
-    #def assessor_recipients(self):
-    #    recipients = []
-    #    try:
-    #        recipients = ProposalAssessorGroup.objects.get(region=self.region).members_email
-    #    except:
-    #        recipients = ProposalAssessorGroup.objects.get(default=True).members_email
-    #    return recipients
+    @property
+    def assessor_recipients(self):
+        recipients = ProposalAssessorGroup.objects.first().members_email  # We expect there is only one assessor group
+        return recipients
 
-    #@property
-    #def approver_recipients(self):
+    @property
+    def approver_recipients(self):
+        recipients = ProposalApproverGroup.objects.first().members_email  # We expect there is only one assessor group
+        return recipients
     #    recipients = []
     #    try:
     #        recipients = ProposalApproverGroup.objects.get(region=self.region).members_email
@@ -788,11 +792,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     #Check if the user is member of assessor group for the Proposal
     def is_assessor(self,user):
-            return self.__assessor_group() in user.proposalassessorgroup_set.all()
+        return self.__assessor_group() in user.proposalassessorgroup_set.all()
 
     #Check if the user is member of assessor group for the Proposal
     def is_approver(self,user):
-            return self.__approver_group() in user.proposalapprovergroup_set.all()
+        return self.__approver_group() in user.proposalapprovergroup_set.all()
 
 
     def can_assess(self,user):
@@ -1671,7 +1675,8 @@ class ProposalLogEntry(CommunicationsLogEntry):
     def save(self, **kwargs):
         # save the application reference if the reference not provided
         if not self.reference:
-            self.reference = self.proposal.reference
+            if hasattr(self.proposal, 'reference'):
+                self.reference = self.proposal.reference
         super(ProposalLogEntry, self).save(**kwargs)
 
 
