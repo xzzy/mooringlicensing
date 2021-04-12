@@ -1,8 +1,11 @@
 import re
+
+import pytz
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from ledger.settings_base import TIME_ZONE
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser #, Document
 from mooringlicensing.components.proposals.models import (
@@ -447,10 +450,11 @@ def save_assessor_data(instance,request,viewset):
         except:
             raise
 
+
 def proposal_submit(proposal,request):
         with transaction.atomic():
             if proposal.can_user_edit:
-                proposal.lodgement_date = timezone.now()
+                proposal.lodgement_date = datetime.now(pytz.timezone(TIME_ZONE))
                 #proposal.training_completed = True
                 #if (proposal.amendment_requests):
                 #    qs = proposal.amendment_requests.filter(status = "requested")
@@ -462,17 +466,20 @@ def proposal_submit(proposal,request):
                 # Create a log entry for the proposal
                 proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
 
-                #ret1 = send_submit_email_notification(request, proposal)
+                ret1 = send_submit_email_notification(request, proposal)
                 #ret2 = send_external_submit_email_notification(request, proposal)
+                ret2 = True
 
-                #if ret1 and ret2:
-                #    proposal.processing_status = 'with_assessor'
-                #    proposal.customer_status = 'with_assessor'
+                if ret1 and ret2:
+                    proposal.processing_status = 'with_assessor'
+                    proposal.customer_status = 'with_assessor'
                 #    #proposal.documents.all().update(can_delete=False)
                 #    #proposal.required_documents.all().update(can_delete=False)
-                #    proposal.save()
-                #else:
-                #    raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+                    proposal.save()
+                else:
+                   raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+                proposal.save()
+
                 #Create assessor checklist with the current assessor_list type questions
                 #Assessment instance already exits then skip.
                 #try:

@@ -142,7 +142,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.proposal_type
+                            return full.proposal_type.description
                         }
                     },
                     {

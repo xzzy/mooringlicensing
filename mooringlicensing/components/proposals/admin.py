@@ -39,6 +39,7 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
 class ProposalAdmin(VersionAdmin):
     inlines =[ProposalDocumentInline,]
 
+
 @admin.register(models.ProposalAssessorGroup)
 class ProposalAssessorGroupAdmin(admin.ModelAdmin):
     #list_display = ['name','default']
@@ -48,7 +49,7 @@ class ProposalAssessorGroupAdmin(admin.ModelAdmin):
     #readonly_fields = ['regions', 'activities']
 
     def get_actions(self, request):
-        actions =  super(ProposalAssessorGroupAdmin, self).get_actions(request)
+        actions = super(ProposalAssessorGroupAdmin, self).get_actions(request)
         if 'delete_selected' in actions:
             del actions['delete_selected']
         return actions
