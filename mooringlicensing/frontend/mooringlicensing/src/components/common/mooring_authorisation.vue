@@ -19,7 +19,22 @@
             </div>
         </div>
 
-        <div v-if="mooringAuthPreference==='ria'" class="row form-group">
+        <div v-show="mooringAuthPreference==='site_licensee'">
+            <div class="row form-group">
+                <label for="site_licensee_email" class="col-sm-3 control-label">Site licensee email</label>
+                <div class="col-sm-9">
+                    <input class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
+                </div>
+            </div>
+            <div class="row form-group">
+                <label for="mooring_site_id" class="col-sm-3 control-label">Mooring site ID</label>
+                <div class="col-sm-9">
+                    <input class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/>
+                </div>
+            </div>
+        </div>
+
+        <div v-show="mooringAuthPreference==='ria'" class="row form-group">
             <draggable class="col-sm-6" v-model="mooringBays">
                     <div class="form-control" id="mooringList" v-for="mooring in mooringBays" :key="mooring.id">
                         {{ mooring.name }}
@@ -54,6 +69,8 @@ import draggable from 'vuedraggable';
             return {
                 mooringBays: [],
                 mooringAuthPreference: null,
+                siteLicenseeEmail: null,
+                mooringSiteId: null,
             }
         },
         computed: {
@@ -65,7 +82,6 @@ import draggable from 'vuedraggable';
                 const response = await this.$http.get(api_endpoints.mooring_bays);
                 // reorder array based on proposal.bay_preferences_numbered
                 if (this.proposal.bay_preferences_numbered) {
-                    console.log(this.proposal.bay_preferences_numbered);
                     let newArray = [];
                     for (let n of this.proposal.bay_preferences_numbered) {
                         const found = response.body.find(el => el.id === n);
@@ -85,7 +101,15 @@ import draggable from 'vuedraggable';
         mounted:function () {
             this.$nextTick(async () => {
                 await this.fetchMooringBays();
-
+                if (this.proposal.site_licensee_email) {
+                    this.siteLicenseeEmail = this.proposal.site_licensee_email;
+                }
+                if (this.proposal.mooring_site_id) {
+                    this.mooringSiteId = this.proposal.mooring_site_id;
+                }
+                if (this.proposal.mooring_authorisation_preference) {
+                    this.mooringAuthPreference = this.proposal.mooring_authorisation_preference;
+                }
             });
 
         },

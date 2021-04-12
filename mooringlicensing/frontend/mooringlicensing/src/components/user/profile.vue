@@ -792,7 +792,7 @@ export default {
           const response = await Vue.http.get(api_endpoints.profile)
           this.profile = response.body
           if (this.profile.residential_address == null){ this.profile.residential_address = {}; }
-          if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
+          //if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
           this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
           this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
 
@@ -807,7 +807,7 @@ export default {
                 next(vm => {
                     vm.profile = response.body
                     if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-                    if ( vm.profile.mooringlicensing_organisations && vm.profile.mooringlicensing_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
+                    //if ( vm.profile.mooringlicensing_organisations && vm.profile.mooringlicensing_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
                 });
             }
         },(error) => {
