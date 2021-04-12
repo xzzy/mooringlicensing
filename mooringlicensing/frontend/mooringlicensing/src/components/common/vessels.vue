@@ -20,7 +20,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
-                    <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required=""/>
+                    <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required/>
                 </div>
             </div>
             <div class="row form-group">
@@ -28,7 +28,7 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input type="radio" name="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required="">
+                            <input type="radio" name="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required>
                                 {{   profileFullName }}
                             </input>
                         </div>
