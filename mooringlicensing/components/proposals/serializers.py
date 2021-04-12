@@ -264,6 +264,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'preferred_bay_id',
                 'silent_elector',
                 'bay_preferences_numbered',
+                'site_licensee_email',
+                'mooring_site_id',
+                'mooring_authorisation_preference',
                 )
         read_only_fields=('documents',)
 
@@ -432,6 +435,9 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'preferred_bay_id',
                 'silent_elector',
                 'bay_preferences_numbered',
+                'site_licensee_email',
+                'mooring_site_id',
+                'mooring_authorisation_preference',
                 )
         read_only_fields=('id',)
 
