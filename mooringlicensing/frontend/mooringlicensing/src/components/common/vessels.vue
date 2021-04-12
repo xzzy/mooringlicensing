@@ -200,6 +200,11 @@ from '@/utils/hooks'
                     var selected = $(e.currentTarget);
                     //vm.selectedRego = selected.val();
                     vm.vessel.rego_no = selected.val();
+                    vm.$nextTick(() => {
+                        console.log("fetch new vessel");
+                        // fetch draft/approved vessel
+                        //vm.fetchVessel();
+                    });
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
@@ -211,7 +216,7 @@ from '@/utils/hooks'
                     console.log($(".select2-search__field"));
                     $(".select2-search__field")[0].focus();
                 });
-                // read vessel.rego_no if exists
+                // read vessel.rego_no if exists on vessel.vue open
                 if (vm.vessel.rego_no) {
                     var option = new Option(vm.proposal.rego_no, vm.proposal.rego_no, true, true);
                     $(vm.$refs.vessel_rego_nos).append(option).trigger('change');
@@ -232,7 +237,7 @@ from '@/utils/hooks'
                 }
             },
             // modify this
-            fetchVessel: async function() {
+            fetchProposalVessel: async function() {
                 if (this.proposal.processing_status === 'Draft') {
                     this.vessel.rego_no = this.proposal.rego_no;
                     this.vessel.vessel_id = this.proposal.vessel_id;
@@ -271,7 +276,7 @@ from '@/utils/hooks'
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
                 //await this.fetchVesselRegoNos();
-                await this.fetchVessel();
+                await this.fetchProposalVessel();
                 this.initialiseSelects();
             });
         },
