@@ -309,6 +309,10 @@ INSURANCE_CHOICES = (
     ("ten_million", "$10 million Third Party Liability insurance cover - required for vessels of length 6.4 metres or greater"),
     ("over_ten", "over $10 million"),
 )
+MOORING_AUTH_PREFERENCES = (
+        ('site_licensee', 'By a mooring site licensee for their mooring'),
+        ('ria', 'By Rottnest Island Authority for a mooring allocated by the Authority'),
+        )
 
 
 class ProposalType(models.Model):
@@ -485,14 +489,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
     # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
-    ## additional fields
+    ## Insurance component field
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
+    ## Mooring component field
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True)
+    ## Electoral Roll component field
     silent_elector = models.NullBooleanField() # if False, user is on electoral roll
+    ## Mooring Authorisation fields
+    mooring_authorisation_preference = models.CharField(max_length=20, choices=MOORING_AUTH_PREFERENCES, blank=True)
     bay_preferences_numbered = ArrayField(
             models.IntegerField(null=True, blank=True),
             blank=True,null=True,
             )
+    site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
+    mooring_site_id = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
