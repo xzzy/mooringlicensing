@@ -366,7 +366,7 @@ export default {
     },
 
     submit_and_pay: async function() {
-        let formData = this.set_formData()
+        //let formData = this.set_formData()
 
         const res = await this.save(false, this.proposal_submit_url);
         console.log(res);
@@ -412,7 +412,7 @@ export default {
             $("#" + missing_field.id).css("color", 'red');
         }
     },
-
+    /*
     validate: function(){
         let vm = this;
 
@@ -427,9 +427,10 @@ export default {
         //hidden_fields.prop('required', null);
         //var required_fields = $('select:required').not(':hidden');
         var required_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required').not(':hidden');
-
+        console.log(required_fields);
         // loop through all (non-hidden) required fields, and check data has been entered
         required_fields.each(function() {
+
             //console.log('type: ' + this.type + ' ' + this.name)
             var id = 'id_' + this.name
             if (this.type == 'radio') {
@@ -485,30 +486,11 @@ export default {
                 }
             }
 
-            /*
-            if (this.type == 'select') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('select not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'multi-select') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('multi-select not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-            */
-
-
-
         });
 
         return vm.missing_fields.length
     },
+      */
 
     can_submit: function(){
       let vm=this;
@@ -554,12 +536,6 @@ export default {
           }
 
       } else if (vm.proposal.application_type==vm.application_type_filming) {
-          // if (vm.proposal.filming_activity.commencement_date =='' || vm.proposal.filming_activity.commencement_date ==null || vm.proposal.filming_activity.completion_date =='' || vm.proposal.filming_activity.completion_date ==''){
-          //   blank_fields.push(' Period of proposed filming/ photography is required')
-          // }
-          // if(vm.proposal.filming_activity.film_type=='' || vm.proposal.filming_activity.film_type==null){
-          //   blank_fields.push(' Type of film to be undertaken is missing')
-          // }
           blank_fields=vm.can_submit_filming()
 
       } else if (vm.proposal.application_type==vm.application_type_event) {
@@ -603,8 +579,6 @@ export default {
             confirmButtonText: vm.submit_text()
         })
       
-        // Filming has deferred payment once assessor decides whether 'Licence' (fee) or 'Lawful Authority' (no fee) is to be issued
-        // if (!vm.proposal.fee_paid || vm.proposal.application_type!='Filming') {
         if (!vm.proposal.fee_paid) {
             await vm.submit_and_pay();
 
