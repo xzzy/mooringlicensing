@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
-from mooringlicensing.components.proposals.utils import create_data_from_form
+# from mooringlicensing.components.proposals.utils import create_data_from_form
 from mooringlicensing.components.proposals.models import (Proposal, #Referral, 
         #ProposalType, 
         HelpPage

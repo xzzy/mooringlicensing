@@ -1,6 +1,5 @@
 <template lang="html">
     <div class="container" >
-        <button type="button" @click="test_payment">Pay test</button>
         <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
             <div v-if="!proposal_readonly">
               <div v-if="hasAmendmentRequest" class="row" style="color:red;">
@@ -355,10 +354,6 @@ export default {
       });
     },
 
-    test_payment: function(){
-        let vm = this
-        vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-    },
     save_wo_confirm: function() {
       this.save(false);
         /*
