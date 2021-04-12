@@ -2,43 +2,43 @@ from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.proposals.models import (
-                                    #ProposalType,
-                                    Proposal,
-                                    ProposalUserAction,
-                                    ProposalLogEntry,
-                                    #Referral,
-                                    ProposalRequirement,
-                                    ProposalStandardRequirement,
-                                    ProposalDeclinedDetails,
-                                    AmendmentRequest,
-                                    AmendmentReason,
-                                    #ProposalApplicantDetails,
-                                    #ProposalActivitiesLand,
-                                    #ProposalActivitiesMarine,
-                                    #ProposalPark,
-                                    #ProposalParkActivity,
-                                    #Vehicle,
-                                    #Vessel,
-                                    #ProposalTrail,
-                                    #QAOfficerReferral,
-                                    #ProposalParkAccess,
-                                    #ProposalTrailSection,
-                                    #ProposalTrailSectionActivity,
-                                    #ProposalParkZoneActivity,
-                                    #ProposalParkZone,
-                                    #ProposalOtherDetails,
-                                    #ProposalAccreditation,
-                                    ChecklistQuestion,
-                                    ProposalAssessmentAnswer,
-                                    ProposalAssessment,
-                                    RequirementDocument,
-                                    #DistrictProposal,
-                                    #DistrictProposalDeclinedDetails,
-                                    VesselDetails,
-                                    VesselOwnership,
-                                    Vessel,
-                                    MooringBay,
-                                )
+    # ProposalType,
+    Proposal,
+    ProposalUserAction,
+    ProposalLogEntry,
+    # Referral,
+    ProposalRequirement,
+    ProposalStandardRequirement,
+    ProposalDeclinedDetails,
+    AmendmentRequest,
+    AmendmentReason,
+    # ProposalApplicantDetails,
+    # ProposalActivitiesLand,
+    # ProposalActivitiesMarine,
+    # ProposalPark,
+    # ProposalParkActivity,
+    # Vehicle,
+    # Vessel,
+    # ProposalTrail,
+    # QAOfficerReferral,
+    # ProposalParkAccess,
+    # ProposalTrailSection,
+    # ProposalTrailSectionActivity,
+    # ProposalParkZoneActivity,
+    # ProposalParkZone,
+    # ProposalOtherDetails,
+    # ProposalAccreditation,
+    ChecklistQuestion,
+    ProposalAssessmentAnswer,
+    ProposalAssessment,
+    RequirementDocument,
+    # DistrictProposal,
+    # DistrictProposalDeclinedDetails,
+    VesselDetails,
+    VesselOwnership,
+    Vessel,
+    MooringBay, ProposalType,
+)
 from mooringlicensing.components.organisations.models import (
                                 Organisation
                             )
@@ -174,6 +174,17 @@ class ProposalAssessmentSerializer(serializers.ModelSerializer):
         return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
+class ProposalTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProposalType
+        fields = (
+            'id',
+            'code',
+            'description',
+        )
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -188,6 +199,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
     editable_vessel = serializers.SerializerMethodField()
+    proposal_type = ProposalTypeSerializer()
 
     class Meta:
         model = Proposal
