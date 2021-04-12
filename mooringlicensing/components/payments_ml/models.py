@@ -140,8 +140,11 @@ class FeeSeason(RevisionedMixin):
 
     @property
     def is_editable(self):
-        today_local = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-        return True if today_local < self.start_date else False
+        for fee_constructor in self.fee_constructors.all():
+            if fee_constructor.num_of_times_used_for_payment:
+                # This season has been used in the fee_constructor for payments at least once
+                return False
+        return True
 
     @property
     def start_date(self):
@@ -174,8 +177,8 @@ class FeePeriod(RevisionedMixin):
 
 class FeeConstructor(RevisionedMixin):
     application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
-    fee_season = models.ForeignKey(FeeSeason, null=False, blank=False)
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False)
+    fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors')
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
 
