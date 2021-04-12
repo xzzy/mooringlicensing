@@ -53,11 +53,6 @@ export default {
             compliances_url: api_endpoints.compliances_paginated_external,
 
             system_name: api_endpoints.system_name,
-            apiaryTemplateGroup: false,
-            dasTemplateGroup: false,
-            // from env var?
-            apiarySystemName: 'Apiary System',
-            dasSystemName: 'Disturbance Assessment System',
         }
     },
     components:{
@@ -83,19 +78,7 @@ export default {
 
     },
     created: function() {
-        // retrieve template group
-        //this.$http.get('/template_group',{
-        //    emulateJSON:true
-        //    }).then(res=>{
-        //        //this.template_group = res.body.template_group;
-        //        if (res.body.template_group === 'apiary') {
-        //            this.apiaryTemplateGroup = true;
-        //        } else {
-        //            this.dasTemplateGroup = true;
-        //        }
-        //},err=>{
-        //    console.log(err);
-        //});
+
     },
 }
 </script>
