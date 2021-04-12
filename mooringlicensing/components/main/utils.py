@@ -70,10 +70,12 @@ def retrieve_marine_parks():
 
         # update active status of any MooringBay records not found in api data
         for mooring_bay in MooringBay.objects.all():
-            if mooring_bay not in [x.get("id") for x in data]:
+            if mooring_bay.mooring_bookings_id not in [x.get("id") for x in data]:
                 mooring_bay.active = False
                 mooring_bay.save()
-
+            #else:
+            #    mooring_bay.active = True
+            #    mooring_bay.save()
 
 #def add_business_days(from_date, number_of_days):
 #    """ given from_date and number_of_days, returns the next weekday date i.e. excludes Sat/Sun """
