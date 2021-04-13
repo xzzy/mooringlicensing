@@ -16,6 +16,7 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCo
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice
 from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.proposals.utils import proposal_submit
 
 
 logger = logging.getLogger('payment_checkout')
@@ -115,6 +116,7 @@ class ApplicationFeeSuccessView(TemplateView):
 
                 if proposal and invoice.payment_status in ('paid', 'over_paid',):
                     self.adjust_db_operations(db_operations)
+                    proposal_submit(proposal, request)
                 else:
                     logger.error('Invoice payment status is {}'.format(invoice.payment_status))
                     raise
