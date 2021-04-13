@@ -1,11 +1,10 @@
 <template lang="html">
-
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-4">
-                    <select id="vessel_search"  ref="vessel_rego_nos" class="form-control col-sm-9">
+                    <select id="vessel_search"  ref="vessel_rego_nos" class="form-control">
                         <!--option value="null"></option>
                         <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
@@ -28,19 +27,17 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input type="radio" name="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required>
-                                {{   profileFullName }}
-                            </input>
+                            <input type="radio" id="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required/>
+                            <label for="registered_owner_current_user" class="control-label">{{  profileFullName }}</label>
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-sm-2">
-                            <input type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required="">
-                            Your company
-                            </input>
+                        <div class="col-sm-3">
+                            <input type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required=""/>
+                            <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control" id="registered_owner_company_name" placeholder="" v-model="vessel.vessel_ownership.org_name" required=""/>
+                        <div v-if="companyOwner" class="col-sm-8">
+                            <input type="text" class="form-control" id="registered_owner_company_name" placeholder="Company name" v-model="vessel.vessel_ownership.org_name" required=""/>
                         </div>
                     </div>
                 </div>
@@ -163,21 +160,37 @@ from '@/utils/hooks'
             profile:{
                 type: Object,
                 required:true
-            }
+            },
+            readonly:{
+                type: Boolean,
+                default: true,
+            },
         },
         computed: {
+            companyOwner: function() {
+                //let returnVal = false;
+                if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
+                    //returnVal = this.vessel.vessel_ownership.individual_owner;
+                    return true;
+                }
+                //return returnVal;
+            },
             registeredOwner: function() {
                 if (this.vessel && this.vessel.vessel_ownership) {
                     return this.vessel.vessel_ownership.registered_owner;
                 }
             },
             editableVessel: function() {
-                // front-end lookup 
-                if (this.vessel.hasOwnProperty('read_only')) {
-                    return !this.vessel.read_only;
-                // vessel stored on Proposal
-                } else if (this.proposal) {
-                    return this.proposal.editable_vessel;
+                if (!this.readonly) {
+                    // front-end lookup 
+                    if (this.vessel.hasOwnProperty('read_only')) {
+                        return !this.vessel.read_only;
+                    // vessel stored on Proposal
+                    } else if (this.proposal) {
+                        return this.proposal.editable_vessel;
+                    }
+                } else {
+                    return false;
                 }
             },
             profileFullName: function() {
@@ -235,6 +248,7 @@ from '@/utils/hooks'
                             vm.vessel = Object.assign({}, 
                                 {   
                                     read_only: false,
+                                    new_vessel: true,
                                     rego_no: id,
                                     vessel_details: {},
                                     vessel_ownership: {

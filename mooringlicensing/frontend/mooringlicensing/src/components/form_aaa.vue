@@ -80,6 +80,7 @@
                   :profile="profile" 
                   id="proposalStartVessels" 
                   ref="vessels"
+                  :readonly="readonly"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -170,6 +171,10 @@
             showElectoralRoll:{
                 type:Boolean,
                 default: false
+            },
+            readonly:{
+                type: Boolean,
+                default: true
             },
         },
         data:function () {
