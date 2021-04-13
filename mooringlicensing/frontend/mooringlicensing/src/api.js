@@ -29,6 +29,11 @@ module.exports = {
     annualadmissionapplication: '/api/annualadmissionapplication/',
     authoriseduserapplication: '/api/authoriseduserapplication/',
     mooringlicenceapplication: '/api/mooringlicenceapplication/',
+    proposal: '/api/proposal/',
+
+    lookupVessel: function(id) {
+        return `/api/vessel/${id}/lookup_vessel.json`;
+    },
 
     discard_proposal: function (id) {
         return `/api/proposal/${id}.json`;

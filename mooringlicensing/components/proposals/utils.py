@@ -359,19 +359,25 @@ def save_vessel_data(instance, request):
     print("save vessel data")
     vessel_data = request.data.get("vessel")
     if vessel_data:
-        vessel_details_data = vessel_data.get("vessel_details")
-        vessel_ownership_data = vessel_data.get("vessel_ownership")
-        # add vessel details and vessel ownership to vessel_data
-        for key in vessel_details_data.keys():
-            vessel_data.update({key: vessel_details_data.get(key)})
-        for key in vessel_ownership_data.keys():
-            vessel_data.update({key: vessel_ownership_data.get(key)})
-        #print("vessel_data")
-        #print(vessel_data)
+        if not vessel_data.get("read_only"):
+            vessel_details_data = vessel_data.get("vessel_details")
+            vessel_ownership_data = vessel_data.get("vessel_ownership")
+            # add vessel details and vessel ownership to vessel_data
+            for key in vessel_details_data.keys():
+                vessel_data.update({key: vessel_details_data.get(key)})
+            for key in vessel_ownership_data.keys():
+                vessel_data.update({key: vessel_ownership_data.get(key)})
+            #print("vessel_data")
+            #print(vessel_data)
 
-        serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+            serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        else:
+            vessel_id = vessel_data.get("vessel_details", {}).get("id")
+            if vessel_id:
+                instance.vessel_details = VesselDetails.objects.get(id=vessel_id)
+                instance.save()
 
 def submit_vessel_data(instance, request):
     print("submit vessel data")
@@ -379,7 +385,7 @@ def submit_vessel_data(instance, request):
     save_vessel_data(instance, request)
     # now write to VesselDetails and VesselOwnership from Proposal, not request.data
     vessel_data = request.data.get("vessel")
-    if vessel_data:
+    if vessel_data and not vessel_data.get("read_only"):
         if not vessel_data.get('rego_no'):
             raise ValueError("You must supply a Vessel Registration Number")
         rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
