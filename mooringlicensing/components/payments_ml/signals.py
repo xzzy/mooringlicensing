@@ -1,11 +1,12 @@
-# import logging
+import logging
 
-# logger = logging.getLogger(__name__)
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from mooringlicensing.components.payments_ml.models import FeeConstructor, FeeItem, logger
+from mooringlicensing.components.payments_ml.models import FeeConstructor, FeeItem
 from mooringlicensing.components.proposals.models import ProposalType
+
+logger = logging.getLogger('log')
 
 
 class FeeConstructorListener(object):

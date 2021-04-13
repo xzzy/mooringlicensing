@@ -165,7 +165,7 @@ PROPOSAL_TYPES = [
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
+
 ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
 APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
 HTTP_HOST_FOR_TEST = 'localhost:8071'
-
