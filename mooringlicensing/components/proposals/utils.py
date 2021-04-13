@@ -342,8 +342,6 @@ def save_proponent_data_common(instance, request, viewset):
         serializer = SaveProposalSerializer(instance, data=proposal_data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-    if viewset.action == 'submit':
-        instance.lodgement_date = datetime.now(pytz.timezone(TIME_ZONE))
     # vessel
     #if instance.editable_vessel:
     #    if viewset.action == 'draft':
@@ -471,6 +469,7 @@ def save_assessor_data(instance,request,viewset):
 
 def proposal_submit(proposal,request):
     if proposal.can_user_edit:
+        proposal.lodgement_date = datetime.now(pytz.timezone(TIME_ZONE))
         #proposal.training_completed = True
         #if (proposal.amendment_requests):
         #    qs = proposal.amendment_requests.filter(status = "requested")
