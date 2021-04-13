@@ -275,6 +275,13 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         verbose_name_plural = "Vessel Size Category Group"
         app_label = 'mooringlicensing'
 
+    @property
+    def is_editable(self):
+        for fee_constructor in self.fee_constructors.all():
+            if fee_constructor.num_of_times_used_for_payment:
+                # This season has been used in the fee_constructor for payments at least once
+                return False
+        return True
 
 class VesselSizeCategory(RevisionedMixin):
     name = models.CharField(max_length=100)
