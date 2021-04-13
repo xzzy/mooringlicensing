@@ -40,6 +40,7 @@
             :is_external="true" 
             ref="waiting_list_application"
             :showElectoralRoll="showElectoralRoll"
+            :readonly="readonly"
             />
 
             <AnnualAdmissionApplication
@@ -48,12 +49,14 @@
             :is_external="true" 
             ref="annual_admission_application"
             :showElectoralRoll="showElectoralRoll"
+            :readonly="readonly"
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
             :proposal="proposal" 
             :is_external="true" 
             ref="authorised_user_application"
+            :readonly="readonly"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
@@ -61,6 +64,7 @@
             :is_external="true" 
             ref="mooring_licence_application"
             :showElectoralRoll="showElectoralRoll"
+            :readonly="readonly"
             />
 
             <div>
@@ -153,6 +157,13 @@ export default {
       */
   },
   computed: {
+    readonly: function() {
+        let returnVal = true;
+        if (this.proposal.processing_status === 'Draft') {
+            returnVal = false;
+        }
+        return returnVal;
+    },
     isLoading: function() {
       return this.loading.length > 0
     },
