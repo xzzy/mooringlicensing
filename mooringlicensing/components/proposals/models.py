@@ -492,7 +492,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     ## Insurance component field
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
     ## Mooring component field
-    preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True)
+    preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True, on_delete=models.SET_NULL)
     ## Electoral Roll component field
     silent_elector = models.NullBooleanField() # if False, user is on electoral roll
     ## Mooring Authorisation fields
