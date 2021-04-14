@@ -45,6 +45,10 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                 documents_qs = instance.electoral_roll_documents
             elif document_type == 'vessel_registration_document':
                 documents_qs = instance.vessel_registration_documents
+            elif document_type == 'insurance_certificate_document':
+                documents_qs = instance.insurance_certificate_documents
+            elif document_type == 'hull_identification_number_document':
+                documents_qs = instance.hull_identification_number_documents
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
             return { 'filedata': returned_file_data }
         else:
@@ -65,6 +69,12 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         elif document_type == 'vessel_registration_document':
             document_id = request.data.get('document_id')
             document = instance.vessel_registration_documents.get(id=document_id)
+        elif document_type == 'insurance_certificate_document':
+            document_id = request.data.get('document_id')
+            document = instance.insurance_certificate_documents.get(id=document_id)
+        elif document_type == 'hull_identification_number_document':
+            document_id = request.data.get('document_id')
+            document = instance.hull_identification_number_documents.get(id=document_id)
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document_id = request.data.get('document_id')
         #    document = instance.deed_poll_documents.get(id=document_id)
@@ -94,9 +104,12 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 
 
 def cancel_document(request, instance, comms_instance, document_type, input_name=None):
-        if document_type == 'electoral_roll_document':
-            document_id = request.data.get('document_id')
-        if document_type == 'vessel_registration_document':
+        if document_type in [
+                'electoral_roll_document', 
+                'vessel_registration_document',
+                'insurance_certificate_document',
+                'hull_identification_number_document',
+                ]:
             document_id = request.data.get('document_id')
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document_list = instance.deed_poll_documents.all()
@@ -135,6 +148,12 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'vessel_registration_document':
             document = instance.vessel_registration_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
+        if document_type == 'insurance_certificate_document':
+            document = instance.insurance_certificate_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/insurance_certificate_documents/{}'
+        if document_type == 'hull_identification_number_document':
+            document = instance.hull_identification_number_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/hull_identification_number_documents/{}'
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document = instance.deed_poll_documents.get_or_create(input_name=input_name, name=filename)[0]
         #    path_format_string = '{}/proposals/{}/deed_poll_documents/{}'
