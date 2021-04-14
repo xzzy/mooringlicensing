@@ -138,6 +138,12 @@ class FeeSeason(RevisionedMixin):
         first_period = self.fee_periods.order_by('start_date').first()
         return first_period
 
+    def save(self, **kwargs):
+        if not self.is_editable:
+            raise ValidationError('Season cannot be changed once used for payment calculation')
+        else:
+            super(FeeSeason, self).save(**kwargs)
+
     @property
     def is_editable(self):
         for fee_constructor in self.fee_constructors.all():
