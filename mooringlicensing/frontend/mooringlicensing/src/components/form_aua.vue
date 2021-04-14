@@ -70,12 +70,14 @@
                     ref="profile"
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
+                    :readonly="readonly"
                     />
                   </div>
                   <div v-else>
                     <Applicant 
                     :proposal="proposal" 
                     id="proposalStartApplicant"
+                    :readonly="readonly"
                     />
                   </div>
               </div>
@@ -93,6 +95,7 @@
                   :proposal="proposal" 
                   id="insurance" 
                   ref="insurance"
+                  :readonly="readonly"
                   />
               </div>
               <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
@@ -100,6 +103,7 @@
                   :proposal="proposal" 
                   id="mooring_authorisation" 
                   ref="mooring_authorisation"
+                  :readonly="readonly"
                   />
               </div>
 

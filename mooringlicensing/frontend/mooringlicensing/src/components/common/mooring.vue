@@ -6,7 +6,7 @@
         <div class="row form-group">
             <div class="col-sm-6" v-for="mooring in mooringBays">
                 <label :for="mooring.id" class="col-sm-5 control-label">{{ mooring.name }}</label>
-                <input type="radio" :id="mooring.id" :value="mooring" v-model="selectedMooring" required=""/>
+                <input :disabled="readonly" type="radio" :id="mooring.id" :value="mooring" v-model="selectedMooring" required=""/>
             </div>
         </div>
     </FormSection>
@@ -29,7 +29,11 @@ from '@/utils/hooks'
             proposal:{
                 type: Object,
                 required:true
-            }
+            },
+            readonly:{
+                type: Boolean,
+                default: true,
+            },
         },
         data:function () {
             return {
