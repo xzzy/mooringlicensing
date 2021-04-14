@@ -53,6 +53,7 @@ router.register(r'assessments', proposal_api.ProposalAssessmentViewSet)
 router.register(r'questions', main_api.QuestionViewSet)
 router.register(r'payment', main_api.PaymentViewSet)
 router.register(r'mooringbays', proposal_api.MooringBayViewSet)
+router.register(r'vessel', proposal_api.VesselViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
