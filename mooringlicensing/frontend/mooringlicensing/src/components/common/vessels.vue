@@ -4,7 +4,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-4">
-                    <select id="vessel_search"  ref="vessel_rego_nos" class="form-control">
+                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control">
                         <!--option value="null"></option>
                         <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
@@ -27,13 +27,13 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input type="radio" id="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required/>
+                            <input :disabled="readonly" type="radio" id="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required/>
                             <label for="registered_owner_current_user" class="control-label">{{  profileFullName }}</label>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required=""/>
+                            <input :disabled="readonly" type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required=""/>
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                         <div v-if="companyOwner" class="col-sm-8">

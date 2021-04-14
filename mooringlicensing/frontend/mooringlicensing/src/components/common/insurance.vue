@@ -6,7 +6,7 @@
         </div>
         <div class="row form-group">
             <div class="col-sm-9" v-for="choice in insuranceChoices">
-                <input type="radio" name="insuranceChoice" :id="choice.code" :value="choice.code" required=""/>
+                <input :disabled="readonly" type="radio" name="insuranceChoice" :id="choice.code" :value="choice.code" required=""/>
                 <label :for="choice.code">{{ choice.description }}</label>
             </div>
         </div>
