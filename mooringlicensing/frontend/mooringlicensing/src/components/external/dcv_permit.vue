@@ -1,6 +1,32 @@
 <template>
     <div class="container" id="externalDash">
-        DCV permit
+        <FormSection :formCollapse="false" label="DCV Permit" Index="dcv_permit">
+
+        </FormSection>
+        <div>
+            <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+<!--
+            <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
+            <input type='hidden' name="proposal_id" :value="1" />
+-->
+
+            <div class="row" style="margin-bottom: 50px">
+                <div  class="container">
+                    <div class="row" style="margin-bottom: 50px">
+                        <div class="navbar navbar-fixed-bottom"  style="background-color: #f5f5f5;">
+                            <div class="navbar-inner">
+                                <div class="container">
+                                    <p class="pull-right" style="margin-top:5px">
+                                        <button v-if="saveExitProposal" type="button" class="btn btn-primary" disabled>Pay&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
+                                        <input v-else type="button" @click.prevent="pay" class="btn btn-primary" value="Pay" :disabled="savingProposal || paySubmitting"/>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -36,7 +62,9 @@ export default {
         is_external: function() {
             return this.level == 'external'
         },
-
+        csrf_token: function() {
+          return helpers.getCookie('csrftoken')
+        },
     },
     methods: {
 
