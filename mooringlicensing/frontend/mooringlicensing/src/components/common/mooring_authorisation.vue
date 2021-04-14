@@ -7,13 +7,13 @@
         <div class="form-group">
             <div class="row">
                 <div class="col-sm-9">
-                    <input type="radio" id="site_licensee" value="site_licensee" v-model="mooringAuthPreference" required=""/>
+                    <input :disabled="readonly" type="radio" id="site_licensee" value="site_licensee" v-model="mooringAuthPreference" required=""/>
                     <label for="site_licensee" class="control-label">By a mooring site licensee for their mooring</label>
                 </div>
             </div>
             <div class="row">
                 <div class="col-sm-9">
-                    <input type="radio" id="ria" value="ria" v-model="mooringAuthPreference" required=""/>
+                    <input :disabled="readonly" type="radio" id="ria" value="ria" v-model="mooringAuthPreference" required=""/>
                     <label for="ria" class="control-label">By Rottnest Island Authority for a mooring allocated by the Authority</label>
                 </div>
             </div>
@@ -23,19 +23,19 @@
             <div class="row form-group">
                 <label for="site_licensee_email" class="col-sm-3 control-label">Site licensee email</label>
                 <div class="col-sm-9">
-                    <input class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
+                    <input :readonly="readonly" class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="mooring_site_id" class="col-sm-3 control-label">Mooring site ID</label>
                 <div class="col-sm-9">
-                    <input class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/>
+                    <input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/>
                 </div>
             </div>
         </div>
 
         <div v-show="mooringAuthPreference==='ria'" class="row form-group">
-            <draggable class="col-sm-6" v-model="mooringBays">
+            <draggable :disabled="readonly" class="col-sm-6" v-model="mooringBays">
                     <div class="form-control" id="mooringList" v-for="mooring in mooringBays" :key="mooring.id">
                         {{ mooring.name }}
                     </div>
@@ -63,7 +63,11 @@ import draggable from 'vuedraggable';
             proposal:{
                 type: Object,
                 required:true
-            }
+            },
+            readonly:{
+                type: Boolean,
+                default: true,
+            },
         },
         data:function () {
             return {
