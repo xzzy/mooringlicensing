@@ -66,7 +66,6 @@
                 </div>
             </div>
             <div class="row form-group">
-            <!--div class="form-group"-->
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -78,8 +77,21 @@
                         :replace_button_by_text="true"
                     />
                 </div>
-            <!--/div-->
             </div>
+            <div class="row form-group">
+                <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
+                <div class="col-sm-9">
+                    <FileField 
+                        :readonly="!editableVessel"
+                        ref="hull_identification_number_documents"
+                        name="hull-identification-number-documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="hullIdentificationNumberDocumentUrl"
+                        :replace_button_by_text="true"
+                    />
+                </div>
+            </div>
+
         </FormSection>
         <FormSection label="Vessel Details" Index="vessel_details">
             <div class="row form-group">
@@ -205,8 +217,18 @@ from '@/utils/hooks'
                 let url = '';
                 if (this.proposal && this.proposal.id) {
                     url = helpers.add_endpoint_join(
-                        '/api/proposal/',
+                        api_endpoints.proposal,
                         this.proposal.id + '/process_vessel_registration_document/'
+                    )
+                }
+                return url;
+            },
+            hullIdentificationNumberDocumentUrl: function() {
+                let url = '';
+                if (this.proposal && this.proposal.id) {
+                    url = helpers.add_endpoint_join(
+                        api_endpoints.proposal,
+                        this.proposal.id + '/process_hull_identification_number_document/'
                     )
                 }
                 return url;
