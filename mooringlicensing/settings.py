@@ -169,3 +169,4 @@ PROPOSAL_TYPES = [
 ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
 APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
 HTTP_HOST_FOR_TEST = 'localhost:8071'
+ADDITIONAL_APPLICATION_TYPE = {'code': 'dcvp', 'description': 'DCV Permit'}

@@ -1,6 +1,8 @@
 <template>
     <div class="container" id="externalDash">
-        DCV Admission
+        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission_fees">
+
+        </FormSection>
     </div>
 </template>
 
