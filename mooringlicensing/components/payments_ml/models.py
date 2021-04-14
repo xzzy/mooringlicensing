@@ -191,7 +191,7 @@ class FeeConstructor(RevisionedMixin):
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
-    def get_fee_item(self, proposal_type, vessel_length, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
         vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length).order_by('start_size').last()
         fee_item = FeeItem.objects.filter(fee_constructor=self, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
@@ -217,7 +217,34 @@ class FeeConstructor(RevisionedMixin):
         super(FeeConstructor, self).validate_unique(exclude)
 
     @classmethod
-    def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_current_and_future_fee_constructors_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        logger = logging.getLogger('payment_checkout')
+
+        # Select a fee_constructor object which has been started most recently for the application_type
+        try:
+            fee_constructors = []
+            current_fee_constructor = cls.objects.filter(application_type=application_type,) \
+                .annotate(s_date=Min("fee_season__fee_periods__start_date")) \
+                .filter(s_date__lte=target_date, enabled=True).order_by('s_date').last()
+
+            if current_fee_constructor:
+                if target_date <= current_fee_constructor.fee_season.end_date:
+                    fee_constructors.append(current_fee_constructor)
+
+            future_fee_constructors = cls.objects.filter(application_type=application_type,) \
+                .annotate(s_date=Min("fee_season__fee_periods__start_date")) \
+                .filter(s_date__gte=target_date, enabled=True).order_by('s_date')
+
+            fee_constructors.extend(list(future_fee_constructors))
+
+            return fee_constructors
+
+        except Exception as e:
+            logger.error('Error determining the fee: {}'.format(e))
+            raise
+
+    @classmethod
+    def get_current_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         logger = logging.getLogger('payment_checkout')
 
         # Select a fee_constructor object which has been started most recently for the application_type
