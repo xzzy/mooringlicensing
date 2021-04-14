@@ -343,11 +343,17 @@ def save_proponent_data_common(instance, request, viewset):
         serializer.is_valid(raise_exception=True)
         serializer.save()
     # vessel
-    if instance.editable_vessel:
-        if viewset.action == 'draft':
-            save_vessel_data(instance, request)
-        elif viewset.action == 'submit':
-            submit_vessel_data(instance, request)
+    #if instance.editable_vessel:
+    #    if viewset.action == 'draft':
+    #        save_vessel_data(instance, request)
+    #    elif viewset.action == 'submit':
+    #        submit_vessel_data(instance, request)
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        if viewset.action == 'submit':
+            submit_vessel_data(instance, request, vessel_data)
+        elif instance.processing_status == 'draft':
+            save_vessel_data(instance, request, vessel_data)
 
 #def save_proponent_data_aaa(instance, request, viewset):
 #    print("save aaa")
@@ -355,10 +361,11 @@ def save_proponent_data_common(instance, request, viewset):
 #    #save_proposal_data(instance, request)
 #    submit_vessel_data(instance, request)
 
-def save_vessel_data(instance, request):
+def save_vessel_data(instance, request, vessel_data):
     print("save vessel data")
-    vessel_data = request.data.get("vessel")
-    if vessel_data:
+    #vessel_data = request.data.get("vessel")
+    if not vessel_data.get("read_only"):
+        print('if not vessel_data.get("read_only")')
         vessel_details_data = vessel_data.get("vessel_details")
         vessel_ownership_data = vessel_data.get("vessel_ownership")
         # add vessel details and vessel ownership to vessel_data
@@ -371,15 +378,24 @@ def save_vessel_data(instance, request):
 
         serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
         serializer.is_valid(raise_exception=True)
+        print(serializer.validated_data)
         serializer.save()
+        # clear stored instance.vessel_details
+        instance.vessel_details = None
+        instance.save()
+    else:
+        vessel_id = vessel_data.get("vessel_details", {}).get("id")
+        if vessel_id:
+            instance.vessel_details = VesselDetails.objects.get(id=vessel_id)
+            instance.save()
 
-def submit_vessel_data(instance, request):
+def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
     ## save vessel data into proposal first
-    save_vessel_data(instance, request)
+    save_vessel_data(instance, request, vessel_data)
     # now write to VesselDetails and VesselOwnership from Proposal, not request.data
-    vessel_data = request.data.get("vessel")
-    if vessel_data:
+    #vessel_data = request.data.get("vessel")
+    if not vessel_data.get("read_only"):
         if not vessel_data.get('rego_no'):
             raise ValueError("You must supply a Vessel Registration Number")
         rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
@@ -452,51 +468,50 @@ def save_assessor_data(instance,request,viewset):
 
 
 def proposal_submit(proposal,request):
-        with transaction.atomic():
-            if proposal.can_user_edit:
-                proposal.lodgement_date = datetime.now(pytz.timezone(TIME_ZONE))
-                #proposal.training_completed = True
-                #if (proposal.amendment_requests):
-                #    qs = proposal.amendment_requests.filter(status = "requested")
-                #    if (qs):
-                #        for q in qs:
-                #            q.status = 'amended'
-                #            q.save()
+    if proposal.can_user_edit:
+        proposal.lodgement_date = datetime.now(pytz.timezone(TIME_ZONE))
+        #proposal.training_completed = True
+        #if (proposal.amendment_requests):
+        #    qs = proposal.amendment_requests.filter(status = "requested")
+        #    if (qs):
+        #        for q in qs:
+        #            q.status = 'amended'
+        #            q.save()
 
-                # Create a log entry for the proposal
-                proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
+        # Create a log entry for the proposal
+        proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
 
-                ret1 = send_submit_email_notification(request, proposal)
-                #ret2 = send_external_submit_email_notification(request, proposal)
-                ret2 = True
+        ret1 = send_submit_email_notification(request, proposal)
+        #ret2 = send_external_submit_email_notification(request, proposal)
+        ret2 = True
 
-                if ret1 and ret2:
-                    proposal.processing_status = 'with_assessor'
-                    proposal.customer_status = 'with_assessor'
-                #    #proposal.documents.all().update(can_delete=False)
-                #    #proposal.required_documents.all().update(can_delete=False)
-                    proposal.save()
-                else:
-                   raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-                proposal.save()
+        if ret1 and ret2:
+            proposal.processing_status = 'with_assessor'
+            proposal.customer_status = 'with_assessor'
+        #    #proposal.documents.all().update(can_delete=False)
+        #    #proposal.required_documents.all().update(can_delete=False)
+            proposal.save()
+        else:
+           raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+        proposal.save()
 
-                #Create assessor checklist with the current assessor_list type questions
-                #Assessment instance already exits then skip.
-                #try:
-                #    assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
-                #except ProposalAssessment.DoesNotExist:
-                #    assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
-                #    checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', application_type=proposal.application_type, obsolete=False)
-                #    for chk in checklist:
-                #        try:
-                #            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
-                #        except ProposalAssessmentAnswer.DoesNotExist:
-                #            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
+        #Create assessor checklist with the current assessor_list type questions
+        #Assessment instance already exits then skip.
+        #try:
+        #    assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
+        #except ProposalAssessment.DoesNotExist:
+        #    assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
+        #    checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', application_type=proposal.application_type, obsolete=False)
+        #    for chk in checklist:
+        #        try:
+        #            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
+        #        except ProposalAssessmentAnswer.DoesNotExist:
+        #            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
 
-                #return proposal
+        #return proposal
 
-            else:
-                raise ValidationError('You can\'t edit this proposal at this moment')
+    else:
+        raise ValidationError('You can\'t edit this proposal at this moment')
 
 
 def is_payment_officer(user):
