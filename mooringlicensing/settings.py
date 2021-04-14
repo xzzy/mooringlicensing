@@ -169,3 +169,8 @@ PROPOSAL_TYPES = [
 ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
 APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
 HTTP_HOST_FOR_TEST = 'localhost:8071'
+
+LOGGING['loggers']['mooringlicensing'] = {
+            'handlers': ['file'],
+            'level': 'INFO'
+        }
