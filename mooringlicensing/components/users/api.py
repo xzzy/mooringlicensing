@@ -54,6 +54,10 @@ from mooringlicensing.components.main.process_document import (
         process_generic_document, 
         )
 
+import logging
+logger = logging.getLogger('mooringlicensing')
+
+
 class DepartmentUserList(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
@@ -68,11 +72,11 @@ class DepartmentUserList(views.APIView):
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        print("request.user")
-        print(request.user)
+        logger.info('request user: {}'.format(request.user))
         serializer  = UserSerializer(request.user, context={'request':request})
-        print("serializer.data")
-        print(serializer.data)
+        logger.info('user serializer data: {}'.format(serializer.data))
+        #print("serializer.data")
+        #print(serializer.data)
         return Response(serializer.data)
 
 from rest_framework import filters

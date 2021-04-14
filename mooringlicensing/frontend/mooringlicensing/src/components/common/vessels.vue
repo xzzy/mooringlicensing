@@ -2,9 +2,9 @@
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel registration number</label>
-                <div class="col-sm-4">
-                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control">
+                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
+                <div class="col-sm-9">
+                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                         <!--option value="null"></option>
                         <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
