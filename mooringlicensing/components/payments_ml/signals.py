@@ -21,7 +21,7 @@ class FeeConstructorListener(object):
         try:
             for fee_period in instance.fee_season.fee_periods.all():
                 for vessel_size_category in instance.vessel_size_category_group.vessel_size_categories.all():
-                    if instance.application_type.code == settings.ADDITIONAL_APPLICATION_TYPE['code']:
+                    if instance.application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
                         # For additional type, we ignore the proposal types (no for-loop for it)
                         fee_item, created = FeeItem.objects.get_or_create(fee_constructor=instance,
                                                                           fee_period=fee_period,
