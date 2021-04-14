@@ -9,9 +9,12 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework import serializers
 
 from mooringlicensing import settings
+from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor
 
 #test
+from mooringlicensing.components.proposals.models import Proposal
 
 logger = logging.getLogger('payment_checkout')
 
@@ -81,30 +84,36 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     return response
 
 
-def create_fee_lines(proposal, invoice_text=None, vouchers=[], internal=False):
+def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
     # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
 
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    if isinstance(instance, Proposal):
+        application_type = instance.application_type
+        vessel_length = instance.vessel_details.vessel_applicable_length
+        proposal_type = instance.proposal_type
+    elif isinstance(instance, DcvPermit):
+        application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
+        vessel_length = 1
+        proposal_type = None
+
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
-    #lodgement_datetime = proposal.lodgement_date
     today_local_str = today_local.strftime('%d/%m/%Y %H:%M')
-    #lodgement_date = lodgement_datetime.date()
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, today_local)
+    fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, today_local)
     if not fee_constructor:
         # Fees have not been configured for this application type and date
-        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(proposal.application_type, today_local))
+        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, today_local))
     db_processes_after_success['fee_constructor_id'] = fee_constructor.id
 
-    fee_item = fee_constructor.get_fee_item(proposal.proposal_type, proposal.vessel_details.vessel_applicable_length, today_local)
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, today_local)
 
     line_items = [
         {
-            'ledger_description': '{} Fee: {} - {}'.format(proposal.application_type.description,  proposal.lodgement_number, today_local_str),
+            'ledger_description': '{} Fee: {} - {}'.format(application_type.description,  instance.lodgement_number, today_local_str),
             # 'oracle_code': proposal.application_type.oracle_code_application,
             'oracle_code': 'aho',
             'price_incl_tax':  fee_item.amount,

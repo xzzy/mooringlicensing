@@ -12,6 +12,7 @@ from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
+from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice
@@ -22,8 +23,41 @@ from mooringlicensing.components.proposals.utils import proposal_submit
 logger = logging.getLogger('payment_checkout')
 
 
+class DcvPermitFeeView(TemplateView):
+    # template_name = 'disturbance/payment/success.html'
+
+    def get_object(self):
+        return get_object_or_404(DcvPermit, id=self.kwargs['dcv_permit_pk'])
+
+    def post(self, request, *args, **kwargs):
+        dcv_permit = self.get_object()
+
+        try:
+            with transaction.atomic():
+                # set_session_application_invoice(request.session, application_fee)
+
+                lines, db_processes_after_success = create_fee_lines(dcv_permit)
+
+                # request.session['db_processes'] = db_processes_after_success
+                checkout_response = checkout(
+                    request,
+                    dcv_permit,
+                    lines,
+                    return_url_ns='fee_success',
+                    return_preload_url_ns='fee_success',
+                    invoice_text='Application Fee',
+                )
+
+                logger.info('{} built payment line item {} for DcvPermit Fee and handing over to payment gateway'.format(request.user, dcv_permit.id))
+                return checkout_response
+
+        except Exception as e:
+            logger.error('Error Creating DcvPermit Fee: {}'.format(e))
+            raise
+
+
 class ApplicationFeeView(TemplateView):
-    template_name = 'disturbance/payment/success.html'
+    # template_name = 'disturbance/payment/success.html'
 
     def get_object(self):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
@@ -43,9 +77,9 @@ class ApplicationFeeView(TemplateView):
                     request,
                     proposal,
                     lines,
-                    return_url_ns='fee_success',
-                    return_preload_url_ns='fee_success',
-                    invoice_text='Application Fee',
+                    return_url_ns='dcv_permit_fee_success',
+                    return_preload_url_ns='dcv_permit_fee_success',
+                    invoice_text='DcvPermit Fee',
                 )
 
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
@@ -56,6 +90,16 @@ class ApplicationFeeView(TemplateView):
             if application_fee:
                 application_fee.delete()
             raise
+
+
+class DcvPermitFeeSuccessView(TemplateView):
+    template_name = 'mooringlicensing/payments_ml/success_fee.html'
+    LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
+
+    def get(self, request, *args, **kwargs):
+        print('in ApplicationFeeSuccessView.get()')
+
+        # TODO: implement success view
 
 
 class ApplicationFeeSuccessView(TemplateView):

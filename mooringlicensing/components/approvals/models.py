@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import json
 import datetime
+import logging
+
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
@@ -32,6 +34,9 @@ from mooringlicensing.components.approvals.email import (
 from mooringlicensing.helpers import is_customer
 #from mooringlicensing.components.approvals.email import send_referral_email_notification
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT
+
+
+logger = logging.getLogger('log')
 
 
 def update_approval_doc_filename(instance, filename):
@@ -619,6 +624,75 @@ class ApprovalUserAction(UserAction):
         )
 
     approval= models.ForeignKey(Approval, related_name='action_logs')
+
+
+class DcvOrganisation(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class DcvVessel(models.Model):
+    rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
+    uiv_vessel_identifier = models.CharField(max_length=10, unique=True, blank=True, null=True)
+    vessel_name = models.CharField(max_length=400, blank=True)
+    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
+
+    def __str__(self):
+        return self.uiv_vessel_identifier
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class DcvPermit(RevisionedMixin):
+    DCV_PERMIT_STATUS_CURRENT = 'current'
+    DCV_PERMIT_STATUS_EXPIRED = 'expired'
+    STATUS_CHOICES = (
+        (DCV_PERMIT_STATUS_CURRENT, 'Current'),
+        (DCV_PERMIT_STATUS_EXPIRED, 'Expired'),
+    )
+
+    lodgement_number = models.CharField(max_length=9, blank=True, default='')
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+
+    @classmethod
+    def get_next_id(cls):
+        ids = map(int, [i.split('L')[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if len(ids) else 1
+
+    def save(self, **kwargs):
+        if self.lodgement_number in ['', None]:
+            self.lodgement_number = 'L{0:06d}'.format(self.get_next_id())
+        super(DcvPermit, self).save(**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+def update_dcv_permit_doc_filename(instance, filename):
+    return '{}/dcv_permits/{}/permits/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
+
+
+class DcvPermitDocument(Document):
+    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits')
+    _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
+    can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
+
+    def delete(self, using=None, keep_parents=False):
+        if self.can_delete:
+            return super(DcvPermitDocument, self).delete(using, keep_parents)
+        logger.info('Cannot delete existing document object after Application has been submitted : {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
