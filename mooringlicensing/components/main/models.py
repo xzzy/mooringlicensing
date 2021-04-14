@@ -102,7 +102,8 @@ class ApplicationType(models.Model):
     description = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
-        return 'id:{}({}) {}'.format(self.id, self.code, self.description)
+        # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
+        return '{}'.format(self.description)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -275,11 +276,17 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         verbose_name_plural = "Vessel Size Category Group"
         app_label = 'mooringlicensing'
 
+    def save(self, **kwargs):
+        if not self.is_editable:
+            raise ValidationError('VesselSizeCategoryGroup cannot be changed once used for payment calculation')
+        else:
+            super(VesselSizeCategoryGroup, self).save(**kwargs)
+
     @property
     def is_editable(self):
         for fee_constructor in self.fee_constructors.all():
             if fee_constructor.num_of_times_used_for_payment:
-                # This season has been used in the fee_constructor for payments at least once
+                # This object has been used in the fee_constructor for payments at least once
                 return False
         return True
 
