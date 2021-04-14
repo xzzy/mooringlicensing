@@ -523,6 +523,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
         else:
             return Response()
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_hull_identification_number_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_insurance_certificate_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
+
     @detail_route(methods=['GET',])
     def compare_list(self, request, *args, **kwargs):
         """ Returns the reversion-compare urls --> list"""

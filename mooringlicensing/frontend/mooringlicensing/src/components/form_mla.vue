@@ -67,12 +67,14 @@
                     :showElectoralRoll="showElectoralRoll"
                     :storedSilentElector="silentElector"
                     :proposalId="proposal.id"
+                    :readonly="readonly"
                     />
                   </div>
                   <div v-else>
                     <Applicant 
                     :proposal="proposal" 
                     id="proposalStartApplicant"
+                    :readonly="readonly"
                     />
                   </div>
               </div>
@@ -90,6 +92,7 @@
                   :proposal="proposal" 
                   id="insurance" 
                   ref="insurance"
+                  :readonly="readonly"
                   />
               </div>
 
