@@ -307,7 +307,10 @@ export default {
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
             if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
-                payload.proposal.mooring_authorisation_preference = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
+                if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference) {
+                    payload.proposal.mooring_authorisation_preference = 
+                        this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
+                }
                 if (payload.proposal.mooring_authorisation_preference === 'ria') { 
                     payload.proposal.bay_preferences_numbered = 
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
@@ -375,7 +378,6 @@ export default {
       vm.$http.post(vm.proposal_form_url,formData);
       */
     },
-
     submit_and_pay: async function() {
         //let formData = this.set_formData()
         try {
@@ -386,11 +388,13 @@ export default {
             }
         } catch(err) {
             console.log(err)
+            console.log(typeof(err.body))
             await swal({
                 title: 'Submit Error',
                 //text: helpers.apiVueResourceError(err),
-                text: err.bodyText,
+                html: helpers.formatError(err),
                 type: "error",
+                //html: true,
             })
             this.savingProposal=false;
             this.paySubmitting=false;
