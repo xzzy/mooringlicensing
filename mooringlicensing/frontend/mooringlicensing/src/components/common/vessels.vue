@@ -2,9 +2,9 @@
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel registration number</label>
-                <div class="col-sm-4">
-                    <select id="vessel_search"  ref="vessel_rego_nos" class="form-control">
+                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
+                <div class="col-sm-9">
+                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                         <!--option value="null"></option>
                         <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
@@ -27,13 +27,13 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input type="radio" id="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required/>
+                            <input :disabled="readonly" type="radio" id="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required/>
                             <label for="registered_owner_current_user" class="control-label">{{  profileFullName }}</label>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required=""/>
+                            <input :disabled="readonly" type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required=""/>
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                         <div v-if="companyOwner" class="col-sm-8">
@@ -66,7 +66,6 @@
                 </div>
             </div>
             <div class="row form-group">
-            <!--div class="form-group"-->
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -78,8 +77,21 @@
                         :replace_button_by_text="true"
                     />
                 </div>
-            <!--/div-->
             </div>
+            <div class="row form-group">
+                <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
+                <div class="col-sm-9">
+                    <FileField 
+                        :readonly="!editableVessel"
+                        ref="hull_identification_number_documents"
+                        name="hull-identification-number-documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="hullIdentificationNumberDocumentUrl"
+                        :replace_button_by_text="true"
+                    />
+                </div>
+            </div>
+
         </FormSection>
         <FormSection label="Vessel Details" Index="vessel_details">
             <div class="row form-group">
@@ -205,8 +217,18 @@ from '@/utils/hooks'
                 let url = '';
                 if (this.proposal && this.proposal.id) {
                     url = helpers.add_endpoint_join(
-                        '/api/proposal/',
+                        api_endpoints.proposal,
                         this.proposal.id + '/process_vessel_registration_document/'
+                    )
+                }
+                return url;
+            },
+            hullIdentificationNumberDocumentUrl: function() {
+                let url = '';
+                if (this.proposal && this.proposal.id) {
+                    url = helpers.add_endpoint_join(
+                        api_endpoints.proposal,
+                        this.proposal.id + '/process_hull_identification_number_document/'
                     )
                 }
                 return url;

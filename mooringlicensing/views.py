@@ -56,7 +56,8 @@ class InternalView(UserPassesTestMixin, TemplateView):
 #        context['dev_url'] = settings.DEV_STATIC_URL
 #        return context
 
-class ExternalView(TemplateView):
+#class ExternalView(TemplateView):
+class ExternalView(LoginRequiredMixin, TemplateView):
     template_name = 'mooringlicensing/dash/index.html'
 
     def get_context_data(self, **kwargs):
