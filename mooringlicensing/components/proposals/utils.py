@@ -29,6 +29,9 @@ from mooringlicensing.components.proposals.serializers import (
         SaveVesselOwnershipSerializer,
         SaveDraftProposalVesselSerializer,
         SaveProposalSerializer,
+        SaveWaitingListApplicationSerializer,
+        SaveMooringLicenceApplicationSerializer,
+        SaveAuthorisedUserApplicationSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -38,6 +41,7 @@ import os
 from copy import deepcopy
 from datetime import datetime
 import time
+from rest_framework import serializers
 
 
 import logging
@@ -322,13 +326,13 @@ class SpecialFieldsSearch(object):
 
 def save_proponent_data(instance, request, viewset):
     if type(instance.child_obj) == WaitingListApplication:
-        save_proponent_data_common(instance, request, viewset)
+        save_proponent_data_wla(instance, request, viewset)
     elif type(instance.child_obj) == AnnualAdmissionApplication:
         save_proponent_data_common(instance, request, viewset)
     elif type(instance.child_obj) == AuthorisedUserApplication:
-        save_proponent_data_common(instance, request, viewset)
+        save_proponent_data_aua(instance, request, viewset)
     elif type(instance.child_obj) == MooringLicenceApplication:
-        save_proponent_data_common(instance, request, viewset)
+        save_proponent_data_mla(instance, request, viewset)
 
 
 def save_proponent_data_common(instance, request, viewset):
@@ -354,6 +358,73 @@ def save_proponent_data_common(instance, request, viewset):
             submit_vessel_data(instance, request, vessel_data)
         elif instance.processing_status == 'draft':
             save_vessel_data(instance, request, vessel_data)
+
+def save_proponent_data_wla(instance, request, viewset):
+    #import ipdb; ipdb.set_trace()
+    print(request.data)
+    # proposal
+    proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+    serializer = SaveWaitingListApplicationSerializer(
+            instance, 
+            data=proposal_data, 
+            context={
+                "action": viewset.action
+                }
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    # vessel
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        if viewset.action == 'submit':
+            submit_vessel_data(instance, request, vessel_data)
+        elif instance.processing_status == 'draft':
+            save_vessel_data(instance, request, vessel_data)
+
+def save_proponent_data_mla(instance, request, viewset):
+    #import ipdb; ipdb.set_trace()
+    print(request.data)
+    # proposal
+    proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+    serializer = SaveMooringLicenceApplicationSerializer(
+            instance, 
+            data=proposal_data, 
+            context={
+                "action": viewset.action
+                }
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    # vessel
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        if viewset.action == 'submit':
+            submit_vessel_data(instance, request, vessel_data)
+        elif instance.processing_status == 'draft':
+            save_vessel_data(instance, request, vessel_data)
+
+def save_proponent_data_aua(instance, request, viewset):
+    #import ipdb; ipdb.set_trace()
+    print(request.data)
+    # proposal
+    proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+    serializer = SaveAuthorisedUserApplicationSerializer(
+            instance, 
+            data=proposal_data, 
+            context={
+                "action": viewset.action
+                }
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    # vessel
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        if viewset.action == 'submit':
+            submit_vessel_data(instance, request, vessel_data)
+        elif instance.processing_status == 'draft':
+            save_vessel_data(instance, request, vessel_data)
+
 
 #def save_proponent_data_aaa(instance, request, viewset):
 #    print("save aaa")
@@ -384,10 +455,15 @@ def save_vessel_data(instance, request, vessel_data):
         instance.vessel_details = None
         instance.save()
     else:
-        vessel_id = vessel_data.get("vessel_details", {}).get("id")
-        if vessel_id:
-            instance.vessel_details = VesselDetails.objects.get(id=vessel_id)
+        vessel_details_id = vessel_data.get("vessel_details", {}).get("id")
+        if vessel_details_id:
+            instance.vessel_details = VesselDetails.objects.get(id=vessel_details_id)
             instance.save()
+        vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
+        if vessel_ownership_id:
+            instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
+            instance.save()
+
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
@@ -398,6 +474,7 @@ def submit_vessel_data(instance, request, vessel_data):
     if not vessel_data.get("read_only"):
         if not vessel_data.get('rego_no'):
             raise ValueError("You must supply a Vessel Registration Number")
+            #raise ValidationError("You must supply a Vessel Registration Number")
         rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
         vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
         
