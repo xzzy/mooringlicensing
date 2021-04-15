@@ -4,6 +4,7 @@ import json
 import datetime
 import logging
 
+import pytz
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
@@ -14,6 +15,7 @@ from django.utils import timezone
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.db.models import Q
+from ledger.settings_base import TIME_ZONE
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
@@ -659,13 +661,21 @@ class DcvPermit(RevisionedMixin):
     )
 
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
-    # status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
 
     @classmethod
     def get_next_id(cls):
         ids = map(int, [i.split('L')[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
         ids = list(ids)
         return max(ids) + 1 if len(ids) else 1
+
+    @property
+    def status(self, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        if self.start_date and self.end_date and self.start_date <= target_date <= self.end_date:
+            return self.STATUS_CHOICES[0]
+        else:
+            return self.STATUS_CHOICES[1]
 
     def save(self, **kwargs):
         if self.lodgement_number in ['', None]:
