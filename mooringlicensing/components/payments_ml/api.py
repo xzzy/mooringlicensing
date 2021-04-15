@@ -1,9 +1,14 @@
+from datetime import datetime
+
+import pytz
+from ledger.settings_base import TIME_ZONE
 from rest_framework import views, viewsets
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.approvals.serializers import DcvOrganisationSerializer, DcvVesselSerializer
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
@@ -26,6 +31,28 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
+
+        # DcvOrganisation
+        data['name'] = request.data.get('organisation', '')
+        data['abn'] = request.data.get('abn_acn', '')
+        serializer = DcvOrganisationSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        dcv_organisation = serializer.save()
+
+        # DcvVessel
+        data['rego_no'] = request.data.get('rego_no', '')
+        data['uiv_vessel_identifier'] = request.data.get('uiv_vessel_identifier', '')
+        data['vessel_name'] = request.data.get('vessel_name', '')
+        data['dcv_organisation_id'] = dcv_organisation.id
+        serializer = DcvVesselSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        dcv_vessel = serializer.save()
+
+        # DcvPermit
+        data['submitter'] = request.user.id
+
+        # TODO add more data to store
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()

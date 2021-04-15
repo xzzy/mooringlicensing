@@ -147,12 +147,16 @@ export default {
                 this.dcv_permit.id = res.body.id
                 await this.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
             }
+            else {
+                console.log(res)
+            }
         },
         save: async function(withConfirm=true, url){
             console.log('in save()')
             let vm = this
 
             const res = await vm.$http.post(url, this.dcv_permit);
+            console.log('aho1')
             if (res.ok) {
                 if (withConfirm) {
                     swal(
