@@ -11,6 +11,7 @@ from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
+from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
 
@@ -92,6 +93,32 @@ class Payment(RevisionedMixin):
         elif self.cost_total > amount:
             return 'partially_paid'
         return "paid"
+
+
+class DcvPermitFee(Payment):
+    PAYMENT_TYPE_INTERNET = 0
+    PAYMENT_TYPE_RECEPTION = 1
+    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_TEMPORARY = 3
+    PAYMENT_TYPE_CHOICES = (
+        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
+        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
+        (PAYMENT_TYPE_BLACK, 'Black booking'),
+        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
+    )
+
+    dcv_permit = models.ForeignKey(DcvPermit, on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
+    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+
+    def __str__(self):
+        return 'DcvPermit {} : Invoice {}'.format(self.dcv_permit, self.invoice_reference)
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class ApplicationFee(Payment):
