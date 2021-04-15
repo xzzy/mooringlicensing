@@ -660,6 +660,7 @@ class DcvPermit(RevisionedMixin):
         (DCV_PERMIT_STATUS_EXPIRED, 'Expired'),
     )
 
+    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_dcv_permits')
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
