@@ -7,7 +7,7 @@ from mooringlicensing.components.proposals.serializers import ProposalSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
-    ApprovalUserAction
+    ApprovalUserAction, DcvOrganisation, DcvVessel
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -100,6 +100,72 @@ class _ApprovalPaymentSerializer(serializers.ModelSerializer):
 
     def get_applicant_id(self,obj):
         return obj.applicant_id
+
+
+class DcvOrganisationSerializer(serializers.ModelSerializer):
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['name']:
+            field_errors['name'] = ['Please enter organisation name.',]
+        if not data['abn']:
+            field_errors['abn'] = ['Please enter ABN / ACN.',]
+
+        # Raise errors
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
+
+    class Meta:
+        model = DcvOrganisation
+        fields = (
+            'id',
+            'name',
+            'abn',
+        )
+        read_only_fields = (
+            'id',
+        )
+
+
+class DcvVesselSerializer(serializers.ModelSerializer):
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['rego_no']:
+            field_errors['rego_no'] = ['Please enter vessel rego_no.',]
+        if not data['vessel_name']:
+            field_errors['vessel_name'] = ['Please enter vessel name.',]
+        if not data['uiv_vessel_identifier']:
+            field_errors['uiv_vessel_identifier'] = ['Please enter UIV vessel identifier.',]
+        if not data['dcv_organisation_id']:
+            field_errors['dcv_organisation_id'] = ['Please enter organisation and/or ABN / ACN.',]
+
+        # Raise errors
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
+
+    class Meta:
+        model = DcvVessel
+        fields = (
+            'id',
+            'vessel_name',
+            'rego_no',
+            'uiv_vessel_identifier',
+            'dcv_organisation_id',
+        )
+        read_only_fields = (
+            'id',
+        )
 
 
 class ApprovalSerializer(serializers.ModelSerializer):

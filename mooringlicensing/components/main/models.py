@@ -100,6 +100,7 @@ class Document(models.Model):
 class ApplicationType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
+    oracle_code = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
@@ -290,6 +291,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
                 return False
         return True
 
+
 class VesselSizeCategory(RevisionedMixin):
     name = models.CharField(max_length=100)
     start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -305,6 +307,15 @@ class VesselSizeCategory(RevisionedMixin):
         verbose_name_plural = "Vessel Size Categories"
         app_label = 'mooringlicensing'
 
+    def save(self, **kwargs):
+        if not self.is_editable:
+            raise ValidationError('VesselSizeCategory cannot be changed once used for payment calculation')
+        else:
+            super(VesselSizeCategory, self).save(**kwargs)
+
+    @property
+    def is_editable(self):
+        return self.vessel_size_category_group.is_editable
 
 
 
