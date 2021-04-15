@@ -35,17 +35,17 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Given name(s)</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
+                                <input :readonly="readonly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Surname</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
+                                <input :readonly="readonly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                             </div>
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
+                            <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
@@ -74,35 +74,35 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Street</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_address.line1">
+                                <input :readonly="readonly" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_address.line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_address.locality">
+                                <input :readonly="readonly" type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_address.locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">State</label>
                             <div class="col-sm-3">
-                                <input type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_address.state">
+                                <input :readonly="readonly" type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_address.state">
                             </div>
                             <label for="" class="col-sm-1 control-label">Postcode</label>
                             <div class="col-sm-2">
-                                <input type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_address.postcode">
+                                <input :readonly="readonly" type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_address.postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
-                                <select class="form-control" id="country" name="Country" v-model="profile.residential_address.country">
+                                <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="profile.residential_address.country">
                                     <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
                                 </select>
                             </div>
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
+                            <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddress()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
@@ -130,7 +130,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Phone (work)</label>
                             <div v-if="profile.is_department_user" class="col-sm-6">
-                               <input :readonly="phoneNumberReadonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">           
+                               <input :readonly="phoneNumberReadonly || readonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">           
                             </div>
                             <div v-else class="col-sm-6">
                                 <input type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
@@ -139,7 +139,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Mobile</label>
                             <div v-if="profile.is_department_user" class="col-sm-6">
-                                <input :readonly="mobileNumberReadonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
+                                <input :readonly="mobileNumberReadonly || readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                             <div v-else class="col-sm-6">
                                 <input type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
@@ -148,11 +148,11 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Email</label>
                             <div class="col-sm-6">
-                                <input type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
+                                <input :readonly="readonly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
                             </div>
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
+                            <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingContact" class="pull-right btn btn-primary" @click.prevent="updateContact()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
@@ -162,7 +162,7 @@
                 </div>
             </div>
         </div>
-        <FormSection v-if="showElectoralRoll" label="WA State Electoral Roll">
+        <FormSection v-if="showElectoralRoll" label="WA State Electoral Roll" :Index="electoralRollSectionIndex">
             <div class="form-group">
                 <div class="col-sm-8 mb-3">
                     <strong>
@@ -170,19 +170,20 @@
                     </strong>
                 </div>
                 <div class="col-sm-8">
-                    <input type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
+                    <input :disabled="readonly" type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
                     <label for="electoral_roll_yes">
                         Yes, I am on the 
                         <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
                     </label>
                 </div>
                 <div class="col-sm-8">
-                    <input class="mb-3" type="radio" id="electoral_roll_silent" :value="true" v-model="silentElector"/>
+                    <input :disabled="readonly" class="mb-3" type="radio" id="electoral_roll_silent" :value="true" v-model="silentElector"/>
                     <label for="electoral_roll_silent">
                         I am a silent elector
                     </label>
                     <div v-if="silentElector===true">
                         <FileField
+                            :readonly="readonly"
                             headerCSS="ml-3"
                             label="Provide evidence"
                             ref="electoral_roll_documents"
@@ -222,11 +223,16 @@ export default {
         storedSilentElector:{
                 type: Boolean,
             },
+        readonly:{
+            type: Boolean,
+            default: false,
+        },
 
     },
     data () {
         let vm = this;
         return {
+            electoralRollSectionIndex: 'electoral_roll_' + vm._uid,
             silentElector: null,
             adBody: 'adBody'+vm._uid,
             pBody: 'pBody'+vm._uid,

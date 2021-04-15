@@ -6,15 +6,30 @@
         </div>
         <div class="row form-group">
             <div class="col-sm-9" v-for="choice in insuranceChoices">
-                <input type="radio" name="insuranceChoice" :id="choice.code" :value="choice.code" required=""/>
+                <input :disabled="readonly" type="radio" name="insuranceChoice" :id="choice.code" :value="choice.code" required=""/>
                 <label :for="choice.code">{{ choice.description }}</label>
             </div>
         </div>
+        <div class="row form-group">
+            <label for="" class="col-sm-3 control-label">Copy of the vessel's current insurance certificate showing legal liability amount</label>
+            <div class="col-sm-9">
+                <FileField 
+                    :readonly="readonly"
+                    ref="insurance_certificate_documents"
+                    name="insurance-certificate-documents"
+                    :isRepeatable="true"
+                    :documentActionUrl="insuranceCertificateDocumentUrl"
+                    :replace_button_by_text="true"
+                />
+            </div>
+        </div>
+
     </FormSection>
 </template>
 
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
+import FileField from '@/components/forms/filefield_immediate.vue'
 import {
   api_endpoints,
   helpers
@@ -24,12 +39,17 @@ from '@/utils/hooks'
         name:'Insurance',
         components:{
             FormSection,
+            FileField,
         },
         props:{
             proposal:{
                 type: Object,
                 required:true
-            }
+            },
+            readonly:{
+                type: Boolean,
+                default: true,
+            },
         },
         data:function () {
             return {
@@ -38,6 +58,18 @@ from '@/utils/hooks'
             }
         },
         computed: {
+            insuranceCertificateDocumentUrl: function() {
+                let url = '';
+                if (this.proposal && this.proposal.id) {
+                    url = helpers.add_endpoint_join(
+                        //'/api/proposal/',
+                        api_endpoints.proposal,
+                        this.proposal.id + '/process_insurance_certificate_document/'
+                    )
+                }
+                return url;
+            },
+
         },
         methods:{
             fetchInsuranceChoices: async function(){
