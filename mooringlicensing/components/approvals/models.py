@@ -659,7 +659,7 @@ class DcvPermit(RevisionedMixin):
     )
 
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    # status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
 
     @classmethod
     def get_next_id(cls):
