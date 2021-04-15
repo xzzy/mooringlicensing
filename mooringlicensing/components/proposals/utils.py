@@ -384,10 +384,15 @@ def save_vessel_data(instance, request, vessel_data):
         instance.vessel_details = None
         instance.save()
     else:
-        vessel_id = vessel_data.get("vessel_details", {}).get("id")
-        if vessel_id:
-            instance.vessel_details = VesselDetails.objects.get(id=vessel_id)
+        vessel_details_id = vessel_data.get("vessel_details", {}).get("id")
+        if vessel_details_id:
+            instance.vessel_details = VesselDetails.objects.get(id=vessel_details_id)
             instance.save()
+        vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
+        if vessel_ownership_id:
+            instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
+            instance.save()
+
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
