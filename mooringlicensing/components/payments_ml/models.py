@@ -149,8 +149,6 @@ class ApplicationFee(Payment):
 
 class FeeSeason(RevisionedMixin):
     name = models.CharField(max_length=50, null=False, blank=False)
-    # start_date = models.DateField(null=True, blank=True)
-    # end_date = start_date + 1year
 
     def __str__(self):
         num_item = self.fee_periods.count()
@@ -203,6 +201,16 @@ class FeePeriod(RevisionedMixin):
     def __str__(self):
         return 'Name: {}, Start Date: {}'.format(self.name, self.start_date)
 
+    @property
+    def is_editable(self):
+        return self.fee_season.is_editable
+
+    def save(self, **kwargs):
+        if not self.is_editable:
+            raise ValidationError('Period cannot be changed once used for payment calculation')
+        else:
+            super(FeePeriod, self).save(**kwargs)
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['start_date']
@@ -231,7 +239,7 @@ class FeeConstructor(RevisionedMixin):
 
     @property
     def num_of_times_used_for_payment(self):
-        return self.application_fees.count()
+        return self.application_fees.count() + self.dcv_permit_fees.count()
 
     def validate_unique(self, exclude=None):
         # Conditional unique together validation

@@ -629,8 +629,8 @@ class ApprovalUserAction(UserAction):
 
 
 class DcvOrganisation(models.Model):
-    name = models.CharField(max_length=128, unique=True)
-    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
+    name = models.CharField(max_length=128, null=True, blank=True)
+    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN', unique=True)
 
     def __str__(self):
         return self.name
@@ -659,28 +659,33 @@ class DcvPermit(RevisionedMixin):
         (DCV_PERMIT_STATUS_CURRENT, 'Current'),
         (DCV_PERMIT_STATUS_EXPIRED, 'Expired'),
     )
+    LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_dcv_permits')
-    lodgement_number = models.CharField(max_length=9, blank=True, default='')
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
+    lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
+    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
+    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
 
     @classmethod
     def get_next_id(cls):
-        ids = map(int, [i.split('L')[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
         ids = list(ids)
         return max(ids) + 1 if len(ids) else 1
 
     @property
     def status(self, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        if self.start_date and self.end_date and self.start_date <= target_date <= self.end_date:
-            return self.STATUS_CHOICES[0]
+        if self.start_date:
+            if self.start_date <= target_date <= self.end_date:
+                return self.STATUS_CHOICES[0]
+            else:
+                return self.STATUS_CHOICES[1]
         else:
-            return self.STATUS_CHOICES[1]
+            return None
 
     def save(self, **kwargs):
         if self.lodgement_number in ['', None]:
-            self.lodgement_number = 'L{0:06d}'.format(self.get_next_id())
+            self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
         super(DcvPermit, self).save(**kwargs)
 
     class Meta:
