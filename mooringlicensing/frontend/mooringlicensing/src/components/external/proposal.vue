@@ -378,11 +378,23 @@ export default {
 
     submit_and_pay: async function() {
         //let formData = this.set_formData()
-
-        const res = await this.save(false, this.proposal_submit_url);
-        console.log(res);
-        if (res.ok) {
-            await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+        try {
+            const res = await this.save(false, this.proposal_submit_url);
+            console.log(res);
+            if (res.ok) {
+                await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+            }
+        } catch(err) {
+            console.log(err)
+            await swal({
+                title: 'Submit Error',
+                //text: helpers.apiVueResourceError(err),
+                text: err.bodyText,
+                type: "error",
+            })
+            this.savingProposal=false;
+            this.paySubmitting=false;
+            //this.submitting = false;
         }
     },
 
