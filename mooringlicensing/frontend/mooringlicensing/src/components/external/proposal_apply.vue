@@ -120,26 +120,18 @@ export default {
         },(error) => {
         });
     },
-    createML: function() {
-        //let applicationType = null;
-        for (let appType of this.application_types) {
-            if (appType.code === 'mla') {
-                this.selectedApplication = Object.assign({}, appType);
-            }
-        }
-        this.$nextTick(() => {
-            console.log(this.selectedApplication);
-            this.createProposal();
-        });
+    createML: async function() {
+        const res = await this.$http.post(api_endpoints.mooringlicenceapplication);
+        const proposal = res.body;
+		this.$router.push({
+			name:"draft_proposal",
+			params:{proposal_id:proposal.id}
+		});
+        this.creatingProposal = false;
     },
     createProposal: async function () {
         this.creatingProposal = true;
         const payload = {
-			//application: vm.selected_application_id,
-            /*
-            category: vm.selected_category,
-            approval_level: vm.approval_level
-            */
         }
         let res = null;
         if (this.selectApplication && this.selectedApplication.code === 'wla') {
@@ -148,10 +140,7 @@ export default {
             res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
         } else if (this.selectApplication && this.selectedApplication.code === 'aua') {
             res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
-        } else if (this.selectApplication && this.selectedApplication.code === 'mla') {
-            res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
-        }
-        console.log(res);
+        } 
         const proposal = res.body;
 		this.$router.push({
 			name:"draft_proposal",

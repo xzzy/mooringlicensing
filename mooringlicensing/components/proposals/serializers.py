@@ -442,6 +442,83 @@ class SaveProposalSerializer(BaseProposalSerializer):
         read_only_fields=('id',)
 
 
+class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
+    preferred_bay_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'preferred_bay_id',
+                )
+        read_only_fields=('id',)
+
+    def validate(self, data):
+        print("self.context")
+        print(self.context)
+        if self.context.get("action") == 'submit':
+            if not data.get("preferred_bay_id"):
+                raise serializers.ValidationError("You must choose a mooring bay")
+
+        return data
+
+
+class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'insurance_choice',
+                )
+        read_only_fields=('id',)
+
+    def validate(self, data):
+        print("self.context")
+        print(self.context)
+        if self.context.get("action") == 'submit':
+            if not data.get("insurance_choice"):
+                raise serializers.ValidationError("You must make an insurance selection")
+
+        return data
+
+
+class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'insurance_choice',
+                'mooring_authorisation_preference',
+                'bay_preferences_numbered',
+                'site_licensee_email',
+                'mooring_site_id',
+                )
+        read_only_fields=('id',)
+
+    def validate(self, data):
+        #import ipdb; ipdb.set_trace()
+        print("validate data")
+        print(data)
+        custom_errors = {}
+        if self.context.get("action") == 'submit':
+            if not data.get("insurance_choice"):
+                custom_errors["Insurance Choice"] = "You must make an insurance selection"
+            if not data.get("mooring_authorisation_preference"):
+                custom_errors["Mooring Details"] = "You must complete this tab"
+            if data.get("mooring_authorisation_preference") == 'site_licensee':
+                if not data.get("site_licensee_email"):
+                    custom_errors["Site Licensee Email"] = "This field should not be blank"
+                if not data.get("mooring_site_id"):
+                    custom_errors["Mooring Site ID"] = "This field should not be blank"
+        print("custom_errors")
+        print(custom_errors)
+        if custom_errors.keys():
+            raise serializers.ValidationError(custom_errors)
+        return data
+
+
 class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
 
     class Meta:

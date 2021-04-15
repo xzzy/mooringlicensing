@@ -283,6 +283,15 @@ from '@/utils/hooks'
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
                     vm.vessel.rego_no = '';
+                    vm.vessel = Object.assign({}, 
+                        {   
+                            read_only: false,
+                            vessel_details: {},
+                            vessel_ownership: {
+                                registered_owner: 'current_user',
+                            }
+                        });
+
                     //vm.selectedRego = ''
                 }).
                 on("select2:open",function (e) {
