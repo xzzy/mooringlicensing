@@ -450,14 +450,25 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'preferred_bay_id',
+                'silent_elector',
                 )
         read_only_fields=('id',)
 
     def validate(self, data):
+        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("preferred_bay_id"):
                 custom_errors["Mooring Details"] = "You must choose a mooring bay"
+            # electoral roll validation
+            if 'silent_elector' not in data.keys():
+                custom_errors["Electoral Roll"] = "You must complete this section"
+            elif data.get("silent_elector"):
+                if not self.instance.electoral_roll_documents.all():
+                    custom_errors["Silent Elector"] = "You must provide evidence of this"
+            # Vessel docs
+            if not self.instance.vessel_registration_documents.all():
+                custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -478,6 +489,9 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
+            # Vessel docs
+            if not self.instance.vessel_registration_documents.all():
+                custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -490,14 +504,29 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'insurance_choice',
+                'silent_elector',
                 )
         read_only_fields=('id',)
 
     def validate(self, data):
+        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
+            if not self.instance.insurance_certificate_documents.all():
+                custom_errors["Insurance Certificate"] = "Please attach"
+            # electoral roll validation
+            if 'silent_elector' not in data.keys():
+                custom_errors["Electoral Roll"] = "You must complete this section"
+            elif data.get("silent_elector"):
+                if not self.instance.electoral_roll_documents.all():
+                    custom_errors["Silent Elector"] = "You must provide evidence of this"
+            # Vessel docs
+            if not self.instance.vessel_registration_documents.all():
+                custom_errors["Vessel Registration Papers"] = "Please attach"
+            #if not self.instance.hull_identification_number_documents.all():
+             #   custom_errors["Hull Identification Number Documents"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -525,6 +554,8 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
+            if not self.instance.insurance_certificate_documents.all():
+                custom_errors["Insurance Certificate"] = "Please attach"
             if not data.get("mooring_authorisation_preference"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
             if data.get("mooring_authorisation_preference") == 'site_licensee':
@@ -532,6 +563,9 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Site Licensee Email"] = "This field should not be blank"
                 if not data.get("mooring_site_id"):
                     custom_errors["Mooring Site ID"] = "This field should not be blank"
+            # Vessel docs
+            if not self.instance.vessel_registration_documents.all():
+                custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -888,6 +922,12 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
                 #exported
                 )
 
+    def validate(self, data):
+        custom_errors = {}
+        if custom_errors.keys():
+            raise serializers.ValidationError(custom_errors)
+        return data
+
 
 class VesselOwnershipSerializer(serializers.ModelSerializer):
 
@@ -910,6 +950,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'start_date',
                 'end_date',
                 )
+
 
 class MooringBaySerializer(serializers.ModelSerializer):
 
