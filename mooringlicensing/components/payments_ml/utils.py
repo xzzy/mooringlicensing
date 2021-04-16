@@ -11,7 +11,7 @@ from rest_framework import serializers
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee
 
 #test
 from mooringlicensing.components.proposals.models import Proposal
@@ -99,23 +99,41 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         vessel_length = 1
         proposal_type = None
 
-    today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
-    today_local_str = today_local.strftime('%d/%m/%Y %H:%M')
+    target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+    target_date = target_datetime.date()
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, today_local)
-    if not fee_constructor:
-        # Fees have not been configured for this application type and date
-        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, today_local))
-    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
+    if isinstance(instance, Proposal):
+        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+    elif isinstance(instance, DcvPermit):
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+    else:
+        raise Exception('Something went wrong when calculating the fee')
 
-    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, today_local)
+    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
+    db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
+    db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
+    db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
 
     line_items = [
         {
-            'ledger_description': '{} Fee: {} - {}'.format(application_type.description,  instance.lodgement_number, today_local_str),
-            # 'oracle_code': proposal.application_type.oracle_code_application,
-            'oracle_code': 'aho',
+            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                application_type.description,
+                instance.lodgement_number,
+                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                target_datetime_str,
+            ),
+            'oracle_code': application_type.oracle_code,
             'price_incl_tax':  fee_item.amount,
             'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
             'quantity': 1,
@@ -128,6 +146,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
 
 NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
+NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
 
 
 def set_session_application_invoice(session, application_fee):
@@ -159,4 +178,27 @@ def delete_session_application_invoice(session):
     """ Application Fee session ID """
     if NAME_SESSION_APPLICATION_INVOICE in session:
         del session[NAME_SESSION_APPLICATION_INVOICE]
+        session.modified = True
+
+
+def set_session_dcv_permit_invoice(session, dcv_permit_fee):
+    session[NAME_SESSION_DCV_PERMIT_INVOICE] = dcv_permit_fee.id
+    session.modified = True
+
+
+def get_session_dcv_permit_invoice(session):
+    if NAME_SESSION_DCV_PERMIT_INVOICE in session:
+        dcv_permit_fee_id = session[NAME_SESSION_DCV_PERMIT_INVOICE]
+    else:
+        raise Exception('DcvPermit not in Session')
+
+    try:
+        return DcvPermitFee.objects.get(id=dcv_permit_fee_id)
+    except DcvPermitFee.DoesNotExist:
+        raise Exception('Application not found for application {}'.format(dcv_permit_fee_id))
+
+
+def delete_session_dcv_permit_invoice(session):
+    if NAME_SESSION_DCV_PERMIT_INVOICE in session:
+        del session[NAME_SESSION_DCV_PERMIT_INVOICE]
         session.modified = True

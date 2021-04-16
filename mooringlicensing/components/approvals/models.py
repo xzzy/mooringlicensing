@@ -4,6 +4,7 @@ import json
 import datetime
 import logging
 
+import pytz
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
@@ -14,6 +15,7 @@ from django.utils import timezone
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.db.models import Q
+from ledger.settings_base import TIME_ZONE
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
 from ledger.accounts.models import Organisation as ledger_organisation
@@ -21,6 +23,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
+from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
@@ -627,8 +630,8 @@ class ApprovalUserAction(UserAction):
 
 
 class DcvOrganisation(models.Model):
-    name = models.CharField(max_length=128, unique=True)
-    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
+    name = models.CharField(max_length=128, null=True, blank=True)
+    abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN', unique=True)
 
     def __str__(self):
         return self.name
@@ -657,19 +660,36 @@ class DcvPermit(RevisionedMixin):
         (DCV_PERMIT_STATUS_CURRENT, 'Current'),
         (DCV_PERMIT_STATUS_EXPIRED, 'Expired'),
     )
+    LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    lodgement_number = models.CharField(max_length=9, blank=True, default='')
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_dcv_permits')
+    lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
+    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True)
+    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     @classmethod
     def get_next_id(cls):
-        ids = map(int, [i.split('L')[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
         ids = list(ids)
         return max(ids) + 1 if len(ids) else 1
 
+    @property
+    def status(self, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        if self.start_date:
+            if self.start_date <= target_date <= self.end_date:
+                return self.STATUS_CHOICES[0]
+            else:
+                return self.STATUS_CHOICES[1]
+        else:
+            return None
+
     def save(self, **kwargs):
         if self.lodgement_number in ['', None]:
-            self.lodgement_number = 'L{0:06d}'.format(self.get_next_id())
+            self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
         super(DcvPermit, self).save(**kwargs)
 
     class Meta:
