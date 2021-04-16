@@ -32,6 +32,7 @@ from mooringlicensing.components.proposals.serializers import (
         SaveWaitingListApplicationSerializer,
         SaveMooringLicenceApplicationSerializer,
         SaveAuthorisedUserApplicationSerializer,
+        SaveAnnualAdmissionApplicationSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -328,30 +329,45 @@ def save_proponent_data(instance, request, viewset):
     if type(instance.child_obj) == WaitingListApplication:
         save_proponent_data_wla(instance, request, viewset)
     elif type(instance.child_obj) == AnnualAdmissionApplication:
-        save_proponent_data_common(instance, request, viewset)
+        save_proponent_data_aaa(instance, request, viewset)
     elif type(instance.child_obj) == AuthorisedUserApplication:
         save_proponent_data_aua(instance, request, viewset)
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
 
+# no longer required?
 def save_proponent_data_common(instance, request, viewset):
     #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal')
-    #print("proposal_data")
-    #print(proposal_data)
     if proposal_data:
         serializer = SaveProposalSerializer(instance, data=proposal_data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+    vessel_data = request.data.get("vessel")
+    if vessel_data:
+        if viewset.action == 'submit':
+            submit_vessel_data(instance, request, vessel_data)
+        elif instance.processing_status == 'draft':
+            save_vessel_data(instance, request, vessel_data)
+
+def save_proponent_data_aaa(instance, request, viewset):
+    #import ipdb; ipdb.set_trace()
+    print(request.data)
+    # proposal
+    proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+    serializer = SaveAnnualAdmissionApplicationSerializer(
+            instance, 
+            data=proposal_data, 
+            context={
+                "action": viewset.action
+                }
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
     # vessel
-    #if instance.editable_vessel:
-    #    if viewset.action == 'draft':
-    #        save_vessel_data(instance, request)
-    #    elif viewset.action == 'submit':
-    #        submit_vessel_data(instance, request)
     vessel_data = request.data.get("vessel")
     if vessel_data:
         if viewset.action == 'submit':
