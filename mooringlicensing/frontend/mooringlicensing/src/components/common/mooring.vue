@@ -5,7 +5,7 @@
         </div>
         <div class="row form-group">
             <div class="col-sm-6" v-for="mooring in mooringBays">
-                <label :for="mooring.id" class="col-sm-5 control-label">{{ mooring.name }}</label>
+                <label :for="mooring.id" class="label-right col-sm-5 control-label">{{ mooring.name }}</label>
                 <input :disabled="readonly" type="radio" :id="mooring.id" :value="mooring" v-model="selectedMooring" required=""/>
             </div>
         </div>
@@ -82,5 +82,10 @@ from '@/utils/hooks'
 </script>
 
 <style lang="css" scoped>
+.label-right {
+    float: right;
+    text-align: left;
+    margin-right: 50%;
+}
 </style>
 
