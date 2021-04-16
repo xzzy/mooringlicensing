@@ -38,7 +38,7 @@
 
         </meta>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/static/favicon.ico"/>
+        <link rel="icon" href="/static/favicon.svg"/>
     </head>
     <body>
         <header class="topmast-rottnest">
@@ -58,16 +58,31 @@
                                     <span class="icon-bar"></span>
                                     <span class="icon-bar"></span>
                                 </a>
-                                <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'mooringlicensing/img/dpaw_small.png' %}">{% if is_internal_login %}Applications {% else %}Home {% endif %}</div></a>
+                                <a class="navbar-brand" href="{% url 'ds_home' %}">
+                                    <div style="inline">
+                                        <img src="{% static 'mooringlicensing/img/dpaw_small.png' %}">{% if is_internal_login %}Applications {% else %}Home {% endif %}
+                                    </div>
+                                </a>
                             </div>
                             <div id="navbar" class="navbar-collapse collapse">
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
                                         {% if is_internal_login %}
-                                        <li><a href="/internal/approvals">Licences</a></li>
-                                        <li><a href="/internal/compliances">Compliance with Requirements</a></li>
-                                        <!--li><a href="/internal/organisations/access">Organisation Access</a></li-->
-                                        <li><a href="/internal/search">Search</a></li>
+                                            <li><a href="/internal/approvals">Licences</a></li>
+                                            <li><a href="/internal/compliances">Compliance with Requirements</a></li>
+                                            <!--li><a href="/internal/organisations/access">Organisation Access</a></li-->
+                                            <li><a href="/internal/search">Search</a></li>
+                                        {% else %}
+                                            <li class="dropdown">
+                                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                                    DCV
+                                                    <span class="caret"></span>
+                                                </a>
+                                                <ul class="dropdown-menu">
+                                                    <li><a href="/external/dcv_permit">DCV Permit</a></li>
+                                                    <li><a href="/external/dcv_admission">DCV Admission</a></li>
+                                                </ul>
+                                            </li>
                                         {% endif %}
                                     {% endblock %}
                                 </ul>
