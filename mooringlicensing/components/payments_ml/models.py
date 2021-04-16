@@ -173,7 +173,7 @@ class FeeSeason(RevisionedMixin):
     @property
     def is_editable(self):
         for fee_constructor in self.fee_constructors.all():
-            if fee_constructor.num_of_times_used_for_payment:
+            if not fee_constructor.is_editable:
                 # This season has been used in the fee_constructor for payments at least once
                 return False
         return True
@@ -239,6 +239,10 @@ class FeeConstructor(RevisionedMixin):
             return None
 
     @property
+    def is_editable(self):
+        return True if not self.num_of_times_used_for_payment else False
+
+    @property
     def num_of_times_used_for_payment(self):
         return self.application_fees.count() + self.dcv_permit_fees.count()
 
@@ -300,7 +304,6 @@ class FeeConstructor(RevisionedMixin):
             logger.error('Error determining the fee: {}'.format(e))
             raise
 
-
     @classmethod
     def get_current_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         logger = logging.getLogger('payment_checkout')
@@ -342,6 +345,10 @@ class FeeItem(RevisionedMixin):
 
     def __str__(self):
         return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category)
+
+    @property
+    def is_editable(self):
+        return self.fee_constructor.is_editable
 
     class Meta:
         app_label = 'mooringlicensing'
