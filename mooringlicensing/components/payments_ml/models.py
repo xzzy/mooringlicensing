@@ -11,6 +11,8 @@ from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
+# from mooringlicensing.components.approvals.models import DcvPermit
+# from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
 
@@ -94,6 +96,32 @@ class Payment(RevisionedMixin):
         return "paid"
 
 
+class DcvPermitFee(Payment):
+    PAYMENT_TYPE_INTERNET = 0
+    PAYMENT_TYPE_RECEPTION = 1
+    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_TEMPORARY = 3
+    PAYMENT_TYPE_CHOICES = (
+        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
+        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
+        (PAYMENT_TYPE_BLACK, 'Black booking'),
+        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
+    )
+
+    dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
+    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+
+    def __str__(self):
+        return 'DcvPermit {} : Invoice {}'.format(self.dcv_permit, self.invoice_reference)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
@@ -122,8 +150,6 @@ class ApplicationFee(Payment):
 
 class FeeSeason(RevisionedMixin):
     name = models.CharField(max_length=50, null=False, blank=False)
-    # start_date = models.DateField(null=True, blank=True)
-    # end_date = start_date + 1year
 
     def __str__(self):
         num_item = self.fee_periods.count()
@@ -176,6 +202,16 @@ class FeePeriod(RevisionedMixin):
     def __str__(self):
         return 'Name: {}, Start Date: {}'.format(self.name, self.start_date)
 
+    @property
+    def is_editable(self):
+        return self.fee_season.is_editable
+
+    def save(self, **kwargs):
+        if not self.is_editable:
+            raise ValidationError('Period cannot be changed once used for payment calculation')
+        else:
+            super(FeePeriod, self).save(**kwargs)
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['start_date']
@@ -204,7 +240,7 @@ class FeeConstructor(RevisionedMixin):
 
     @property
     def num_of_times_used_for_payment(self):
-        return self.application_fees.count()
+        return self.application_fees.count() + self.dcv_permit_fees.count()
 
     def validate_unique(self, exclude=None):
         # Conditional unique together validation
@@ -242,6 +278,28 @@ class FeeConstructor(RevisionedMixin):
         except Exception as e:
             logger.error('Error determining the fee: {}'.format(e))
             raise
+
+    @classmethod
+    def get_fee_constructor_by_application_type_and_season(cls, application_type, fee_season):
+        logger = logging.getLogger('payment_checkout')
+
+        try:
+            fee_constructor_qs = cls.objects.filter(application_type=application_type, fee_season=fee_season, enabled=True)
+
+            # Validation
+            if not fee_constructor_qs:
+                raise Exception('No fees are configured for the application type: {} and season: {}'.format(application_type, fee_season))
+            elif fee_constructor_qs.count() > 1:
+                # more than one fee constructors found
+                raise Exception('Too many fees are configured for the application type: {} and season: {}'.format(application_type, fee_season))
+            else:
+                fee_constructor = fee_constructor_qs.first()
+                return fee_constructor
+
+        except Exception as e:
+            logger.error('Error determining the fee: {}'.format(e))
+            raise
+
 
     @classmethod
     def get_current_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):

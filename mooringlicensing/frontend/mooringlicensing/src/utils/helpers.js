@@ -137,5 +137,34 @@ module.exports = {
                 e.preventDefault();
                 return true;
             });
-    } 
+    },
+    processError: async function(err){
+        console.log(err)
+        let errorText = '';
+        if (err.body.non_field_errors) {
+            console.log('non_field_errors')
+            // When non field errors raised
+            for (let i=0; i<err.body.non_field_errors.length; i++){
+                errorText += err.body.non_field_errors[i] + '<br />';
+            }
+        } else if(Array.isArray(err.body)) {
+            console.log('isArray')
+            // When serializers.ValidationError raised
+            for (let i=0; i<err.body.length; i++){
+                errorText += err.body[i] + '<br />';
+            }
+        } else {
+            console.log('else')
+            // When field errors raised
+            for (let field_name in err.body){
+                if (err.body.hasOwnProperty(field_name)){
+                    errorText += field_name + ':<br />';
+                    for (let j=0; j<err.body[field_name].length; j++){
+                        errorText += err.body[field_name][j] + '<br />';
+                    }
+                }
+            }
+        }
+        await swal("Error", errorText, "error");
+    },
 };
