@@ -10,6 +10,7 @@ module.exports = {
     approval_statuses_dict:"/api/approval_statuses_dict",
     compliance_statuses_dict:"/api/compliance_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
+    seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
 
     profile: '/api/profile',
     organisations: '/api/organisations.json',
