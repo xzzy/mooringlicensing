@@ -382,10 +382,17 @@ export default {
         //let formData = this.set_formData()
         try {
             const res = await this.save(false, this.proposal_submit_url);
-            console.log(res);
-            if (res.ok) {
+            if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
                 await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+            } else {
+                this.$router.push({
+                    name: 'external-dashboard'
+                });
             }
+            //console.log(res);
+            //if (res.ok) {
+            //    await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+            //}
         } catch(err) {
             console.log(err)
             console.log(typeof(err.body))

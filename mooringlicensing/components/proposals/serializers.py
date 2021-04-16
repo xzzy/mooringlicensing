@@ -490,6 +490,8 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'insurance_choice',
+                'customer_status',
+                'processing_status',
                 )
         read_only_fields=('id',)
 
@@ -514,6 +516,8 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'bay_preferences_numbered',
                 'site_licensee_email',
                 'mooring_site_id',
+                'customer_status',
+                'processing_status',
                 )
         read_only_fields=('id',)
 
