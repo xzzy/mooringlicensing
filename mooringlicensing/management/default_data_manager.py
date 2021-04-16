@@ -29,10 +29,21 @@ class DefaultDataManager(object):
                     type, created = ApplicationType.objects.get_or_create(code=item.code)
                     if created:
                         type.description = item.description
+                        type.oracle_code = item.oracle_code
                         type.save()
                         logger.info("Created ApplicationType: {}".format(item.description))
                 except Exception as e:
                     logger.error('{}, ApplicationType: {}'.format(e, item.code))
+        try:
+            # Create record for the DCV Permit
+            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
+            if created:
+                type.description = settings.APPLICATION_TYPE_DCV_PERMIT['description']
+                type.oracle_code = settings.APPLICATION_TYPE_DCV_PERMIT['oracle_code']
+                type.save()
+                logger.info("Created ApplicationType: {}".format(type.description))
+        except Exception as e:
+            logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
         # Assessor Group
         for item in settings.ASSESSOR_GROUPS:

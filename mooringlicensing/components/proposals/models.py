@@ -1585,6 +1585,7 @@ class WaitingListApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'wla'
     prefix = 'WL'
+    oracle_code = '0517'
     new_application_text = "to be included on the waiting list for a mooring license"
     apply_page_visibility = True
     description = 'Waiting List Application'
@@ -1606,6 +1607,7 @@ class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
+    oracle_code = '0517'
     new_application_text = "for an annual admission permit"
     apply_page_visibility = True
     description = 'Annual Admission Application'
@@ -1627,6 +1629,7 @@ class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
+    oracle_code = '0517'
     new_application_text = "for an an authorised user permit"
     apply_page_visibility = True
     description = 'Authorised User Application'
@@ -1648,6 +1651,7 @@ class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
+    oracle_code = '0517'
     new_application_text = ""
     apply_page_visibility = False
     description = 'Mooring Licence Application'
