@@ -9,21 +9,21 @@ from ledger.settings_base import TIME_ZONE
 from preserialize.serialize import serialize
 from ledger.accounts.models import EmailUser #, Document
 from mooringlicensing.components.proposals.models import (
-        ProposalDocument, #ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation, 
-        ProposalUserAction, 
-        ProposalAssessment, 
-        ProposalAssessmentAnswer, 
-        ChecklistQuestion,
-        ProposalStandardRequirement,
-        WaitingListApplication,
-        AnnualAdmissionApplication,
-        AuthorisedUserApplication,
-        MooringLicenceApplication,
-        Vessel, 
-        VesselDetails,
-        VesselOwnership,
-        Owner,
-        )
+    ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
+    ProposalUserAction,
+    ProposalAssessment,
+    ProposalAssessmentAnswer,
+    ChecklistQuestion,
+    ProposalStandardRequirement,
+    WaitingListApplication,
+    AnnualAdmissionApplication,
+    AuthorisedUserApplication,
+    MooringLicenceApplication,
+    Vessel,
+    VesselDetails,
+    VesselOwnership,
+    Owner, Proposal,
+)
 from mooringlicensing.components.proposals.serializers import (
         SaveVesselDetailsSerializer,
         SaveVesselOwnershipSerializer,
@@ -402,6 +402,14 @@ def save_proponent_data_mla(instance, request, viewset):
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+
+    proposal_data['customer_status'] = instance.customer_status
+    proposal_data['processing_status'] = instance.processing_status
+    if viewset.action == 'submit':
+        # Update status when submit
+        proposal_data['customer_status'] = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        proposal_data['processing_status'] = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+
     serializer = SaveMooringLicenceApplicationSerializer(
             instance, 
             data=proposal_data, 
@@ -424,6 +432,14 @@ def save_proponent_data_aua(instance, request, viewset):
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+
+    proposal_data['customer_status'] = instance.customer_status
+    proposal_data['processing_status'] = instance.processing_status
+    if viewset.action == 'submit':
+        # Update status when submit
+        proposal_data['customer_status'] = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        proposal_data['processing_status'] = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+
     serializer = SaveAuthorisedUserApplicationSerializer(
             instance, 
             data=proposal_data, 
@@ -433,6 +449,8 @@ def save_proponent_data_aua(instance, request, viewset):
     )
     serializer.is_valid(raise_exception=True)
     serializer.save()
+
+
     # vessel
     vessel_data = request.data.get("vessel")
     if vessel_data:
