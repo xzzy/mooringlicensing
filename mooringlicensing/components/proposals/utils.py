@@ -489,8 +489,7 @@ def submit_vessel_data(instance, request, vessel_data):
     #vessel_data = request.data.get("vessel")
     if not vessel_data.get("read_only"):
         if not vessel_data.get('rego_no'):
-            raise ValueError("You must supply a Vessel Registration Number")
-            #raise ValidationError("You must supply a Vessel Registration Number")
+            raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
         rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
         vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
         
@@ -518,6 +517,10 @@ def submit_vessel_data(instance, request, vessel_data):
 
         ## Vessel Ownership
         vessel_ownership_data = vessel_data.get("vessel_ownership")
+        if vessel_ownership_data.get('individual_owner') is None:
+            raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
+        elif not vessel_ownership_data.get('individual_owner') and not vessel_ownership_data.get("org_name"):
+            raise serializers.ValidationError({"Missing information": "You must supply the company name"})
         vessel_ownership_data['vessel'] = vessel.id
         #registered_owner = vessel_ownership_data.get("registered_owner")
         #registered_owner_company_name = vessel_ownership_data.get("registered_owner_company_name")
