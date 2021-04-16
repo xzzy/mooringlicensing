@@ -41,12 +41,9 @@
                 </div>
             </div>
         </FormSection>
+
         <div>
             <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
-<!--
-            <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
-            <input type='hidden' name="proposal_id" :value="1" />
--->
 
             <div class="row" style="margin-bottom: 50px">
                 <div  class="container">
@@ -110,7 +107,7 @@ export default {
     },
     methods: {
         submit_and_pay: function(){
-            // this function --> save_and_pay() --> post_and_redirect()
+            // submit_and_pay() --> save_and_pay() --> post_and_redirect()
             let vm = this
             vm.paySubmitting = true;
 
@@ -122,42 +119,26 @@ export default {
                 confirmButtonText: "Submit and Pay",
             }).then(
                 (res)=>{
-                    console.log('success')
-                    console.log(res)
-
                     vm.save_and_pay();
-
                     this.paySubmitting = false
                 },
                 (res)=>{
-                    console.log('error')
-                    console.log(res)
-
                     this.paySubmitting = false
                 },
             )
         },
         save_and_pay: async function() {
-            console.log('in save_and_pay()')
-
-            const res = await this.save(false, '/api/dcv_permit/')
-            console.log('res')
-            console.log(res)
-            if (res.ok) {
+            try{
+                const res = await this.save(false, '/api/dcv_permit/')
                 this.dcv_permit.id = res.body.id
                 await this.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-            }
-            else {
-                console.log(res)
+            } catch(err) {
+                helpers.processError(err)
             }
         },
         save: async function(withConfirm=true, url){
-            console.log('in save()')
-            let vm = this
-
-            const res = await vm.$http.post(url, this.dcv_permit);
-            console.log('aho1')
-            if (res.ok) {
+            try{
+                const res = await this.$http.post(url, this.dcv_permit)
                 if (withConfirm) {
                     swal(
                         'Saved',
@@ -165,21 +146,12 @@ export default {
                         'success'
                     );
                 };
-                //vm.savingProposal=false;
                 return res;
-            } else {
-                swal({
-                    title: "Please fix following errors before saving",
-                    text: err.bodyText,
-                    type:'error'
-                });
-                //vm.savingProposal=false;
+            } catch(err){
+                helpers.processError(err)
             }
         },
         post_and_redirect: function(url, postData) {
-            console.log('in post_and_redirect()')
-            console.log('url')
-            console.log(url)
             /* http.post and ajax do not allow redirect from Django View (post method), 
                this function allows redirect by mimicking a form submit.
 

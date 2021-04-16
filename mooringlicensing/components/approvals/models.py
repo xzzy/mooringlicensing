@@ -23,6 +23,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
+from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
@@ -664,8 +665,11 @@ class DcvPermit(RevisionedMixin):
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_dcv_permits')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True)
+    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     @classmethod
     def get_next_id(cls):
