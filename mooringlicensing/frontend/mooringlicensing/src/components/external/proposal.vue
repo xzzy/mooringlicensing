@@ -282,7 +282,7 @@ export default {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
             }
-            if (this.$refs.waiting_list_application.$refs.profile.silentElector !== null) {
+            if (typeof(this.$refs.waiting_list_application.$refs.profile.silentElector) === 'boolean') {
                 payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
             }
             if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
@@ -324,7 +324,8 @@ export default {
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
             }
-            if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
+            if (typeof(this.$refs.mooring_licence_application.$refs.profile.silentElector) === 'boolean') {
+            //if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
             //if (this.$refs.mooring_licence_application.$refs.profile.profile.hasOwnProperty('silent_elector')) {
                 payload.proposal.silent_elector = this.$refs.mooring_licence_application.$refs.profile.silentElector;
             }
