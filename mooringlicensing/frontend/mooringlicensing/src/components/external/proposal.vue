@@ -598,13 +598,19 @@ export default {
         vm.submitting = true;
         vm.paySubmitting=true;
 
-        await swal({
-            title: vm.submit_text() + " Application",
-            text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
-            type: "question",
-            showCancelButton: true,
-            confirmButtonText: vm.submit_text()
-        })
+        try {
+            await swal({
+                title: vm.submit_text() + " Application",
+                text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: vm.submit_text()
+            })
+        } catch (cancel) {
+            vm.submitting = false;
+            vm.paySubmitting=false;
+            return;
+        }
       
         if (!vm.proposal.fee_paid) {
             await vm.submit_and_pay();
