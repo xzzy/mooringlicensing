@@ -286,7 +286,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
     @property
     def is_editable(self):
         for fee_constructor in self.fee_constructors.all():
-            if fee_constructor.num_of_times_used_for_payment:
+            if not fee_constructor.is_editable:
                 # This object has been used in the fee_constructor for payments at least once
                 return False
         return True
