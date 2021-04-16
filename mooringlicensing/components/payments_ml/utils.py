@@ -104,10 +104,19 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
-    if not fee_constructor:
-        # Fees have not been configured for this application type and date
-        raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+    if isinstance(instance, Proposal):
+        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+    elif isinstance(instance, DcvPermit):
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+    else:
+        raise Exception('Something went wrong when calculating the fee')
+
     db_processes_after_success['fee_constructor_id'] = fee_constructor.id
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
@@ -117,7 +126,13 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     line_items = [
         {
-            'ledger_description': '{} Fee: {} - {}'.format(application_type.description,  instance.lodgement_number, target_datetime_str),
+            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                application_type.description,
+                instance.lodgement_number,
+                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                target_datetime_str,
+            ),
             'oracle_code': application_type.oracle_code,
             'price_incl_tax':  fee_item.amount,
             'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,

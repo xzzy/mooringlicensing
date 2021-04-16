@@ -133,6 +133,8 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
 
 
 class DcvVesselSerializer(serializers.ModelSerializer):
+    dcv_organisation_id = serializers.IntegerField()
+
     def validate(self, data):
         field_errors = {}
         non_field_errors = []
