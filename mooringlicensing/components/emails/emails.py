@@ -3,12 +3,15 @@ import mimetypes
 
 import six
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.core.urlresolvers import reverse
 from django.template import loader, Template
+from django.utils.encoding import smart_text
 from django.utils.html import strip_tags
 
 from ledger.accounts.models import Document
+
+from mooringlicensing.settings import SYSTEM_NAME
 
 logger = logging.getLogger('log')
 
@@ -88,3 +91,44 @@ class TemplateEmailBase(object):
         except Exception as e:
             logger.exception("Error while sending email to {}: {}".format(to_addresses, e))
             return None
+
+
+def _extract_email_headers(email_message, sender=None):
+    print(sender)
+    if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
+        # TODO this will log the plain text body, should we log the html
+        # instead
+        text = email_message.body
+        subject = email_message.subject
+        fromm = smart_text(sender) if sender else smart_text(
+            email_message.from_email)
+        # the to email is normally a list
+        if isinstance(email_message.to, list):
+            to = ','.join(email_message.to)
+        else:
+            to = smart_text(email_message.to)
+        # we log the cc and bcc in the same cc field of the log entry as a ','
+        # comma separated string
+        all_ccs = []
+        if email_message.cc:
+            all_ccs += list(email_message.cc)
+        if email_message.bcc:
+            all_ccs += list(email_message.bcc)
+        all_ccs = ','.join(all_ccs)
+
+    else:
+        text = smart_text(email_message)
+        subject = ''
+        to = ''
+        fromm = smart_text(sender) if sender else SYSTEM_NAME
+        all_ccs = ''
+
+    email_data = {
+        'subject': subject,
+        'text': text,
+        'to': to,
+        'fromm': fromm,
+        'cc': all_ccs
+    }
+
+    return email_data
