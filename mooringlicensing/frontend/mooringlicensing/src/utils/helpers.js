@@ -1,4 +1,20 @@
 module.exports = {
+    formatError: function(err) {
+        let returnStr = '';
+        // object {}
+        if (typeof(err.body) === 'object' && !err.body.hasOwnProperty('length')) {
+            for (const key of Object.keys(err.body)) {
+                returnStr += `${key}: ${err.body[key]} <br/>`;
+            }
+        // array
+        } else if (typeof(err.body) === 'object') {
+            returnStr = err.body[0];
+        // string
+        } else {
+            returnStr = err.body;
+        }
+        return returnStr;
+    },
   apiError: function ( resp ) {
     var error_str = '';
     if ( resp.status === 400 ) {

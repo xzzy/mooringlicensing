@@ -33,6 +33,15 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.components.main.models import (
         GlobalSettings,
 )
+from mooringlicensing.components.payments_ml.models import (
+        FeePeriod,
+        FeeSeason,
+        FeeItem,
+        FeeConstructor,
+        VesselSizeCategoryGroup,
+        VesselSizeCategory,
+        )
+from mooringlicensing.components.main.utils import retrieve_marine_parks
 
 
 class APITestSetup(APITestCase):
@@ -180,6 +189,38 @@ class APITestSetup(APITestCase):
         self.today_plus_1_day_str = self.today_plus_1_day.strftime('%d/%m/%Y')
         self.today_plus_1_week_str = self.today_plus_1_week.strftime('%d/%m/%Y')
         self.today_plus_26_weeks_str = self.today_plus_26_weeks.strftime('%d/%m/%Y')
+
+        self.today_minus_1_week = self.today - week_delta
+        self.today_minus_4_weeks = self.today - (week_delta * 4)
+
+        ## Payment admin data
+        fee_season = FeeSeason.objects.create(name="2021/22")
+        fee_period_1 = FeePeriod.objects.create(
+                fee_season=fee_season,
+                name="Period1",
+                start_date=self.today_minus_1_week
+                )
+        fee_period_2 = FeePeriod.objects.create(
+                fee_season=fee_season,
+                name="Period2",
+                start_date=self.today_minus_4_weeks
+                )
+
+        for application_type in ApplicationType.objects.all():
+            for vessel_size_category_group in VesselSizeCategoryGroup.objects.all():
+                fee_constructor = FeeConstructor.objects.create(
+                        application_type=application_type,
+                        fee_season=fee_season,
+                        vessel_size_category_group=vessel_size_category_group
+                        )
+        amount = 1
+        for fee_item in FeeItem.objects.all():
+            fee_item.amount = amount
+            fee_item.save()
+            amount += 1
+
+        ## Mooring Bays
+        retrieve_marine_parks()
 
         # Global settings
         #ApiaryGlobalSettings.objects.create(key='oracle_code_apiary_site_annual_rental_fee', value='sample')

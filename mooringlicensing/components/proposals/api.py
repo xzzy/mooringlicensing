@@ -163,9 +163,9 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        #return Response(Proposal.application_types_dict(apply_page=apply_page))
-        ## Hack to temporarily show mooring licence application option on proposal_apply.vue
-        return Response(Proposal.application_types_dict(apply_page=False))
+        return Response(Proposal.application_types_dict(apply_page=apply_page))
+        ## Hack below temporarily shows mooring licence application option on proposal_apply.vue
+        #return Response(Proposal.application_types_dict(apply_page=False))
 
 
 class GetApplicationStatusesDict(views.APIView):
