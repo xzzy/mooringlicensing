@@ -15,6 +15,7 @@ from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
 from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.payments_ml.email import send_dcv_permit_fee_invoice
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
@@ -163,6 +164,7 @@ class DcvPermitFeeSuccessView(TemplateView):
                 request.session[self.LAST_DCV_PERMIT_FEE_ID] = dcv_permit_fee.id
                 delete_session_dcv_permit_invoice(request.session)
 
+                DcvPermitFeeSuccessView.send_invoice_mail(dcv_permit, invoice, request)
                 # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
                 #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
                 context = {
@@ -196,6 +198,28 @@ class DcvPermitFeeSuccessView(TemplateView):
         dcv_permit.end_date = datetime.datetime.strptime(db_operations['season_end_date'], '%Y-%m-%d').date()
         dcv_permit.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
         dcv_permit.save()
+
+    @staticmethod
+    def send_invoice_mail(dcv_permit, invoice, request):
+        # Send invoice
+        to_email_addresses = dcv_permit.submitter.email
+        email_data = send_dcv_permit_fee_invoice(dcv_permit, invoice, [to_email_addresses, ])
+
+        # Add comms log
+        # TODO: Add comms log
+        # email_data['approval'] = u'{}'.format(dcv_permit_fee.approval.id)
+        # serializer = ApprovalLogEntrySerializer(data=email_data)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
+
+        # Check if the request.user can access the invoice
+        can_access_invoice = False
+        if not request.user.is_anonymous():
+            # if request.user == dcv_permit_fee.submitter or dcv_permit_fee.approval.applicant in request.user.disturbance_organisations.all():
+            if request.user == dcv_permit.submitter:
+                can_access_invoice = True
+
+        return can_access_invoice, to_email_addresses
 
 
 class ApplicationFeeSuccessView(TemplateView):
