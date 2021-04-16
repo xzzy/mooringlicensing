@@ -454,12 +454,32 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        print("self.context")
-        print(self.context)
+        custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("preferred_bay_id"):
-                raise serializers.ValidationError("You must choose a mooring bay")
+                custom_errors["Mooring Details"] = "You must choose a mooring bay"
+        if custom_errors.keys():
+            raise serializers.ValidationError(custom_errors)
+        return data
 
+
+class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'insurance_choice',
+                )
+        read_only_fields=('id',)
+
+    def validate(self, data):
+        custom_errors = {}
+        if self.context.get("action") == 'submit':
+            if not data.get("insurance_choice"):
+                custom_errors["Insurance Choice"] = "You must make an insurance selection"
+        if custom_errors.keys():
+            raise serializers.ValidationError(custom_errors)
         return data
 
 
@@ -474,12 +494,12 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        print("self.context")
-        print(self.context)
+        custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
-                raise serializers.ValidationError("You must make an insurance selection")
-
+                custom_errors["Insurance Choice"] = "You must make an insurance selection"
+        if custom_errors.keys():
+            raise serializers.ValidationError(custom_errors)
         return data
 
 
@@ -512,8 +532,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Site Licensee Email"] = "This field should not be blank"
                 if not data.get("mooring_site_id"):
                     custom_errors["Mooring Site ID"] = "This field should not be blank"
-        print("custom_errors")
-        print(custom_errors)
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
