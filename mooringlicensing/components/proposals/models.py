@@ -486,7 +486,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     berth_mooring = models.CharField(max_length=200, blank=True)
     # draft proposal status VesselOwnership records - goes to VesselOwnership master record after approval
     org_name = models.CharField(max_length=200, blank=True, null=True)
-    percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    #percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    percentage = models.IntegerField(null=True, blank=True),
     # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
     ## Insurance component field
