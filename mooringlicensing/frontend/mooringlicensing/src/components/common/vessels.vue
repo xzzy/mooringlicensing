@@ -55,7 +55,18 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" type="number" min="1" max="100" class="form-control" id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required=""/>
+                    <input :readonly="!editableVessel" 
+                    type="number" 
+                    onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57"
+                    step="1"
+                    min="1" 
+                    max="100" 
+                    class="form-control" 
+                    id="ownership_percentage" 
+                    placeholder="" 
+                    v-model="vessel.vessel_ownership.percentage" 
+                    required=""
+                    />
                 </div>
             </div>
             <div class="row form-group">
