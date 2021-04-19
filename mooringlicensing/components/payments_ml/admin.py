@@ -56,8 +56,20 @@ class FeePeriodForm(forms.ModelForm):
         data = self.cleaned_data['name']
         if not self.instance.is_editable:
             if data != self.instance.name:
-                raise forms.ValidationError('Fee period cannot be changed once used for payment calculation')
+                raise forms.ValidationError('Fee period\'s name cannot be changed once used for payment calculation')
         return data
+
+    def clean_start_date(self):
+        data = self.cleaned_data['start_date']
+        if not self.instance.is_editable:
+            if data != self.instance.start_date:
+                raise forms.ValidationError('Fee period\'s start date cannot be changed once used for payment calculation')
+        return data
+
+    def clean(self):
+        cleaned_data = super(FeePeriodForm, self).clean()
+
+        return cleaned_data
 
 
 class FeePeriodInline(admin.TabularInline):
@@ -65,7 +77,7 @@ class FeePeriodInline(admin.TabularInline):
     extra = 0
     can_delete = True
     formset = FeePeriodFormSet
-    # form = FeePeriodForm
+    form = FeePeriodForm
 
 
 class FeeSeasonForm(forms.ModelForm):
@@ -182,8 +194,8 @@ class FeeConstructorForm(forms.ModelForm):
 
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
-    form = FeeSeasonForm
     inlines = [FeePeriodInline,]
+    form = FeeSeasonForm
 
 
 @admin.register(FeeConstructor)
