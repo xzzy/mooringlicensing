@@ -1,3 +1,5 @@
+import mimetypes
+
 from ledger.payments.pdf import create_invoice_pdf_bytes
 
 from mooringlicensing import settings
@@ -18,8 +20,16 @@ def send_dcv_permit_fee_invoice(dcv_permit, invoice, to_email_addresses):
     }
 
     attachments = []
+    # attach invoice
     contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
     attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+    # attach DcvPermit
+    dcv_permit_doc = dcv_permit.permits.first()
+    filename = str(dcv_permit_doc)
+    # content = dcv_permit_doc.file.read()
+    content = dcv_permit_doc._file.read()
+    mime = mimetypes.guess_type(dcv_permit_doc.filename)[0]
+    attachments.append((filename, content, mime))
 
     to_address = to_email_addresses
     cc = []
