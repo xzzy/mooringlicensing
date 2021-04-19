@@ -55,7 +55,17 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" type="number" min="1" max="100" class="form-control" id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required=""/>
+                    <input :readonly="!editableVessel" 
+                    type="number" 
+                    step="1"
+                    min="1" 
+                    max="100" 
+                    class="form-control" 
+                    id="ownership_percentage" 
+                    placeholder="" 
+                    v-model="vessel.vessel_ownership.percentage" 
+                    required=""
+                    />
                 </div>
             </div>
             <div class="row form-group">
@@ -302,6 +312,15 @@ from '@/utils/hooks'
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
             },
+            addEventListeners: function() {
+                let vm = this;
+                $('#ownership_percentage').on('keydown', (e) => {
+                    if ([190, 110].includes(e.which)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            },
             /*
             fetchVesselRegoNos: async function() {
                 const response = await this.$http.get(api_endpoints.vessel_rego_nos);
@@ -374,6 +393,7 @@ from '@/utils/hooks'
                 //await this.fetchVesselRegoNos();
                 await this.fetchVessel();
                 this.initialiseSelects();
+                this.addEventListeners();
             });
         },
         created: function() {
