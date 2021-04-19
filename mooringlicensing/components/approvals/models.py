@@ -22,6 +22,7 @@ from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
+from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
@@ -691,6 +692,14 @@ class DcvPermit(RevisionedMixin):
         if self.lodgement_number in ['', None]:
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
         super(DcvPermit, self).save(**kwargs)
+
+    def generate_dcv_permit_doc(self):
+        pass
+        # TODO:
+        # self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
+        # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+        permit_document = create_dcv_permit_document(self)
+        # self.save()
 
     class Meta:
         app_label = 'mooringlicensing'
