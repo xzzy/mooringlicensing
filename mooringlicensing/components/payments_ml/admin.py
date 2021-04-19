@@ -76,7 +76,7 @@ class FeePeriodInline(admin.TabularInline):
     model = FeePeriod
     extra = 0
     can_delete = True
-    # formset = FeePeriodFormSet
+    formset = FeePeriodFormSet
     form = FeePeriodForm
 
 
