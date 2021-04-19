@@ -955,6 +955,21 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'end_date',
                 )
 
+    def validate(self, data):
+        custom_errors = {}
+        if data.get("percentage") > 100:
+            custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
+        if custom_errors.keys():
+            raise serializers.ValidationError(custom_errors)
+        return data
+
+    #def validate_percentage(self, value):
+    #    #import ipdb; ipdb.set_trace()
+    #    if value > 100:
+    #        #raise serializers.ValidationError({"Ownership percentage": "Max value is 100"})
+    #        raise serializers.ValidationError("Max value is 100")
+    #    return value
+
 
 class MooringBaySerializer(serializers.ModelSerializer):
 

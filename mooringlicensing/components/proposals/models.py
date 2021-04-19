@@ -1803,7 +1803,8 @@ class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
     org_name = models.CharField(max_length=200, blank=True, null=True)
-    percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    #percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    percentage = models.IntegerField(null=True, blank=True)
     #editable = models.BooleanField(default=False) # must be False after every add/edit
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
