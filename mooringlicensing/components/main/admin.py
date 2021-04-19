@@ -49,11 +49,15 @@ class VesselSizeCategoryGroupForm(forms.ModelForm):
     fields = '__all__'
 
     def clean_name(self):
-        data_name = self.cleaned_data.get('name')
+        data = self.cleaned_data.get('name')
+
         if not self.instance.is_editable:
-            if data_name != self.instance.name:
+            if data != self.instance.name:
                 raise forms.ValidationError('Name cannot be changed once used for payment calculation.')
-        return data_name
+        if not data:
+            raise forms.ValidationError('Please enter the name field.')
+
+        return data
 
     def clean(self):
         cleaned_data = super(VesselSizeCategoryGroupForm, self).clean()
