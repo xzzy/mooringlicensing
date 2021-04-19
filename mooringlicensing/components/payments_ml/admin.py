@@ -71,12 +71,23 @@ class FeeSeasonForm(forms.ModelForm):
         model = FeeSeason
         fields = '__all__'
 
-    def clean(self):
-        cleaned_data = super(FeeSeasonForm, self).clean()
-        if cleaned_data['name']:
-            return cleaned_data
-        else:
+    def clean_name(self):
+        data = self.cleaned_data['name']
+
+        if not self.instance.is_editable:
+            if data != self.instance.name:
+                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+        if not data:
             raise forms.ValidationError('Please enter the name field.')
+
+        return data
+
+    # def clean(self):
+    #     cleaned_data = super(FeeSeasonForm, self).clean()
+    #     if cleaned_data['name']:
+    #         return cleaned_data
+    #     else:
+    #         raise forms.ValidationError('Please enter the name field.')
 
 
 class FeeItemForm(forms.ModelForm):

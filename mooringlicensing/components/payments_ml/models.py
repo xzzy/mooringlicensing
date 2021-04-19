@@ -164,11 +164,11 @@ class FeeSeason(RevisionedMixin):
         first_period = self.fee_periods.order_by('start_date').first()
         return first_period
 
-    def save(self, **kwargs):
-        if not self.is_editable:
-            raise ValidationError('Season cannot be changed once used for payment calculation')
-        else:
-            super(FeeSeason, self).save(**kwargs)
+    # def save(self, **kwargs):
+    #     if not self.is_editable:
+    #         raise ValidationError('Season cannot be changed once used for payment calculation')
+    #     else:
+    #         super(FeeSeason, self).save(**kwargs)
 
     @property
     def is_editable(self):
@@ -206,11 +206,11 @@ class FeePeriod(RevisionedMixin):
     def is_editable(self):
         return self.fee_season.is_editable
 
-    def save(self, **kwargs):
-        if not self.is_editable:
-            raise ValidationError('Period cannot be changed once used for payment calculation')
-        else:
-            super(FeePeriod, self).save(**kwargs)
+    # def save(self, **kwargs):
+    #     if not self.is_editable:
+    #         raise ValidationError('Period cannot be changed once used for payment calculation')
+    #     else:
+    #         super(FeePeriod, self).save(**kwargs)
 
     class Meta:
         app_label = 'mooringlicensing'
