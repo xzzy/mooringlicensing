@@ -195,10 +195,21 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
 #    list_display = ['nominated_vessel','spv_no', 'hire_rego', 'craft_no', 'size', 'proposal']
 #    ordering = ('nominated_vessel',)
 
+
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
-    list_display = ['key', 'value']
+    def get_fields(self, request, obj=None):
+        if obj.key == GlobalSettings.KEY_DCV_PERMIT_TEMPLATE_FILE:
+            return ['key', '_file',]
+        else:
+            return ['key', 'value',]
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['key',]
+
+    list_display = ['key', 'value', '_file',]
     ordering = ('key',)
+
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
