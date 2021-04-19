@@ -3,6 +3,8 @@ from django.contrib import admin
 from django.conf.urls import url, include
 from django.conf.urls.static import static
 from rest_framework import routers
+
+import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.admin import mooringlicensing_admin_site
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
@@ -56,7 +58,7 @@ router.register(r'questions', main_api.QuestionViewSet)
 router.register(r'payment', main_api.PaymentViewSet)
 router.register(r'mooringbays', proposal_api.MooringBayViewSet)
 router.register(r'vessel', proposal_api.VesselViewSet)
-router.register(r'dcv_permit', payments_api.DcvPermitViewSet)
+router.register(r'dcv_permit', mooringlicensing.components.approvals.api.DcvPermitViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
