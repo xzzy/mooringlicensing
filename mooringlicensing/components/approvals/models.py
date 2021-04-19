@@ -699,7 +699,7 @@ class DcvPermit(RevisionedMixin):
         # self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
         # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         permit_document = create_dcv_permit_document(self)
-
+        # self.save()
 
     class Meta:
         app_label = 'mooringlicensing'

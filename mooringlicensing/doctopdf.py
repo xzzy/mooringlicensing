@@ -3,10 +3,10 @@ from io import BytesIO
 
 from django.conf import settings
 from docxtpl import DocxTemplate
-from disturbance.components.main.models import ApiaryGlobalSettings
+from mooringlicensing.components.main.models import GlobalSettings
 
 
-def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, approver, site_transfer_preview=None):
+def create_apiary_licence_pdf_contents(dcv_permit):
     #import ipdb; ipdb.set_trace()
     # print ("Letter File")
     # confirmation_doc = None
@@ -15,7 +15,7 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
     #     confirmation_doc = booking.annual_booking_period_group.letter.path
     # confirmation_doc = settings.BASE_DIR+"/mooring/templates/doc/AnnualAdmissionStickerLetter.docx"
 
-    licence_template = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE)
+    licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_DCV_PERMIT_TEMPLATE_FILE)
 
     if licence_template._file:
         path_to_template = licence_template._file.path
@@ -36,14 +36,13 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
     # if booking.sticker_created:
     #     sc = booking.sticker_created + timedelta(hours=8)
     #     stickercreated = sc.strftime('%d %B %Y')
-    from disturbance.components.approvals.serializers import ApprovalSerializerForLicenceDoc
     serializer_context = {
-            'approver': approver,
-            'site_transfer_preview': site_transfer_preview,
+            'dcv_permit': dcv_permit,
             }
-    context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
-    context = context_obj.data
-    doc.render(context)
+    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
+    # context = context_obj.data
+    # doc.render(context)
+    doc.render({})
 
     temp_directory = settings.BASE_DIR + "/tmp/"
     try:
@@ -51,7 +50,7 @@ def create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, app
     except:
         os.mkdir(temp_directory)
 
-    f_name = temp_directory + 'apiary_licence_' + str(approval.id)
+    f_name = temp_directory + 'dcv_permit_' + str(dcv_permit.id)
     new_doc_file = f_name + '.docx'
     new_pdf_file = f_name + '.pdf'
     doc.save(new_doc_file)
