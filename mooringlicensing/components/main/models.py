@@ -287,7 +287,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
 
 class VesselSizeCategory(RevisionedMixin):
     name = models.CharField(max_length=100)
-    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='unit [m]')
     include_start_size = models.BooleanField(default=True)  # When true, 'start_size' is included.
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True, related_name='vessel_size_categories')
     # created = models.DateTimeField(auto_now_add=True)
