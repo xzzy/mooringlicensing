@@ -3,6 +3,8 @@ from django import forms
 from django.contrib import admin
 from django.db.models import Min
 
+from mooringlicensing import settings
+from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
 
 
@@ -162,6 +164,19 @@ class FeeConstructorForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(FeeConstructorForm, self).clean()
+
+        cleaned_application_type = cleaned_data.get('application_type', None)
+        cleaned_fee_season = cleaned_data.get('fee_season', None)
+        if cleaned_application_type and cleaned_application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
+            # If application type is DcvPermit
+            if cleaned_fee_season and cleaned_fee_season.fee_periods.count() > 1:
+                # There are more than 1 period in the season
+                raise forms.ValidationError('A season for the {} cannot have more than 1 period.  Selected season {} has {} periods.'.format(
+                    cleaned_application_type.description,
+                    cleaned_fee_season.name,
+                    cleaned_fee_season.fee_periods.count(),
+                ))
+
         return cleaned_data
 
 
@@ -179,6 +194,7 @@ class FeeConstructorAdmin(admin.ModelAdmin):
     list_display = ('id', 'application_type', 'fee_season', 'vessel_size_category_group', 'incur_gst', 'enabled',)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        # Sort 'fee_season' dropdown by the start_date
         if db_field.name == "fee_season":
             kwargs["queryset"] = FeeSeason.objects.annotate(s_date=Min("fee_periods__start_date")).order_by('s_date')
         return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
