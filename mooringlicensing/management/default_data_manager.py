@@ -1,6 +1,6 @@
 import logging
 from mooringlicensing import settings
-from mooringlicensing.components.main.models import ApplicationType
+from mooringlicensing.components.main.models import ApplicationType, GlobalSettings
 from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
     ProposalApproverGroup
 
@@ -63,3 +63,13 @@ class DefaultDataManager(object):
             except Exception as e:
                 logger.error('{}, ProposalApproverGroup: {}'.format(e, item))
 
+        # Store
+        for item in GlobalSettings.default_values:
+            try:
+                obj, created = GlobalSettings.objects.get_or_create(key=item[0])
+                if created:
+                    obj.value = item[1]
+                    obj.save()
+                    logger.info("Created {}: {}".format(item[0], item[1]))
+            except Exception as e:
+                logger.error('{}, Key: {}'.format(e, item[0]))
