@@ -178,24 +178,17 @@ class Question(models.Model):
 
 
 class GlobalSettings(models.Model):
+    KEY_DCV_PERMIT_TEMPLATE_FILE = 'dcv_permit_template_file'
     keys = (
-        ('', ''),
-        #('credit_facility_link', 'Credit Facility Link'),
-        #('deed_poll', 'Deed poll'),
-        #('deed_poll_filming', 'Deed poll Filming'),
-        #('deed_poll_event', 'Deed poll Event'),
-        #('online_training_document', 'Online Training Document'),
-        #('park_finder_link', 'Park Finder Link'),
-        #('fees_and_charges', 'Fees and charges link'),
-        #('commercial_filming_handbook', 'Commercial Filming Handbook link'),
-        #('park_stay_link', 'Park Stay Link'),
-        #('event_traffic_code_of_practice', 'Event traffic code of practice'),
-        #('trail_section_map', 'Trail section map'),
-        #('dwer_application_form', 'DWER Application Form'),
-
+        (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
     )
+    default_values = (
+        (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
+    )
+
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
     value = models.CharField(max_length=255)
+    _file = models.FileField(upload_to='dcv_permit_template', null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
