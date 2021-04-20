@@ -177,8 +177,8 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return qs
 
-    @list_route(methods=['GET',])
-    def list_external(self, request, *args, **kwargs):
+    # @list_route(methods=['GET',])
+    def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
         """
