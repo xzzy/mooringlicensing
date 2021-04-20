@@ -27,6 +27,7 @@ module.exports = {
     proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
     approvals_paginated_list: '/api/approvals_paginated',
     compliances_paginated_external: '/api/compliances_paginated/list_external',
+    vessel_external_list: '/api/vessel/list_external',
     waitinglistapplication: '/api/waitinglistapplication/',
     annualadmissionapplication: '/api/annualadmissionapplication/',
     authoriseduserapplication: '/api/authoriseduserapplication/',
