@@ -15,7 +15,8 @@ from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
 from mooringlicensing.components.approvals.models import DcvPermit
-from mooringlicensing.components.payments_ml.email import send_dcv_permit_fee_invoice
+from mooringlicensing.components.payments_ml.email import send_dcv_permit_fee_invoice, \
+    send_application_submit_confirmation_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
@@ -61,6 +62,37 @@ class DcvPermitFeeView(TemplateView):
             if dcv_permit_fee:
                 dcv_permit_fee.delete()
             raise
+
+
+class ConfirmationView(TemplateView):
+    template_name = 'mooringlicensing/payments_ml/success_submit.html'
+
+    def get_object(self):
+        return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
+
+    def post(self, request, *args, **kwargs):
+        proposal = self.get_object()
+
+        self.send_confirmation_mail(proposal, request)
+
+        context = {
+            'proposal': proposal,
+            'submitter': proposal.submitter,
+        }
+        return render(request, self.template_name, context)
+
+    @staticmethod
+    def send_confirmation_mail(proposal, request):
+        # Send invoice
+        to_email_addresses = proposal.submitter.email
+        email_data = send_application_submit_confirmation_email(proposal, [to_email_addresses, ])
+
+        # Add comms log
+        # TODO: Add comms log
+        # email_data['approval'] = u'{}'.format(dcv_permit_fee.approval.id)
+        # serializer = ApprovalLogEntrySerializer(data=email_data)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
 
 
 class ApplicationFeeView(TemplateView):
