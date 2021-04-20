@@ -336,6 +336,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     # review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField()
     assigned_officer = serializers.SerializerMethodField()
+    assigned_approver = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
 
     # application_type = serializers.CharField(source='application_type.name', read_only=True)
@@ -360,6 +361,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'proxy_applicant',
                 'submitter',
                 'assigned_officer',
+                'assigned_approver',
                 # 'previous_application',
                 # 'get_history',
                 'lodgement_date',
@@ -392,7 +394,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'processing_status',
                 # 'applicant',
                 'submitter',
-                # 'assigned_officer',
+                'assigned_officer',
+                'assigned_approver',
                 'lodgement_date',
                 'can_user_edit',
                 'can_user_view',
@@ -410,6 +413,11 @@ class ListProposalSerializer(BaseProposalSerializer):
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
             return obj.assigned_officer.get_full_name()
+        return None
+
+    def get_assigned_approver(self,obj):
+        if obj.assigned_approver:
+            return obj.assigned_approver.get_full_name()
         return None
 
     def get_assessor_process(self,obj):

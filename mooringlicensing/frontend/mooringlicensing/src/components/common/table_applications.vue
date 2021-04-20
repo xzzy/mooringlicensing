@@ -115,7 +115,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
             }
             if (this.is_internal){
-                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Payment Status', 'Action']
+                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
         },
         column_id: function(){
@@ -271,6 +271,24 @@ export default {
                 }
             }
         },
+        column_assigned_to: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let ret_str = ''
+                    if (full.assigned_officer){
+                        ret_str += full.assigned_officer
+                    }
+                    if (full.assigned_approver){
+                        ret_str += full.assigned_approver
+                    }
+                    return ret_str
+                }
+            }
+        },
         column_payment_status: function(){
             return {
                 data: "id",
@@ -316,6 +334,7 @@ export default {
                     vm.column_applicant,
                     vm.column_status,
                     vm.column_lodged_on,
+                    vm.column_assigned_to,
                     vm.column_payment_status,
                     vm.column_action,
                 ]
