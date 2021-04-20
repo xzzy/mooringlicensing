@@ -68,10 +68,14 @@
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
                                         {% if is_internal_login %}
-                                            <li><a href="/internal/approvals">Licences</a></li>
-                                            <li><a href="/internal/compliances">Compliance with Requirements</a></li>
-                                            <!--li><a href="/internal/organisations/access">Organisation Access</a></li-->
+                                            <li><a href="/internal/proposals">Applications</a></li>
+                                            <li><a href="/internal/approvals">Approvals</a></li>
+                                            <li><a href="/internal/compliances">Compliance</a></li>
+                                            <li><a href="/internal/???">Waiting List</a></li>
+                                            <li><a href="/internal/???">Moorings</a></li>
                                             <li><a href="/internal/search">Search</a></li>
+                                            <li><a href="/internal/???">DCV</a></li>
+                                            <li><a href="/internal/???">Stickers</a></li>
                                         {% else %}
                                             <li class="dropdown">
                                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
