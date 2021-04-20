@@ -36,6 +36,28 @@
                     <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission_fees.contact_number">
                 </div>
             </div>
+
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="row form-group">
+                        <label for="" class="col-sm-2 control-label">Arrival</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="form-control" name="arrival" placeholder="" v-model="dcv_admission_fees.arrival">
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <label for="" class="col-sm-2 control-label">Private visit</label>
+                        <div class="col-sm-2">
+                            <input type="radio" id="private_yes" name="private_visit" value="true" v-model="dcv_admission_fees.private_visit"/>
+                            <label class="radio-inline control-label" for="private_yes">Yes</label>
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="radio" id="private_no" name="private_visit" value="false" v-model="dcv_admission_fees.private_visit"/>
+                            <label class="radio-inline control-label" for="private_no">No</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </FormSection>
     </div>
 </template>
@@ -57,6 +79,7 @@ export default {
                 vessel_name: '',
                 skipper: '',
                 contact_number: '',
+                arrival: null,
             },
         }
     },
