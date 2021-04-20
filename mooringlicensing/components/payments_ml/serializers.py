@@ -22,12 +22,15 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             # if not data['comments']:
             #     field_errors['comments'] = ['Please enter comments.',]
 
+            dcv_permit_qs = DcvPermit.objects.filter(dcv_vessel_id=data.get('dcv_vessel_id', 0), fee_season_id=data.get('fee_season_id', 0))
+            if dcv_permit_qs:
+                non_field_errors.append('This vessel already has a DCV Permit for the given year.')
+
             # Raise errors
             if field_errors:
                 raise serializers.ValidationError(field_errors)
             if non_field_errors:
                 raise serializers.ValidationError(non_field_errors)
-            pass
         else:
             # Partial udpate, which means the dict data doesn't have all the field
             pass
