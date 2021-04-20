@@ -75,18 +75,18 @@ from mooringlicensing.components.proposals.serializers import (
     # SearchKeywordSerializer,
     # ListProposalSerializer,
     # AmendmentRequestDisplaySerializer,
-    #VesselSerializer,
+    # VesselSerializer,
     # OnHoldSerializer,
     # ProposalOtherDetailsSerializer,
     # SaveProposalOtherDetailsSerializer,
     ChecklistQuestionSerializer,
     ProposalAssessmentSerializer,
-    ProposalAssessmentAnswerSerializer, 
+    ProposalAssessmentAnswerSerializer,
     ListProposalSerializer,
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
-    MooringBaySerializer,
+    MooringBaySerializer, EmailUserSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -152,9 +152,15 @@ class GetApplicationTypeDescriptions(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        #serializer = ApplicationTypeDescriptionsSerializer(Proposal.application_type_descriptions(), many=True)
-        #return Response(serializer.data)
         return Response(Proposal.application_type_descriptions())
+
+
+class GetApplicantsDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        applicants = EmailUser.objects.filter(mooringlicensing_proposals__in=Proposal.objects.all()).order_by('first_name', 'last_name').distinct()
+        return Response(EmailUserSerializer(applicants, many=True).data)
 
 
 class GetApplicationTypeDict(views.APIView):
@@ -164,8 +170,6 @@ class GetApplicationTypeDict(views.APIView):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
         return Response(Proposal.application_types_dict(apply_page=apply_page))
-        ## Hack below temporarily shows mooring licence application option on proposal_apply.vue
-        #return Response(Proposal.application_types_dict(apply_page=False))
 
 
 class GetApplicationStatusesDict(views.APIView):
@@ -235,6 +239,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_application_status and not filter_application_status.lower() == 'all':
             queryset = queryset.filter(customer_status=filter_application_status)
 
+        filter_applicant_id = request.GET.get('filter_applicant')
+        if filter_applicant_id and not filter_applicant_id.lower() == 'all':
+            queryset = queryset.filter(submitter__id=filter_applicant_id)
+
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
@@ -277,8 +285,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Proposal.objects.none()
 
-    @list_route(methods=['GET',])
-    def list_external(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
         """
