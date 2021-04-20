@@ -75,7 +75,7 @@ export default {
                 serverSide: true,
                 searching: false,
                 ajax: {
-                    "url": api_endpoints.approvals_paginated_external + '?format=datatables',
+                    "url": api_endpoints.approvals_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
