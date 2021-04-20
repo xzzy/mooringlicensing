@@ -323,6 +323,27 @@ class ApplicationFeeSuccessView(TemplateView):
         return
 
 
+class DcvPermitPDFView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            dcv_permit = get_object_or_404(DcvPermit, id=self.kwargs['id'])
+            response = HttpResponse(content_type='application/pdf')
+            if dcv_permit.permits.count() < 1:
+                logger.warn('DcvPermit: {} does not have any permit document.'.format(dcv_permit))
+                return response
+            elif dcv_permit.permits.count() == 1:
+                response.write(dcv_permit.permits.first()._file.read())
+                return response
+            else:
+                logger.warn('DcvPermit: {} has more than one permits.'.format(dcv_permit))
+                return response
+        except DcvPermit.DoesNotExist:
+            raise
+        except Exception as e:
+            logger.error('Error accessing the DcvPermit :{}'.format(e))
+            raise
+
+
 class InvoicePDFView(View):
     def get(self, request, *args, **kwargs):
         try:

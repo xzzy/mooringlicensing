@@ -3,6 +3,7 @@ module.exports = {
     application_types:"/api/application_types",
     application_types_dict:"/api/application_types_dict",
     application_statuses_dict:"/api/application_statuses_dict",
+    applicants_dict: "/api/applicants_dict",
     vessel_types_dict:"/api/vessel_types_dict",
     insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
@@ -23,8 +24,8 @@ module.exports = {
     filtered_users: '/api/filtered_users',
     countries: "https://restcountries.eu/rest/v1/?fullText=true",
 
-    proposals_paginated_external: '/api/proposals_paginated/list_external',
-    approvals_paginated_external: '/api/approvals_paginated/list_external',
+    proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
+    approvals_paginated_list: '/api/approvals_paginated',
     compliances_paginated_external: '/api/compliances_paginated/list_external',
     vessel_external_list: '/api/vessel/list_external',
     waitinglistapplication: '/api/waitinglistapplication/',

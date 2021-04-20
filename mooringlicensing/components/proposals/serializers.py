@@ -1,6 +1,8 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
+from ledger.payments.invoice.models import Invoice
+
 from mooringlicensing.components.proposals.models import (
     # ProposalType,
     Proposal,
@@ -42,7 +44,7 @@ from mooringlicensing.components.proposals.models import (
 from mooringlicensing.components.organisations.models import (
                                 Organisation
                             )
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.organisations.serializers import OrganisationSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from rest_framework import serializers
@@ -200,6 +202,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_dict = serializers.SerializerMethodField()
     editable_vessel = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
+    invoices = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -243,6 +246,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'applicant_details',
                 # 'fee_invoice_url',
                 'fee_paid',
+                'invoices',
                 ## vessel fields
                 'rego_no',
                 'vessel_id',
@@ -314,6 +318,16 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 ret_list.append(application_fee.invoice_reference)
         return ret_list
 
+    def get_invoices(self, obj):
+        ret_list = []
+        invoice_references = [item.invoice_reference for item in obj.application_fees.all()]
+        invoices = Invoice.objects.filter(reference__in=invoice_references)
+        if not invoices:
+            return ''
+        else:
+            serializer = InvoiceSerializer(invoices, many=True)
+            return serializer.data
+
 
 class ListProposalSerializer(BaseProposalSerializer):
     submitter = EmailUserSerializer()
@@ -322,12 +336,13 @@ class ListProposalSerializer(BaseProposalSerializer):
     # review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField()
     assigned_officer = serializers.SerializerMethodField()
+    assigned_approver = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
 
     # application_type = serializers.CharField(source='application_type.name', read_only=True)
     assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
-    fee_invoice_references = serializers.SerializerMethodField()
+    # fee_invoice_references = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -346,6 +361,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'proxy_applicant',
                 'submitter',
                 'assigned_officer',
+                'assigned_approver',
                 # 'previous_application',
                 # 'get_history',
                 'lodgement_date',
@@ -361,7 +377,8 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'allowed_assessors',
                 # 'proposal_type',
                 # 'fee_invoice_url',
-                'fee_invoice_references',
+                # 'fee_invoice_references',
+                'invoices',
                 # 'fee_paid',
                 # 'aho',
                 )
@@ -376,8 +393,9 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'application_type_dict',
                 # 'processing_status',
                 # 'applicant',
-                # 'submitter',
-                # 'assigned_officer',
+                'submitter',
+                'assigned_officer',
+                'assigned_approver',
                 'lodgement_date',
                 'can_user_edit',
                 'can_user_view',
@@ -387,13 +405,19 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'assessor_process',
                 # 'allowed_assessors',
                 # 'fee_invoice_url',
-                'fee_invoice_references',
+                # 'fee_invoice_references',
+                'invoices',
                 # 'fee_paid',
                 )
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
             return obj.assigned_officer.get_full_name()
+        return None
+
+    def get_assigned_approver(self,obj):
+        if obj.assigned_approver:
+            return obj.assigned_approver.get_full_name()
         return None
 
     def get_assessor_process(self,obj):
