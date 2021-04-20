@@ -42,6 +42,8 @@ from mooringlicensing.components.payments_ml.models import (
         VesselSizeCategory,
         )
 from mooringlicensing.components.main.utils import retrieve_marine_parks
+from django.core.files.uploadedfile import InMemoryUploadedFile, UploadedFile
+from django.core.files.uploadhandler import MemoryFileUploadHandler, TemporaryFileUploadHandler
 
 
 class APITestSetup(APITestCase):
@@ -218,6 +220,49 @@ class APITestSetup(APITestCase):
             fee_item.amount = amount
             fee_item.save()
             amount += 1
+
+
+        ## test doc
+        path = os.path.join(settings.BASE_DIR, 'mooringlicensing', 'tests', 'test_doc.png')
+        #with open('mooringlicensing/tests/test_doc.png', 'rb') as f:
+            #test_doc_bytes = f.read()
+        with io.open(path, 'rb') as f:
+            print("type of f")
+            print(type(f))
+            test_doc_bytes = f.read()
+            test_doc_stream = io.BytesIO(test_doc_bytes)
+            test_doc_obj = TemporaryFileUploadHandler()
+            test_doc_obj.new_file(
+                    file_name='17. External - Waiting List Amendment Application.png', 
+                    field_name='_file',
+                    content_type='image/png', 
+                    content_length=os.path.getsize(path)
+                    )
+            test_doc_obj.receive_data_chunk(
+                    raw_data=test_doc_bytes,
+                    start=0
+                    )
+            test_doc = test_doc_obj.file_complete(
+                    file_size=os.path.getsize(path)
+                    )
+
+            self.rego_papers_data = {
+                'action': ['save'], 
+                'input_name': ['vessel-registration-documents'], 
+                'filename': ['25. External - New Authorised User Application - Applicant.png'], 
+                'csrfmiddlewaretoken': ['stgaXJXyvxINxyC3QreA3D5W9BcwRBkNkmumoFngYpd9guP4DlHtCNdITFqJVdyL'], 
+                '_file': [test_doc]
+            }
+
+            self.electoral_roll_doc_data = {
+                'action': ['save'], 
+                'input_name': ['electoral-roll-documents'], 
+                'filename': ['25. External - New Authorised User Application - Applicant.png'], 
+                'csrfmiddlewaretoken': ['stgaXJXyvxINxyC3QreA3D5W9BcwRBkNkmumoFngYpd9guP4DlHtCNdITFqJVdyL'], 
+                '_file': [test_doc]
+            }
+
+
 
         ## Mooring Bays
         retrieve_marine_parks()
