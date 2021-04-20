@@ -23,8 +23,8 @@ module.exports = {
     filtered_users: '/api/filtered_users',
     countries: "https://restcountries.eu/rest/v1/?fullText=true",
 
-    proposals_paginated_external: '/api/proposals_paginated/list_external',
-    approvals_paginated_external: '/api/approvals_paginated/list_external',
+    proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
+    approvals_paginated_list: '/api/approvals_paginated',
     compliances_paginated_external: '/api/compliances_paginated/list_external',
     waitinglistapplication: '/api/waitinglistapplication/',
     annualadmissionapplication: '/api/annualadmissionapplication/',
