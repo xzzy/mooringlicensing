@@ -902,6 +902,34 @@ class VesselSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ListVesselSerializer(serializers.ModelSerializer):
+    rego_no = serializers.SerializerMethodField()
+    vessel_length = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VesselDetails
+        fields = (
+                'id',
+                'vessel_type',
+                'rego_no', # link to rego number
+                'vessel_name', 
+                #'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                #'vessel_weight',
+                #'berth_mooring',
+                #status
+                #exported
+                )
+
+    def get_rego_no(self, obj):
+        if obj.vessel:
+            return obj.vessel.rego_no
+
+    def get_vessel_length(self, obj):
+        return obj.vessel_applicable_length
+
+
 class VesselDetailsSerializer(serializers.ModelSerializer):
 
     class Meta:
