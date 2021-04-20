@@ -13,9 +13,9 @@
             <div class="col-md-3" v-if="is_internal">
                 <div class="form-group">
                     <label for="">Applicant</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <select class="form-control" v-model="filterApplicant">
                         <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
+                        <option v-for="applicant in applicants" :value="applicant.id">{{ applicant.first_name }} {{ applicant.last_name }}</option>
                     </select>
                 </div>
             </div>
@@ -73,10 +73,12 @@ export default {
             // selected values for filtering
             filterApplicationType: null,
             filterApplicationStatus: null,
+            filterApplicant: null,
 
             // filtering options
             application_types: [],
             application_statuses: [],
+            applicants: [],
         }
     },
     components:{
@@ -95,13 +97,11 @@ export default {
         filterApplicationType: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationType != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationType).draw();
-            //}
         },
-
+        filterApplicant: function(){
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        }
     },
     computed: {
         is_external: function() {
@@ -355,8 +355,9 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_application_type = vm.filterApplicationType;
-                        d.filter_application_status = vm.filterApplicationStatus;
+                        d.filter_application_type = vm.filterApplicationType
+                        d.filter_application_status = vm.filterApplicationStatus
+                        d.filter_applicant = vm.filterApplicant
                     }
                 },
                 dom: 'lBfrtip',
@@ -419,6 +420,16 @@ export default {
             },(error) => {
                 console.log(error);
             })
+
+            // Applicant
+            if (vm.is_internal){
+                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
+                    console.log(response.body)
+                    vm.applicants = response.body
+                },(error) => {
+                    console.log(error);
+                })
+            }
         },
         addEventListeners: function(){
             let vm = this
