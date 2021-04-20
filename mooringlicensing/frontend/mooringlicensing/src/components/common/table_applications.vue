@@ -139,7 +139,8 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     return full.lodgement_number
-                }
+                },
+                name: 'lodgement_number',
             }
         },
         column_type: function(){
@@ -268,7 +269,8 @@ export default {
                         return `${full.submitter.first_name} ${full.submitter.last_name}`
                     }
                     return ''
-                }
+                },
+                name: 'submitter__first_name, submitter__last_name',
             }
         },
         column_assigned_to: function(){
@@ -286,7 +288,8 @@ export default {
                         ret_str += full.assigned_approver
                     }
                     return ret_str
-                }
+                },
+                name: 'assigned_officer__first_name, assigned_officer__last_name, assigned_approver__first_name, assigned_approver__last_name',
             }
         },
         column_payment_status: function(){
