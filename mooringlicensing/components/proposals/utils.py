@@ -397,19 +397,12 @@ def save_proponent_data_wla(instance, request, viewset):
         elif instance.processing_status == 'draft':
             save_vessel_data(instance, request, vessel_data)
 
+
 def save_proponent_data_mla(instance, request, viewset):
     #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
-
-    proposal_data['customer_status'] = instance.customer_status
-    proposal_data['processing_status'] = instance.processing_status
-    if viewset.action == 'submit':
-        # Update status when submit
-        proposal_data['customer_status'] = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        proposal_data['processing_status'] = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-
     serializer = SaveMooringLicenceApplicationSerializer(
             instance, 
             data=proposal_data, 
@@ -418,7 +411,10 @@ def save_proponent_data_mla(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    serializer.save()
+    proposal = serializer.save()
+
+    if viewset.action == 'submit':
+        proposal_submit(proposal, request)
     # vessel
     vessel_data = request.data.get("vessel")
     if vessel_data:
@@ -427,19 +423,12 @@ def save_proponent_data_mla(instance, request, viewset):
         elif instance.processing_status == 'draft':
             save_vessel_data(instance, request, vessel_data)
 
+
 def save_proponent_data_aua(instance, request, viewset):
     #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
-
-    proposal_data['customer_status'] = instance.customer_status
-    proposal_data['processing_status'] = instance.processing_status
-    if viewset.action == 'submit':
-        # Update status when submit
-        proposal_data['customer_status'] = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        proposal_data['processing_status'] = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-
     serializer = SaveAuthorisedUserApplicationSerializer(
             instance, 
             data=proposal_data, 
@@ -448,8 +437,10 @@ def save_proponent_data_aua(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    serializer.save()
+    proposal = serializer.save()
 
+    if viewset.action == 'submit':
+        proposal_submit(proposal, request)
 
     # vessel
     vessel_data = request.data.get("vessel")
