@@ -1,5 +1,5 @@
 
-//import InternalDashboard from '../dashboard.vue'
+import InternalDashboard from '../dashboard.vue'
 //import Search from '../search.vue'
 import OrgAccessTable from '../organisations/dashboard.vue'
 import OrgAccess from '../organisations/access.vue'
@@ -29,11 +29,11 @@ export default
         }
     },
     children: [
-        /*
         {
             path: '/',
             component: InternalDashboard
         },
+        /*
         {
             path: 'approvals',
             component: ApprovalDash,

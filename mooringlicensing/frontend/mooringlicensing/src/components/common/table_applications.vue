@@ -10,6 +10,15 @@
                     </select>
                 </div>
             </div>
+            <div class="col-md-3" v-if="is_internal">
+                <div class="form-group">
+                    <label for="">Applicant</label>
+                    <select class="form-control" v-model="filterApplicant">
+                        <option value="All">All</option>
+                        <option v-for="applicant in applicants" :value="applicant.id">{{ applicant.first_name }} {{ applicant.last_name }}</option>
+                    </select>
+                </div>
+            </div>
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
@@ -21,7 +30,7 @@
             </div>
         </div>
 
-        <div class="row">
+        <div v-if="is_external" class="row">
             <div class="col-md-12">
                 <button type="button" class="btn btn-primary pull-right" @click="new_application_button_clicked">New Application</button>
             </div>
@@ -64,264 +73,12 @@ export default {
             // selected values for filtering
             filterApplicationType: null,
             filterApplicationStatus: null,
+            filterApplicant: null,
 
             // filtering options
             application_types: [],
             application_statuses: [],
-
-            // Datatable settings
-            datatable_headers: ['id', 'Number', 'Type', 'Application Type', 'Status', 'Lodged', 'Invoice', 'Action'],
-            datatable_options: {
-                autoWidth: false,
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-                searching: false,
-                ajax: {
-                    "url": api_endpoints.proposals_paginated_external + '?format=datatables',
-                    "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        d.filter_application_type = vm.filterApplicationType;
-                        d.filter_application_status = vm.filterApplicationStatus;
-                    }
-                },
-                dom: 'lBfrtip',
-                buttons:[
-                    //{
-                    //    extend: 'excel',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                ],
-                columns: [
-                    {
-                        // 1. ID
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: false,
-                        'render': function(row, type, full){
-                            return full.id
-                        }
-                    },
-                    {
-                        // 2. Lodgement Number
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.lodgement_number
-                        }
-                    },
-                    {
-                        // 3. Type (This corresponds to the 'ApplicationType' at the backend)
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.application_type_dict.description
-                        }
-                    },
-                    {
-                        // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.proposal_type.description
-                        }
-                    },
-                    {
-                        // 5. Status
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.customer_status
-                        }
-                    },
-                    {
-                        // 6. Lodged
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.lodgement_date
-                        }
-                    },
-                    {
-                        // 7. Invoice
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            console.log(full)
-            
-                            let links = '';
-                            if (full.fee_invoice_references){
-                                for (let item of full.fee_invoice_references){
-                                    links += '<div>'
-                                    links +=  `<a href='/payments/invoice-pdf/${item}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${item}</a>`;
-                                    if (!vm.is_external){
-                                        links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${item}' target='_blank'>View Payment</a><br/>`;
-                                    }
-                                    links += '</div>'
-                                }
-                            }
-                            return links
-                        }
-                    },
-                    {
-                        // 8. Action
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            console.log(full)
-                            let links = '';
-                            if (!vm.is_external){
-                                if(full.assessor_process){
-                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                } else {
-                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            else{
-                                if (full.can_user_edit) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                                    links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                                }
-                                else if (full.can_user_view) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            return links;
-                        }
-                    },
-                    //{
-                    //    // 4. Submitter
-                    //    data: "submitter",
-                    //    mRender:function (data,type,full) {
-                    //        if (data) {
-                    //            return `${data.first_name} ${data.last_name}`;
-                    //        }
-                    //        return ''
-                    //    },
-                    //    //name: vm.submitter_column_name,
-                    //    name: "submitter__email, submitter__first_name, submitter__last_name",
-                    //    searchable: true,
-                    //},
-                    //{
-                    //    // 5. Proponent/Applicant
-                    //    data: "relevant_applicant_name",
-                    //    //name: vm.proponent_applicant_column_name,
-                    //    name: "applicant__organisation__name, proxy_applicant__first_name, proxy_applicant__last_name, proxy_applicant__email",
-                    //    searchable: true,
-                    //},
-                    //{
-                    //    // 6. Status
-                    //    mRender:function (data, type, full) {
-                    //        if (vm.is_external){
-                    //            return full.customer_status
-                    //        }
-                    //        return full.processing_status
-                    //    },
-                    //    searchable: false,
-                    //    name: 'status',
-                    //},
-                    //{
-                    //    // 7. Lodged on
-                    //    data: "lodgement_date",
-                    //    mRender:function (data,type,full) {
-                    //        return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                    //    },
-                    //    searchable: true,
-                    //},
-                    //{
-                    //    // 8. Assigned Officer
-                    //    data: "assigned_officer",
-                    //    visible: false,
-                    //    name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
-                    //    searchable: true,
-                    //},
-                    //{
-                    //    // 9. Invoice
-                    //    mRender:function (data, type, full) {
-                    //        console.log(full)
-                    //        let links = '';
-                    //        //if (full.fee_paid) {
-                    //        //    links +=  `<a href='/payments/invoice-pdf/${full.fee_invoice_reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a> &nbsp`;
-                    //        //    if (!vm.is_external){
-                    //        //        links +=  `<a href='/ledger/payments/invoice/payment?invoice=${full.fee_invoice_reference}' target='_blank'>View Payment</a><br/>`;
-                    //        //    }
-                    //        //}
-                    //        if (full.fee_invoice_references){
-                    //            for (let item of full.fee_invoice_references){
-                    //                links += '<div>'
-                    //                links +=  `<a href='/payments/invoice-pdf/${item}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${item}</a>`;
-                    //                if (!vm.is_external){
-                    //                    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${item}' target='_blank'>View Payment</a><br/>`;
-                    //                }
-                    //                links += '</div>'
-                    //            }
-                    //        }
-                    //        return links;
-                    //    },
-                    //    name: 'invoice_column',
-                    //    orderable: false,
-                    //    visible: false,
-                    //    searchable: false,
-                    //},
-                    //{
-                    //    // 10. Action
-                    //    mRender:function (data,type,full) {
-                    //        let links = '';
-                    //        if (!vm.is_external){
-                    //            if(full.assessor_process){
-                    //                links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                    //            } else {
-                    //                links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                    //            }
-                    //        }
-                    //        else{
-                    //            if (full.can_user_edit) {
-                    //                links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                    //                links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                    //            }
-                    //            else if (full.can_user_view) {
-                    //                links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                    //            }
-                    //        }
-                    //        return links;
-                    //    },
-                    //    name: '',
-                    //    searchable: false,
-                    //    orderable: false
-                    //},
-                ],
-                processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                },
-            },
+            applicants: [],
         }
     },
     components:{
@@ -340,18 +97,281 @@ export default {
         filterApplicationType: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationType != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationType).draw();
-            //}
         },
-
+        filterApplicant: function(){
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        }
     },
     computed: {
         is_external: function() {
             return this.level == 'external'
         },
+        is_internal: function() {
+            return this.level == 'internal'
+        },
+        datatable_headers: function(){
+            if (this.is_external){
+                return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
+            }
+            if (this.is_internal){
+                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
+            }
+        },
+        column_id: function(){
+            return {
+                // 1. ID
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: false,
+                'render': function(row, type, full){
+                    return full.id
+                }
+            }
+        },
+        column_lodgement_number: function(){
+            return {
+                // 2. Lodgement Number
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.lodgement_number
+                },
+                name: 'lodgement_number',
+            }
+        },
+        column_type: function(){
+            return {
+                // 3. Type (This corresponds to the 'ApplicationType' at the backend)
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.application_type_dict){
+                        return full.application_type_dict.description
+                    } else {
+                        // Should not reach here
+                        return ''
+                    }
+                }
+            }
+        },
+        column_application_type: function(){
+            return {
+                // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.proposal_type){
+                        return full.proposal_type.description
+                    } else {
+                        // Should not reach here
+                        return ''
+                    }
+                }
+            }
+        },
+        column_status: function(){
+            return {
+                // 5. Status
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.customer_status
+                }
+            }
+        },
+        column_lodged_on: function(){
+            return {
+                // 6. Lodged
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.lodgement_date){
+                        return moment(full.lodgement_date).format('DD/MM/YYYY')
+                    }
+                    return ''
+                }
+            }
+        },
+        column_invoice: function(){
+            let vm = this
+            return {
+                // 7. Invoice
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let links = '';
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            links +=  `<a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a>`;
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            links += '</div>'
+                        }
+                    }
+                    return links
+                }
+            }
+        },
+        column_action: function(){
+            let vm = this
+            return {
+                // 8. Action
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let links = '';
+                    if (!vm.is_external){
+                        if(full.assessor_process){
+                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                        } else {
+                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                        }
+                    }
+                    else{
+                        if (full.can_user_edit) {
+                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
+                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
+                        }
+                        else if (full.can_user_view) {
+                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
+                        }
+                    }
+                    return links;
+                }
+            }
+        },
+        column_applicant: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.submitter){
+                        return `${full.submitter.first_name} ${full.submitter.last_name}`
+                    }
+                    return ''
+                },
+                name: 'submitter__first_name, submitter__last_name',
+            }
+        },
+        column_assigned_to: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let ret_str = ''
+                    if (full.assigned_officer){
+                        ret_str += full.assigned_officer
+                    }
+                    if (full.assigned_approver){
+                        ret_str += full.assigned_approver
+                    }
+                    return ret_str
+                },
+                name: 'assigned_officer__first_name, assigned_officer__last_name, assigned_approver__first_name, assigned_approver__last_name',
+            }
+        },
+        column_payment_status: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.invoices){
+                        let ret_str = ''
+                        for (let item of full.invoices){
+                            ret_str += '<div>' + item.payment_status + '</div>'
+                        }
+                        return ret_str
+                    } else {
+                        return ''
+                    }
+                }
+            }
+        },
+        datatable_options: function(){
+            let vm = this
+
+            let columns = []
+            let search = null
+            if(vm.is_external){
+                columns = [
+                    vm.column_id,
+                    vm.column_lodgement_number,
+                    vm.column_type,
+                    vm.column_application_type,
+                    vm.column_status,
+                    vm.column_lodged_on,
+                    vm.column_invoice,
+                    vm.column_action,
+                ]
+                search = false
+            }
+            if(vm.is_internal){
+                columns = [
+                    vm.column_id,
+                    vm.column_lodgement_number,
+                    vm.column_type,
+                    vm.column_applicant,
+                    vm.column_status,
+                    vm.column_lodged_on,
+                    vm.column_assigned_to,
+                    vm.column_payment_status,
+                    vm.column_action,
+                ]
+                search = true
+            }
+
+            return {
+                autoWidth: false,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                searching: search,
+                ajax: {
+                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
+                    "dataSrc": 'data',
+
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        d.filter_application_type = vm.filterApplicationType
+                        d.filter_application_status = vm.filterApplicationStatus
+                        d.filter_applicant = vm.filterApplicant
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons:[ ],
+                columns: columns,
+                processing: true,
+                initComplete: function() {
+                    console.log('in initComplete')
+                },
+            }
+        }
     },
     methods: {
         new_application_button_clicked: function(){
@@ -403,6 +423,16 @@ export default {
             },(error) => {
                 console.log(error);
             })
+
+            // Applicant
+            if (vm.is_internal){
+                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
+                    console.log(response.body)
+                    vm.applicants = response.body
+                },(error) => {
+                    console.log(error);
+                })
+            }
         },
         addEventListeners: function(){
             let vm = this
