@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel
+from mooringlicensing.components.payments_ml.models import FeeSeason
 
 
 class DcvPermitSerializer(serializers.ModelSerializer):
@@ -24,7 +25,15 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
             dcv_permit_qs = DcvPermit.objects.filter(dcv_vessel_id=data.get('dcv_vessel_id', 0), fee_season_id=data.get('fee_season_id', 0))
             if dcv_permit_qs:
-                non_field_errors.append('This vessel already has a DCV Permit for the given year.')
+                dcv_organisation = DcvOrganisation.objects.get(id=data.get('dcv_organisation_id'))
+                dcv_vessel = DcvVessel.objects.get(id=data.get('dcv_vessel_id'))
+                fee_season = FeeSeason.objects.get(id=data.get('fee_season_id'))
+                non_field_errors.append('{} already is the holder of DCV Permit: {} for the vessel: {} for the year: {}'.format(
+                    dcv_organisation,
+                    dcv_permit_qs.first().lodgement_number,
+                    dcv_vessel,
+                    fee_season.name,
+                ))
 
             # Raise errors
             if field_errors:
