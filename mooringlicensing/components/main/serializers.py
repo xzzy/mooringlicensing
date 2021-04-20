@@ -1,3 +1,4 @@
+from ledger.payments.invoice.models import Invoice
 from rest_framework import serializers
 from django.db.models import Sum, Max
 from mooringlicensing.components.main.models import (
@@ -66,3 +67,16 @@ class OracleSerializer(serializers.Serializer):
     date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
     override = serializers.BooleanField(default=False)
 
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    payment_status = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Invoice
+        fields = (
+            'id',
+            'amount',
+            'reference',
+            'payment_status',
+            'settlement_date',
+        )

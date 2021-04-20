@@ -13,6 +13,8 @@ from django.utils import timezone
 from django.conf import settings
 from ledger.accounts.models import EmailUser, RevisionedMixin
 #from ledger.accounts.models import EmailUser
+from ledger.payments.invoice.models import Invoice
+
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
@@ -516,9 +518,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
 
-    # @property
-    # def invoice(self):
-    #     return Invoice.objects.get(reference=self.fee_invoice_reference) if self.fee_invoice_reference else None
+    @property
+    def invoice(self):
+        if self.application_fees.count() < 1:
+            return None
+        elif self.application_fees.count() == 1:
+            application_fee = self.application_fees.first()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            return invoice
+        else:
+            logger.error('Proposal: {} has {} ApplicationFees.  There should be 0 or 1.'.format(self, self.application_fees.count()))
+            return 'Multiple invoices found'
 
     @property
     def editable_vessel(self):
