@@ -5,6 +5,7 @@ import ProposalSubmit from '../proposal_submit.vue'
 import Organisation from '../organisations/manage.vue'
 import DcvPermit from '../dcv_permit.vue'
 import DcvAdmission from '../dcv_admission.vue'
+import VesselsDashboard from '../vessels_dashboard.vue'
 /*
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
@@ -81,6 +82,11 @@ export default
             path: 'dcv_admission',
             component: DcvAdmission,
             name: 'dcv_admission'
+        },
+        {
+            path: 'vessels',
+            component: VesselsDashboard,
+            name: 'vessels_dashboard'
         }
     ]
 }

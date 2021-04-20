@@ -59,6 +59,7 @@ from mooringlicensing.components.proposals.models import (
     INSURANCE_CHOICES,
     Vessel,
     MooringBay,
+    Owner,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -83,6 +84,7 @@ from mooringlicensing.components.proposals.serializers import (
     ProposalAssessmentSerializer,
     ProposalAssessmentAnswerSerializer, 
     ListProposalSerializer,
+    ListVesselSerializer,
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
@@ -1421,6 +1423,33 @@ class VesselViewSet(viewsets.ModelViewSet):
         # lookup vessels must be marked as read-only
         vessel_data["read_only"] = True
         return Response(vessel_data)
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        search_text = request.GET.get('search[value]', '')
+        owner = Owner.objects.get(emailuser=request.user)
+        #qs = Vessel.objects.filter(vesselownership__owner=owner.vessels)
+        vessel_details_list = [vessel.latest_vessel_details for vessel in owner.vessels.all()]
+        ## add datatables search filter
+        #vessel_type_choices = [] 
+        #for choice in VESSEL_TYPES:
+        #    vessel_type_choices.append({'id': choice[0], 'display': choice[1]})
+
+        if search_text:
+            search_text = search_text.lower()
+            search_text_vessel_detail_ids = []
+            matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
+            for vd in vessel_details_list:
+                if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '')
+                    or search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '')
+                    or vd.vessel_type in matching_vessel_type_choices
+                    ):
+                    search_text_vessel_detail_ids.append(vd.id)
+            vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
+
+        serializer = ListVesselSerializer(vessel_details_list, context={'request': request}, many=True)
+        return Response(serializer.data)
 
 
 class AssessorChecklistViewSet(viewsets.ReadOnlyModelViewSet):
