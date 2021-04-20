@@ -128,6 +128,7 @@
                                                     <li><a href="{% url 'test-emails' %}">Test Emails</a></li>
                                                 {% endif %}
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
+                                                <li><a href="/external/vessels">Manage Vessels</a></li>
                                                 <!-- <li><a href="{% url 'manage-profiles' %}">Manage Profiles</a></li> -->
                                                 {% for org in request.user.mooringlicensing_organisations.all %}
                                                     {% for org_contact in org.contacts.all%}

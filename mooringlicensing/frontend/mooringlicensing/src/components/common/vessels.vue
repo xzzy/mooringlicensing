@@ -22,7 +22,8 @@
                     <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required/>
                 </div>
             </div>
-            <div v-if="!vessel.read_only" class="row form-group">
+            <!--div v-if="!vessel.read_only" class="row form-group"-->
+            <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Registration vessel owner</label>
                 <div class="col-sm-9">
                     <div class="row">
@@ -42,7 +43,7 @@
                     </div>
                 </div>
             </div>
-            <div v-else class="row form-group">
+            <!--div v-else class="row form-group">
                 <label for="" class="col-sm-3 control-label">Registration vessel owner</label>
                 <div class="col-sm-9">
                     <div class="row">
@@ -51,11 +52,12 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div-->
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" 
+                    <input 
+                     :readonly="readonly" 
                     type="number" 
                     step="1"
                     min="1" 
@@ -79,7 +81,7 @@
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
-                        :readonly="!editableVessel"
+                        :readonly="readonly"
                         ref="vessel_registration_documents"
                         name="vessel-registration-documents"
                         :isRepeatable="true"
@@ -88,11 +90,11 @@
                     />
                 </div>
             </div>
-            <div class="row form-group">
+            <div v-if="proposal.application_type_code==='mla'" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
-                        :readonly="!editableVessel"
+                        :readonly="readonly"
                         ref="hull_identification_number_documents"
                         name="hull-identification-number-documents"
                         :isRepeatable="true"

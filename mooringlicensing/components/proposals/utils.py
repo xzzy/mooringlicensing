@@ -335,24 +335,6 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
-
-# no longer required?
-def save_proponent_data_common(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
-    print(request.data)
-    # proposal
-    proposal_data = request.data.get('proposal')
-    if proposal_data:
-        serializer = SaveProposalSerializer(instance, data=proposal_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-    vessel_data = request.data.get("vessel")
-    if vessel_data:
-        if viewset.action == 'submit':
-            submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == 'draft':
-            save_vessel_data(instance, request, vessel_data)
-
 def save_proponent_data_aaa(instance, request, viewset):
     #import ipdb; ipdb.set_trace()
     print(request.data)
@@ -532,37 +514,42 @@ def submit_vessel_data(instance, request, vessel_data):
         # associate vessel_details with proposal
         instance.vessel_details = vessel_details
         instance.save()
+    # record ownership data
+    submit_vessel_ownership(instance, request, vessel_data)
 
-        ## Vessel Ownership
-        vessel_ownership_data = vessel_data.get("vessel_ownership")
-        if vessel_ownership_data.get('individual_owner') is None:
-            raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
-        elif not vessel_ownership_data.get('individual_owner') and not vessel_ownership_data.get("org_name"):
-            raise serializers.ValidationError({"Missing information": "You must supply the company name"})
-        vessel_ownership_data['vessel'] = vessel.id
-        #registered_owner = vessel_ownership_data.get("registered_owner")
-        #registered_owner_company_name = vessel_ownership_data.get("registered_owner_company_name")
-        #registered_owner_company_name_strip = registered_owner_company_name.strip() if registered_owner_company_name else None
-        org_name = vessel_ownership_data.get("org_name")
-        #owner = None
-        # should be submitter?
-        owner, created = Owner.objects.get_or_create(emailuser=request.user)
+def submit_vessel_ownership(instance, request, vessel_data):
+    ## Get Vessel
+    vessel = instance.vessel_details.vessel
+    ## Vessel Ownership
+    vessel_ownership_data = vessel_data.get("vessel_ownership")
+    if vessel_ownership_data.get('individual_owner') is None:
+        raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
+    elif not vessel_ownership_data.get('individual_owner') and not vessel_ownership_data.get("org_name"):
+        raise serializers.ValidationError({"Missing information": "You must supply the company name"})
+    vessel_ownership_data['vessel'] = vessel.id
+    #registered_owner = vessel_ownership_data.get("registered_owner")
+    #registered_owner_company_name = vessel_ownership_data.get("registered_owner_company_name")
+    #registered_owner_company_name_strip = registered_owner_company_name.strip() if registered_owner_company_name else None
+    org_name = vessel_ownership_data.get("org_name")
+    #owner = None
+    # should be submitter?
+    owner, created = Owner.objects.get_or_create(emailuser=request.user)
 
-        vessel_ownership_data['owner'] = owner.id
-        vessel_ownership = instance.vessel_ownership
-        if not vessel_ownership:
-            vessel_ownership, created = VesselOwnership.objects.get_or_create(
-                    owner=owner, 
-                    vessel=vessel, 
-                    #org_name=registered_owner_company_name_strip
-                    org_name=org_name
-                    )
-            # associate vessel_ownership with proposal
-            instance.vessel_ownership = vessel_ownership
-            instance.save()
-        serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
-        serializer.is_valid(raise_exception=True)
-        vessel_ownership = serializer.save()
+    vessel_ownership_data['owner'] = owner.id
+    vessel_ownership = instance.vessel_ownership
+    if not vessel_ownership:
+        vessel_ownership, created = VesselOwnership.objects.get_or_create(
+                owner=owner, 
+                vessel=vessel, 
+                #org_name=registered_owner_company_name_strip
+                org_name=org_name
+                )
+        # associate vessel_ownership with proposal
+        instance.vessel_ownership = vessel_ownership
+        instance.save()
+    serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
+    serializer.is_valid(raise_exception=True)
+    vessel_ownership = serializer.save()
 
 
 #from mooringlicensing.components.main.models import ApplicationType
