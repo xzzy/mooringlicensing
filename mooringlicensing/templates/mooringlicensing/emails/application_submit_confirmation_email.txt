@@ -1,0 +1,8 @@
+{%  extends 'mooringlicensing/emails/base_email.txt' %}
+
+{%  block content %}
+    Your application has been successfully submitted.
+
+    Application: {{ proposal.lodgement_number }}
+
+{%  endblock %}
