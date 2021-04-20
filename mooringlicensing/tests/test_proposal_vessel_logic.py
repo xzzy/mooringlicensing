@@ -60,6 +60,24 @@ class VesselTests(APITestSetup):
         )
         self.assertEqual(draft_response.status_code, 302)
 
+        ## add DoT rego papers
+        rego_papers_response = self.client.post(
+                '/api/proposal/{}/process_vessel_registration_document/'.format(proposal_id),
+                self.rego_papers_data, 
+                #format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
+        )
+        self.assertEqual(rego_papers_response.status_code, 200)
+
+        ## add Silent Elector papers
+        electoral_roll_doc_response = self.client.post(
+                '/api/proposal/{}/process_electoral_roll_document/'.format(proposal_id),
+                self.electoral_roll_doc_data, 
+                #format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
+        )
+        self.assertEqual(electoral_roll_doc_response.status_code, 200)
+
         ## submit api endpoint
         #submit_proposal_data = {
         #        "proposal": {
@@ -68,6 +86,7 @@ class VesselTests(APITestSetup):
         #        }
         submit_proposal_data = {
                 "proposal": {
+                    "silent_elector": True,
                     "preferred_bay_id": MooringBay.objects.first().id,
                     }, 
                 "vessel": {
@@ -84,7 +103,7 @@ class VesselTests(APITestSetup):
                     "vessel_ownership": {
                         "org_name": None, 
                         "percentage": "23", 
-                        "individual_owner": None
+                        "individual_owner": True
                         }, 
                     "rego_no": "20210407_1", 
                     "vessel_id": None
@@ -136,7 +155,7 @@ class VesselTests(APITestSetup):
                         "id": vessel_details_id_1
                         }, 
                     "vessel_ownership": {
-                        "id": vessel_ownership_id_1
+                        #"id": vessel_ownership_id_1
                         }, 
                     "id": vessel_id_1,
                     "read_only": True,
@@ -144,25 +163,39 @@ class VesselTests(APITestSetup):
                 }
 
         draft_response = self.client.post(
-                '/api/proposal/{}/draft/'.format(proposal_id),
+                '/api/proposal/{}/draft/'.format(proposal_2_id),
                 draft_proposal_data, 
                 format='json',
                 HTTP_HOST=HTTP_HOST_FOR_TEST,
         )
         self.assertEqual(draft_response.status_code, 302)
         
+
+        ## add DoT rego papers
+        rego_papers_response = self.client.post(
+                '/api/proposal/{}/process_vessel_registration_document/'.format(proposal_2_id),
+                self.rego_papers_data, 
+                #format='json',
+                HTTP_HOST=HTTP_HOST_FOR_TEST,
+        )
+        self.assertEqual(rego_papers_response.status_code, 200)
+
         # submit Proposal2
         # submit api endpoint
         submit_proposal_2_data = {
                 "proposal": {
                     "preferred_bay_id": MooringBay.objects.last().id,
+                    "silent_elector": False,
                     }, 
                 "vessel": {
                     "vessel_details": {
                         "id": vessel_details_id_1
                         }, 
                     "vessel_ownership": {
-                        "id": vessel_ownership_id_1
+                        #"id": vessel_ownership_id_1
+                        "org_name": "Company1", 
+                        "percentage": "23", 
+                        "individual_owner": False
                         }, 
                     "id": vessel_id_1,
                     "read_only": True,
@@ -184,5 +217,6 @@ class VesselTests(APITestSetup):
         proposal_2.save()
         # proposal and proposal2 should now share the same vessel_details
         self.assertEqual(proposal.vessel_details, proposal_2.vessel_details)
-        self.assertEqual(proposal.vessel_ownership, proposal_2.vessel_ownership)
+        self.assertEqual(proposal.vessel_ownership.vessel, proposal_2.vessel_ownership.vessel)
+        self.assertNotEqual(proposal.vessel_ownership, proposal_2.vessel_ownership)
 
