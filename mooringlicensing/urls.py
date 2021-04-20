@@ -8,7 +8,7 @@ import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.admin import mooringlicensing_admin_site
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
-    DcvPermitFeeView, DcvPermitFeeSuccessView
+    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 #from mooringlicensing.components.bookings import views as booking_views
@@ -132,6 +132,7 @@ urlpatterns = [
     #url(r'^success/filming_fee/$', booking_views.FilmingFeeSuccessView.as_view(), name='filming_fee_success'),
     # url(r'cols/payments/invoice-pdf/(?P<reference>\d+)',booking_views.InvoicePDFView.as_view(), name='cols-invoice-pdf'),
     url(r'payments/invoice-pdf/(?P<reference>\d+)', InvoicePDFView.as_view(), name='invoice-pdf'),
+    url(r'payments/dcv-permit-pdf/(?P<id>\d+)', DcvPermitPDFView.as_view(), name='dcv-permit-pdf'),
     #url(r'cols/payments/invoice-compliance-pdf/(?P<reference>\d+)',booking_views.InvoiceCompliancePDFView.as_view(), name='cols-invoice-compliance-pdf'),
     #url(r'cols/payments/confirmation-pdf/(?P<reference>\d+)',booking_views.ConfirmationPDFView.as_view(), name='cols-confirmation-pdf'),
     #url(r'cols/payments/monthly-confirmation-pdf/booking/(?P<id>\d+)',booking_views.MonthlyConfirmationPDFBookingView.as_view(), name='cols-monthly-confirmation-pdf'),
