@@ -60,7 +60,7 @@
                      :readonly="readonly" 
                     type="number" 
                     step="1"
-                    min="1" 
+                    min="25" 
                     max="100" 
                     class="form-control" 
                     id="ownership_percentage" 
