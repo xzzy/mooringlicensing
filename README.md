@@ -3,5 +3,3 @@ status](https://travis-ci.org/dbca-wa/ledger.svg?branch=master)](https://travis-
 # mooringlicensing
 Mooring Licencing System
 
-# additional details here
-
