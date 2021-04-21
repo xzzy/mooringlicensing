@@ -60,7 +60,7 @@
                      :readonly="readonly" 
                     type="number" 
                     step="1"
-                    min="1" 
+                    min="25" 
                     max="100" 
                     class="form-control" 
                     id="ownership_percentage" 
@@ -404,5 +404,8 @@ from '@/utils/hooks'
 </script>
 
 <style lang="css" scoped>
+    input[type=text] {
+        padding-left: 12px;
+    }
 </style>
 
