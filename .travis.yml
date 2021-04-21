@@ -20,6 +20,8 @@ env:
         - BPAY_ALLOWED=True
         - EMAIL_FROM="no-reply@dbca.wa.gov.au"
         - DEBUG=True
+        - MOORING_BOOKINGS_API_KEY="5G9BIPB17RS7A4WCG33CWAFXI1P39S93BPN61YMZTZV17F6D86XUX9QRDW7ICXQB8A0M1MQM8A92YWC79ZDTPGOKSO0IXIIREMR4"
+        - MOORING_BOOKINGS_API_URL="https://mooring-api-dev-oim01.dbca.wa.gov.au/api/external/"
 sudo: true
 install:
     - sudo apt-get install postgresql-9.6-postgis-2.4 -y -q
