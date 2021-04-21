@@ -1011,6 +1011,8 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         custom_errors = {}
         if data.get("percentage") > 100:
             custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
+        if data.get("percentage") < 25:
+            custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
