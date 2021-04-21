@@ -227,8 +227,6 @@ class APITestSetup(APITestCase):
         #with open('mooringlicensing/tests/test_doc.png', 'rb') as f:
             #test_doc_bytes = f.read()
         with io.open(path, 'rb') as f:
-            print("type of f")
-            print(type(f))
             test_doc_bytes = f.read()
             test_doc_stream = io.BytesIO(test_doc_bytes)
             test_doc_obj = TemporaryFileUploadHandler()
