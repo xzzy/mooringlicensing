@@ -1821,13 +1821,23 @@ class VesselOwnership(models.Model):
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
 
-    def __str__(self):
-        return "{}".format(self.id)
-
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
         unique_together = ['owner', 'vessel', 'org_name']
+
+    def __str__(self):
+        return "{}: {}".format(self.owner, self.vessel)
+
+    def save(self, *args, **kwargs):
+        ## do not allow total ownership percentage per vessel to exceed 100
+        qs = self.vessel.vesselownership_set.all()
+        total = 0
+        for vo in qs:
+            total += vo.percentage if vo.percentage else 0
+        if total > 100:
+            raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
+        super(VesselOwnership, self).save(*args,**kwargs)
 
 
 # Non proposal specific
