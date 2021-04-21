@@ -56,6 +56,43 @@
                             <label class="radio-inline control-label" for="private_no">No</label>
                         </div>
                     </div>
+                    <div class="row form-group">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-2"><label>Landing</label></div>
+                        <div class="col-sm-2"><label>Extended stay</label></div>
+                        <div class="col-sm-2"><label>Not landing</label></div>
+                        <div class="col-sm-2"><label>Approved events</label></div>
+                    </div>
+                    <div class="row form-group">
+                        <div class="col-sm-3"><label>Number of Adults</label><br />(12 and over)</div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="adults-landing" placeholder="" v-model="dcv_admission_fees.adults_landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="adults-extended-stay" placeholder="" v-model="dcv_admission_fees.adults_extended_stay">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="adults-not-landing" placeholder="" v-model="dcv_admission_fees.adults_not_landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="adults-approved-events" placeholder="" v-model="dcv_admission_fees.adults_approved_events">
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <div class="col-sm-3"><label>Number of Children</label><br />(4 - 12)</div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="children-landing" placeholder="" v-model="dcv_admission_fees.children_landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="children-extended-stay" placeholder="" v-model="dcv_admission_fees.children_extended_stay">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="children-not-landing" placeholder="" v-model="dcv_admission_fees.children_not_landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input type="text" class="form-control" name="children-approved-events" placeholder="" v-model="dcv_admission_fees.children_approved_events">
+                        </div>
+                    </div>
                 </div>
             </div>
         </FormSection>
