@@ -44,7 +44,7 @@ class VesselTests(APITestSetup):
                         }, 
                     "vessel_ownership": {
                         "org_name": None, 
-                        "percentage": "23", 
+                        "percentage": "26", 
                         "individual_owner": None
                         }, 
                     "rego_no": "20210407_1", 
@@ -102,7 +102,7 @@ class VesselTests(APITestSetup):
                         }, 
                     "vessel_ownership": {
                         "org_name": None, 
-                        "percentage": "23", 
+                        "percentage": "26", 
                         "individual_owner": True
                         }, 
                     "rego_no": "20210407_1", 
@@ -194,7 +194,7 @@ class VesselTests(APITestSetup):
                     "vessel_ownership": {
                         #"id": vessel_ownership_id_1
                         "org_name": "Company1", 
-                        "percentage": "23", 
+                        "percentage": "26", 
                         "individual_owner": False
                         }, 
                     "id": vessel_id_1,
