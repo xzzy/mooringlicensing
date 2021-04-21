@@ -41,8 +41,11 @@
                 <div class="panel-body">
                     <div class="row form-group">
                         <label for="" class="col-sm-2 control-label">Arrival</label>
-                        <div class="col-sm-6">
-                            <input type="text" class="form-control" name="arrival" placeholder="" v-model="dcv_admission_fees.arrival">
+                        <div class="col-sm-3 input-group date" ref="arrivalDatePicker">
+                            <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
                         </div>
                     </div>
                     <div class="row form-group">
@@ -57,40 +60,40 @@
                         </div>
                     </div>
                     <div class="row form-group">
-                        <div class="col-sm-3"></div>
-                        <div class="col-sm-2"><label>Landing</label></div>
-                        <div class="col-sm-2"><label>Extended stay</label></div>
-                        <div class="col-sm-2"><label>Not landing</label></div>
-                        <div class="col-sm-2"><label>Approved events</label></div>
+                        <div class="col-sm-2"></div>
+                        <div class="col-sm-2 text-center"><label>Landing</label></div>
+                        <div class="col-sm-2 text-center"><label>Extended stay</label></div>
+                        <div class="col-sm-2 text-center"><label>Not landing</label></div>
+                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
                     </div>
                     <div class="row form-group">
-                        <div class="col-sm-3"><label>Number of Adults</label><br />(12 and over)</div>
+                        <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="adults-landing" placeholder="" v-model="dcv_admission_fees.adults_landing">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-landing" placeholder="" v-model="dcv_admission_fees.adults_landing">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="adults-extended-stay" placeholder="" v-model="dcv_admission_fees.adults_extended_stay">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-extended-stay" placeholder="" v-model="dcv_admission_fees.adults_extended_stay">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="adults-not-landing" placeholder="" v-model="dcv_admission_fees.adults_not_landing">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-not-landing" placeholder="" v-model="dcv_admission_fees.adults_not_landing">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="adults-approved-events" placeholder="" v-model="dcv_admission_fees.adults_approved_events">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-approved-events" placeholder="" v-model="dcv_admission_fees.adults_approved_events">
                         </div>
                     </div>
                     <div class="row form-group">
-                        <div class="col-sm-3"><label>Number of Children</label><br />(4 - 12)</div>
+                        <div class="col-sm-2"><label>Number of Children</label><br />(4 - 12)</div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="children-landing" placeholder="" v-model="dcv_admission_fees.children_landing">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-landing" placeholder="" v-model="dcv_admission_fees.children_landing">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="children-extended-stay" placeholder="" v-model="dcv_admission_fees.children_extended_stay">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-extended-stay" placeholder="" v-model="dcv_admission_fees.children_extended_stay">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="children-not-landing" placeholder="" v-model="dcv_admission_fees.children_not_landing">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-not-landing" placeholder="" v-model="dcv_admission_fees.children_not_landing">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" name="children-approved-events" placeholder="" v-model="dcv_admission_fees.children_approved_events">
+                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-approved-events" placeholder="" v-model="dcv_admission_fees.children_approved_events">
                         </div>
                     </div>
                 </div>
@@ -124,7 +127,7 @@
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-
+  
 export default {
     name: 'DcvTablePage',
     data() {
@@ -139,6 +142,7 @@ export default {
                 contact_number: '',
                 arrival: null,
             },
+            paySubmitting: false,
         }
     },
     components:{
@@ -151,13 +155,39 @@ export default {
         is_external: function() {
             return this.level == 'external'
         },
-
+        csrf_token: function() {
+          return helpers.getCookie('csrftoken')
+        },
     },
     methods: {
+        addEventListeners: function () {
+            let vm = this;
+            let el_fr = $(vm.$refs.arrivalDatePicker);
+            let options = {
+                format: "DD/MM/YYYY",
+                showClear: true ,
+                useCurrent: false,
+            };
 
+            el_fr.datetimepicker(options);
+
+            el_fr.on("dp.change", function(e) {
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.on_site_information.period_from = selected_date;
+                } else {
+                    // Date not selected
+                    vm.on_site_information.period_from = selected_date;
+                }
+            });
+        },
     },
     mounted: function () {
-
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
     },
     created: function() {
 
