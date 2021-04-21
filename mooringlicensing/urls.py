@@ -8,7 +8,7 @@ import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.admin import mooringlicensing_admin_site
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
-    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView
+    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 #from mooringlicensing.components.bookings import views as booking_views
@@ -119,6 +119,7 @@ urlpatterns = [
 
     # payment related urls
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
+    url(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
     url(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),
     url(r'^success/fee/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
     url(r'^dcv_permit_success/fee/$', DcvPermitFeeSuccessView.as_view(), name='dcv_permit_fee_success'),

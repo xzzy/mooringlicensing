@@ -157,60 +157,64 @@ export default {
       */
   },
   computed: {
-    readonly: function() {
-        let returnVal = true;
-        if (this.proposal.processing_status === 'Draft') {
-            returnVal = false;
-        }
-        return returnVal;
-    },
-    isLoading: function() {
-      return this.loading.length > 0
-    },
-    csrf_token: function() {
-      return helpers.getCookie('csrftoken')
-    },
-    proposal_form_url: function() {
-      return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
-        // revert to above
-      //return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
-    },
-    application_fee_url: function() {
-      return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
-    },
-    proposal_submit_url: function() {
-      return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
-      //return this.submit();
-    },
-    canEditActivities: function(){
-      return this.proposal ? this.proposal.can_user_edit: 'false';
-    },
-    canEditPeriod: function(){
-      return this.proposal ? this.proposal.can_user_edit: 'false';
-    },
-    application_type_tclass: function(){
-      return api_endpoints.t_class;
-    },
-    application_type_filming: function(){
-      return api_endpoints.filming;
-    },
-    application_type_event: function(){
-      return api_endpoints.event;
-    },
-    trainingCompleted: function(){
-      if(this.proposal.application_type== 'Event')
-        {
-          return this.proposal.applicant_training_completed;
-        }
-      return this.proposal.training_completed;
-    },
-    showElectoralRoll: function() {
-        let show = false;
-        if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
-            show = true;
-        }
-        return show;
-    },
+      readonly: function() {
+          let returnVal = true;
+          if (this.proposal.processing_status === 'Draft') {
+              returnVal = false;
+          }
+          return returnVal;
+      },
+      isLoading: function() {
+        return this.loading.length > 0
+      },
+      csrf_token: function() {
+        return helpers.getCookie('csrftoken')
+      },
+      proposal_form_url: function() {
+        return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
+          // revert to above
+        //return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
+      },
+      application_fee_url: function() {
+          return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
+      },
+      confirmation_url: function() {
+          // For authorised user application and mooring licence application
+          return (this.proposal) ? `/confirmation/${this.proposal.id}/` : '';
+      },
+      proposal_submit_url: function() {
+        return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
+        //return this.submit();
+      },
+      canEditActivities: function(){
+        return this.proposal ? this.proposal.can_user_edit: 'false';
+      },
+      canEditPeriod: function(){
+        return this.proposal ? this.proposal.can_user_edit: 'false';
+      },
+      application_type_tclass: function(){
+        return api_endpoints.t_class;
+      },
+      application_type_filming: function(){
+        return api_endpoints.filming;
+      },
+      application_type_event: function(){
+        return api_endpoints.event;
+      },
+      trainingCompleted: function(){
+        if(this.proposal.application_type== 'Event')
+          {
+            return this.proposal.applicant_training_completed;
+          }
+        return this.proposal.training_completed;
+      },
+      showElectoralRoll: function() {
+          let show = false;
+          if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+              show = true;
+          }
+          return show;
+      },
 
   },
   methods: {
@@ -386,14 +390,11 @@ export default {
             if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
                 await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
             } else {
-                this.$router.push({
-                    name: 'external-dashboard'
-                });
+                await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                //this.$router.push({
+                //    name: 'external-dashboard'
+                //});
             }
-            //console.log(res);
-            //if (res.ok) {
-            //    await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-            //}
         } catch(err) {
             console.log(err)
             console.log(typeof(err.body))
