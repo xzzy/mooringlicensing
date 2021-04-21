@@ -265,8 +265,8 @@ class APITestSetup(APITestCase):
 
         ## Mooring Bays
         #retrieve_marine_parks()
-        MooringBay.objects.create(name='Bay1')
-        MooringBay.objects.create(name='Bay2')
+        MooringBay.objects.create(name='Bay1', mooring_bookings_id=1)
+        MooringBay.objects.create(name='Bay2', mooring_bookings_id=2)
 
         # Global settings
         #ApiaryGlobalSettings.objects.create(key='oracle_code_apiary_site_annual_rental_fee', value='sample')
