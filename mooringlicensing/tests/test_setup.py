@@ -26,6 +26,7 @@ from mooringlicensing.components.proposals.models import (
         ApplicationType,
         ProposalAssessorGroup,
         ProposalStandardRequirement,
+        MooringBay,
         )
 from mooringlicensing.components.approvals.models import (
         Approval,
@@ -41,7 +42,7 @@ from mooringlicensing.components.payments_ml.models import (
         VesselSizeCategoryGroup,
         VesselSizeCategory,
         )
-from mooringlicensing.components.main.utils import retrieve_marine_parks
+#from mooringlicensing.components.main.utils import retrieve_marine_parks
 from django.core.files.uploadedfile import InMemoryUploadedFile, UploadedFile
 from django.core.files.uploadhandler import MemoryFileUploadHandler, TemporaryFileUploadHandler
 
@@ -263,7 +264,9 @@ class APITestSetup(APITestCase):
 
 
         ## Mooring Bays
-        retrieve_marine_parks()
+        #retrieve_marine_parks()
+        MooringBay.objects.create(name='Bay1', mooring_bookings_id=1)
+        MooringBay.objects.create(name='Bay2', mooring_bookings_id=2)
 
         # Global settings
         #ApiaryGlobalSettings.objects.create(key='oracle_code_apiary_site_annual_rental_fee', value='sample')
