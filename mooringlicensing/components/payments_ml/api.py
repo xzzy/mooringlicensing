@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
+from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 
 logger = logging.getLogger('log')
@@ -19,4 +20,4 @@ class GetSeasonsForDcvDict(views.APIView):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
         fee_constructors = FeeConstructor.get_current_and_future_fee_constructors_by_application_type_and_date(application_type,)
         data = [{'id': item.fee_season.id, 'name': item.fee_season.__str__()} for item in fee_constructors]
-        return Response(data)
+        return add_cache_control(Response(data))
