@@ -37,64 +37,20 @@
                 </div>
             </div>
 
-            <div class="panel panel-default">
-                <div class="panel-body">
-                    <div class="row form-group">
-                        <label for="" class="col-sm-2 control-label">Arrival</label>
-                        <div class="col-sm-3 input-group date" ref="arrivalDatePicker">
-                            <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element"/>
-                            <span class="input-group-addon">
-                                <span class="glyphicon glyphicon-calendar"></span>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label for="" class="col-sm-2 control-label">Private visit</label>
-                        <div class="col-sm-2">
-                            <input type="radio" id="private_yes" name="private_visit" value="true" v-model="dcv_admission_fees.private_visit"/>
-                            <label class="radio-inline control-label" for="private_yes">Yes</label>
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="radio" id="private_no" name="private_visit" value="false" v-model="dcv_admission_fees.private_visit"/>
-                            <label class="radio-inline control-label" for="private_no">No</label>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <div class="col-sm-2"></div>
-                        <div class="col-sm-2 text-center"><label>Landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Extended stay</label></div>
-                        <div class="col-sm-2 text-center"><label>Not landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
-                    </div>
-                    <div class="row form-group">
-                        <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-landing" placeholder="" v-model="dcv_admission_fees.adults_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-extended-stay" placeholder="" v-model="dcv_admission_fees.adults_extended_stay">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-not-landing" placeholder="" v-model="dcv_admission_fees.adults_not_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-approved-events" placeholder="" v-model="dcv_admission_fees.adults_approved_events">
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <div class="col-sm-2"><label>Number of Children</label><br />(4 - 12)</div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-landing" placeholder="" v-model="dcv_admission_fees.children_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-extended-stay" placeholder="" v-model="dcv_admission_fees.children_extended_stay">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-not-landing" placeholder="" v-model="dcv_admission_fees.children_not_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-approved-events" placeholder="" v-model="dcv_admission_fees.children_approved_events">
-                        </div>
+            <template class="" id="arrival_panels" v-for="arrival in dcv_admission_fees.arrivals">
+                <PanelArrival
+                    level="external"
+                    :uuid="arrival.uuid"
+                    :arrival="arrival"
+                    @delete_arrival="delete_arrival"
+                    :key="arrival.uuid"
+                />
+            </template>
+
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="pull-right">
+                        <label>Click <span @click="add_another_date_clicked" class="add_another_date_text">here</span> to add another date</label>
                     </div>
                 </div>
             </div>
@@ -127,10 +83,18 @@
 import 'eonasdan-bootstrap-datetimepicker';
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
+import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
+import uuid from 'uuid'
   
 export default {
-    name: 'DcvTablePage',
+    name: 'DcvAdmissionPage',
+    props: {
+        level: {
+            type: String,
+            default: 'external',
+        }
+    },
     data() {
         let vm = this;
         return {
@@ -141,12 +105,31 @@ export default {
                 vessel_name: '',
                 skipper: '',
                 contact_number: '',
-                arrival: null,
+                arrivals: [
+                    {
+                        uuid: uuid(),
+                        arrival_date: null,
+                        private_visit: null,
+                        adults: {
+                            landing: 0,
+                            extended_stay: 0,
+                            not_landing: 0,
+                            approved_events: 0,
+                        },
+                        children: {
+                            landing: 0,
+                            extended_stay: 0,
+                            not_landing: 0,
+                            approved_events: 0,
+                        }
+                    },
+                ],
             },
             paySubmitting: false,
         }
     },
     components:{
+        PanelArrival,
         FormSection,
     },
     watch: {
@@ -161,6 +144,35 @@ export default {
         },
     },
     methods: {
+        delete_arrival: function(uuid){
+            for (let i=0; i < this.dcv_admission_fees.arrivals.length; i++){
+                if (this.dcv_admission_fees.arrivals[i].uuid === uuid){
+                    this.dcv_admission_fees.arrivals.splice(i, 1)
+                    break
+                }
+            }
+        },
+        add_another_date_clicked: function() {
+            this.dcv_admission_fees.arrivals.push(
+                {
+                    uuid: uuid(),
+                    arrival_date: null,
+                    private_visit: null,
+                    adults: {
+                        landing: 0,
+                        extended_stay: 0,
+                        not_landing: 0,
+                        approved_events: 0,
+                    },
+                    children: {
+                        landing: 0,
+                        extended_stay: 0,
+                        not_landing: 0,
+                        approved_events: 0,
+                    }
+                }
+            )
+        },
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.arrivalDatePicker);
@@ -202,5 +214,9 @@ export default {
 }
 .mb-2 {
     margin: 0 0 2em 0;
+}
+.add_another_date_text {
+    cursor: pointer;
+    color: #337ab7;
 }
 </style>
