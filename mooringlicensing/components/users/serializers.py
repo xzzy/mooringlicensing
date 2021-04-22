@@ -97,6 +97,7 @@ class UserFilterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     #mooringlicensing_organisations = serializers.SerializerMethodField()
     residential_address = UserAddressSerializer()
+    postal_address = UserAddressSerializer()
     personal_details = serializers.SerializerMethodField()
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
@@ -117,6 +118,7 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             #'identification',
             'residential_address',
+            'postal_address',
             'phone_number',
             'mobile_number',
             #'mooringlicensing_organisations',
