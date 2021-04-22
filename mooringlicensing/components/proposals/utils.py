@@ -336,7 +336,6 @@ def save_proponent_data(instance, request, viewset):
         save_proponent_data_mla(instance, request, viewset)
 
 def save_proponent_data_aaa(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -358,7 +357,6 @@ def save_proponent_data_aaa(instance, request, viewset):
             save_vessel_data(instance, request, vessel_data)
 
 def save_proponent_data_wla(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -381,7 +379,6 @@ def save_proponent_data_wla(instance, request, viewset):
 
 
 def save_proponent_data_mla(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -407,7 +404,6 @@ def save_proponent_data_mla(instance, request, viewset):
 
 
 def save_proponent_data_aua(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -442,22 +438,13 @@ def save_proponent_data_aua(instance, request, viewset):
 def save_vessel_data(instance, request, vessel_data):
     print("save vessel data")
     #vessel_data = request.data.get("vessel")
+    vessel_details_data = {}
     if not vessel_data.get("read_only"):
         print('if not vessel_data.get("read_only")')
         vessel_details_data = vessel_data.get("vessel_details")
-        vessel_ownership_data = vessel_data.get("vessel_ownership")
         # add vessel details and vessel ownership to vessel_data
         for key in vessel_details_data.keys():
             vessel_data.update({key: vessel_details_data.get(key)})
-        for key in vessel_ownership_data.keys():
-            vessel_data.update({key: vessel_ownership_data.get(key)})
-        #print("vessel_data")
-        #print(vessel_data)
-
-        serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
-        serializer.is_valid(raise_exception=True)
-        print(serializer.validated_data)
-        serializer.save()
         # clear stored instance.vessel_details
         instance.vessel_details = None
         instance.save()
@@ -466,11 +453,17 @@ def save_vessel_data(instance, request, vessel_data):
         if vessel_details_id:
             instance.vessel_details = VesselDetails.objects.get(id=vessel_details_id)
             instance.save()
-        vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
-        if vessel_ownership_id:
-            instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
-            instance.save()
-
+        #vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
+        #if vessel_ownership_id:
+        #    instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
+        #    instance.save()
+    vessel_ownership_data = vessel_data.get("vessel_ownership")
+    for key in vessel_ownership_data.keys():
+        vessel_data.update({key: vessel_ownership_data.get(key)})
+    serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
+    serializer.is_valid(raise_exception=True)
+    print(serializer.validated_data)
+    serializer.save()
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
