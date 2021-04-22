@@ -59,6 +59,7 @@ router.register(r'payment', main_api.PaymentViewSet)
 router.register(r'mooringbays', proposal_api.MooringBayViewSet)
 router.register(r'vessel', proposal_api.VesselViewSet)
 router.register(r'dcv_permit', mooringlicensing.components.approvals.api.DcvPermitViewSet)
+router.register(r'dcv_admission', mooringlicensing.components.approvals.api.DcvAdmissionViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
