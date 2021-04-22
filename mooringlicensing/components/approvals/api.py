@@ -514,6 +514,17 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
+class DcvAdmissionViewSet(viewsets.ModelViewSet):
+    # queryset = DcvAdmission.objects.all().order_by('id')
+    # serializer_class = DcvAdmissionSerializer
+    queryset = DcvPermit.objects.all().order_by('id')
+    serializer_class = DcvPermitSerializer
+
+    def create(self, request, *args, **kwargs):
+        # return Response(serializer.data)
+        return Response({})
+
+
 class DcvPermitViewSet(viewsets.ModelViewSet):
     queryset = DcvPermit.objects.all().order_by('id')
     serializer_class = DcvPermitSerializer

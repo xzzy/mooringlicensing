@@ -1,6 +1,6 @@
 <template>
     <div class="container" id="externalDash">
-        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission_fees">
+        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission">
             <div class="row mb-2">
                 <div class="col-sm-12">
                     <strong>Collection and remittance of admission fees is required prior to entering the Rottnest Island Reserve.  Penalties do apply for non compliance.</strong>
@@ -9,35 +9,35 @@
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">UIV Vessel Identifier</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission_fees.uvi_vessel_identifier">
+                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.uvi_vessel_identifier">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Vessel registration</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_registration" placeholder="" v-model="dcv_admission_fees.vessel_registration">
+                    <input type="text" class="form-control" name="vessel_registration" placeholder="" v-model="dcv_admission.vessel_registration">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Vessel name</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission_fees.vessel_name">
+                    <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission.vessel_name">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Skipper</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission_fees.skipper">
+                    <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission.skipper">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Contact number</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission_fees.contact_number">
+                    <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission.contact_number">
                 </div>
             </div>
 
-            <template class="" id="arrival_panels" v-for="arrival in dcv_admission_fees.arrivals">
+            <template class="" id="arrival_panels" v-for="arrival in dcv_admission.arrivals">
                 <PanelArrival
                     level="external"
                     :uuid="arrival.uuid"
@@ -98,7 +98,7 @@ export default {
     data() {
         let vm = this;
         return {
-            dcv_admission_fees: {
+            dcv_admission: {
                 id: null,
                 uvi_vessel_identifier: '',
                 vessel_registration: '',
@@ -142,18 +142,66 @@ export default {
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
         },
+        dcv_admission_fee_url: function() {
+          return `/dcv_admission_fee/${this.dcv_admission.id}/`
+        },
     },
     methods: {
+        submit_and_pay: function(){
+            // submit_and_pay() --> save_and_pay() --> post_and_redirect()
+            let vm = this
+            vm.paySubmitting = true;
+
+            swal({
+                title: "DCV Admission",
+                text: "Are you sure you want to submit and pay for this application?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: "Submit and Pay",
+            }).then(
+                (res)=>{
+                    vm.save_and_pay();
+                    this.paySubmitting = false
+                },
+                (res)=>{
+                    this.paySubmitting = false
+                },
+            )
+        },
+        save_and_pay: async function() {
+            try{
+                const res = await this.save(false, '/api/dcv_admission/')
+                this.dcv_admission.id = res.body.id
+                await helpers.post_and_redirect(this.dcv_admission_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+            } catch(err) {
+                helpers.processError(err)
+            }
+        },
+        save: async function(withConfirm=true, url){
+            try{
+                const res = await this.$http.post(url, this.dcv_admission)
+                if (withConfirm) {
+                    swal(
+                        'Saved',
+                        'Your application has been saved',
+                        'success'
+                    );
+                };
+                return res;
+            } catch(err){
+                helpers.processError(err)
+            }
+        },
         delete_arrival: function(uuid){
-            for (let i=0; i < this.dcv_admission_fees.arrivals.length; i++){
-                if (this.dcv_admission_fees.arrivals[i].uuid === uuid){
-                    this.dcv_admission_fees.arrivals.splice(i, 1)
+            for (let i=0; i < this.dcv_admission.arrivals.length; i++){
+                if (this.dcv_admission.arrivals[i].uuid === uuid){
+                    this.dcv_admission.arrivals.splice(i, 1)
                     break
                 }
             }
         },
         add_another_date_clicked: function() {
-            this.dcv_admission_fees.arrivals.push(
+            this.dcv_admission.arrivals.push(
                 {
                     uuid: uuid(),
                     arrival_date: null,

@@ -131,7 +131,7 @@ export default {
             try{
                 const res = await this.save(false, '/api/dcv_permit/')
                 this.dcv_permit.id = res.body.id
-                await this.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                await helpers.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
             } catch(err) {
                 helpers.processError(err)
             }
@@ -150,24 +150,6 @@ export default {
             } catch(err){
                 helpers.processError(err)
             }
-        },
-        post_and_redirect: function(url, postData) {
-            /* http.post and ajax do not allow redirect from Django View (post method), 
-               this function allows redirect by mimicking a form submit.
-
-               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-            */
-            var postFormStr = "<form method='POST' action='" + url + "'>";
-
-            for (var key in postData) {
-                if (postData.hasOwnProperty(key)) {
-                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
-                }
-            }
-            postFormStr += "</form>";
-            var formElement = $(postFormStr);
-            $('body').append(formElement);
-            $(formElement).submit();
         },
         fetchFilterLists: function(){
             let vm = this;

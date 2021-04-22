@@ -654,6 +654,27 @@ class DcvVessel(models.Model):
         app_label = 'mooringlicensing'
 
 
+class DcvAdmission(RevisionedMixin):
+    LODGEMENT_NUMBER_PREFIX = 'DCV'
+
+    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
+    lodgement_number = models.CharField(max_length=10, blank=True, default='')
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    @classmethod
+    def get_next_id(cls):
+        ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if len(ids) else 1
+
+    def save(self, **kwargs):
+        if self.lodgement_number in ['', None]:
+            self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
+        super(DcvAdmission, self).save(**kwargs)
+
+
 class DcvPermit(RevisionedMixin):
     DCV_PERMIT_STATUS_CURRENT = 'current'
     DCV_PERMIT_STATUS_EXPIRED = 'expired'
