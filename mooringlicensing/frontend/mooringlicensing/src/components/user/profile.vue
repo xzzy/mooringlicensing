@@ -592,18 +592,14 @@ export default {
                 payload.postal_address = Object.assign({}, vm.profile.postal_address);
             }
             try {
-                console.log("what");
                 const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
                 vm.updatingAddress = false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
             } catch (error) {
-                console.log(error);
-                console.log("what");
-                console.log(helpers.formatError(error))
                 swal({
-                    title: "Please fix following errors before saving",
+                    title: "Please fix these errors before saving",
                     //text: error.bodyText,
                     html: helpers.formatError(error),
                     type:'error'

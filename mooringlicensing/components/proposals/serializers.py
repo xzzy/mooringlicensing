@@ -479,7 +479,6 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("preferred_bay_id"):
@@ -535,7 +534,6 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -575,7 +573,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         print("validate data")
         print(data)
         custom_errors = {}
@@ -1018,7 +1015,6 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         return data
 
     #def validate_percentage(self, value):
-    #    #import ipdb; ipdb.set_trace()
     #    if value > 100:
     #        #raise serializers.ValidationError({"Ownership percentage": "Max value is 100"})
     #        raise serializers.ValidationError("Max value is 100")
