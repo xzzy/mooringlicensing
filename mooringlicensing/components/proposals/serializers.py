@@ -1006,8 +1006,16 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
-        if data.get("percentage") > 100:
-            custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
+        total = data.get("percentage")
+        if total:
+            #custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
+            qs = self.instance.vessel.vesselownership_set.all()
+            for vo in qs:
+                total += vo.percentage if vo.percentage else 0
+            if total > 100:
+                #raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
+                custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
+
         if data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():

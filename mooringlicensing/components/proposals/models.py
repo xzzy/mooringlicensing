@@ -43,6 +43,7 @@ import subprocess
 from django.db.models import Q
 from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
+from rest_framework import serializers
 
 import logging
 
@@ -1823,15 +1824,14 @@ class VesselOwnership(models.Model):
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
 
-    def save(self, *args, **kwargs):
-        ## do not allow total ownership percentage per vessel to exceed 100
-        qs = self.vessel.vesselownership_set.all()
-        total = 0
-        for vo in qs:
-            total += vo.percentage if vo.percentage else 0
-        if total > 100:
-            raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
-        super(VesselOwnership, self).save(*args,**kwargs)
+    #def save(self, *args, **kwargs):
+    #    qs = self.vessel.vesselownership_set.all()
+    #    total = 0
+    #    for vo in qs:
+    #        total += vo.percentage if vo.percentage else 0
+    #    if total > 100:
+    #        raise serializers.ValidationError({"Vessel ownership percentage": "Cannot exceed 100%"})
+    #    super(VesselOwnership, self).save(*args,**kwargs)
 
 
 # Non proposal specific
