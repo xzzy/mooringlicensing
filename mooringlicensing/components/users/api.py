@@ -77,7 +77,9 @@ class GetProfile(views.APIView):
         logger.info('user serializer data: {}'.format(serializer.data))
         #print("serializer.data")
         #print(serializer.data)
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        response['Cache-Control'] = 'no-cache'
+        return response
 
 from rest_framework import filters
 class UserListFilterView(generics.ListAPIView):
