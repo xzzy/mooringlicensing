@@ -71,8 +71,9 @@
                   <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
                       <form class="form-horizontal" action="index.html" method="post">
                         <alert v-if="showAddressError" type="danger" style="color:red"><div v-for="item in errorListAddress"><strong>{{item}}</strong></div></alert>
+                      <div class="address-box">
                           <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Street</label>
+                            <label for="" class="col-sm-3 control-label">Residential Address</label>
                             <div class="col-sm-6">
                                 <input :readonly="readonly" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_address.line1">
                             </div>
@@ -101,6 +102,50 @@
                                 </select>
                             </div>
                           </div>
+                      </div>
+                          <!-- -->
+                      <div class="form-group"/>
+                      <div class="address-box">
+                          <div class="form-group">
+                            <div class="col-sm-3">
+                            </div>
+                            <div class="col-sm-6">
+                              <input :readonly="readonly" type="checkbox" id="same_as_residential" v-model="profile.postal_address.same_as_residential"/>
+                              <label for="same_as_residential" class="control-label">Same as residential address</label>
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label">Postal Address</label>
+                            <div class="col-sm-6">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_line1" name="Street" placeholder="" v-model="profile.postal_address.line1">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                            <div class="col-sm-6">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_locality" name="Town/Suburb" placeholder="" v-model="profile.postal_address.locality">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label">State</label>
+                            <div class="col-sm-3">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_state" name="State" placeholder="" v-model="profile.postal_address.state">
+                            </div>
+                            <label for="" class="col-sm-1 control-label">Postcode</label>
+                            <div class="col-sm-2">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_postcode" name="Postcode" placeholder="" v-model="profile.postal_address.postcode">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Country</label>
+                            <div class="col-sm-4">
+                                <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="profile.postal_address.country">
+                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                </select>
+                            </div>
+                          </div>
+                      </div>
+
                           <div class="form-group">
                             <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddress()">Update</button>
@@ -245,6 +290,7 @@ export default {
                 last_name: '',
                 mooringlicensing_organisations:[],
                 residential_address : {},
+                postal_address : {},
                 electoral_roll: null,
             },
             newOrg: {
@@ -307,6 +353,11 @@ export default {
         },
     },
     computed: {
+        postalAddressReadonly: function() {
+            if (this.readonly || this.profile.postal_address.same_as_residential) {
+                return true;
+            }
+        },
         electoralRollDocumentUrl: function() {
             let url = '';
             if (this.profile && this.profile.id) {
@@ -420,6 +471,7 @@ export default {
                 vm.updatingPersonal = false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
             }, (error) => {
                 console.log(error);
                 vm.updatingPersonal = false;
@@ -503,13 +555,14 @@ export default {
                 vm.updatingContact = false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
             }, (error) => {
                 console.log(error);
                 vm.updatingContact = false;
             });
           }
         },
-        updateAddress: function() {
+        updateAddress: async function() {
             let vm = this;
 
             vm.missing_fields = [];
@@ -531,20 +584,23 @@ export default {
             }
             else{
               vm.showAddressError = false;
-            
 
             vm.updatingAddress = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')),JSON.stringify(vm.profile.residential_address),{
-                emulateJSON:true
-            }).then((response) => {
-                //console.log(response);
+            let payload = {}
+            payload.residential_address = Object.assign({}, vm.profile.residential_address);
+            if (!vm.profile.postal_address.same_as_residential) {
+                payload.postal_address = Object.assign({}, vm.profile.postal_address);
+            }
+            try {
+                const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
                 vm.updatingAddress = false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-            }, (error) => {
+                if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+            } catch (error) {
                 console.log(error);
                 vm.updatingAddress = false;
-            });
+            }
           }
         },
         updateSystemSettings: function() {
@@ -557,6 +613,7 @@ export default {
                 vm.updatingSystemSettings=false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
             }, (error) => {
                 console.log(error);
                 vm.updatingSystemSettings=false;
@@ -611,6 +668,7 @@ export default {
                     Vue.http.get(api_endpoints.profile).then((response) => {
                         vm.profile = response.body
                         if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                        if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
                         if ( vm.profile.mooringlicensing_organisations && vm.profile.mooringlicensing_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
                     },(error) => {
                         console.log(error);
@@ -798,6 +856,7 @@ export default {
           const response = await Vue.http.get(api_endpoints.profile)
           this.profile = response.body
           if (this.profile.residential_address == null){ this.profile.residential_address = {}; }
+          if (this.profile.postal_address == null){ this.profile.postal_address = {}; }
           //if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
           this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
           this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
@@ -813,6 +872,7 @@ export default {
                 next(vm => {
                     vm.profile = response.body
                     if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                    if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
                     //if ( vm.profile.mooringlicensing_organisations && vm.profile.mooringlicensing_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
                 });
             }
@@ -869,5 +929,24 @@ export default {
 .electoral-label {
     margin-bottom: 25px !important;
 }
-
+.label-right {
+    float: right;
+    text-align: left;
+    /*margin-right: 50%;*/
+}
+/*
+input[type=checkbox] {
+    transform: scale(0.4, 0.4);
+    float: left;
+}
+*/
+/*
+input[type=checkbox] {
+}
+*/
+.address-box {
+    border: 1px solid;
+    border-color: #DCDCDC;
+    padding: 15px;
+}
 </style>
