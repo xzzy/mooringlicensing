@@ -30,7 +30,7 @@ from mooringlicensing.components.proposals.utils import save_proponent_data,save
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
 #from mooringlicensing.utils import missing_required_fields
-from mooringlicensing.components.main.utils import check_db_connection
+from mooringlicensing.components.main.utils import check_db_connection, add_cache_control
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -147,14 +147,14 @@ class GetVesselRegoNos(views.APIView):
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
             data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
             return Response({"results": data_transform})
-        return Response()
+        return add_cache_control(Response())
 
 
 class GetApplicationTypeDescriptions(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        return Response(Proposal.application_type_descriptions())
+        return add_cache_control(Response(Proposal.application_type_descriptions()))
 
 
 class GetApplicantsDict(views.APIView):
@@ -162,7 +162,7 @@ class GetApplicantsDict(views.APIView):
 
     def get(self, request, format=None):
         applicants = EmailUser.objects.filter(mooringlicensing_proposals__in=Proposal.objects.all()).order_by('first_name', 'last_name').distinct()
-        return Response(EmailUserSerializer(applicants, many=True).data)
+        return add_cache_control(Response(EmailUserSerializer(applicants, many=True).data))
 
 
 class GetApplicationTypeDict(views.APIView):
@@ -171,7 +171,7 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        return Response(Proposal.application_types_dict(apply_page=apply_page))
+        return add_cache_control(Response(Proposal.application_types_dict(apply_page=apply_page)))
 
 
 class GetApplicationStatusesDict(views.APIView):
@@ -179,7 +179,7 @@ class GetApplicationStatusesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
-        return Response(data)
+        return add_cache_control(Response(data))
 
 
 class GetVesselTypesDict(views.APIView):
@@ -187,7 +187,7 @@ class GetVesselTypesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
-        return Response(data)
+        return add_cache_control(Response(data))
 
 
 class GetInsuranceChoicesDict(views.APIView):
@@ -195,14 +195,14 @@ class GetInsuranceChoicesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES]
-        return Response(data)
+        return add_cache_control(Response(data))
 
 
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        return Response([])
+        return add_cache_control(Response([]))
 
 
 class VersionableModelViewSetMixin(viewsets.ModelViewSet):
@@ -220,7 +220,7 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
         _version_serializer = ProposalSerializer([v.object for v in _versions], many=True, context=_context)
         # TODO
         # check pagination
-        return Response(_version_serializer.data)
+        return add_cache_control(Response(_version_serializer.data))
 
 
 class ProposalFilterBackend(DatatablesFilterBackend):
@@ -301,7 +301,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
+        return add_cache_control(self.paginator.get_paginated_response(serializer.data))
 
 
 class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
@@ -329,7 +329,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return Response(serialized_obj.data)
+        return add_cache_control(Response(serialized_obj.data))
 
 
 class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
@@ -357,7 +357,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return Response(serialized_obj.data)
+        return add_cache_control(Response(serialized_obj.data))
 
 
 class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
@@ -385,7 +385,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return Response(serialized_obj.data)
+        return add_cache_control(Response(serialized_obj.data))
 
 
 class WaitingListApplicationViewSet(viewsets.ModelViewSet):
@@ -413,7 +413,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return Response(serialized_obj.data)
+        return add_cache_control(Response(serialized_obj.data))
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -517,9 +517,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
         if returned_data:
-            return Response(returned_data)
+            return add_cache_control(Response(returned_data))
         else:
-            return Response()
+            return add_cache_control(Response())
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -529,9 +529,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
         if returned_data:
-            return Response(returned_data)
+            return add_cache_control(Response(returned_data))
         else:
-            return Response()
+            return add_cache_control(Response())
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -540,9 +540,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
         if returned_data:
-            return Response(returned_data)
+            return add_cache_control(Response(returned_data))
         else:
-            return Response()
+            return add_cache_control(Response())
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -551,9 +551,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
         if returned_data:
-            return Response(returned_data)
+            return add_cache_control(Response(returned_data))
         else:
-            return Response()
+            return add_cache_control(Response())
 
     @detail_route(methods=['GET',])
     def compare_list(self, request, *args, **kwargs):
@@ -562,7 +562,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         versions = Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
         version_ids = [i.id for i in versions]
         urls = ['?version_id2={}&version_id1={}'.format(version_ids[0], version_ids[i+1]) for i in range(len(version_ids)-1)]
-        return Response(urls)
+        return add_cache_control(Response(urls))
 
     @detail_route(methods=['GET',])
     def action_log(self, request, *args, **kwargs):
@@ -570,7 +570,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             qs = instance.action_logs.all()
             serializer = ProposalUserActionSerializer(qs,many=True)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -587,7 +587,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             qs = instance.comms_logs.all()
             serializer = ProposalLogEntrySerializer(qs,many=True)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -620,7 +620,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     document.save()
                 # End Save Documents
 
-                return Response(serializer.data)
+                return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -639,7 +639,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = instance.requirements.all().exclude(is_deleted=True)
             qs=qs.order_by('order')
             serializer = ProposalRequirementSerializer(qs,many=True, context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -657,7 +657,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = instance.amendment_requests
             qs = qs.filter(status = 'requested')
             serializer = AmendmentRequestDisplaySerializer(qs,many=True)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -673,7 +673,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset().exclude(processing_status='discarded')
         #serializer = DTProposalSerializer(qs, many=True)
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
-        return Response(serializer.data)
+        return add_cache_control(Response(serializer.data))
 
     @list_route(methods=['GET',])
     def user_list_paginated(self, request, *args, **kwargs):
@@ -688,7 +688,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         paginator.page_size = proposals.count()
         result_page = paginator.paginate_queryset(proposals, request)
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        return add_cache_control(paginator.get_paginated_response(serializer.data))
 
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
@@ -700,7 +700,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = InternalFilmingProposalSerializer(instance,context={'request':request})
         elif instance.application_type.name==ApplicationType.EVENT:
             serializer = InternalEventProposalSerializer(instance,context={'request':request})
-        return Response(serializer.data)
+        return add_cache_control(Response(serializer.data))
 
     #@detail_route(methods=['post'])
     #@renderer_classes((JSONRenderer,))
@@ -734,7 +734,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -761,7 +761,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -780,7 +780,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -812,7 +812,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #     serializer = InternalFilmingProposalSerializer(instance,context={'request':request})
             # elif instance.application_type.name==ApplicationType.EVENT:
             #     serializer = InternalProposalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -841,7 +841,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         raise serializers.ValidationError('The status provided is not allowed')
             instance.reissue_approval(request,status)
             serializer = InternalProposalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -861,7 +861,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance = instance.renew_approval(request)
             serializer = SaveProposalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
@@ -873,7 +873,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance = instance.amend_approval(request)
             serializer = SaveProposalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
@@ -889,7 +889,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -909,7 +909,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance = instance.assing_approval_level_document(request)
             serializer = InternalProposalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -934,7 +934,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -958,7 +958,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -982,7 +982,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1049,7 +1049,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             save_proponent_data(instance,request,self)
-            return redirect(reverse('external'))
+            return add_cache_control(redirect(reverse('external')))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -1061,7 +1061,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #proposal_submit(instance, request)
             #return redirect(reverse('external'))
             #return Response(status_code=status.HTTP_200_OK)
-            return Response()
+            return add_cache_control(Response())
 
     @detail_route(methods=['GET',])
     def fetch_vessel(self, request, *args, **kwargs):
@@ -1090,7 +1090,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
             vessel_data["vessel_details"] = vessel_details_serializer.data
             vessel_data["vessel_ownership"] = vessel_ownership_data
-            return Response(vessel_data)
+            return add_cache_control(Response(vessel_data))
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
@@ -1102,7 +1102,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             save_assessor_data(instance,request,self)
-            return redirect(reverse('external'))
+            return add_cache_control(redirect(reverse('external')))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1128,7 +1128,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1145,7 +1145,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 }, partial=True)
                 serializer.is_valid(raise_exception=True)
                 self.perform_update(serializer)
-                return Response(serializer.data, status=http_status)
+                return add_cache_control(Response(serializer.data, status=http_status))
             else:
                 # This proposal has not been submitted yet, we can delete it from the database
                 instance.delete()
@@ -1172,7 +1172,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance.up()
             instance.save()
             serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1190,7 +1190,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance.down()
             instance.save()
             serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1208,7 +1208,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance.is_deleted = True
             instance.save()
             serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1225,7 +1225,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             RequirementDocument.objects.get(id=request.data.get('id')).delete()
-            return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
+            return add_cache_control(Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()]))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1243,7 +1243,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             instance.add_documents(request)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1267,7 +1267,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance = serializer.save()
             instance.add_documents(request)
             #serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1292,7 +1292,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
         if search:
             queryset = queryset.filter(text__icontains=search)
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return add_cache_control(Response(serializer.data))
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
@@ -1313,7 +1313,7 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
             instance = serializer.save()
             instance.generate_amendment(request)
             serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1363,7 +1363,7 @@ class AmendmentRequestReasonChoicesView(views.APIView):
             for c in choices:
                 #choices_list.append({'key': c[0],'value': c[1]})
                 choices_list.append({'key': c.id,'value': c.reason})
-        return Response(choices_list)
+        return add_cache_control(Response(choices_list))
 
 
 class SearchKeywordsView(views.APIView):
@@ -1378,7 +1378,7 @@ class SearchKeywordsView(views.APIView):
             qs= searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance)
         #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
-        return Response(serializer.data)
+        return add_cache_control(Response(serializer.data))
 
 class SearchReferenceView(views.APIView):
     renderer_classes = [JSONRenderer,]
@@ -1390,7 +1390,7 @@ class SearchReferenceView(views.APIView):
                 qs= search_reference(reference_number)
             #queryset = list(set(qs))
             serializer = SearchReferenceSerializer(qs)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1430,7 +1430,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel_data["vessel_ownership"] = vessel_ownership_data
         # lookup vessels must be marked as read-only
         vessel_data["read_only"] = True
-        return Response(vessel_data)
+        return add_cache_control(Response(vessel_data))
 
     @list_route(methods=['GET',])
     def list_external(self, request, *args, **kwargs):
@@ -1457,7 +1457,7 @@ class VesselViewSet(viewsets.ModelViewSet):
             vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
 
         serializer = ListVesselSerializer(vessel_details_list, context={'request': request}, many=True)
-        return Response(serializer.data)
+        return add_cache_control(Response(serializer.data))
 
 
 class AssessorChecklistViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1501,7 +1501,7 @@ class ProposalAssessmentViewSet(viewsets.ModelViewSet):
                     except:
                         raise
             #instance.proposal.log_user_action(ProposalUserAction.ACTION_EDIT_VESSEL.format(instance.id),request)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
