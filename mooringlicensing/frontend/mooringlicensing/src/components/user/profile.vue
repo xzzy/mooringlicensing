@@ -598,7 +598,13 @@ export default {
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
             } catch (error) {
-                console.log(error);
+                swal({
+                    title: "Please fix these errors before saving",
+                    //text: error.bodyText,
+                    html: helpers.formatError(error),
+                    type:'error'
+                });
+
                 vm.updatingAddress = false;
             }
           }
