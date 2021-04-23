@@ -657,13 +657,15 @@ class DcvVessel(models.Model):
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
-
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return self.lodgement_number
 
     @classmethod
     def get_next_id(cls):
@@ -677,10 +679,22 @@ class DcvAdmission(RevisionedMixin):
         super(DcvAdmission, self).save(**kwargs)
 
     def generate_dcv_admission_doc(self):
-        # self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
-        # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         permit_document = create_dcv_admission_document(self)
-        # self.save()
+
+
+class DcvAdmissionArrival(RevisionedMixin):
+    dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True)
+    arrival_date = models.DateField(null=True, blank=True)
+    private_visit = models.BooleanField(default=False)
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
+    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return '{} ({})'.format(self.dcv_admission, self.arrival_date)
 
 
 class AgeGroup(models.Model):
@@ -691,7 +705,13 @@ class AgeGroup(models.Model):
         (AGE_GROUP_ADULT, 'Adult'),
         (AGE_GROUP_CHILD, 'Child'),
     )
-    name = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0])
+    code = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0])
+
+    def __str__(self):
+        for item in self.NAME_CHOICES:
+            if self.code == item[0]:
+                return item[1]
+        return ''
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -709,10 +729,29 @@ class AdmissionType(models.Model):
         (ADMISSION_TYPE_NOT_LANDING, 'Not landing'),
         (ADMISSION_TYPE_APPROVED_EVENTS, 'Approved events'),
     )
-    type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+
+    def __str__(self):
+        for item in self.TYPE_CHOICES:
+            if self.code == item[0]:
+                return item[1]
+        return ''
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+class NumberOfPeople(RevisionedMixin):
+    number = models.PositiveSmallIntegerField(null=True, blank=True, default=0)
+    dcv_admission_arrival = models.ForeignKey(DcvAdmissionArrival, null=True, blank=True)
+    age_group = models.ForeignKey(AgeGroup, null=True, blank=True)
+    admission_type = models.ForeignKey(AdmissionType, null=True, blank=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return '{} ({}, {}, {})'.format(self.number, self.dcv_admission_arrival, self.age_group, self.admission_type)
 
 
 class DcvPermit(RevisionedMixin):

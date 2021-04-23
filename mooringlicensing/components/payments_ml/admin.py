@@ -105,9 +105,11 @@ class FeeSeasonForm(forms.ModelForm):
 
 
 class FeeItemForm(forms.ModelForm):
+
     class Meta:
         model = FeeItem
         fields = '__all__'
+        # fields = ('amount',)
 
     def clean_amount(self):
         data = self.cleaned_data['amount']
@@ -121,7 +123,7 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
-    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type')
+    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type', 'age_group', 'admission_type')
     max_num = 0  # This removes 'Add another ...' button
     form = FeeItemForm
 
@@ -132,8 +134,18 @@ class FeeItemInline(admin.TabularInline):
         # widget.can_change_related = False
         return formset
 
-    # def has_change_permission(self, request, obj=None):
-    #     return True
+    def get_fields(self, request, obj=None):
+        fields = super(FeeItemInline, self).get_fields(request, obj)
+        if obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
+            fields.remove('proposal_type')
+        elif obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code']):
+            fields.remove('proposal_type')
+            fields.remove('age_group')
+            fields.remove('admission_type')
+        else:
+            fields.remove('age_group')
+            fields.remove('admission_type')
+        return fields
 
 
 class FeeConstructorForm(forms.ModelForm):

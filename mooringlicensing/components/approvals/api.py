@@ -520,11 +520,13 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
+        fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
 
         data['submitter'] = request.user.id
+        data['fee_season_id'] = fee_season_requested.get('id')
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        dcv_permit = serializer.save()
+        dcv_admission = serializer.save()
 
         return Response(serializer.data)
 
@@ -588,6 +590,5 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()
-        # dcv_permit.generate_dcv_permit_doc()
 
         return Response(serializer.data)

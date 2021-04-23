@@ -93,14 +93,32 @@ def create_fee_lines_for_dcv_admission(instance, invoice_text=None, vouchers=[],
 
     db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
+    application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
+    vessel_length = 1  # any number greater than 0
+    proposal_type = None
+
+    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
+    if not fee_constructor:
+        # Fees have not been configured for this application type and date
+        raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+
     line_items = [
         {
-            'ledger_description': 'DcvAdmission Fee: {}'.format(instance.lodgement_number),
-            'oracle_code': '0517',
-            'price_incl_tax':  100,
-            'price_excl_tax':  100,
+            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                fee_constructor.application_type.description,
+                instance.lodgement_number,
+                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                target_datetime_str,
+            ),
+            'oracle_code': application_type.oracle_code,
+            'price_incl_tax': fee_item.amount,
+            'price_excl_tax': calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
             'quantity': 1,
-        },
+        }
+
     ]
 
     logger.info('{}'.format(line_items))
@@ -120,7 +138,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         proposal_type = instance.proposal_type
     elif isinstance(instance, DcvPermit):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-        vessel_length = 1
+        vessel_length = 1  # any number greater than 0
         proposal_type = None
 
     target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
@@ -151,7 +169,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     line_items = [
         {
             'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
-                application_type.description,
+                fee_constructor.application_type.description,
                 instance.lodgement_number,
                 fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
                 fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),

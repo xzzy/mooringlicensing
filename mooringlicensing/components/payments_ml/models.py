@@ -111,6 +111,7 @@ class DcvAdmissionFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
 
     def __str__(self):
         return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
@@ -364,7 +365,7 @@ class FeeItem(RevisionedMixin):
     fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
     vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
     proposal_type = models.ForeignKey(ProposalType, null=True, blank=True)
-    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
     # For DcvAdmission
     age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
     admission_type = models.ForeignKey('AdmissionType', null=True, blank=True)
