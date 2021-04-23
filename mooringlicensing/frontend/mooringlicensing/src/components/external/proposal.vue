@@ -350,7 +350,6 @@ export default {
                 );
             };
             vm.savingProposal=false;
-            console.log(res);
             return res;
         } else {
             swal({

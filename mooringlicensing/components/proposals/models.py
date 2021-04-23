@@ -43,6 +43,7 @@ import subprocess
 from django.db.models import Q
 from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
+from rest_framework import serializers
 
 import logging
 
@@ -1227,7 +1228,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.processing_status = self.PROCESSING_STATUS_AWAITING_PAYMENT
                     self.customer_status = self.CUSTOMER_STATUS_AWAITING_PAYMENT
                     invoice = self.__create_filming_fee_invoice(request)
-                    #import ipdb; ipdb.set_trace()
                     #confirmation = self.__create_filming_fee_confirmation(request)
                     #
                     #if confirmation:
@@ -1565,7 +1565,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @classmethod
     def application_type_descriptions(cls):
-        #import ipdb; ipdb.set_trace();
         type_list = []
         for application_type in Proposal.__subclasses__():
             type_list.append(application_type.description)
@@ -1605,7 +1604,6 @@ class WaitingListApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(Proposal, self).save(*args,**kwargs)
         if self.lodgement_number == '':
@@ -1627,7 +1625,6 @@ class AnnualAdmissionApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(Proposal, self).save(*args,**kwargs)
         if self.lodgement_number == '':
@@ -1649,7 +1646,6 @@ class AuthorisedUserApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(Proposal, self).save(*args,**kwargs)
         if self.lodgement_number == '':
@@ -1671,7 +1667,6 @@ class MooringLicenceApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(Proposal, self).save(*args,**kwargs)
         if self.lodgement_number == '':
@@ -1829,15 +1824,14 @@ class VesselOwnership(models.Model):
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
 
-    def save(self, *args, **kwargs):
-        ## do not allow total ownership percentage per vessel to exceed 100
-        qs = self.vessel.vesselownership_set.all()
-        total = 0
-        for vo in qs:
-            total += vo.percentage if vo.percentage else 0
-        if total > 100:
-            raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
-        super(VesselOwnership, self).save(*args,**kwargs)
+    #def save(self, *args, **kwargs):
+    #    qs = self.vessel.vesselownership_set.all()
+    #    total = 0
+    #    for vo in qs:
+    #        total += vo.percentage if vo.percentage else 0
+    #    if total > 100:
+    #        raise serializers.ValidationError({"Vessel ownership percentage": "Cannot exceed 100%"})
+    #    super(VesselOwnership, self).save(*args,**kwargs)
 
 
 # Non proposal specific
