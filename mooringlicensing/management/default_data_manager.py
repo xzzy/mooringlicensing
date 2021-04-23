@@ -1,5 +1,6 @@
 import logging
 from mooringlicensing import settings
+from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, GlobalSettings
 from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
     ProposalApproverGroup
@@ -81,3 +82,21 @@ class DefaultDataManager(object):
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
                 logger.error('{}, Key: {}'.format(e, item[0]))
+
+        # AgeGroup for the DcvAdmission fees
+        for item in AgeGroup.NAME_CHOICES:
+            try:
+                type, created = AgeGroup.objects.get_or_create(code=item[0])
+                if created:
+                    logger.info("Created AgeGroup: {}".format(item[1]))
+            except Exception as e:
+                logger.error('{}, AgeGroup: {}'.format(e, item[1]))
+
+        # AdmissionType for the DcvAdmission fees
+        for item in AdmissionType.TYPE_CHOICES:
+            try:
+                type, created = AdmissionType.objects.get_or_create(code=item[0])
+                if created:
+                    logger.info("Created AdmissionType: {}".format(item[1]))
+            except Exception as e:
+                logger.error('{}, AdmissionType: {}'.format(e, item[1]))
