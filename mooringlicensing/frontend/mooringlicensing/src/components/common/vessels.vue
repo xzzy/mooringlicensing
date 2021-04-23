@@ -405,7 +405,7 @@ from '@/utils/hooks'
 
 <style lang="css" scoped>
     input[type=text] {
-        padding-left: 12px;
+        padding-left: 1em;
     }
 </style>
 
