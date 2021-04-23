@@ -9,7 +9,7 @@ from mooringlicensing.components.proposals.models import MooringBay
 
 
 def add_cache_control(response):
-    response['Cache-Control'] = 'no-cache'
+    response['Cache-Control'] = 'private, no-store'
     return response
 
 def retrieve_department_users():
