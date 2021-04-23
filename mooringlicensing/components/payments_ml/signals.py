@@ -33,6 +33,9 @@ class FeeConstructorListener(object):
                             logger.info(
                                 'FeeItem created: {} - {} - {}'.format(fee_period.name, vessel_size_category.name,
                                                                        proposal_type.description))
+
+                    elif instance.application_type.code == settings.APPLICATION_TYPE_DCV_ADMISSION['code']:
+                        pass
                     else:
                         for proposal_type in proposal_types:
                             fee_item, created = FeeItem.objects.get_or_create(fee_constructor=instance,

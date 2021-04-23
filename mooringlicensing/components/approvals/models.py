@@ -657,6 +657,7 @@ class DcvVessel(models.Model):
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
+
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
@@ -680,6 +681,38 @@ class DcvAdmission(RevisionedMixin):
         # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         permit_document = create_dcv_admission_document(self)
         # self.save()
+
+
+class AgeGroup(models.Model):
+    AGE_GROUP_ADULT = 'adult'
+    AGE_GROUP_CHILD = 'child'
+
+    NAME_CHOICES = (
+        (AGE_GROUP_ADULT, 'Adult'),
+        (AGE_GROUP_CHILD, 'Child'),
+    )
+    name = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0])
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AdmissionType(models.Model):
+    ADMISSION_TYPE_LANDING = 'landing'
+    ADMISSION_TYPE_EXTENDED_STAY = 'extended_stay'
+    ADMISSION_TYPE_NOT_LANDING = 'not_landing'
+    ADMISSION_TYPE_APPROVED_EVENTS = 'approved_events'
+
+    TYPE_CHOICES = (
+        (ADMISSION_TYPE_LANDING, 'Landing'),
+        (ADMISSION_TYPE_EXTENDED_STAY, 'Extended stay'),
+        (ADMISSION_TYPE_NOT_LANDING, 'Not landing'),
+        (ADMISSION_TYPE_APPROVED_EVENTS, 'Approved events'),
+    )
+    type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class DcvPermit(RevisionedMixin):

@@ -179,14 +179,23 @@ class FeeConstructorForm(forms.ModelForm):
 
         cleaned_application_type = cleaned_data.get('application_type', None)
         cleaned_fee_season = cleaned_data.get('fee_season', None)
-        if cleaned_application_type and cleaned_application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
+        cleaned_vessel_size_category_group = cleaned_data.get('vessel_size_category_group', None)
+
+        if cleaned_application_type and cleaned_application_type.code in (settings.APPLICATION_TYPE_DCV_PERMIT['code'], settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
             # If application type is DcvPermit
             if cleaned_fee_season and cleaned_fee_season.fee_periods.count() > 1:
-                # There are more than 1 period in the season
-                raise forms.ValidationError('A season for the {} cannot have more than 1 period.  Selected season {} has {} periods.'.format(
+                # There are more than 1 periods in the season
+                raise forms.ValidationError('The season for the {} cannot have more than 1 period.  Selected season: {} has {} periods.'.format(
                     cleaned_application_type.description,
                     cleaned_fee_season.name,
                     cleaned_fee_season.fee_periods.count(),
+                ))
+            if cleaned_vessel_size_category_group and cleaned_vessel_size_category_group.vessel_size_categories.count() > 1:
+                # There are more than 1 categories in the season
+                raise forms.ValidationError('The vessel size category group for the {} cannot have more than 1 vessel size category.  Selected vessel size category group: {} has {} vessel size categories.'.format(
+                    cleaned_application_type.description,
+                    cleaned_vessel_size_category_group.name,
+                    cleaned_vessel_size_category_group.vessel_size_categories.count(),
                 ))
 
         return cleaned_data
