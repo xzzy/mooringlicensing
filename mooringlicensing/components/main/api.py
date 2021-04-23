@@ -23,6 +23,7 @@ from mooringlicensing.components.main.serializers import (#RegionSerializer, Dis
         GlobalSettingsSerializer, 
         OracleSerializer, #BookingSettlementReportSerializer, LandActivityTabSerializer, MarineActivityTabSerializer, EventsParkSerializer, TrailTabSerializer, FilmingParkSerializer
         )
+from mooringlicensing.components.main.utils import add_cache_control
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from mooringlicensing.components.proposals.models import Proposal
@@ -74,7 +75,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         # here may be placed additional operations for
         # extracting id of the object and using reverse()
         fallback_url = request.build_absolute_uri('/')
-        return HttpResponseRedirect(redirect_to=fallback_url + '/success/')
+        return add_cache_control(HttpResponseRedirect(redirect_to=fallback_url + '/success/'))
 
 
 #class BookingSettlementReportView(views.APIView):
@@ -117,7 +118,7 @@ class OracleJob(views.APIView):
             serializer.is_valid(raise_exception=True)
             oracle_integration(serializer.validated_data['date'].strftime('%Y-%m-%d'),serializer.validated_data['override'])
             data = {'successful':True}
-            return Response(data)
+            return add_cache_control(Response(data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

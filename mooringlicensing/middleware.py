@@ -19,7 +19,13 @@ class FirstTimeNagScreenMiddleware(object):
         #print ("FirstTimeNagScreenMiddleware: REQUEST SESSION")
         if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path:
             #print('DEBUG: {}: {} == {}, {} == {}, {} == {}'.format(request.user, request.user.first_name, (not request.user.first_name), request.user.last_name, (not request.user.last_name), request.user.dob, (not request.user.dob) ))
-            if (not request.user.first_name) or (not request.user.last_name):# or (not request.user.dob):
+            if (
+                    (not request.user.first_name) or 
+                    (not request.user.last_name) or 
+                    (not request.user.phone_number) or
+                    (not request.user.mobile_number) or
+                    (not request.user.residential_address)
+                    ):
                 path_ft = reverse('first_time')
                 path_logout = reverse('accounts:logout')
                 if request.path not in (path_ft, path_logout):
