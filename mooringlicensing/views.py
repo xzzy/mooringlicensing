@@ -25,6 +25,7 @@ from ledger.checkout.utils import create_basket_session, create_checkout_session
 from django.core.management import call_command
 import json
 from decimal import Decimal
+from mooringlicensing.components.main.utils import add_cache_control
 
 import logging
 logger = logging.getLogger('payment_checkout')
@@ -136,10 +137,10 @@ def first_time(request):
             request.user.last_name = form.cleaned_data['last_name']
             request.user.dob = form.cleaned_data['dob']
             request.user.save()
-            return redirect(redirect_url)
+            return add_cache_control(redirect(redirect_url))
         context['form'] = form
         context['redirect_url'] = redirect_url
-        return render(request, 'mooringlicensing/user_profile.html', context)
+        return add_cache_control(render(request, 'mooringlicensing/user_profile.html', context))
     # GET default
     if 'next' in request.GET:
         context['redirect_url'] = request.GET['next']
@@ -148,7 +149,7 @@ def first_time(request):
     context['dev'] = settings.DEV_STATIC
     context['dev_url'] = settings.DEV_STATIC_URL
     #return render(request, 'mooringlicensing/user_profile.html', context)
-    return render(request, 'mooringlicensing/dash/index.html', context)
+    return add_cache_control(render(request, 'mooringlicensing/dash/index.html', context))
 
 
 class HelpView(LoginRequiredMixin, TemplateView):
