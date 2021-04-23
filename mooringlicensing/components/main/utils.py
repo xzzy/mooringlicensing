@@ -8,6 +8,10 @@ from django.db import connection, transaction
 from mooringlicensing.components.proposals.models import MooringBay
 
 
+def add_cache_control(response):
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
 def retrieve_department_users():
     try:
         res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)

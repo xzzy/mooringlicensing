@@ -48,7 +48,7 @@ from mooringlicensing.components.users.serializers import   (
 from mooringlicensing.components.organisations.serializers import (
     OrganisationRequestDTSerializer,
 )
-from mooringlicensing.components.main.utils import retrieve_department_users
+from mooringlicensing.components.main.utils import retrieve_department_users, add_cache_control
 from mooringlicensing.components.main.models import UserSystemSettings
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -65,7 +65,7 @@ class DepartmentUserList(views.APIView):
         if not data:
             retrieve_department_users()
             data = cache.get('department_users')
-        return Response(data)
+        return add_cache_control(Response(data))
 
         serializer  = UserSerializer(request.user)
 
@@ -77,7 +77,9 @@ class GetProfile(views.APIView):
         logger.info('user serializer data: {}'.format(serializer.data))
         #print("serializer.data")
         #print(serializer.data)
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        #response['Cache-Control'] = 'no-cache'
+        return add_cache_control(response)
 
 from rest_framework import filters
 class UserListFilterView(generics.ListAPIView):
@@ -100,7 +102,7 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -119,7 +121,7 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -134,20 +136,38 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_address(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = UserAddressSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            address, created = Address.objects.get_or_create(
-                line1 = serializer.validated_data['line1'],
-                locality = serializer.validated_data['locality'],
-                state = serializer.validated_data['state'],
-                country = serializer.validated_data['country'],
-                postcode = serializer.validated_data['postcode'],
+            # residential address
+            residential_serializer = UserAddressSerializer(data=request.data.get('residential_address'))
+            residential_serializer.is_valid(raise_exception=True)
+            residential_address, created = Address.objects.get_or_create(
+                line1 = residential_serializer.validated_data['line1'],
+                locality = residential_serializer.validated_data['locality'],
+                state = residential_serializer.validated_data['state'],
+                country = residential_serializer.validated_data['country'],
+                postcode = residential_serializer.validated_data['postcode'],
                 user = instance
             )
-            instance.residential_address = address
+            instance.residential_address = residential_address
+            # postal address
+            postal_address_data = request.data.get('postal_address')
+            if postal_address_data and postal_address_data.get('same_as_residential'):
+                instance.postal_address = residential_address
+            elif postal_address_data:
+                postal_serializer = UserAddressSerializer(data=postal_address_data)
+                postal_serializer.is_valid(raise_exception=True)
+                postal_address, created = Address.objects.get_or_create(
+                    line1 = postal_serializer.validated_data['line1'],
+                    locality = postal_serializer.validated_data['locality'],
+                    state = postal_serializer.validated_data['state'],
+                    country = postal_serializer.validated_data['country'],
+                    postcode = postal_serializer.validated_data['postcode'],
+                    user = instance
+                )
+                instance.postal_address = postal_address
+
             instance.save()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -173,7 +193,7 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.save()
             instance = self.get_object()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -194,7 +214,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 instance.log_user_action(EmailUserAction.ACTION_ID_UPDATE.format(
                 '{} {} ({})'.format(instance.first_name, instance.last_name, instance.email)), request)
             serializer = UserSerializer(instance, partial=True)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -214,7 +234,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     status='with_assessor'),
                 many=True,
                 context={'request': request})
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -231,7 +251,7 @@ class UserViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             qs = instance.action_logs.all()
             serializer = EmailUserActionSerializer(qs, many=True)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -249,7 +269,7 @@ class UserViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             qs = instance.comms_logs.all()
             serializer = EmailUserCommsSerializer(qs,many=True)
-            return Response(serializer.data)
+            return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -282,7 +302,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     document.save()
                 # End Save Documents
 
-                return Response(serializer.data)
+                return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
