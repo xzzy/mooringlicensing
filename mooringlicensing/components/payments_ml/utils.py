@@ -11,7 +11,7 @@ from rest_framework import serializers
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
 
 #test
 from mooringlicensing.components.proposals.models import Proposal
@@ -84,6 +84,30 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     return response
 
 
+def create_fee_lines_for_dcv_admission(instance, invoice_text=None, vouchers=[], internal=False):
+    db_processes_after_success = {}
+
+    target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+    target_date = target_datetime.date()
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+    db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+    line_items = [
+        {
+            'ledger_description': 'DcvAdmission Fee: {}'.format(instance.lodgement_number),
+            'oracle_code': '0517',
+            'price_incl_tax':  100,
+            'price_excl_tax':  100,
+            'quantity': 1,
+        },
+    ]
+
+    logger.info('{}'.format(line_items))
+
+    return line_items, db_processes_after_success
+
+
 def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
@@ -147,6 +171,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
 NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
 NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
+NAME_SESSION_DCV_ADMISSION_INVOICE = 'mooringlicensing_dcv_admission_invoice'
 
 
 def set_session_application_invoice(session, application_fee):
@@ -195,10 +220,33 @@ def get_session_dcv_permit_invoice(session):
     try:
         return DcvPermitFee.objects.get(id=dcv_permit_fee_id)
     except DcvPermitFee.DoesNotExist:
-        raise Exception('Application not found for application {}'.format(dcv_permit_fee_id))
+        raise Exception('DcvPermit not found for application {}'.format(dcv_permit_fee_id))
 
 
 def delete_session_dcv_permit_invoice(session):
     if NAME_SESSION_DCV_PERMIT_INVOICE in session:
         del session[NAME_SESSION_DCV_PERMIT_INVOICE]
+        session.modified = True
+
+
+def set_session_dcv_admission_invoice(session, dcv_admission_fee):
+    session[NAME_SESSION_DCV_ADMISSION_INVOICE] = dcv_admission_fee.id
+    session.modified = True
+
+
+def get_session_dcv_admission_invoice(session):
+    if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
+        dcv_admission_fee_id = session[NAME_SESSION_DCV_ADMISSION_INVOICE]
+    else:
+        raise Exception('DcvAdmission not in Session')
+
+    try:
+        return DcvAdmissionFee.objects.get(id=dcv_admission_fee_id)
+    except DcvAdmissionFee.DoesNotExist:
+        raise Exception('DcvAdmission not found for application {}'.format(dcv_admission_fee_id))
+
+
+def delete_session_dcv_admission_invoice(session):
+    if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
+        del session[NAME_SESSION_DCV_ADMISSION_INVOICE]
         session.modified = True

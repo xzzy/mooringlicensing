@@ -14,11 +14,11 @@ from ledger.accounts.models import EmailUser, Address
 from datetime import datetime, timedelta, date
 
 from mooringlicensing.components.payments_ml.api import logger
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
+from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer
 from mooringlicensing.components.proposals.models import Proposal#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel
+    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission
 )
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
@@ -515,14 +515,18 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
 
 class DcvAdmissionViewSet(viewsets.ModelViewSet):
-    # queryset = DcvAdmission.objects.all().order_by('id')
-    # serializer_class = DcvAdmissionSerializer
-    queryset = DcvPermit.objects.all().order_by('id')
-    serializer_class = DcvPermitSerializer
+    queryset = DcvAdmission.objects.all().order_by('id')
+    serializer_class = DcvAdmissionSerializer
 
     def create(self, request, *args, **kwargs):
-        # return Response(serializer.data)
-        return Response({})
+        data = request.data
+
+        data['submitter'] = request.user.id
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        dcv_permit = serializer.save()
+
+        return Response(serializer.data)
 
 
 class DcvPermitViewSet(viewsets.ModelViewSet):
@@ -584,6 +588,6 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()
-        dcv_permit.generate_dcv_permit_doc()
+        # dcv_permit.generate_dcv_permit_doc()
 
         return Response(serializer.data)
