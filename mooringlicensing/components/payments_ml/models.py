@@ -11,9 +11,6 @@ from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
-# from mooringlicensing.components.approvals.models import DcvPermit
-# from mooringlicensing.components.approvals.models import DcvPermit
-from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
 
@@ -369,8 +366,8 @@ class FeeItem(RevisionedMixin):
     proposal_type = models.ForeignKey(ProposalType, null=True, blank=True)
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # For DcvAdmission
-    age_group = models.ForeignKey(AgeGroup, null=True, blank=True)
-    admission_type = models.ForeignKey(AdmissionType, null=True, blank=True)
+    age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
+    admission_type = models.ForeignKey('AdmissionType', null=True, blank=True)
 
     def __str__(self):
         return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category)
