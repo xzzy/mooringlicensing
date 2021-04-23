@@ -42,6 +42,14 @@ class DefaultDataManager(object):
                 type.oracle_code = settings.APPLICATION_TYPE_DCV_PERMIT['oracle_code']
                 type.save()
                 logger.info("Created ApplicationType: {}".format(type.description))
+
+            # Create record for the DCV Admission
+            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
+            if created:
+                type.description = settings.APPLICATION_TYPE_DCV_ADMISSION['description']
+                type.oracle_code = settings.APPLICATION_TYPE_DCV_ADMISSION['oracle_code']
+                type.save()
+                logger.info("Created ApplicationType: {}".format(type.description))
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 

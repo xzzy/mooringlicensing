@@ -18,11 +18,11 @@
                 <div class="row form-group">
                     <label for="" class="col-sm-2 control-label">Private visit</label>
                     <div class="col-sm-2">
-                        <input type="radio" id="private_yes" name="private_visit" value="true" v-model="arrival.private_visit"/>
+                        <input :disabled="!radio_private_visit_enabled" type="radio" id="private_yes" name="private_visit" value="true" v-model="arrival.private_visit"/>
                         <label class="radio-inline control-label" for="private_yes">Yes</label>
                     </div>
                     <div class="col-sm-2">
-                        <input type="radio" id="private_no" name="private_visit" value="false" v-model="arrival.private_visit"/>
+                        <input :disabled="!radio_private_visit_enabled" type="radio" id="private_no" name="private_visit" value="false" v-model="arrival.private_visit"/>
                         <label class="radio-inline control-label" for="private_no">No</label>
                     </div>
                 </div>
@@ -36,31 +36,31 @@
                 <div class="row form-group">
                     <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-landing" placeholder="" v-model="arrival.adults.landing">
+                        <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-landing" placeholder="" v-model="arrival.adults.landing">
                     </div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
+                        <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
                     </div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
+                        <input :disabled="!column_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
                     </div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
+                        <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
                     </div>
                 </div>
                 <div class="row form-group">
                     <div class="col-sm-2"><label>Number of Children</label><br />(4 - 12)</div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
+                        <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
                     </div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                        <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
                     </div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
+                        <input :disabled="!column_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
                     </div>
                     <div class="col-sm-2">
-                        <input type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
+                        <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
                     </div>
                 </div>
             </div>
@@ -83,6 +83,26 @@ export default {
         },
         uuid: null,
         arrival: null,
+        column_landing_enabled: {
+            type: Boolean,
+            default: true,
+        },
+        column_extended_stay_enabled: {
+            type: Boolean,
+            default: true,
+        },
+        column_not_landing_enabled: {
+            type: Boolean,
+            default: true,
+        },
+        column_approved_events_enabled: {
+            type: Boolean,
+            default: true,
+        },
+        radio_private_visit_enabled: {
+            type: Boolean,
+            default: true,
+        },
     },
     data() {
         let vm = this

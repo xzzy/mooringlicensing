@@ -1,7 +1,26 @@
 from rest_framework import serializers
 
-from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel
+from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission
 from mooringlicensing.components.payments_ml.models import FeeSeason
+
+
+class DcvAdmissionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DcvAdmission
+        fields = (
+            'id',
+            'lodgement_number',
+            'submitter',
+        )
+        read_only_fields = (
+            'id',
+            'lodgement_number',
+        )
+
+    def validate(self, data):
+        # TODO: validation
+        return data
 
 
 class DcvPermitSerializer(serializers.ModelSerializer):

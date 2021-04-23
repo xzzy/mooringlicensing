@@ -22,7 +22,7 @@ from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
-from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
+from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
@@ -659,6 +659,7 @@ class DcvAdmission(RevisionedMixin):
 
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -673,6 +674,12 @@ class DcvAdmission(RevisionedMixin):
         if self.lodgement_number in ['', None]:
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
         super(DcvAdmission, self).save(**kwargs)
+
+    def generate_dcv_admission_doc(self):
+        # self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
+        # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+        permit_document = create_dcv_admission_document(self)
+        # self.save()
 
 
 class DcvPermit(RevisionedMixin):
@@ -715,8 +722,6 @@ class DcvPermit(RevisionedMixin):
         super(DcvPermit, self).save(**kwargs)
 
     def generate_dcv_permit_doc(self):
-        pass
-        # TODO:
         # self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
         # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         permit_document = create_dcv_permit_document(self)
@@ -726,8 +731,26 @@ class DcvPermit(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+def update_dcv_admission_doc_filename(instance, filename):
+    return '{}/dcv_admissions/{}/admissions/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
+
+
 def update_dcv_permit_doc_filename(instance, filename):
     return '{}/dcv_permits/{}/permits/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
+
+
+class DcvAdmissionDocument(Document):
+    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions')
+    _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
+    can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
+
+    def delete(self, using=None, keep_parents=False):
+        if self.can_delete:
+            return super(DcvAdmissionDocument, self).delete(using, keep_parents)
+        logger.info('Cannot delete existing document object after Application has been submitted : {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class DcvPermitDocument(Document):
