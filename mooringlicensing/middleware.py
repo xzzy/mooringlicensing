@@ -10,6 +10,7 @@ from django.utils import timezone
 #from mooringlicensing.components.bookings.models import ApplicationFee
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
+from mooringlicensing.components.main.utils import add_cache_control
 
 
 CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
@@ -29,7 +30,7 @@ class FirstTimeNagScreenMiddleware(object):
                 path_ft = reverse('first_time')
                 path_logout = reverse('accounts:logout')
                 if request.path not in (path_ft, path_logout):
-                    return redirect(reverse('first_time')+"?next="+urlquote_plus(request.get_full_path()))
+                    return add_cache_control(redirect(reverse('first_time')+"?next="+urlquote_plus(request.get_full_path())))
 
 
 #class BookingTimerMiddleware(object):
