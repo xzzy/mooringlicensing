@@ -72,13 +72,10 @@ class DepartmentUserList(views.APIView):
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        logger.info('request user: {}'.format(request.user))
+        #logger.info('request user: {}'.format(request.user))
         serializer  = UserSerializer(request.user, context={'request':request})
-        logger.info('user serializer data: {}'.format(serializer.data))
-        #print("serializer.data")
-        #print(serializer.data)
+        #logger.info('user serializer data: {}'.format(serializer.data))
         response = Response(serializer.data)
-        #response['Cache-Control'] = 'no-cache'
         return add_cache_control(response)
 
 from rest_framework import filters
