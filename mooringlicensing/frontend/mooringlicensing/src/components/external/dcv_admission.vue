@@ -1,6 +1,6 @@
 <template>
     <div class="container" id="externalDash">
-        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission_fees">
+        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission">
             <div class="row mb-2">
                 <div class="col-sm-12">
                     <strong>Collection and remittance of admission fees is required prior to entering the Rottnest Island Reserve.  Penalties do apply for non compliance.</strong>
@@ -9,92 +9,48 @@
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">UIV Vessel Identifier</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission_fees.uvi_vessel_identifier">
+                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.uvi_vessel_identifier">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Vessel registration</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_registration" placeholder="" v-model="dcv_admission_fees.vessel_registration">
+                    <input type="text" class="form-control" name="vessel_registration" placeholder="" v-model="dcv_admission.vessel_registration">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Vessel name</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission_fees.vessel_name">
+                    <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission.vessel_name">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Skipper</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission_fees.skipper">
+                    <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission.skipper">
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-2 control-label">Contact number</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission_fees.contact_number">
+                    <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission.contact_number">
                 </div>
             </div>
 
-            <div class="panel panel-default">
-                <div class="panel-body">
-                    <div class="row form-group">
-                        <label for="" class="col-sm-2 control-label">Arrival</label>
-                        <div class="col-sm-3 input-group date" ref="arrivalDatePicker">
-                            <input type="text" class="form-control" placeholder="DD/MM/YYYY" id="period_from_input_element"/>
-                            <span class="input-group-addon">
-                                <span class="glyphicon glyphicon-calendar"></span>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label for="" class="col-sm-2 control-label">Private visit</label>
-                        <div class="col-sm-2">
-                            <input type="radio" id="private_yes" name="private_visit" value="true" v-model="dcv_admission_fees.private_visit"/>
-                            <label class="radio-inline control-label" for="private_yes">Yes</label>
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="radio" id="private_no" name="private_visit" value="false" v-model="dcv_admission_fees.private_visit"/>
-                            <label class="radio-inline control-label" for="private_no">No</label>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <div class="col-sm-2"></div>
-                        <div class="col-sm-2 text-center"><label>Landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Extended stay</label></div>
-                        <div class="col-sm-2 text-center"><label>Not landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
-                    </div>
-                    <div class="row form-group">
-                        <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-landing" placeholder="" v-model="dcv_admission_fees.adults_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-extended-stay" placeholder="" v-model="dcv_admission_fees.adults_extended_stay">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-not-landing" placeholder="" v-model="dcv_admission_fees.adults_not_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="adults-approved-events" placeholder="" v-model="dcv_admission_fees.adults_approved_events">
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <div class="col-sm-2"><label>Number of Children</label><br />(4 - 12)</div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-landing" placeholder="" v-model="dcv_admission_fees.children_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-extended-stay" placeholder="" v-model="dcv_admission_fees.children_extended_stay">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-not-landing" placeholder="" v-model="dcv_admission_fees.children_not_landing">
-                        </div>
-                        <div class="col-sm-2">
-                            <input type="number" min="0" max="100" step="1" class="form-control" name="children-approved-events" placeholder="" v-model="dcv_admission_fees.children_approved_events">
-                        </div>
+            <template class="" id="arrival_panels" v-for="arrival in dcv_admission.arrivals">
+                <PanelArrival
+                    level="external"
+                    :uuid="arrival.uuid"
+                    :arrival="arrival"
+                    @delete_arrival="delete_arrival"
+                    :key="arrival.uuid"
+                />
+            </template>
+
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="pull-right">
+                        <label>Click <span @click="add_another_date_clicked" class="add_another_date_text">here</span> to add another date</label>
                     </div>
                 </div>
             </div>
@@ -110,8 +66,8 @@
                             <div class="navbar-inner">
                                 <div class="container">
                                     <p class="pull-right" style="margin-top:5px">
-                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>Submit and Pay&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="submit_and_pay" class="btn btn-primary" value="Submit and Pay" :disabled="paySubmitting"/>
+                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>Pay and Submit&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
+                                        <input v-else type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit" :disabled="paySubmitting"/>
                                     </p>
                                 </div>
                             </div>
@@ -124,28 +80,56 @@
 </template>
 
 <script>
+import 'eonasdan-bootstrap-datetimepicker';
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
+import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
+import uuid from 'uuid'
   
 export default {
-    name: 'DcvTablePage',
+    name: 'DcvAdmissionPage',
+    props: {
+        level: {
+            type: String,
+            default: 'external',
+        }
+    },
     data() {
         let vm = this;
         return {
-            dcv_admission_fees: {
+            dcv_admission: {
                 id: null,
                 uvi_vessel_identifier: '',
                 vessel_registration: '',
                 vessel_name: '',
                 skipper: '',
                 contact_number: '',
-                arrival: null,
+                arrivals: [
+                    {
+                        uuid: uuid(),
+                        arrival_date: null,
+                        private_visit: null,
+                        adults: {
+                            landing: 0,
+                            extended_stay: 0,
+                            not_landing: 0,
+                            approved_events: 0,
+                        },
+                        children: {
+                            landing: 0,
+                            extended_stay: 0,
+                            not_landing: 0,
+                            approved_events: 0,
+                        }
+                    },
+                ],
             },
             paySubmitting: false,
         }
     },
     components:{
+        PanelArrival,
         FormSection,
     },
     watch: {
@@ -158,8 +142,85 @@ export default {
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
         },
+        dcv_admission_fee_url: function() {
+          return `/dcv_admission_fee/${this.dcv_admission.id}/`
+        },
     },
     methods: {
+        pay_and_submit: function(){
+            // pay_and_submit() --> save_and_pay() --> post_and_redirect()
+            let vm = this
+            vm.paySubmitting = true;
+
+            swal({
+                title: "DCV Admission",
+                text: "Are you sure you want to pay and submit for this application?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: "Pay and Submit",
+            }).then(
+                (res)=>{
+                    vm.save_and_pay();
+                    this.paySubmitting = false
+                },
+                (res)=>{
+                    this.paySubmitting = false
+                },
+            )
+        },
+        save_and_pay: async function() {
+            try{
+                const res = await this.save(false, '/api/dcv_admission/')
+                this.dcv_admission.id = res.body.id
+                await helpers.post_and_redirect(this.dcv_admission_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+            } catch(err) {
+                helpers.processError(err)
+            }
+        },
+        save: async function(withConfirm=true, url){
+            try{
+                const res = await this.$http.post(url, this.dcv_admission)
+                if (withConfirm) {
+                    swal(
+                        'Saved',
+                        'Your application has been saved',
+                        'success'
+                    );
+                };
+                return res;
+            } catch(err){
+                helpers.processError(err)
+            }
+        },
+        delete_arrival: function(uuid){
+            for (let i=0; i < this.dcv_admission.arrivals.length; i++){
+                if (this.dcv_admission.arrivals[i].uuid === uuid){
+                    this.dcv_admission.arrivals.splice(i, 1)
+                    break
+                }
+            }
+        },
+        add_another_date_clicked: function() {
+            this.dcv_admission.arrivals.push(
+                {
+                    uuid: uuid(),
+                    arrival_date: null,
+                    private_visit: null,
+                    adults: {
+                        landing: 0,
+                        extended_stay: 0,
+                        not_landing: 0,
+                        approved_events: 0,
+                    },
+                    children: {
+                        landing: 0,
+                        extended_stay: 0,
+                        not_landing: 0,
+                        approved_events: 0,
+                    }
+                }
+            )
+        },
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.arrivalDatePicker);
@@ -201,5 +262,9 @@ export default {
 }
 .mb-2 {
     margin: 0 0 2em 0;
+}
+.add_another_date_text {
+    cursor: pointer;
+    color: #337ab7;
 }
 </style>

@@ -174,7 +174,12 @@ APPLICATION_TYPE_DCV_PERMIT = {
     'description': 'DCV Permit',
     'oracle_code': '0517',
 }
+APPLICATION_TYPE_DCV_ADMISSION = {
+    'code': 'dcv',
+    'description': 'DCV Admission',
+    'oracle_code': '0517',
+}
 LOGGING['loggers']['mooringlicensing'] = {
-            'handlers': ['file'],
-            'level': 'INFO'
-        }
+    'handlers': ['file'],
+    'level': 'INFO'
+}
