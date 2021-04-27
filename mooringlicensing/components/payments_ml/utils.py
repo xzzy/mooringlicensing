@@ -9,7 +9,7 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework import serializers
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
 
@@ -84,7 +84,7 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     return response
 
 
-def create_fee_lines_for_dcv_admission(instance, invoice_text=None, vouchers=[], internal=False):
+def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, vouchers=[], internal=False):
     db_processes_after_success = {}
 
     target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
@@ -97,29 +97,40 @@ def create_fee_lines_for_dcv_admission(instance, invoice_text=None, vouchers=[],
     vessel_length = 1  # any number greater than 0
     proposal_type = None
 
-    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
-    if not fee_constructor:
-        # Fees have not been configured for this application type and date
-        raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+    line_items = []
+    for dcv_admission_arrival in dcv_admission.dcv_admission_arrivals.all():
+        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
 
-    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+        if not fee_constructor:
+            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, dcv_admission_arrival.arrival_date))
 
-    line_items = [
-        {
-            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+        fee_items = []
+        number_of_people_str = []
+        total_amount = 0
+
+        for number_of_people in dcv_admission_arrival.numberofpeople_set.all():
+            if number_of_people.number:
+                # When more than 1 people,
+                fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, number_of_people.age_group, number_of_people.admission_type)
+                fee_item.number_of_people = number_of_people.number
+                fee_items.append(fee_item)
+                number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
+                total_amount += fee_item.amount * number_of_people.number
+
+        line_item = {
+            'ledger_description': '{} Fee: {} (Arrival: {}, {})'.format(
                 fee_constructor.application_type.description,
-                instance.lodgement_number,
-                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
-                target_datetime_str,
+                dcv_admission.lodgement_number,
+                dcv_admission_arrival.arrival_date,
+                ', '.join(number_of_people_str),
             ),
             'oracle_code': application_type.oracle_code,
-            'price_incl_tax': fee_item.amount,
-            'price_excl_tax': calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            'price_incl_tax': total_amount,
+            'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
             'quantity': 1,
         }
+        line_items.append(line_item)
 
-    ]
 
     logger.info('{}'.format(line_items))
 

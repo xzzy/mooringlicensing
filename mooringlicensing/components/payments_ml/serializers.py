@@ -1,11 +1,13 @@
+import datetime
+
 from rest_framework import serializers
 
-from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission
+from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, \
+    DcvAdmissionArrival, NumberOfPeople
 from mooringlicensing.components.payments_ml.models import FeeSeason
 
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
-    fee_season_id = serializers.IntegerField(required=True)
 
     class Meta:
         model = DcvAdmission
@@ -13,7 +15,6 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'submitter',
-            'fee_season_id',
         )
         read_only_fields = (
             'id',
@@ -25,8 +26,8 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
         non_field_errors = []
 
         if not self.partial:
-            if not data['fee_season_id']:
-                field_errors['year'] = ['Please select a year.',]
+            # if not data['fee_season_id']:
+            #     field_errors['year'] = ['Please select a year.',]
 
             # dcv_permit_qs = DcvAdmission.objects.filter(dcv_vessel_id=data.get('dcv_vessel_id', 0), fee_season_id=data.get('fee_season_id', 0))
             # if dcv_permit_qs:
@@ -50,6 +51,59 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             pass
 
         return data
+
+
+class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
+    arrival_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not self.partial:
+            # if not data.get('arrival_date', None):
+            #     field_errors['year'] = ['Please enter an arrival date.',]
+
+            # Raise errors
+            if field_errors:
+                raise serializers.ValidationError(field_errors)
+            if non_field_errors:
+                raise serializers.ValidationError(non_field_errors)
+
+        else:
+            pass
+
+        return data
+
+    class Meta:
+        model = DcvAdmissionArrival
+        fields = (
+            'id',
+            'arrival_date',
+            'dcv_admission',
+        )
+        read_only_fields = (
+            'id',
+        )
+
+
+class NumberOfPeopleSerializer(serializers.ModelSerializer):
+
+    def validate(self, data):
+        return data
+
+    class Meta:
+        model = NumberOfPeople
+        fields = (
+            'id',
+            'number',
+            'dcv_admission_arrival',
+            'age_group',
+            'admission_type',
+        )
+        read_only_fields = (
+            'id',
+        )
 
 
 class DcvPermitSerializer(serializers.ModelSerializer):
