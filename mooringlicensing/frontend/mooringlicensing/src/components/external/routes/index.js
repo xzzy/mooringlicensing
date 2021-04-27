@@ -6,6 +6,7 @@ import Organisation from '../organisations/manage.vue'
 import DcvPermit from '../dcv_permit.vue'
 import DcvAdmission from '../dcv_admission.vue'
 import VesselsDashboard from '../vessels_dashboard.vue'
+import ManageVessel from '../manage_vessel.vue'
 /*
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
@@ -87,6 +88,24 @@ export default
             path: 'vessels',
             component: VesselsDashboard,
             name: 'vessels_dashboard'
-        }
+        },
+        {
+            path: 'vessel',
+            component:
+            {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: ':vessel_id',
+                    component: ManageVessel,
+                    name:"manage_vessel"
+                },
+            ]
+        },
+
     ]
 }

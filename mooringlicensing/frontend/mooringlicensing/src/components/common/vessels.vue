@@ -90,7 +90,7 @@
                     />
                 </div>
             </div>
-            <div v-if="proposal.application_type_code==='mla'" class="row form-group">
+            <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -179,7 +179,7 @@ from '@/utils/hooks'
         props:{
             proposal:{
                 type: Object,
-                required:true
+                //required:true
             },
             profile:{
                 type: Object,
@@ -244,6 +244,11 @@ from '@/utils/hooks'
                     )
                 }
                 return url;
+            },
+            applicationTypeCodeMLA: function() {
+                if (this.proposal && this.proposal.application_type_code==='mla') {
+                    return true;
+                }
             },
 
         },
@@ -353,7 +358,9 @@ from '@/utils/hooks'
                 }
             },
             fetchVessel: async function() {
-                if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                if (!this.proposal) {
+                    // do something
+                } else if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
                     this.vessel.rego_no = this.proposal.rego_no;
                     this.vessel.vessel_id = this.proposal.vessel_id;
                     let vessel_details = {};
