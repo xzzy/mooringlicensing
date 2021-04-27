@@ -111,7 +111,7 @@ class DcvAdmissionFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
+    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
 
     def __str__(self):
         return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
@@ -251,10 +251,17 @@ class FeeConstructor(RevisionedMixin):
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
-    def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date(), age_group=None, admission_type=None):
         fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
         vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length).order_by('start_size').last()
-        fee_item = FeeItem.objects.filter(fee_constructor=self, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
+        fee_item = FeeItem.objects.filter(
+            fee_constructor=self,
+            fee_period=fee_period,
+            vessel_size_category=vessel_size_category,
+            proposal_type=proposal_type,
+            age_group=age_group,
+            admission_type=admission_type,
+        )
 
         if fee_item:
             return fee_item[0]

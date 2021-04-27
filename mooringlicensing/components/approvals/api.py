@@ -14,11 +14,12 @@ from ledger.accounts.models import EmailUser, Address
 from datetime import datetime, timedelta, date
 
 from mooringlicensing.components.payments_ml.api import logger
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer
+from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
+    DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
 from mooringlicensing.components.proposals.models import Proposal#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission
+    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup
 )
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
@@ -520,13 +521,44 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
 
         data['submitter'] = request.user.id
-        data['fee_season_id'] = fee_season_requested.get('id')
+        # data['fee_sid'] = fee_season_requested.get('id')
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_admission = serializer.save()
+
+        for arrival in data.get('arrivals', None):
+            arrival['dcv_admission'] = dcv_admission.id
+            serializer_arrival = DcvAdmissionArrivalSerializer(data=arrival)
+            serializer_arrival.is_valid(raise_exception=True)
+            dcv_admission_arrival = serializer_arrival.save()
+
+            # Adults
+            age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_ADULT)
+            for admission_type, number in arrival.get('adults').items():
+                admission_type_obj = AdmissionType.objects.get(code=admission_type)
+                serializer_num = NumberOfPeopleSerializer(data={
+                    'number': number if number else 0,  # when number is blank, set to 0
+                    'dcv_admission_arrival': dcv_admission_arrival.id,
+                    'age_group': age_group_obj.id,
+                    'admission_type': admission_type_obj.id
+                })
+                serializer_num.is_valid(raise_exception=True)
+                number_of_people = serializer_num.save()
+
+            # Children
+            age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_CHILD)
+            for admission_type, number in arrival.get('children').items():
+                admission_type_obj = AdmissionType.objects.get(code=admission_type)
+                serializer_num = NumberOfPeopleSerializer(data={
+                    'number': number if number else 0,  # when number is blank, set to 0
+                    'dcv_admission_arrival': dcv_admission_arrival.id,
+                    'age_group': age_group_obj.id,
+                    'admission_type': admission_type_obj.id
+                })
+                serializer_num.is_valid(raise_exception=True)
+                number_of_people = serializer_num.save()
 
         return Response(serializer.data)
 
