@@ -1,6 +1,16 @@
 <template>
     <div class="container" id="externalDash">
         <FormSection :formCollapse="false" label="Vessels" Index="vessels">
+            <div class="row">
+                <div class="col-sm-10">
+                </div>
+                <div class="col-sm-2">
+                    <button type="button" class="btn btn-primary pull-right" @click="addVessel">Add Vessel</button>
+                </div>
+                <!--div class="col-sm-1">
+                </div-->
+            </div>
+
             <datatable 
                 ref="vessels_datatable" 
                 id="vessels_datatable" 
@@ -168,6 +178,8 @@ export default {
     computed: {
     },
     methods: {
+        addVessel: function() {
+        },
     },
     mounted: function () {
 
@@ -177,3 +189,9 @@ export default {
     },
 }
 </script>
+<style lang="css" scoped>
+    button {
+        width: 100%;
+        height: 100%;
+    }
+</style>
