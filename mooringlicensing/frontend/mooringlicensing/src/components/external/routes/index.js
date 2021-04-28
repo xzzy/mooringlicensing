@@ -87,10 +87,10 @@ export default
         {
             path: 'vessels',
             component: VesselsDashboard,
-            name: 'vessels_dashboard'
+            name: 'vessels-dashboard'
         },
         {
-            path: 'vessel',
+            path: 'vesselownership',
             component:
             {
                 render(c)
@@ -100,9 +100,14 @@ export default
             },
             children: [
                 {
-                    path: ':vessel_id',
+                    path: '/',
                     component: ManageVessel,
-                    name:"manage_vessel"
+                    name:"new-vessel"
+                },
+                {
+                    path: ':id',
+                    component: ManageVessel,
+                    name:"manage-vessel"
                 },
             ]
         },

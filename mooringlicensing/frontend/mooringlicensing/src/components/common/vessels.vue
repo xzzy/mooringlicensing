@@ -358,9 +358,7 @@ from '@/utils/hooks'
                 }
             },
             fetchVessel: async function() {
-                if (!this.proposal) {
-                    // do something
-                } else if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
                     this.vessel.rego_no = this.proposal.rego_no;
                     this.vessel.vessel_id = this.proposal.vessel_id;
                     let vessel_details = {};
@@ -387,20 +385,28 @@ from '@/utils/hooks'
                             this.proposal.id + '/fetch_vessel/'
                         )
                     }
-                    const res = await this.$http.get(url);
-                    const vesselData = res.body;
-                    if (vesselData && vesselData.rego_no) {
-                        this.vessel = Object.assign({}, vesselData);
-                    }
-                    this.readRegoNo();
+                    this.fetchSubmittedVesselCommon();
                 }
             },
+            fetchSubmittedVesselCommon: async function(url) {
+                const res = await this.$http.get(url);
+                const vesselData = res.body;
+                if (vesselData && vesselData.rego_no) {
+                    this.vessel = Object.assign({}, vesselData);
+                }
+                this.readRegoNo();
+            },
         },
-        mounted:function () {
+        mounted: function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
                 //await this.fetchVesselRegoNos();
-                await this.fetchVessel();
+                if (this.proposal) {
+                    await this.fetchVessel();
+                } else {
+                    const url = api_endpoints.lookupVesselOwnership(this.$route.params.id);
+                    this.fetchSubmittedVesselCommon(url);
+                }
                 this.initialiseSelects();
                 this.addEventListeners();
             });
