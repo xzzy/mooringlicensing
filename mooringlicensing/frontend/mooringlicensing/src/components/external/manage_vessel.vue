@@ -23,7 +23,7 @@
                                             <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                     <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="savingVessel"/>
 
-                                    <router-link class="btn btn-primary" :to="{name: 'vessels_dashboard'}">Back to Dashboard</router-link>
+                                    <router-link class="btn btn-primary" :to="{name: 'vessels-dashboard'}">Back to Dashboard</router-link>
                                   </p>
                                 </div>
                               </div>
