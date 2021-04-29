@@ -1,7 +1,7 @@
 {%  extends 'mooringlicensing/emails/base_email.txt' %}
 
 {%  block content %}
-    Your DCV Permit fee has been paid for your
+    DCV Permit been issued
 
     DCV Permit : {{ dcv_permit.lodgement_number }}
 
