@@ -1,6 +1,16 @@
 <template>
     <div class="container" id="externalDash">
         <FormSection :formCollapse="false" label="Vessels" Index="vessels">
+            <div class="row">
+                <div class="col-sm-10">
+                </div>
+                <div class="col-sm-2">
+                    <button type="button" class="btn btn-primary pull-right" @click="addVessel">Add Vessel</button>
+                </div>
+                <!--div class="col-sm-1">
+                </div-->
+            </div>
+
             <datatable 
                 ref="vessels_datatable" 
                 id="vessels_datatable" 
@@ -22,7 +32,7 @@ export default {
         let vm = this;
         return {
             // Datatable settings
-            datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Action'],
+            datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Org name', 'Action'],
             datatable_options: {
                 autoWidth: false,
                 language: {
@@ -61,7 +71,7 @@ export default {
                 columns: [
                     {
                         // 1. ID
-                        data: "vessel_name",
+                        data: "vessel_details.vessel_name",
                         orderable: false,
                         searchable: false,
                         visible: true,
@@ -73,7 +83,7 @@ export default {
                     },
                     {
                         // 2. Lodgement Number
-                        data: "rego_no",
+                        data: "vessel_details.rego_no",
                         orderable: true,
                         searchable: true,
                         visible: true,
@@ -85,7 +95,7 @@ export default {
                     },
                     {
                         // 3. Type (This corresponds to the 'ApplicationType' at the backend)
-                        data: "vessel_length",
+                        data: "vessel_details.vessel_length",
                         orderable: true,
                         searchable: true,
                         visible: true,
@@ -97,7 +107,7 @@ export default {
                     },
                     {
                         // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
-                        data: "vessel_draft",
+                        data: "vessel_details.vessel_draft",
                         orderable: true,
                         searchable: true,
                         visible: true,
@@ -109,7 +119,19 @@ export default {
                     },
                     {
                         // 5. Status
-                        data: "vessel_type",
+                        data: "vessel_details.vessel_type",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        /*
+                        'render': function(row, type, full){
+                            return full.customer_status
+                        }
+                        */
+                    },
+                    {
+                        // 5. Status
+                        data: "org_name",
                         orderable: true,
                         searchable: true,
                         visible: true,
@@ -121,13 +143,13 @@ export default {
                     },
                     {
                         // 8. Action
+                        //data: "vessel_details.vessel_id",
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            console.log(full)
-                            return 'wip';
+                            return `<a href='/external/vesselownership/${full.id}'>Edit</a><br/>`;
                             /*
                             let links = '';
                             if (!vm.is_external){
@@ -163,11 +185,15 @@ export default {
         datatable
     },
     watch: {
-
     },
     computed: {
     },
     methods: {
+        addVessel: function() {
+            this.$router.push({
+                name: 'new-vessel'
+            });
+        },
     },
     mounted: function () {
 
@@ -177,3 +203,9 @@ export default {
     },
 }
 </script>
+<style lang="css" scoped>
+    button {
+        width: 100%;
+        height: 100%;
+    }
+</style>
