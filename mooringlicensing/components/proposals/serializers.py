@@ -926,6 +926,7 @@ class VesselSerializer(serializers.ModelSerializer):
 class ListVesselDetailsSerializer(serializers.ModelSerializer):
     rego_no = serializers.SerializerMethodField()
     vessel_length = serializers.SerializerMethodField()
+    vessel_type = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
@@ -950,6 +951,9 @@ class ListVesselDetailsSerializer(serializers.ModelSerializer):
 
     def get_vessel_length(self, obj):
         return obj.vessel_applicable_length
+
+    def get_vessel_type(self, obj):
+        return obj.get_vessel_type_display()
 
 
 class ListVesselOwnershipSerializer(serializers.ModelSerializer):
