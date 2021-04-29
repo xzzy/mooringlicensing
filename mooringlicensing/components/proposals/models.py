@@ -532,7 +532,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return 'Multiple invoices found'
 
     @property
-    def editable_vessel(self):
+    def editable_vessel_details(self):
         editable = True
         if self.vessel_details:
             if self.vessel_details.status == 'draft' and (
