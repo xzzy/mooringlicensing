@@ -26,7 +26,12 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
-from mooringlicensing.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
+from mooringlicensing.components.proposals.utils import (
+        save_proponent_data,
+        save_assessor_data, 
+        proposal_submit, 
+        save_bare_vessel_data
+        )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
 #from mooringlicensing.utils import missing_required_fields
@@ -1475,6 +1480,23 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
+
+    #@renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            save_bare_vessel_data(request)
+            return add_cache_control(Response())
+            #return add_cache_control(redirect(reverse('external')))
+
+    #@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    def update(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        with transaction.atomic():
+            instance = self.get_object()
+            vessel_data = save_bare_vessel_data(request, instance)
+            return add_cache_control(Response())
 
     #@list_route(methods=['GET',])
     #def list_external(self, request, *args, **kwargs):
