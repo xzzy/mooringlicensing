@@ -32,14 +32,14 @@ export default {
         let vm = this;
         return {
             // Datatable settings
-            datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Org name', 'Action'],
+            datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Action'],
             datatable_options: {
                 autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
-                serverSide: true,
+                //serverSide: true,
                 searching: true,
                 ajax: {
                     "url": api_endpoints.vessel_external_list + '?format=datatables',
@@ -131,7 +131,7 @@ export default {
                     },
                     {
                         // 5. Status
-                        data: "org_name",
+                        data: "owner_name",
                         orderable: true,
                         searchable: true,
                         visible: true,

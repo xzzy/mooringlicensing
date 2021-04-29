@@ -955,12 +955,13 @@ class ListVesselDetailsSerializer(serializers.ModelSerializer):
 class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     vessel_details = serializers.SerializerMethodField()
     emailuser = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
     class Meta:
         model = VesselOwnership
         fields = (
                 'id',
                 'emailuser',
-                'org_name',
+                'owner_name',
                 'percentage',
                 'vessel_details',
                 )
@@ -972,6 +973,9 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     def get_vessel_details(self, obj):
         serializer = ListVesselDetailsSerializer(obj.vessel.latest_vessel_details)
         return serializer.data
+
+    def get_owner_name(self, obj):
+        return obj.org_name if obj.org_name else str(obj.owner)
 
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
