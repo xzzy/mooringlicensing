@@ -923,7 +923,7 @@ class VesselSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ListVesselSerializer(serializers.ModelSerializer):
+class ListVesselDetailsSerializer(serializers.ModelSerializer):
     rego_no = serializers.SerializerMethodField()
     vessel_length = serializers.SerializerMethodField()
 
@@ -931,6 +931,7 @@ class ListVesselSerializer(serializers.ModelSerializer):
         model = VesselDetails
         fields = (
                 'id',
+                'vessel_id',
                 'vessel_type',
                 'rego_no', # link to rego number
                 'vessel_name', 
@@ -949,6 +950,28 @@ class ListVesselSerializer(serializers.ModelSerializer):
 
     def get_vessel_length(self, obj):
         return obj.vessel_applicable_length
+
+
+class ListVesselOwnershipSerializer(serializers.ModelSerializer):
+    vessel_details = serializers.SerializerMethodField()
+    emailuser = serializers.SerializerMethodField()
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'id',
+                'emailuser',
+                'org_name',
+                'percentage',
+                'vessel_details',
+                )
+
+    def get_emailuser(self, obj):
+        serializer = EmailUserSerializer(obj.owner.emailuser)
+        return serializer.data
+
+    def get_vessel_details(self, obj):
+        serializer = ListVesselDetailsSerializer(obj.vessel.latest_vessel_details)
+        return serializer.data
 
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
@@ -1005,13 +1028,25 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def validate(self, data):
+        #import ipdb; ipdb.set_trace()
         custom_errors = {}
-        total = data.get("percentage")
+        percentage = data.get("percentage")
+        owner = data.get("percentage")
+        org_name = data.get("percentage")
+        vessel = data.get("vessel")
+        total = 0
         if total:
             #custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
             qs = self.instance.vessel.vesselownership_set.all()
             for vo in qs:
-                total += vo.percentage if vo.percentage else 0
+                # Same VesselOwnership record? - match vo with incoming data
+                if (vo.owner == owner and 
+                (vo.org_name == org_name or (not vo.org_name and not org_name)) and
+                vo.vessel == vessel):
+                    # handle percentage change on VesselOwnership obj
+                    total += percentage if percentage else 0
+                else:
+                    total += vo.percentage if vo.percentage else 0
             if total > 100:
                 #raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
                 custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"

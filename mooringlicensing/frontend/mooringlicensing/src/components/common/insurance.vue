@@ -10,7 +10,7 @@
                 <label :for="choice.code">{{ choice.description }}</label>
             </div>
         </div>
-        <div class="row form-group">
+        <div v-if="!applicationTypeCode==='aaa'" class="row form-group">
             <label for="" class="col-sm-3 control-label">Copy of the vessel's current insurance certificate showing legal liability amount</label>
             <div class="col-sm-9">
                 <FileField 
@@ -68,6 +68,11 @@ from '@/utils/hooks'
                     )
                 }
                 return url;
+            },
+            applicationTypeCode: function() {
+                if (this.proposal) {
+                    return this.proposal.application_type_code;
+                }
             },
 
         },
