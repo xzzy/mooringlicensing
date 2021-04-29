@@ -6,7 +6,6 @@ from rest_framework import routers
 
 import mooringlicensing.components.approvals.api
 from mooringlicensing import views
-from mooringlicensing.admin import mooringlicensing_admin_site
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView
