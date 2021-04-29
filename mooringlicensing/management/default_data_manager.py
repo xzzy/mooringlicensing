@@ -1,4 +1,7 @@
 import logging
+
+from django.contrib.auth.models import Group
+
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, GlobalSettings
@@ -100,3 +103,12 @@ class DefaultDataManager(object):
                     logger.info("Created AdmissionType: {}".format(item[1]))
             except Exception as e:
                 logger.error('{}, AdmissionType: {}'.format(e, item[1]))
+
+        # Groups
+        for group_name in settings.CUSTOM_GROUPS:
+            try:
+                group, created = Group.objects.get_or_create(name=group_name)
+                if created:
+                    logger.info("Created group: {}".format(group_name))
+            except Exception as e:
+                logger.error('{}, Group name: {}'.format(e, group_name))
