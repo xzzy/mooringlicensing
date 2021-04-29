@@ -5,6 +5,7 @@
         id="managevessel" 
         ref="managevessel"
         :readonly=false
+        :creatingVessel="creatingVessel"
         />
         <div>
             <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -98,17 +99,16 @@ export default {
         */
         let payload = {}
         payload.vessel = Object.assign({}, this.$refs.managevessel.vessel);
-        
-        let res = null;
-        if (this.creatingVessel) {
-            res = await vm.$http.post(api_endpoints.vessel, payload);
-        } else {
-            const url = `${api_endpoints.vessel}${payload.vessel.id}/`;
-            res = await vm.$http.put(url, payload);
-        }
-        if (res.ok) {
+        try {
+            let res = null;
+            if (this.creatingVessel) {
+                res = await vm.$http.post(api_endpoints.vessel, payload);
+            } else {
+                const url = `${api_endpoints.vessel}${payload.vessel.id}/`;
+                res = await vm.$http.put(url, payload);
+            }
             if (withConfirm) {
-                swal(
+                await swal(
                     'Saved',
                     'Your application has been saved',
                     'success'
@@ -116,21 +116,24 @@ export default {
             };
             vm.savingVessel=false;
             return res;
-        } else {
-            swal({
+        } catch(err) {
+            await swal({
                 title: "Please fix following errors before saving",
-                text: err.bodyText,
+                //text: err.bodyText,
+                html: helpers.formatError(err),
                 type:'error'
             });
             vm.savingVessel=false;
         }
     },
-    save_exit: function() {
-      let vm = this;
-      this.save();
-      vm.$router.push({
-        name: 'vessels-dashboard'
-      });
+    save_exit: async function() {
+        let vm = this;
+        const res = await this.save();
+        if (res.ok) {
+            vm.$router.push({
+                name: 'vessels-dashboard'
+            });
+        }
     },
     /*
     save_wo_confirm: function() {
