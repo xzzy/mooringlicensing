@@ -403,7 +403,7 @@ from '@/utils/hooks'
                 //await this.fetchVesselRegoNos();
                 if (this.proposal) {
                     await this.fetchVessel();
-                } else {
+                } else if (!(this.$route.name === 'new-vessel')) {
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.id);
                     this.fetchSubmittedVesselCommon(url);
                 }
