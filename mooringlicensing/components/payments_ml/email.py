@@ -6,6 +6,12 @@ from mooringlicensing import settings
 from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
 
 
+class DcvPermitNotification(TemplateEmailBase):
+    subject = 'Dcv Permit notification.'
+    html_template = 'mooringlicensing/emails/dcv_permit_notification.html'
+    txt_template = 'mooringlicensing/emails/dcv_permit_notification.txt'
+
+
 class DcvPermitFeeInvoiceEmail(TemplateEmailBase):
     subject = 'Dcv Permit fee invoice for your DcvPermit.'
     html_template = 'mooringlicensing/emails/dcv_permit_fee_invoice.html'
@@ -32,6 +38,43 @@ def send_application_submit_confirmation_email(proposal, to_email_addresses):
     }
 
     attachments = []
+    to_address = to_email_addresses
+    cc = []
+    bcc = []
+
+    msg = email.send(
+        to_address,
+        context=context,
+        attachments=attachments,
+        cc=cc,
+        bcc=bcc,
+    )
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_dcv_permit_notification(dcv_permit, invoice, to_email_addresses):
+    email = DcvPermitNotification()
+
+    context = {
+        'dcv_permit': dcv_permit,
+    }
+
+    attachments = []
+    # attach invoice
+    contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
+    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+    # attach DcvPermit
+    dcv_permit_doc = dcv_permit.permits.first()
+    filename = str(dcv_permit_doc)
+    # content = dcv_permit_doc.file.read()
+    content = dcv_permit_doc._file.read()
+    mime = mimetypes.guess_type(dcv_permit_doc.filename)[0]
+    attachments.append((filename, content, mime))
+
     to_address = to_email_addresses
     cc = []
     bcc = []

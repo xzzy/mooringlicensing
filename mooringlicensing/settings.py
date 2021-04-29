@@ -183,3 +183,7 @@ LOGGING['loggers']['mooringlicensing'] = {
     'handlers': ['file'],
     'level': 'INFO'
 }
+GROUP_DCV_PERMIT_ADMIN = 'DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
+CUSTOM_GROUPS = [
+    GROUP_DCV_PERMIT_ADMIN,
+]
