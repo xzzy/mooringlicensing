@@ -1,0 +1,10 @@
+{%  extends 'mooringlicensing/emails/base_email.txt' %}
+
+{%  block content %}
+    Your dcv admission fee has been paid for your
+
+    DCV Permit : {{ dcv_admission.lodgement_number }}
+
+    Please find the invoice attached.
+
+{%  endblock %}
