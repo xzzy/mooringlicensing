@@ -1072,19 +1072,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             vessel_details = instance.vessel_details
-            vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+            vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
             vessel = vessel_details.vessel
             vessel_serializer = VesselSerializer(vessel)
             vessel_data = vessel_serializer.data
             vessel_ownership_data = {}
-            if not instance.editable_vessel:
+            if not instance.editable_vessel_details:
                 ## 20210419 - we no longer do this
                 #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
                 #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
                 #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
                 # lookup vessels must be marked as read-only
-                vessel_data["read_only"] = True
+                #vessel_data["read_only"] = True
                 vessel_data["rego_no"] = vessel.rego_no
             #else:
             vessel_ownership_data = {}
@@ -1424,7 +1424,8 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
     def lookup_vessel_ownership(self, request, *args, **kwargs):
         vo = self.get_object()
         vessel_details = vo.vessel.latest_vessel_details
-        vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+        vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
         vessel = vo.vessel
         vessel_serializer = VesselSerializer(vessel)
         vessel_data = vessel_serializer.data
@@ -1436,7 +1437,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
         #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
         vessel_ownership_data["individual_owner"] = False if vo.org_name else True
-        vessel_data["read_only"] = True
+        #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
 
@@ -1450,7 +1451,8 @@ class VesselViewSet(viewsets.ModelViewSet):
     def lookup_vessel(self, request, *args, **kwargs):
         vessel = self.get_object()
         vessel_details = vessel.latest_vessel_details
-        vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+        vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
         vessel_serializer = VesselSerializer(vessel)
         vessel_data = vessel_serializer.data
         vessel_data["vessel_details"] = vessel_details_serializer.data
@@ -1475,9 +1477,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
                 vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
-        vessel_data["read_only"] = True
+        #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
 
