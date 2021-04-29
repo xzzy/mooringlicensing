@@ -26,7 +26,12 @@ from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
-from mooringlicensing.components.proposals.utils import save_proponent_data,save_assessor_data, proposal_submit
+from mooringlicensing.components.proposals.utils import (
+        save_proponent_data,
+        save_assessor_data, 
+        proposal_submit, 
+        save_bare_vessel_data
+        )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
 #from mooringlicensing.utils import missing_required_fields
@@ -1476,6 +1481,23 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
 
+    #@renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            save_bare_vessel_data(request)
+            return add_cache_control(Response())
+            #return add_cache_control(redirect(reverse('external')))
+
+    #@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    def update(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        with transaction.atomic():
+            instance = self.get_object()
+            vessel_data = save_bare_vessel_data(request, instance)
+            return add_cache_control(Response())
+
     #@list_route(methods=['GET',])
     #def list_external(self, request, *args, **kwargs):
     #    search_text = request.GET.get('search[value]', '')
@@ -1514,15 +1536,19 @@ class VesselViewSet(viewsets.ModelViewSet):
             # rewrite following for vessel_ownership_list
             if search_text:
                 search_text = search_text.lower()
-                search_text_vessel_detail_ids = []
+                #search_text_vessel_detail_ids = []
+                search_text_vessel_ownership_ids = []
                 matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
-                for vd in vessel_details_list:
-                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '')
-                        or search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '')
-                        or vd.vessel_type in matching_vessel_type_choices
+                for vo in vessel_ownership_list:
+                    vd = vo.vessel.latest_vessel_details
+                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
+                        search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
+                        vd.vessel_type in matching_vessel_type_choices or
+                        search_text in (vo.org_name.lower() or str(vo.owner).lower())
                         ):
-                        search_text_vessel_detail_ids.append(vd.id)
-                vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
+                        search_text_vessel_ownership_ids.append(vo.id)
+                #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
+                vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
             return add_cache_control(Response(serializer.data))
