@@ -200,7 +200,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
-    editable_vessel = serializers.SerializerMethodField()
+    editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
 
@@ -262,7 +262,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'org_name',
                 'percentage',
-                'editable_vessel',
+                'editable_vessel_details',
                 'individual_owner',
                 'insurance_choice',
                 'preferred_bay_id',
@@ -274,8 +274,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
-    def get_editable_vessel(self, obj):
-        return obj.editable_vessel
+    def get_editable_vessel_details(self, obj):
+        return obj.editable_vessel_details
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
@@ -983,10 +983,35 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
+    read_only = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
-        fields = '__all__'
+        fields = (
+                'blocking_proposal',
+                'vessel_type',
+                'vessel',
+                'vessel_name',
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_beam',
+                'vessel_weight',
+                'berth_mooring',
+                'created',
+                'updated',
+                'status',
+                'exported',
+                'read_only',
+                )
+
+    def get_read_only(self, obj):
+        ro = True
+        if obj.status == 'draft' and (
+            not obj.blocking_proposal or
+            obj.blocking_proposal.submitter == context.get('request').user):
+            ro = False
+        return ro
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
