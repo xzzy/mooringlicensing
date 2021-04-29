@@ -183,7 +183,23 @@ LOGGING['loggers']['mooringlicensing'] = {
     'handlers': ['file'],
     'level': 'INFO'
 }
-GROUP_DCV_PERMIT_ADMIN = 'DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
+GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
+GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
+GROUP_DCV_ASSESSOR_WAITING_LIST = 'Mooring Licensing - Assessors: Waiting List'
+GROUP_DCV_ASSESSOR_ANNUAL_ADMISSION = 'Mooring Licensing - Assessors: Annual Admission'
+GROUP_DCV_ASSESSOR_AUTHORISED_USER = 'Mooring Licensing - Assessors: Authorised User'
+GROUP_DCV_ASSESSOR_MOORING_LICENCE = 'Mooring Licensing - Assessors: Mooring Licence'
+GROUP_DCV_APPROVER_AUTHORISED_USER = 'Mooring Licensing - Approvers: Authorised User'
+GROUP_DCV_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Licence'
+GROUP_DCV_PERMIT_ADMIN = 'Mooring Licensing - DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
 CUSTOM_GROUPS = [
+    GROUP_MOORING_LICENSING_ADMIN,
+    GROUP_MOORING_LICENSING_PAYMENT_OFFICER,
+    GROUP_DCV_ASSESSOR_WAITING_LIST,
+    GROUP_DCV_ASSESSOR_ANNUAL_ADMISSION,
+    GROUP_DCV_ASSESSOR_AUTHORISED_USER,
+    GROUP_DCV_ASSESSOR_MOORING_LICENCE,
+    GROUP_DCV_APPROVER_AUTHORISED_USER,
+    GROUP_DCV_APPROVER_MOORING_LICENCE,
     GROUP_DCV_PERMIT_ADMIN,
 ]
