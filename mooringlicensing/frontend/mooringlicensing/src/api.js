@@ -38,6 +38,10 @@ module.exports = {
         return `/api/vessel/${id}/lookup_vessel.json`;
     },
 
+    lookupVesselOwnership: function(id) {
+        return `/api/vesselownership/${id}/lookup_vessel_ownership.json`;
+    },
+
     discard_proposal: function (id) {
         return `/api/proposal/${id}.json`;
     },

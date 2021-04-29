@@ -90,7 +90,7 @@
                     />
                 </div>
             </div>
-            <div v-if="proposal.application_type_code==='mla'" class="row form-group">
+            <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -179,7 +179,7 @@ from '@/utils/hooks'
         props:{
             proposal:{
                 type: Object,
-                required:true
+                //required:true
             },
             profile:{
                 type: Object,
@@ -244,6 +244,11 @@ from '@/utils/hooks'
                     )
                 }
                 return url;
+            },
+            applicationTypeCodeMLA: function() {
+                if (this.proposal && this.proposal.application_type_code==='mla') {
+                    return true;
+                }
             },
 
         },
@@ -380,20 +385,28 @@ from '@/utils/hooks'
                             this.proposal.id + '/fetch_vessel/'
                         )
                     }
-                    const res = await this.$http.get(url);
-                    const vesselData = res.body;
-                    if (vesselData && vesselData.rego_no) {
-                        this.vessel = Object.assign({}, vesselData);
-                    }
-                    this.readRegoNo();
+                    this.fetchSubmittedVesselCommon();
                 }
             },
+            fetchSubmittedVesselCommon: async function(url) {
+                const res = await this.$http.get(url);
+                const vesselData = res.body;
+                if (vesselData && vesselData.rego_no) {
+                    this.vessel = Object.assign({}, vesselData);
+                }
+                this.readRegoNo();
+            },
         },
-        mounted:function () {
+        mounted: function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
                 //await this.fetchVesselRegoNos();
-                await this.fetchVessel();
+                if (this.proposal) {
+                    await this.fetchVessel();
+                } else {
+                    const url = api_endpoints.lookupVesselOwnership(this.$route.params.id);
+                    this.fetchSubmittedVesselCommon(url);
+                }
                 this.initialiseSelects();
                 this.addEventListeners();
             });
