@@ -395,11 +395,15 @@ class DcvPermitFeeSuccessView(TemplateView):
     @staticmethod
     def send_notification_mail(dcv_permit, invoice, request):
         dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
-        to_email_addresses = dcv_group.members_email
-        email_data = send_dcv_permit_notification(dcv_permit, invoice, to_email_addresses)
+        users = dcv_group.user_set.all()
+        if not users:
+            logger.warn('No members found in the group: {}, whom the DCV permit notification: {} is sent to'.format(dcv_group.name, dcv_permit.lodgement_number))
+        else:
+            to_email_addresses = [user.email for user in users]
+            email_data = send_dcv_permit_notification(dcv_permit, invoice, to_email_addresses)
 
-        # Add comms log
-        # TODO: Add comms log
+            # Add comms log
+            # TODO: Add comms log
 
     @staticmethod
     def send_invoice_mail(dcv_permit, invoice, request):

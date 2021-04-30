@@ -25,7 +25,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">UIV vessel identifier</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uiv_vessel_identifier" placeholder="" v-model="dcv_permit.uiv_vessel_identifier">
+                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_permit.uvi_vessel_identifier">
                 </div>
             </div>
             <div class="row form-group">
@@ -80,7 +80,7 @@ export default {
                 organisation: '',
                 abn_acn: '',
                 season: null,
-                uiv_vessel_identifier: '',
+                uvi_vessel_identifier: '',
                 rego_no: '',
                 vessel_name: '',
             },
