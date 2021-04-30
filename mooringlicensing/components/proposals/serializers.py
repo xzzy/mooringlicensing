@@ -200,7 +200,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
-    editable_vessel = serializers.SerializerMethodField()
+    editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
 
@@ -262,7 +262,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'org_name',
                 'percentage',
-                'editable_vessel',
+                'editable_vessel_details',
                 'individual_owner',
                 'insurance_choice',
                 'preferred_bay_id',
@@ -274,8 +274,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
-    def get_editable_vessel(self, obj):
-        return obj.editable_vessel
+    def get_editable_vessel_details(self, obj):
+        return obj.editable_vessel_details
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
@@ -926,6 +926,7 @@ class VesselSerializer(serializers.ModelSerializer):
 class ListVesselDetailsSerializer(serializers.ModelSerializer):
     rego_no = serializers.SerializerMethodField()
     vessel_length = serializers.SerializerMethodField()
+    vessel_type = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
@@ -951,16 +952,20 @@ class ListVesselDetailsSerializer(serializers.ModelSerializer):
     def get_vessel_length(self, obj):
         return obj.vessel_applicable_length
 
+    def get_vessel_type(self, obj):
+        return obj.get_vessel_type_display()
+
 
 class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     vessel_details = serializers.SerializerMethodField()
     emailuser = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
     class Meta:
         model = VesselOwnership
         fields = (
                 'id',
                 'emailuser',
-                'org_name',
+                'owner_name',
                 'percentage',
                 'vessel_details',
                 )
@@ -973,12 +978,40 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         serializer = ListVesselDetailsSerializer(obj.vessel.latest_vessel_details)
         return serializer.data
 
+    def get_owner_name(self, obj):
+        return obj.org_name if obj.org_name else str(obj.owner)
+
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
+    read_only = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
-        fields = '__all__'
+        fields = (
+                'blocking_proposal',
+                'vessel_type',
+                'vessel',
+                'vessel_name',
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_beam',
+                'vessel_weight',
+                'berth_mooring',
+                'created',
+                'updated',
+                'status',
+                'exported',
+                'read_only',
+                )
+
+    def get_read_only(self, obj):
+        ro = True
+        if obj.status == 'draft' and (
+            not obj.blocking_proposal or
+            obj.blocking_proposal.submitter == context.get('request').user):
+            ro = False
+        return ro
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
