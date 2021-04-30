@@ -1009,7 +1009,7 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
         ro = True
         if obj.status == 'draft' and (
             not obj.blocking_proposal or
-            obj.blocking_proposal.submitter == context.get('request').user):
+            obj.blocking_proposal.submitter == self.context.get('request').user):
             ro = False
         return ro
 

@@ -258,6 +258,18 @@ from '@/utils/hooks'
 
         },
         methods:{
+            /*
+            validateVesselReg: function() {
+                let vm = this;
+                vm.vesselReg = vm.vesselReg.toUpperCase();
+                vm.vesselReg = vm.vesselReg.replace(/\s/g,"");
+                vm.vesselReg = vm.vesselReg.replace(/\W/g,"");
+                */
+
+            matcherFunction: function(params, data) {
+                console.log(params);
+                console.log(data);
+            },
             initialiseSelects: function(){
                 let vm = this;
                 $(vm.$refs.vessel_rego_nos).select2({
@@ -276,23 +288,28 @@ from '@/utils/hooks'
                     ajax: {
                         url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
-                    }
+                    },
+                    matcher: vm.matcherFunction,
                 }).
                 on("select2:select",function (e) {
                     var selected = $(e.currentTarget);
-                    //vm.vessel.rego_no = selected.val();
-                    const id = selected.val();
+                    // force uppercase and no whitespace
+                    let data = e.params.data.id;
+                    console.log(data)
+                    data = data.toUpperCase();
+                    data = data.replace(/\s/g,"");
+                    data = data.replace(/\W/g,"");
                     vm.$nextTick(() => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
                             console.log("fetch new vessel");
                             // fetch draft/approved vessel
-                            vm.lookupVessel(id);
+                            vm.lookupVessel(data);
                         } else {
                             vm.vessel = Object.assign({}, 
                                 {   
                                     new_vessel: true,
-                                    rego_no: id,
+                                    rego_no: data,
                                     vessel_details: {
                                         read_only: false,
                                     },
@@ -315,13 +332,18 @@ from '@/utils/hooks'
                                 registered_owner: 'current_user',
                             }
                         });
-
-                    //vm.selectedRego = ''
                 }).
                 on("select2:open",function (e) {
-                    //document.getElementsByClassName("select2-search__field")[0].focus();
-                    console.log($(".select2-search__field"));
-                    $(".select2-search__field")[0].focus();
+                    const searchField = $(".select2-search__field")
+                    console.log(searchField);
+                    searchField[0].focus();
+                    // prevent spacebar from being used
+                    searchField.on("keydown",function (e) {
+                        if ([32,].includes(e.which)) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
                 });
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
