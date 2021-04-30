@@ -5,6 +5,7 @@
         id="managevessel" 
         ref="managevessel"
         :readonly=false
+        :creatingVessel="creatingVessel"
         />
         <div>
             <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -19,9 +20,11 @@
                                     <button v-if="savingVessel" type="button" class="btn btn-primary" disabled>Save and Exit&nbsp;
                                             <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                     <input v-else type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit" :disabled="savingVessel"/>
-                                    <button v-if="savingVessel" type="button" class="btn btn-primary" disabled>Save and Continue&nbsp;
-                                            <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                    <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="savingVessel"/>
+                                    <span v-if="!creatingVessel">
+                                        <button v-if="savingVessel" type="button" class="btn btn-primary" disabled>Save and Continue&nbsp;
+                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
+                                        <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="savingVessel"/>
+                                    </span>
 
                                     <router-link class="btn btn-primary" :to="{name: 'vessels-dashboard'}">Back to Dashboard</router-link>
                                   </p>
@@ -62,67 +65,81 @@ export default {
       csrf_token: function() {
         return helpers.getCookie('csrftoken')
       },
+      creatingVessel: function() {
+          let retVal = false;
+          if (this.$route.name === 'new-vessel') {
+              retVal = true;
+          }
+          return retVal;
+      },
+      /*
+      saveUrl: function() {
+          if (this.creating
+      },
+      updateUrl: function() {
+        return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
+          // revert to above
+        //return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
+      },
+      */
+
   },
   methods: {
     populateProfile: async function() {
         const response = await this.$http.get(api_endpoints.profile);
         this.profile = Object.assign({}, response.body);
     },
-    save: async function(withConfirm=true, url=this.proposal_form_url) {
+    save: async function(withConfirm=true, url=this.saveUrl) {
         let vm = this;
-        vm.savingProposal=true;
-        vm.save_applicant_data();
-
-        //let formData = vm.set_formData()
-        //vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+        vm.savingVessel=true;
+        /*
         let payload = {
-            proposal: {},
             vessel: {},
         }
-
-        //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
-        const res = await vm.$http.post(url, payload);
-        if (res.ok) {
+        */
+        let payload = {}
+        payload.vessel = Object.assign({}, this.$refs.managevessel.vessel);
+        try {
+            let res = null;
+            if (this.creatingVessel) {
+                res = await vm.$http.post(api_endpoints.vessel, payload);
+            } else {
+                const url = `${api_endpoints.vessel}${payload.vessel.id}/`;
+                res = await vm.$http.put(url, payload);
+            }
             if (withConfirm) {
-                swal(
+                await swal(
                     'Saved',
                     'Your application has been saved',
                     'success'
                 );
             };
-            vm.savingProposal=false;
+            vm.savingVessel=false;
             return res;
-        } else {
-            swal({
+        } catch(err) {
+            await swal({
                 title: "Please fix following errors before saving",
-                text: err.bodyText,
+                //text: err.bodyText,
+                html: helpers.formatError(err),
                 type:'error'
             });
-            vm.savingProposal=false;
+            vm.savingVessel=false;
         }
     },
-    save_exit: function() {
-      let vm = this;
-      this.submitting = true;
-      this.saveExitProposal=true;
-      this.save();
-      this.saveExitProposal=false;
-      // redirect back to dashboard
-      vm.$router.push({
-        name: 'external-dashboard'
-      });
+    save_exit: async function() {
+        let vm = this;
+        const res = await this.save();
+        if (res.ok) {
+            vm.$router.push({
+                name: 'vessels-dashboard'
+            });
+        }
     },
-
+    /*
     save_wo_confirm: function() {
       this.save(false);
-        /*
-      let vm = this;
-      vm.save_applicant_data();
-      let formData = vm.set_formData()
-
-      vm.$http.post(vm.proposal_form_url,formData);
-      */
     },
+    */
 
     leaving: function(e) {
       let vm = this;
@@ -135,7 +152,6 @@ export default {
         return null;
       }
     },
-    
 
   },
 
