@@ -13,6 +13,8 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser, Address
 from datetime import datetime, timedelta, date
 
+from mooringlicensing.components.main.decorators import basic_exception_handler
+from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
@@ -590,13 +592,13 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     def _handle_dcv_vessel(request, org_id):
         data = request.data
         rego_no_requested = request.data.get('rego_no', '')
-        uiv_requested = request.data.get('uiv_vessel_identifier', '')
+        uvi_requested = request.data.get('uvi_vessel_identifier', '')
         vessel_name_requested = request.data.get('vessel_name', '')
         try:
-            dcv_vessel = DcvVessel.objects.get(uiv_vessel_identifier=uiv_requested)
+            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
         except DcvVessel.DoesNotExist:
             data['rego_no'] = rego_no_requested
-            data['uiv_vessel_identifier'] = uiv_requested
+            data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
             data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
@@ -624,3 +626,21 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         dcv_permit = serializer.save()
 
         return Response(serializer.data)
+
+
+class DcvVesselViewSet(viewsets.ModelViewSet):
+    queryset = DcvVessel.objects.all().order_by('id')
+    serializer_class = DcvVesselSerializer
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def lookup_dcv_vessel(self, request, *args, **kwargs):
+        dcv_vessel = self.get_object()
+        serializer = DcvVesselSerializer(dcv_vessel)
+
+        dcv_vessel_data = serializer.data
+        dcv_vessel_data['annual_admission_permits'] = []  # TODO: retrieve the permits
+        dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
+        dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
+
+        return add_cache_control(Response(dcv_vessel_data))
