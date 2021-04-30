@@ -258,17 +258,12 @@ from '@/utils/hooks'
 
         },
         methods:{
-            /*
-            validateVesselReg: function() {
-                let vm = this;
-                vm.vesselReg = vm.vesselReg.toUpperCase();
-                vm.vesselReg = vm.vesselReg.replace(/\s/g,"");
-                vm.vesselReg = vm.vesselReg.replace(/\W/g,"");
-                */
-
-            matcherFunction: function(params, data) {
-                console.log(params);
-                console.log(data);
+            validateRegoNo: function(data) {
+                // force uppercase and no whitespace
+                data = data.toUpperCase();
+                data = data.replace(/\s/g,"");
+                data = data.replace(/\W/g,"");
+                return data;
             },
             initialiseSelects: function(){
                 let vm = this;
@@ -276,7 +271,7 @@ from '@/utils/hooks'
                     minimumInputLength: 2,
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Vessel Registration",
+                    //placeholder:"Select Vessel Registration",
                     tags: true,
                     createTag: function (tag) {
                         return {
@@ -289,23 +284,22 @@ from '@/utils/hooks'
                         url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                     },
-                    matcher: vm.matcherFunction,
+                    templateSelection: function(data) {
+                        return vm.validateRegoNo(data.text);
+                    },
                 }).
-                on("select2:select",function (e) {
+                on("select2:select",async function (e) {
                     var selected = $(e.currentTarget);
-                    // force uppercase and no whitespace
                     let data = e.params.data.id;
-                    console.log(data)
-                    data = data.toUpperCase();
-                    data = data.replace(/\s/g,"");
-                    data = data.replace(/\W/g,"");
-                    vm.$nextTick(() => {
+                    await vm.$nextTick(() => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
                             console.log("fetch new vessel");
                             // fetch draft/approved vessel
                             vm.lookupVessel(data);
                         } else {
+                            data = vm.validateRegoNo(data);
+
                             vm.vessel = Object.assign({}, 
                                 {   
                                     new_vessel: true,
@@ -335,10 +329,11 @@ from '@/utils/hooks'
                 }).
                 on("select2:open",function (e) {
                     const searchField = $(".select2-search__field")
-                    console.log(searchField);
+                    // move focus to select2 field
                     searchField[0].focus();
                     // prevent spacebar from being used
                     searchField.on("keydown",function (e) {
+                        //console.log(e.which);
                         if ([32,].includes(e.which)) {
                             e.preventDefault();
                             return false;
