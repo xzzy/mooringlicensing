@@ -12,7 +12,6 @@
                     <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.dcv_vessel.uvi_vessel_identifier">
                 </div>
             </div>
-
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
@@ -20,15 +19,6 @@
                     </select>
                 </div>
             </div>
-            <!--
-            <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel registration</label>
-                <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_registration" placeholder="" v-model="dcv_admission.vessel_registration">
-                </div>
-            </div>
-            -->
-
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-6">
@@ -55,6 +45,7 @@
                     :arrival="arrival"
                     @delete_arrival="delete_arrival"
                     :key="arrival.uuid"
+                    :dcv_vessel="dcv_admission.dcv_vessel"
                 />
             </template>
 
