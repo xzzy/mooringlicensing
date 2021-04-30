@@ -35,7 +35,10 @@ from mooringlicensing.components.proposals.utils import (
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
 #from mooringlicensing.utils import missing_required_fields
-from mooringlicensing.components.main.utils import check_db_connection, add_cache_control
+from mooringlicensing.components.main.utils import (
+        check_db_connection, 
+        add_cache_control,
+        )
 
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
