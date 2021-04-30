@@ -637,37 +637,10 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
     def lookup_dcv_vessel(self, request, *args, **kwargs):
         dcv_vessel = self.get_object()
         serializer = DcvVesselSerializer(dcv_vessel)
+
         dcv_vessel_data = serializer.data
-        dcv_vessel_data['annual_admission_permits'] = []
-        dcv_vessel_data['authorised_user_permits'] = []
-        dcv_vessel_data['mooring_licence'] = []
-        # dcv_vessel_data['dcv_permits'] = []
+        dcv_vessel_data['annual_admission_permits'] = []  # TODO: retrieve the permits
+        dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
+        dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
 
-        # vessel_details = vessel.latest_vessel_details
-        # vessel_details_serializer = VesselDetailsSerializer(vessel_details)
-        # vessel_serializer = VesselSerializer(vessel)
-        # vessel_data = vessel_serializer.data
-        # vessel_data["vessel_details"] = vessel_details_serializer.data
-        #vessel_ownership_data = {}
-        #if vessel_details.blocking_proposal:
-        #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
-        #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-        #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-        #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-
-        #vessel_data["vessel_ownership"] = vessel_ownership_data
-        # lookup vessels must be marked as read-only
-
-        # vessel_ownership_data = {}
-        # owner_qs = Owner.objects.filter(emailuser=request.user)
-        # if owner_qs:
-        #     owner = owner_qs[0]
-        #     vo_qs = vessel.vesselownership_set.filter(owner=owner)
-        #     if vo_qs:
-        #         vessel_ownership = vo_qs[0]
-        #         vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-        #         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-        #         vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
-        # vessel_data["read_only"] = True
-        # vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(dcv_vessel_data))
