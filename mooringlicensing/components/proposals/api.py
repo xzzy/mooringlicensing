@@ -94,7 +94,7 @@ from mooringlicensing.components.proposals.serializers import (
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
-from mooringlicensing.components.approvals.models import Approval
+from mooringlicensing.components.approvals.models import Approval, DcvVessel
 from mooringlicensing.components.approvals.serializers import ApprovalSerializer
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.compliances.serializers import ComplianceSerializer
@@ -136,6 +136,18 @@ logger = logging.getLogger(__name__)
 #            return Response(serializer.data)
 #        else:
 #            return Response({'error': 'There is currently no application type.'}, status=status.HTTP_404_NOT_FOUND)
+
+class GetDcvVesselRegoNos(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        if search_term:
+            data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            return Response({"results": data_transform})
+        return add_cache_control(Response())
 
 
 class GetVesselRegoNos(views.APIView):
