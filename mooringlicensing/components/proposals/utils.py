@@ -33,6 +33,7 @@ from mooringlicensing.components.proposals.serializers import (
         SaveMooringLicenceApplicationSerializer,
         SaveAuthorisedUserApplicationSerializer,
         SaveAnnualAdmissionApplicationSerializer,
+        VesselSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -557,16 +558,18 @@ def save_bare_vessel_data(request, vessel_obj=None):
     if not vessel_details:
         serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
         serializer.is_valid(raise_exception=True)
-        vessel_details = serializer.save()
+        serializer.save()
+        #vessel_details = serializer.save()
         # set proposal now has sole right to edit vessel_details
         #vessel_details.blocking_proposal = instance
-        vessel_details.save()
+        #vessel_details.save()
     else:
         serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
     # record ownership data
     save_bare_vessel_ownership(request, vessel_data, vessel)
+    return VesselSerializer(vessel).data
 
 
 # no proposal - manage vessels
