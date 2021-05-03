@@ -109,6 +109,7 @@ export default {
         let vm = this;
         return {
             dcv_admission: {
+                id: null,
                 dcv_vessel: {
                     id: null,
                     uvi_vessel_identifier: '',
@@ -272,6 +273,8 @@ export default {
         save_and_pay: async function() {
             try{
                 const res = await this.save(false, '/api/dcv_admission/')
+                console.log('res: ')
+                console.log(res)
                 this.dcv_admission.id = res.body.id
                 await helpers.post_and_redirect(this.dcv_admission_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
             } catch(err) {

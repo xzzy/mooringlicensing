@@ -16,27 +16,27 @@
                     </div>
                 </div>
                 <div class="row form-group">
-                    <label class="col-sm-2 control-label">Private visit</label>
+                    <label for="" class="col-sm-2 control-label">Private visit</label>
                     <div class="col-sm-2">
-                        <input :disabled="!radio_private_visit_enabled" type="radio" :id="radio_yes_id" :name="radio_buttons_name" :value="true" v-model="arrival.private_visit"/>
-                        <label class="radio-inline control-label" :for="radio_yes_id">Yes</label>
+                        <input :disabled="!radio_private_visit_enabled" type="radio" id="private_yes" name="private_visit" :value="true" v-model="arrival.private_visit"/>
+                        <label class="radio-inline control-label" for="private_yes">Yes</label>
                     </div>
                     <div class="col-sm-2">
-                        <input :disabled="!radio_private_visit_enabled" type="radio" :id="radio_no_id" :name="radio_buttons_name" :value="false" v-model="arrival.private_visit"/>
-                        <label class="radio-inline control-label" :for="radio_no_id">No</label>
+                        <input :disabled="!radio_private_visit_enabled" type="radio" id="private_no" name="private_visit" :value="false" v-model="arrival.private_visit"/>
+                        <label class="radio-inline control-label" for="private_no">No</label>
                     </div>
                 </div>
 
-                <template v-if="arrival.private_visit">
-                    <div v-if="has_aap_aup_ml" class="row">
+                <template v-if="arrival.private_visit == true">
+                    <div class="row">
                         <div class="col-sm-12">
-                            <div><strong>You have an AAP/AUP/ML for the vessel.  Please submit the DCV Admission.</strong></div>
+                            <strong>You have an AAP/AUP/ML for the vessel.  Please submit the DCV Admission.</strong>
                         </div>
                     </div>
-                    <div v-else class="row">
+                    <div class="row">
                         <div class="col-sm-12">
-                            <div><strong>You do not have an annual admission permit, authorised user permit or mooring licence for the vessel.  Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
-                            <div><strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong></div>
+                            <strong>You do not have an annual admission permit, authorised user permit or mooring licence for the vessel.  Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong>
+                            <strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong>
                         </div>
                     </div>
                 </template>
@@ -135,15 +135,6 @@ export default {
 
     },
     computed: {
-        radio_buttons_name: function() {
-            return 'private_yes_no_' + this.uuid
-        },
-        radio_yes_id: function() {
-            return 'private_yes_' + this.uuid
-        },
-        radio_no_id: function() {
-            return 'private_no_' + this.uuid
-        },
         is_external: function() {
             return this.level == 'external'
         },
