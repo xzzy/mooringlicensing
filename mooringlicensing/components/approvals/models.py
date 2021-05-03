@@ -643,12 +643,12 @@ class DcvOrganisation(models.Model):
 
 class DcvVessel(models.Model):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
-    uiv_vessel_identifier = models.CharField(max_length=10, unique=True, blank=True, null=True)
+    uvi_vessel_identifier = models.CharField(max_length=10, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     def __str__(self):
-        return self.uiv_vessel_identifier
+        return self.uvi_vessel_identifier
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -764,13 +764,13 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_dcv_permits')
+    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
-    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits')
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
-    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True)
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits')
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     @classmethod

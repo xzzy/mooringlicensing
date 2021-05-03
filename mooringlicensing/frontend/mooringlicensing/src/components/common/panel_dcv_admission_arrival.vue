@@ -42,7 +42,7 @@
                         <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
                     </div>
                     <div class="col-sm-2">
-                        <input :disabled="!column_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
+                        <input :disabled="!col_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
                     </div>
                     <div class="col-sm-2">
                         <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
@@ -57,7 +57,7 @@
                         <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
                     </div>
                     <div class="col-sm-2">
-                        <input :disabled="!column_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
+                        <input :disabled="!col_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
                     </div>
                     <div class="col-sm-2">
                         <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
@@ -83,6 +83,7 @@ export default {
         },
         uuid: null,
         arrival: null,
+        dcv_vessel: null,
         column_landing_enabled: {
             type: Boolean,
             default: true,
@@ -93,7 +94,7 @@ export default {
         },
         column_not_landing_enabled: {
             type: Boolean,
-            default: true,
+            default: false,
         },
         column_approved_events_enabled: {
             type: Boolean,
@@ -123,6 +124,27 @@ export default {
         },
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
+        },
+        col_not_landing_enabled: function() {
+            if (this.arrival && this.arrival.arrival_date){
+                let arrival_date = moment(this.arrival.arrival_date, 'DD/MM/YYYY')
+                console.log('arrival_date')
+                console.log(arrival_date)
+                if (this.dcv_vessel && this.dcv_vessel.dcv_permits){
+                    for (let dcv_permit of this.dcv_vessel.dcv_permits){
+                        let start_date = moment(dcv_permit.start_date, 'YYYY-MM-DD')
+                        console.log('start_date')
+                        console.log(start_date)
+                        let end_date = moment(dcv_permit.end_date, 'YYYY-MM-DD')
+                        console.log('end_date')
+                        console.log(end_date)
+                        if (start_date <= arrival_date && arrival_date <= end_date){
+                            return true
+                        }
+                    }
+                }
+            }
+            return false
         },
     },
     methods: {
