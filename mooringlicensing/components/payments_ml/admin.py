@@ -136,15 +136,16 @@ class FeeItemInline(admin.TabularInline):
 
     def get_fields(self, request, obj=None):
         fields = super(FeeItemInline, self).get_fields(request, obj)
-        if obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
-            fields.remove('proposal_type')
-        elif obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code']):
-            fields.remove('proposal_type')
-            fields.remove('age_group')
-            fields.remove('admission_type')
-        else:
-            fields.remove('age_group')
-            fields.remove('admission_type')
+        if obj:
+            if obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
+                fields.remove('proposal_type')
+            elif obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code']):
+                fields.remove('proposal_type')
+                fields.remove('age_group')
+                fields.remove('admission_type')
+            else:
+                fields.remove('age_group')
+                fields.remove('admission_type')
         return fields
 
 
