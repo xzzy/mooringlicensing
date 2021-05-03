@@ -158,8 +158,12 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'dcv_vessel_id',
             'dcv_organisation_id',
             'fee_season_id',
+            'start_date',
+            'end_date',
         )
         read_only_fields = (
             'id',
             'lodgement_number',
+            'start_date',
+            'end_date',
         )
