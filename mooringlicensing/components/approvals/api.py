@@ -539,6 +539,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             # Adults
             age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_ADULT)
             for admission_type, number in arrival.get('adults').items():
+                number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
                 admission_type_obj = AdmissionType.objects.get(code=admission_type)
                 serializer_num = NumberOfPeopleSerializer(data={
                     'number': number if number else 0,  # when number is blank, set to 0
@@ -552,6 +553,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             # Children
             age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_CHILD)
             for admission_type, number in arrival.get('children').items():
+                number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
                 admission_type_obj = AdmissionType.objects.get(code=admission_type)
                 serializer_num = NumberOfPeopleSerializer(data={
                     'number': number if number else 0,  # when number is blank, set to 0
