@@ -1064,11 +1064,11 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         #import ipdb; ipdb.set_trace()
         custom_errors = {}
         percentage = data.get("percentage")
-        owner = data.get("percentage")
-        org_name = data.get("percentage")
+        owner = data.get("owner")
+        org_name = data.get("org_name")
         vessel = data.get("vessel")
         total = 0
-        if total:
+        if percentage:
             #custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
             qs = self.instance.vessel.vesselownership_set.all()
             for vo in qs:
@@ -1077,7 +1077,8 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 (vo.org_name == org_name or (not vo.org_name and not org_name)) and
                 vo.vessel == vessel):
                     # handle percentage change on VesselOwnership obj
-                    total += percentage if percentage else 0
+                    #total += percentage if percentage else 0
+                    total += percentage
                 else:
                     total += vo.percentage if vo.percentage else 0
             if total > 100:
