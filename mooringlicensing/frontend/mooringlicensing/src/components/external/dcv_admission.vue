@@ -82,7 +82,13 @@
 </template>
 
 <script>
-import 'eonasdan-bootstrap-datetimepicker';
+//import 'eonasdan-bootstrap-datetimepicker';
+    require("moment");
+    require("select2/dist/css/select2.min.css");
+    require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+    import select2 from "select2/dist/js/select2.full.js";
+    require('eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css');
+    require('eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js');
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
