@@ -67,7 +67,7 @@ export default {
       },
       creatingVessel: function() {
           let retVal = false;
-          if (this.$route.name === 'new-vessel') {
+          if (this.$route.name === 'new-vessel' && !this.$route.params.id) {
               retVal = true;
           }
           return retVal;
