@@ -521,8 +521,32 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
 
+    @staticmethod
+    def _handle_dcv_vessel(dcv_vessel, org_id=None):
+        data = dcv_vessel
+        rego_no_requested = data.get('rego_no', '')
+        uvi_requested = data.get('uvi_vessel_identifier', '')
+        vessel_name_requested = data.get('vessel_name', '')
+        try:
+            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
+        except DcvVessel.DoesNotExist:
+            data['rego_no'] = rego_no_requested
+            data['uvi_vessel_identifier'] = uvi_requested
+            data['vessel_name'] = vessel_name_requested
+            # data['dcv_organisation_id'] = org_id
+            serializer = DcvVesselSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            dcv_vessel = serializer.save()
+        except Exception as e:
+            logger.error(e)
+            raise
+
+        return dcv_vessel
+
     def create(self, request, *args, **kwargs):
         data = request.data
+
+        dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
 
         data['submitter'] = request.user.id
         # data['fee_sid'] = fee_season_requested.get('id')
@@ -539,6 +563,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             # Adults
             age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_ADULT)
             for admission_type, number in arrival.get('adults').items():
+                number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
                 admission_type_obj = AdmissionType.objects.get(code=admission_type)
                 serializer_num = NumberOfPeopleSerializer(data={
                     'number': number if number else 0,  # when number is blank, set to 0
@@ -552,6 +577,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             # Children
             age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_CHILD)
             for admission_type, number in arrival.get('children').items():
+                number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
                 admission_type_obj = AdmissionType.objects.get(code=admission_type)
                 serializer_num = NumberOfPeopleSerializer(data={
                     'number': number if number else 0,  # when number is blank, set to 0
@@ -589,7 +615,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         return dcv_organisation
 
     @staticmethod
-    def _handle_dcv_vessel(request, org_id):
+    def _handle_dcv_vessel(request, org_id=None):
         data = request.data
         rego_no_requested = request.data.get('rego_no', '')
         uvi_requested = request.data.get('uvi_vessel_identifier', '')
