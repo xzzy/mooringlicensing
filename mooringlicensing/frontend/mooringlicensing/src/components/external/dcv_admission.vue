@@ -82,13 +82,7 @@
 </template>
 
 <script>
-//import 'eonasdan-bootstrap-datetimepicker';
-    require("moment");
-    //require("select2/dist/css/select2.min.css");
-    //require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-    //import select2 from "select2/dist/js/select2.full.js";
-    require('eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css');
-    require('eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js');
+import 'eonasdan-bootstrap-datetimepicker';
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
@@ -337,34 +331,34 @@ export default {
                 }
             )
         },
-        addEventListeners: function () {
-            let vm = this;
-            let el_fr = $(vm.$refs.arrivalDatePicker);
-            let options = {
-                format: "DD/MM/YYYY",
-                showClear: true ,
-                useCurrent: false,
-            };
+        //addEventListeners: function () {
+        //    let vm = this;
+        //    let el_fr = $(vm.$refs.arrivalDatePicker);
+        //    let options = {
+        //        format: "DD/MM/YYYY",
+        //        showClear: true ,
+        //        useCurrent: false,
+        //    };
 
-            el_fr.datetimepicker(options);
+        //    el_fr.datetimepicker(options);
 
-            el_fr.on("dp.change", function(e) {
-                let selected_date = null;
-                if (e.date){
-                    // Date selected
-                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
-                    vm.on_site_information.period_from = selected_date;
-                } else {
-                    // Date not selected
-                    vm.on_site_information.period_from = selected_date;
-                }
-            });
-        },
+        //    el_fr.on("dp.change", function(e) {
+        //        let selected_date = null;
+        //        if (e.date){
+        //            // Date selected
+        //            selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+        //            vm.on_site_information.period_from = selected_date;
+        //        } else {
+        //            // Date not selected
+        //            vm.on_site_information.period_from = selected_date;
+        //        }
+        //    });
+        //},
     },
     mounted: function () {
         this.$nextTick(() => {
             this.initialiseSelects()
-            this.addEventListeners()
+            //this.addEventListeners()
         });
     },
     created: function() {
