@@ -15,6 +15,8 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'submitter',
+            'skipper',
+            'contact_number',
         )
         read_only_fields = (
             'id',
@@ -26,8 +28,10 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
         non_field_errors = []
 
         if not self.partial:
-            # if not data['fee_season_id']:
-            #     field_errors['year'] = ['Please select a year.',]
+            if not data['skipper']:
+                field_errors['skipper'] = ['Please enter the skipper name.',]
+            if not data['contact_number']:
+                field_errors['contact_number'] = ['Please enter the contact number.',]
 
             # dcv_permit_qs = DcvAdmission.objects.filter(dcv_vessel_id=data.get('dcv_vessel_id', 0), fee_season_id=data.get('fee_season_id', 0))
             # if dcv_permit_qs:
@@ -61,8 +65,8 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         non_field_errors = []
 
         if not self.partial:
-            # if not data.get('arrival_date', None):
-            #     field_errors['year'] = ['Please enter an arrival date.',]
+            if not data.get('arrival_date', None):
+                field_errors['year'] = ['Please enter an arrival date.',]
 
             # Raise errors
             if field_errors:
@@ -81,6 +85,7 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
             'id',
             'arrival_date',
             'dcv_admission',
+            'private_visit',
         )
         read_only_fields = (
             'id',
