@@ -660,6 +660,9 @@ class DcvAdmission(RevisionedMixin):
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
+    skipper = models.CharField(max_length=50, blank=True, null=True)
+    contact_number = models.CharField(max_length=50, blank=True, null=True)
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions')
 
     class Meta:
         app_label = 'mooringlicensing'

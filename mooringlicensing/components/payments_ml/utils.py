@@ -131,7 +131,6 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
         }
         line_items.append(line_item)
 
-
     logger.info('{}'.format(line_items))
 
     return line_items, db_processes_after_success

@@ -134,8 +134,8 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
 
 
 class DcvVesselSerializer(serializers.ModelSerializer):
-    dcv_organisation_id = serializers.IntegerField()
-    dcv_permits = DcvPermitSerializer(many=True)
+    dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
+    dcv_permits = DcvPermitSerializer(many=True, read_only=True)
 
     def validate(self, data):
         field_errors = {}
@@ -145,9 +145,9 @@ class DcvVesselSerializer(serializers.ModelSerializer):
             field_errors['rego_no'] = ['Please enter vessel rego_no.',]
         if not data['vessel_name']:
             field_errors['vessel_name'] = ['Please enter vessel name.',]
-        if not data['uvi']:
+        if not data['uvi_vessel_identifier']:
             field_errors['uvi_vessel_identifier'] = ['Please enter UIV vessel identifier.',]
-        if not data['dcv_organisation_id']:
+        if 'dcv_organisation_id' in data and not data['dcv_organisation_id']:
             field_errors['dcv_organisation_id'] = ['Please enter organisation and/or ABN / ACN.',]
 
         # Raise errors
