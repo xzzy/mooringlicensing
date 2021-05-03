@@ -16,53 +16,69 @@
                     </div>
                 </div>
                 <div class="row form-group">
-                    <label for="" class="col-sm-2 control-label">Private visit</label>
+                    <label class="col-sm-2 control-label">Private visit</label>
                     <div class="col-sm-2">
-                        <input :disabled="!radio_private_visit_enabled" type="radio" id="private_yes" name="private_visit" value="true" v-model="arrival.private_visit"/>
-                        <label class="radio-inline control-label" for="private_yes">Yes</label>
+                        <input :disabled="!radio_private_visit_enabled" type="radio" :id="radio_yes_id" :name="radio_buttons_name" :value="true" v-model="arrival.private_visit"/>
+                        <label class="radio-inline control-label" :for="radio_yes_id">Yes</label>
                     </div>
                     <div class="col-sm-2">
-                        <input :disabled="!radio_private_visit_enabled" type="radio" id="private_no" name="private_visit" value="false" v-model="arrival.private_visit"/>
-                        <label class="radio-inline control-label" for="private_no">No</label>
-                    </div>
-                </div>
-                <div class="row form-group">
-                    <div class="col-sm-2"></div>
-                    <div class="col-sm-2 text-center"><label>Landing</label></div>
-                    <div class="col-sm-2 text-center"><label>Extended stay</label></div>
-                    <div class="col-sm-2 text-center"><label>Not landing</label></div>
-                    <div class="col-sm-2 text-center"><label>Approved events</label></div>
-                </div>
-                <div class="row form-group">
-                    <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
-                    <div class="col-sm-2">
-                        <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-landing" placeholder="" v-model="arrival.adults.landing">
-                    </div>
-                    <div class="col-sm-2">
-                        <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
-                    </div>
-                    <div class="col-sm-2">
-                        <input :disabled="!col_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
-                    </div>
-                    <div class="col-sm-2">
-                        <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
+                        <input :disabled="!radio_private_visit_enabled" type="radio" :id="radio_no_id" :name="radio_buttons_name" :value="false" v-model="arrival.private_visit"/>
+                        <label class="radio-inline control-label" :for="radio_no_id">No</label>
                     </div>
                 </div>
-                <div class="row form-group">
-                    <div class="col-sm-2"><label>Number of Children</label><br />(4 - 12)</div>
-                    <div class="col-sm-2">
-                        <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
+
+                <template v-if="arrival.private_visit">
+                    <div v-if="has_aap_aup_ml" class="row">
+                        <div class="col-sm-12">
+                            <div><strong>You have an AAP/AUP/ML for the vessel.  Please submit the DCV Admission.</strong></div>
+                        </div>
                     </div>
-                    <div class="col-sm-2">
-                        <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                    <div v-else class="row">
+                        <div class="col-sm-12">
+                            <div><strong>You do not have an annual admission permit, authorised user permit or mooring licence for the vessel.  Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
+                            <div><strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong></div>
+                        </div>
                     </div>
-                    <div class="col-sm-2">
-                        <input :disabled="!col_not_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
+                </template>
+                <template v-else>
+                    <div class="row form-group">
+                        <div class="col-sm-2"></div>
+                        <div class="col-sm-2 text-center"><label>Landing</label></div>
+                        <div class="col-sm-2 text-center"><label>Extended stay</label></div>
+                        <div class="col-sm-2 text-center"><label>Not landing</label></div>
+                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
                     </div>
-                    <div class="col-sm-2">
-                        <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
+                    <div class="row form-group">
+                        <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
+                        <div class="col-sm-2">
+                            <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-landing" placeholder="" v-model="arrival.adults.landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
+                        </div>
+                        <div class="col-sm-2">
+                            <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
+                        </div>
                     </div>
-                </div>
+                    <div class="row form-group">
+                        <div class="col-sm-2"><label>Number of Children</label><br />(4 - 12)</div>
+                        <div class="col-sm-2">
+                            <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                        </div>
+                        <div class="col-sm-2">
+                            <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
+                        </div>
+                        <div class="col-sm-2">
+                            <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
     </transition>
@@ -119,13 +135,22 @@ export default {
 
     },
     computed: {
+        radio_buttons_name: function() {
+            return 'private_yes_no_' + this.uuid
+        },
+        radio_yes_id: function() {
+            return 'private_yes_' + this.uuid
+        },
+        radio_no_id: function() {
+            return 'private_no_' + this.uuid
+        },
         is_external: function() {
             return this.level == 'external'
         },
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
         },
-        col_not_landing_enabled: function() {
+        has_dcv_permit: function() {
             if (this.arrival && this.arrival.arrival_date){
                 let arrival_date = moment(this.arrival.arrival_date, 'DD/MM/YYYY')
                 console.log('arrival_date')
@@ -144,6 +169,12 @@ export default {
                     }
                 }
             }
+            return false
+        },
+        has_aap_aup_ml: function() {
+
+            // TODO: calc
+
             return false
         },
     },
