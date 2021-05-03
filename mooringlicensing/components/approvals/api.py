@@ -533,7 +533,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             data['rego_no'] = rego_no_requested
             data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
-            data['dcv_organisation_id'] = org_id
+            # data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
