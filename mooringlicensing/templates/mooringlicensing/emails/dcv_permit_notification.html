@@ -3,5 +3,10 @@
 {%  block content %}
     <p>DCV Permit has been issued</p>
     <p><strong>DCV Permit : {{ dcv_permit.lodgement_number }}</strong></p>
+    <span>lodgement date: {{ dcv_permit.lodgement_date }}</span>
+    <span>year (season): {{ dcv_permit.fee_season.name }} ( {{ dcv_permit.start_date }} to {{ dcv_permit.end_date }} )</span>
+    <span>vessel UVI: {{ dcv_permit.dcv_vessel.uiv_vessel_identifier }}</span>
+    <span>vessel registration: {{ dcv_permit.dcv_vessel.rego_no }}</span>
+    <span>vessel name: {{ dcv_permit.dcv_vessel.uiv_vessel_identifier }}</span>
     <p>Please find the invoice and DCV Permit attached.</p>
 {%  endblock %}

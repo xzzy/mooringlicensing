@@ -7,31 +7,32 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-2 control-label">UIV Vessel Identifier</label>
+                <label for="" class="col-sm-3 control-label">UIV Vessel Identifier</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.uvi_vessel_identifier">
+                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.dcv_vessel.uvi_vessel_identifier">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-2 control-label">Vessel registration</label>
-                <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_registration" placeholder="" v-model="dcv_admission.vessel_registration">
+                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
+                <div class="col-sm-9">
+                    <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
+                    </select>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-2 control-label">Vessel name</label>
+                <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission.vessel_name">
+                    <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission.dcv_vessel.vessel_name">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-2 control-label">Skipper</label>
+                <label for="" class="col-sm-3 control-label">Skipper</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission.skipper">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-2 control-label">Contact number</label>
+                <label for="" class="col-sm-3 control-label">Contact number</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission.contact_number">
                 </div>
@@ -44,6 +45,7 @@
                     :arrival="arrival"
                     @delete_arrival="delete_arrival"
                     :key="arrival.uuid"
+                    :dcv_vessel="dcv_admission.dcv_vessel"
                 />
             </template>
 
@@ -86,6 +88,10 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import uuid from 'uuid'
+
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
   
 export default {
     name: 'DcvAdmissionPage',
@@ -93,16 +99,22 @@ export default {
         level: {
             type: String,
             default: 'external',
-        }
+        },
+        readonly:{
+            type: Boolean,
+            default: false,
+        },
     },
     data() {
         let vm = this;
         return {
             dcv_admission: {
-                id: null,
-                uvi_vessel_identifier: '',
-                vessel_registration: '',
-                vessel_name: '',
+                dcv_vessel: {
+                    id: null,
+                    uvi_vessel_identifier: '',
+                    rego_no: '',
+                    vessel_name: '',
+                },
                 skipper: '',
                 contact_number: '',
                 arrivals: [
@@ -124,6 +136,10 @@ export default {
                         }
                     },
                 ],
+                annual_admission_permit: [],
+                authorised_user_permit: [],
+                mooring_licence: [],
+                dcv_permit: [],
             },
             paySubmitting: false,
         }
@@ -147,6 +163,91 @@ export default {
         },
     },
     methods: {
+        lookupDcvVessel: async function(id) {
+            console.log('in lookupDcvVessel')
+            const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
+            const vesselData = res.body;
+            console.log('existing dcv_vessel: ')
+            console.log(vesselData);
+            if (vesselData && vesselData.rego_no) {
+                this.dcv_admission.dcv_vessel = Object.assign({}, vesselData);
+            }
+        },
+        initialiseSelects: function(){
+            let vm = this;
+            $(vm.$refs.dcv_vessel_rego_nos).select2({
+                minimumInputLength: 2,
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Vessel Registration",
+                tags: true,
+                createTag: function (tag) {
+                    console.log('in createTag')
+                    console.log('tag: ')
+                    console.log(tag)
+                    return {
+                        id: tag.term,
+                        text: tag.term,
+                        isNew: true,
+                    };
+                },
+                ajax: {
+                    url: api_endpoints.dcv_vessel_rego_nos,
+                    dataType: 'json',
+                }
+            }).
+            on("select2:select",function (e) {
+                console.log('select2:select')
+                console.log('e: ')
+                console.log(e)
+                var selected = $(e.currentTarget);
+                console.log('selected: ')
+                console.log(selected)
+                //vm.vessel.rego_no = selected.val();
+                const id = selected.val();
+                console.log('val(): ')
+                console.log(id)
+                vm.$nextTick(() => {
+                    //if (!isNew) {
+                    if (e.params.data.isNew) {
+                        // fetch the selected vessel from the backend
+                        console.log("new");
+                        vm.dcv_admission.dcv_vessel.rego_no = id
+                        //vm.dcv_admission.dcv_vessel = Object.assign({}, 
+                        //    {
+                        //        rego_no: id,
+                        //    });
+                    } else {
+                        // fetch the selected vessel from the backend
+                        console.log('existing')
+                        vm.lookupDcvVessel(id);
+                    }
+                });
+            }).
+            on("select2:unselect",function (e) {
+                console.log('select2:unselect')
+                var selected = $(e.currentTarget);
+                //vm.dcv_admission.dcv_vessel.rego_no = '';
+                vm.dcv_admission.dcv_vessel = Object.assign({}, 
+                    {
+                        id: null,
+                        uvi_vessel_identifier: '',
+                        rego_no: '',
+                        vessel_name: '',
+                    }
+                );
+
+                //vm.selectedRego = ''
+            }).
+            on("select2:open",function (e) {
+                console.log('select2:open')
+                //document.getElementsByClassName("select2-search__field")[0].focus();
+                console.log($(".select2-search__field"));
+                $(".select2-search__field")[0].focus();
+            });
+            // read vessel.rego_no if exists on vessel.vue open
+            //vm.readRegoNo();
+        },
         pay_and_submit: function(){
             // pay_and_submit() --> save_and_pay() --> post_and_redirect()
             let vm = this
@@ -247,7 +348,8 @@ export default {
     },
     mounted: function () {
         this.$nextTick(() => {
-            this.addEventListeners();
+            this.initialiseSelects()
+            this.addEventListeners()
         });
     },
     created: function() {
