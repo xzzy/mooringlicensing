@@ -213,7 +213,13 @@ export default {
                     if (e.params.data.isNew) {
                         // fetch the selected vessel from the backend
                         console.log("new");
-                        vm.dcv_admission.dcv_vessel.rego_no = id
+                        vm.dcv_admission.dcv_vessel = 
+                        {
+                            id: id,
+                            uvi_vessel_identifier: '',
+                            rego_no: id,
+                            vessel_name: '',
+                        }
                         //vm.dcv_admission.dcv_vessel = Object.assign({}, 
                         //    {
                         //        rego_no: id,
