@@ -61,8 +61,8 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         non_field_errors = []
 
         if not self.partial:
-            # if not data.get('arrival_date', None):
-            #     field_errors['year'] = ['Please enter an arrival date.',]
+            if not data.get('arrival_date', None):
+                field_errors['year'] = ['Please enter an arrival date.',]
 
             # Raise errors
             if field_errors:
@@ -81,6 +81,7 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
             'id',
             'arrival_date',
             'dcv_admission',
+            'private_visit',
         )
         read_only_fields = (
             'id',
