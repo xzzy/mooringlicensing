@@ -1500,19 +1500,21 @@ class VesselViewSet(viewsets.ModelViewSet):
     #@renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
-            save_bare_vessel_data(request)
-            return add_cache_control(Response())
+            #save_bare_vessel_data(request)
+            vessel_data = save_bare_vessel_data(request)
+            return add_cache_control(Response(vessel_data))
             #return add_cache_control(redirect(reverse('external')))
 
     #@renderer_classes((JSONRenderer,))
-    #@basic_exception_handler
+    @basic_exception_handler
     def update(self, request, *args, **kwargs):
         #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             instance = self.get_object()
             vessel_data = save_bare_vessel_data(request, instance)
-            return add_cache_control(Response())
+            return add_cache_control(Response(vessel_data))
 
     #@list_route(methods=['GET',])
     #def list_external(self, request, *args, **kwargs):
