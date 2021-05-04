@@ -311,7 +311,9 @@ class VesselSizeCategory(RevisionedMixin):
 
     @property
     def is_editable(self):
-        return self.vessel_size_category_group.is_editable if self.vessel_size_category_group else True
+        if self.vessel_size_category_group:
+            return self.vessel_size_category_group.is_editable\
+        return True
 
 
 
