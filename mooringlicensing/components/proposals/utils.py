@@ -436,6 +436,7 @@ def save_proponent_data_aua(instance, request, viewset):
 #    #save_proposal_data(instance, request)
 #    submit_vessel_data(instance, request)
 
+# draft and submit
 def save_vessel_data(instance, request, vessel_data):
     print("save vessel data")
     #vessel_data = request.data.get("vessel")
@@ -496,9 +497,12 @@ def submit_vessel_data(instance, request, vessel_data):
             serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-        # associate vessel_details with proposal
-        instance.vessel_details = vessel_details
-        instance.save()
+    else:
+        vessel = Vessel.objects.get(id=vessel_data.get('id'))
+        vessel_details = vessel.latest_vessel_details
+    # associate vessel_details with proposal
+    instance.vessel_details = vessel_details
+    instance.save()
     # record ownership data
     submit_vessel_ownership(instance, request, vessel_data)
 
