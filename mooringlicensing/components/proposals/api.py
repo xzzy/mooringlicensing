@@ -164,7 +164,7 @@ class GetVesselRegoNos(views.APIView):
     def get(self, request, format=None):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
-        create_vessel = request.GET.get('create_vessel')
+        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
         org_name = request.GET.get('org_name', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
@@ -183,8 +183,7 @@ class GetVesselRegoNos(views.APIView):
                     if not vessel_ownership_set:
                         data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
             else:
-                data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-                #data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
             return Response({"results": data_transform})
         return add_cache_control(Response())
 
