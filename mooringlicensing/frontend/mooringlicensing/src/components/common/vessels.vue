@@ -3,11 +3,14 @@
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
-                <div class="col-sm-9">
+                <div v-if="!editingVessel" class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                         <!--option value="null"></option>
                         <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
                     </select>
+                </div>
+                <div v-else class="col-sm-9">
+                    <input disabled type="text" class="form-control" id="vessel_search_ro" v-model="vessel.rego_no"/>
                 </div>
             </div>
             <!--div class="row form-group">
@@ -192,6 +195,9 @@ from '@/utils/hooks'
             creatingVessel:{
                 type: Boolean,
             },
+            editingVessel:{
+                type: Boolean,
+            },
         },
         computed: {
             companyOwner: function() {
@@ -205,6 +211,11 @@ from '@/utils/hooks'
             registeredOwner: function() {
                 if (this.vessel && this.vessel.vessel_ownership) {
                     return this.vessel.vessel_ownership.registered_owner;
+                }
+            },
+            orgName: function() {
+                if (this.vessel && this.vessel.vessel_ownership) {
+                    return this.vessel.vessel_ownership.org_name;
                 }
             },
             editableVesselDetails: function() {
@@ -283,6 +294,15 @@ from '@/utils/hooks'
                     ajax: {
                         url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
+                        data: function(params) {
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                                create_vessel: vm.creatingVessel,
+                                org_name: vm.orgName,
+                            }
+                            return query;
+                        },
                     },
                     templateSelection: function(data) {
                         return vm.validateRegoNo(data.text);
@@ -378,7 +398,11 @@ from '@/utils/hooks'
                 const vesselData = res.body;
                 console.log(res);
                 if (vesselData && vesselData.rego_no) {
-                    this.vessel = Object.assign({}, vesselData);
+                    if (this.creatingVessel) {
+                        this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
+                    } else {
+                        this.vessel = Object.assign({}, vesselData);
+                    }
                 }
             },
             fetchVessel: async function() {
