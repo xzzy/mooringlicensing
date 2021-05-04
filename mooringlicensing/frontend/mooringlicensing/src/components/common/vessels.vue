@@ -283,6 +283,7 @@ from '@/utils/hooks'
                     "theme": "bootstrap",
                     allowClear: true,
                     //placeholder:"Select Vessel Registration",
+                    placeholder:"",
                     tags: true,
                     createTag: function (tag) {
                         return {
