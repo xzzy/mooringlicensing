@@ -176,13 +176,18 @@ class FeeSeason(RevisionedMixin):
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):
-        num_item = self.fee_periods.count()
-        num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
-
         if self.start_date:
-            return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
+            return self.name
         else:
             return '{} (No periods found)'.format(self.name)
+
+        # num_item = self.fee_periods.count()
+        # num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
+        #
+        # if self.start_date:
+        #     return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
+        # else:
+        #     return '{} (No periods found)'.format(self.name)
 
     def get_first_period(self):
         first_period = self.fee_periods.order_by('start_date').first()
