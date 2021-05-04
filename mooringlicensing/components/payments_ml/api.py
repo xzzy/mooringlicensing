@@ -12,7 +12,7 @@ from mooringlicensing.components.payments_ml.models import FeeConstructor
 logger = logging.getLogger('log')
 
 
-class GetSeasonsForDcvDict(views.APIView):
+class GetSeasonsForDcvPermitDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):

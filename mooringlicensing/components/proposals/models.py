@@ -323,7 +323,8 @@ class ProposalType(models.Model):
     description = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
-        return 'id: {} code: {}'.format(self.id, self.code)
+        # return 'id: {} code: {}'.format(self.id, self.code)
+        return self.description
 
     class Meta:
         app_label = 'mooringlicensing'

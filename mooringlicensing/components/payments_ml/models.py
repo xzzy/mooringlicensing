@@ -176,13 +176,18 @@ class FeeSeason(RevisionedMixin):
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):
-        num_item = self.fee_periods.count()
-        num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
-
         if self.start_date:
-            return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
+            return self.name
         else:
             return '{} (No periods found)'.format(self.name)
+
+        # num_item = self.fee_periods.count()
+        # num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
+        #
+        # if self.start_date:
+        #     return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
+        # else:
+        #     return '{} (No periods found)'.format(self.name)
 
     def get_first_period(self):
         first_period = self.fee_periods.order_by('start_date').first()
@@ -224,11 +229,13 @@ class FeePeriod(RevisionedMixin):
     # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
 
     def __str__(self):
-        return 'Name: {}, Start Date: {}'.format(self.name, self.start_date)
+        return '{} (start: {})'.format(self.name, self.start_date)
 
     @property
     def is_editable(self):
-        return self.fee_season.is_editable
+        if self.fee_season:
+            return self.fee_season.is_editable
+        return True
 
     # def save(self, **kwargs):
     #     if not self.is_editable:
@@ -382,7 +389,9 @@ class FeeItem(RevisionedMixin):
 
     @property
     def is_editable(self):
-        return self.fee_constructor.is_editable
+        if self.fee_constructor:
+            return self.fee_constructor.is_editable
+        return True
 
     class Meta:
         app_label = 'mooringlicensing'
