@@ -229,7 +229,7 @@ class FeePeriod(RevisionedMixin):
     # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
 
     def __str__(self):
-        return 'Name: {}, Start Date: {}'.format(self.name, self.start_date)
+        return '{} (start: {})'.format(self.name, self.start_date)
 
     @property
     def is_editable(self):
