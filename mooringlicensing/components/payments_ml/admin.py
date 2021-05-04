@@ -211,6 +211,17 @@ class FeeConstructorForm(forms.ModelForm):
                     cleaned_vessel_size_category_group.vessel_size_categories.count(),
                 ))
 
+        # Check if the applied season overwraps the existing season
+        existing_fee_constructors = FeeConstructor.objects.filter(application_type=cleaned_application_type, enabled=True)
+        for existing_fc in existing_fee_constructors:
+            if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or \
+                    existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
+                # Season overwrapps
+                raise forms.ValidationError('The season applied overwraps the existing season: {} ({} to {})'.format(
+                    existing_fc.fee_season,
+                    existing_fc.fee_season.start_date,
+                    existing_fc.fee_season.end_date))
+
         return cleaned_data
 
 
