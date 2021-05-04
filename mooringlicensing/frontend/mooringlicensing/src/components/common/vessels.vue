@@ -80,7 +80,7 @@
                     <input :readonly="!editableVesselDetails" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
-            <div class="row form-group">
+            <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -200,6 +200,13 @@ from '@/utils/hooks'
             },
         },
         computed: {
+            showDotRegistrationPapers: function() {
+                let retVal = false;
+                if (this.proposal && this.proposal.id) {
+                    retVal = true
+                }
+                return retVal;
+            },
             companyOwner: function() {
                 //let returnVal = false;
                 if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
