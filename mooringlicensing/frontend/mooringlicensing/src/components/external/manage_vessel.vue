@@ -6,6 +6,7 @@
         ref="managevessel"
         :readonly=false
         :creatingVessel="creatingVessel"
+        :editingVessel="editingVessel"
         />
         <div>
             <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -20,13 +21,13 @@
                                     <button v-if="savingVessel" type="button" class="btn btn-primary" disabled>Save and Exit&nbsp;
                                             <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                     <input v-else type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit" :disabled="savingVessel"/>
-                                    <span v-if="!creatingVessel">
+                                    <!--span v-if="!creatingVessel"-->
                                         <button v-if="savingVessel" type="button" class="btn btn-primary" disabled>Save and Continue&nbsp;
                                                 <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                         <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="savingVessel"/>
-                                    </span>
+                                    <!--/span-->
 
-                                    <router-link class="btn btn-primary" :to="{name: 'vessels-dashboard'}">Back to Dashboard</router-link>
+                                    <!--router-link class="btn btn-primary" :to="{name: 'vessels-dashboard'}">Back to Dashboard</router-link-->
                                   </p>
                                 </div>
                               </div>
@@ -72,6 +73,14 @@ export default {
           }
           return retVal;
       },
+      editingVessel: function() {
+          let retVal = false;
+          if (this.$route.name === 'manage-vessel' && this.$route.params.id) {
+              retVal = true;
+          }
+          return retVal;
+      },
+
       /*
       saveUrl: function() {
           if (this.creating
