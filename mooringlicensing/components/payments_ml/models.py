@@ -233,7 +233,9 @@ class FeePeriod(RevisionedMixin):
 
     @property
     def is_editable(self):
-        return self.fee_season.is_editable if self.fee_season else True
+        if self.fee_season:
+            return self.fee_season.is_editable
+        return True
 
     # def save(self, **kwargs):
     #     if not self.is_editable:
@@ -387,7 +389,9 @@ class FeeItem(RevisionedMixin):
 
     @property
     def is_editable(self):
-        return self.fee_constructor.is_editable if self.fee_constructor else True
+        if self.fee_constructor:
+            return self.fee_constructor.is_editable
+        return True
 
     class Meta:
         app_label = 'mooringlicensing'
