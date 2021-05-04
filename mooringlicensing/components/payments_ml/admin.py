@@ -213,6 +213,9 @@ class FeeConstructorForm(forms.ModelForm):
 
         # Check if the applied season overwraps the existing season
         existing_fee_constructors = FeeConstructor.objects.filter(application_type=cleaned_application_type, enabled=True)
+        if self.instance and self.instance.id:
+            # Exclude the instance itself (allow edit)
+            existing_fee_constructors = existing_fee_constructors.exclude(id=self.instance.id)
         for existing_fc in existing_fee_constructors:
             if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or \
                     existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
