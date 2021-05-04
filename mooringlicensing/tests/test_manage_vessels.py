@@ -49,12 +49,15 @@ class ManageVesselTests(APITestSetup):
         ##########################
         manage_vessel_data = {
                 'vessel': {
-                    'id': 73, 
+                    #'id': 73,
+                    'id': vessel_id,
                     'rego_no': 'gtukfgh', 
                     'vessel_details': {
-                        'blocking_proposal': 91, 
+                        #'blocking_proposal': 91, 
+                        'blocking_proposal': None, 
                         'vessel_type': 'cabin_cruiser', 
-                        'vessel': 73, 
+                        #'vessel': 73, 
+                        'vessel': vessel_id, 
                         'vessel_name': 'ererer', 
                         'vessel_overall_length': '78.00', 
                         'vessel_length': '45.00', 
@@ -69,7 +72,7 @@ class ManageVesselTests(APITestSetup):
                         'read_only': True
                     }, 
                     'vessel_ownership': {
-                        'percentage': 100, 
+                        'percentage': 100, # updates value in create_vessel_data
                         'individual_owner': True
                     }
                 }
@@ -85,7 +88,7 @@ class ManageVesselTests(APITestSetup):
             HTTP_HOST=HTTP_HOST_FOR_TEST,
         )
 
-        self.assertEqual(create_response.status_code, 200)
+        self.assertEqual(manage_vessel_response.status_code, 301)
         #vessel_id = manage_vessel_response.data.get('id')
         #self.assertTrue(vessel_id > 0)
 
@@ -94,4 +97,5 @@ class ManageVesselTests(APITestSetup):
         get_response = self.client.get(url, HTTP_HOST=HTTP_HOST_FOR_TEST,)
 
         self.assertEqual(get_response.status_code, 200)
+        #return vessel_id, manage_vessel_response.data.get('vessel_details').get('id')
 
