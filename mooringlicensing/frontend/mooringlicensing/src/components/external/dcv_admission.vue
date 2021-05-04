@@ -7,7 +7,7 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">UIV Vessel Identifier</label>
+                <label for="" class="col-sm-3 control-label">UVI Vessel Identifier</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.dcv_vessel.uvi_vessel_identifier">
                 </div>
