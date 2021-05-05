@@ -281,6 +281,18 @@ class FeeConstructor(RevisionedMixin):
         return True if not self.num_of_times_used_for_payment else False
 
     @property
+    def start_date(self):
+        if self.fee_season:
+            return self.fee_season.start_date
+        return None
+
+    @property
+    def end_date(self):
+        if self.fee_season:
+            return self.fee_season.end_date
+        return None
+
+    @property
     def num_of_times_used_for_payment(self):
         return self.application_fees.count() + self.dcv_permit_fees.count()
 
