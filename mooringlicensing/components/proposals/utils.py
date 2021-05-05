@@ -478,7 +478,7 @@ def submit_vessel_data(instance, request, vessel_data):
     if not vessel_data.get("read_only"):
         if not vessel_data.get('rego_no'):
             raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
-        rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
+        rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
         vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
         
         vessel_details_data = vessel_data.get("vessel_details")
@@ -545,12 +545,13 @@ def submit_vessel_ownership(instance, request, vessel_data):
 
 # no proposal - manage vessels
 def save_bare_vessel_data(request, vessel_obj=None):
+    #import ipdb; ipdb.set_trace()
     print("save bare vessel data")
     #if not vessel_data.get("read_only"):
     vessel_data = request.data.get("vessel")
     if not vessel_data.get('rego_no'):
         raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
-    rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
+    rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
     if vessel_obj:
         vessel = vessel_obj
     else:
@@ -600,6 +601,9 @@ def save_bare_vessel_ownership(request, vessel_data, vessel):
             #org_name=registered_owner_company_name_strip
             org_name=org_name
             )
+    if request.data.get('create_vessel') and not created:
+        raise serializers.ValidationError("You are already listed as an owner of this vessel.\
+                Please select Options > Manage Vessels to edit this vessel.")
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
