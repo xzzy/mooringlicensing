@@ -175,6 +175,12 @@ export default {
                     }
                 }
             }
+            if (this.arrival && this.arrival.adults){
+                this.arrival.adults.not_landing = 0
+            }
+            if (this.arrival && this.arrival.children){
+                this.arrival.children.not_landing = 0
+            }
             return false
         },
         has_aap_aup_ml: function() {
