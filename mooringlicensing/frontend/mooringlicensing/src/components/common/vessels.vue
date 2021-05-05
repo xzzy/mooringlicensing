@@ -3,14 +3,9 @@
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
-                <div v-if="!editingVessel" class="col-sm-9">
-                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
-                        <!--option value="null"></option>
-                        <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
+                <div class="col-sm-9">
+                    <select :disabled="readonly || editingVessel" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                     </select>
-                </div>
-                <div v-else class="col-sm-9">
-                    <input disabled type="text" class="form-control" id="vessel_search_ro" v-model="vessel.rego_no"/>
                 </div>
             </div>
             <!--div class="row form-group">
@@ -80,7 +75,7 @@
                     <input :readonly="!editableVesselDetails" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
-            <div class="row form-group">
+            <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -200,6 +195,13 @@ from '@/utils/hooks'
             },
         },
         computed: {
+            showDotRegistrationPapers: function() {
+                let retVal = false;
+                if (this.proposal && this.proposal.id) {
+                    retVal = true
+                }
+                return retVal;
+            },
             companyOwner: function() {
                 //let returnVal = false;
                 if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
@@ -274,6 +276,15 @@ from '@/utils/hooks'
                 data = data.toUpperCase();
                 data = data.replace(/\s/g,"");
                 data = data.replace(/\W/g,"");
+                /*
+                if (!data.disabled && data.text && typeof(data.text) === "string") {
+                    // force uppercase and no whitespace
+                    data = data.text.toUpperCase();
+                    console.log(data);
+                    data = data.text.replace(/\s/g,"");
+                    data = data.text.replace(/\W/g,"");
+                }
+                */
                 return data;
             },
             initialiseSelects: function(){
@@ -305,14 +316,17 @@ from '@/utils/hooks'
                             return query;
                         },
                     },
+                    //templateSelection: vm.validateRegoNo,
+                    //templateResult: vm.validateRegoNo,
                     templateSelection: function(data) {
+                        console.log(data);
                         return vm.validateRegoNo(data.text);
                     },
                 }).
-                on("select2:select",async function (e) {
+                on("select2:select", function (e) {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
-                    await vm.$nextTick(() => {
+                    vm.$nextTick(() => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
                             console.log("fetch new vessel");
@@ -322,7 +336,7 @@ from '@/utils/hooks'
                             data = vm.validateRegoNo(data);
 
                             vm.vessel = Object.assign({}, 
-                                {   
+                                {
                                     new_vessel: true,
                                     rego_no: data,
                                     vessel_details: {
