@@ -142,11 +142,11 @@ class DcvVesselSerializer(serializers.ModelSerializer):
         non_field_errors = []
 
         if not data['rego_no']:
-            field_errors['rego_no'] = ['Please enter vessel rego_no.',]
+            field_errors['rego_no'] = ['Please enter vessel registration number.',]
         if not data['vessel_name']:
             field_errors['vessel_name'] = ['Please enter vessel name.',]
         if not data['uvi_vessel_identifier']:
-            field_errors['uvi_vessel_identifier'] = ['Please enter UIV vessel identifier.',]
+            field_errors['uvi_vessel_identifier'] = ['Please enter UVI vessel identifier.',]
         if 'dcv_organisation_id' in data and not data['dcv_organisation_id']:
             field_errors['dcv_organisation_id'] = ['Please enter organisation and/or ABN / ACN.',]
 
