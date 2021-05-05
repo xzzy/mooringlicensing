@@ -111,7 +111,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
         for number_of_people in dcv_admission_arrival.numberofpeople_set.all():
             if number_of_people.number:
                 # When more than 1 people,
-                fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, number_of_people.age_group, number_of_people.admission_type)
+                fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, dcv_admission_arrival.arrival_date, number_of_people.age_group, number_of_people.admission_type)
                 fee_item.number_of_people = number_of_people.number
                 fee_items.append(fee_item)
                 number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
