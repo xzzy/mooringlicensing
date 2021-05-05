@@ -105,9 +105,11 @@ class FeeSeasonForm(forms.ModelForm):
 
 
 class FeeItemForm(forms.ModelForm):
+
     class Meta:
         model = FeeItem
         fields = '__all__'
+        # fields = ('amount',)
 
     def clean_amount(self):
         data = self.cleaned_data['amount']
@@ -121,7 +123,7 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
-    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type')
+    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type', 'age_group', 'admission_type')
     max_num = 0  # This removes 'Add another ...' button
     form = FeeItemForm
 
@@ -132,8 +134,19 @@ class FeeItemInline(admin.TabularInline):
         # widget.can_change_related = False
         return formset
 
-    # def has_change_permission(self, request, obj=None):
-    #     return True
+    def get_fields(self, request, obj=None):
+        fields = super(FeeItemInline, self).get_fields(request, obj)
+        if obj:
+            if obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
+                fields.remove('proposal_type')
+            elif obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code']):
+                fields.remove('proposal_type')
+                fields.remove('age_group')
+                fields.remove('admission_type')
+            else:
+                fields.remove('age_group')
+                fields.remove('admission_type')
+        return fields
 
 
 class FeeConstructorForm(forms.ModelForm):
@@ -179,15 +192,38 @@ class FeeConstructorForm(forms.ModelForm):
 
         cleaned_application_type = cleaned_data.get('application_type', None)
         cleaned_fee_season = cleaned_data.get('fee_season', None)
-        if cleaned_application_type and cleaned_application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
+        cleaned_vessel_size_category_group = cleaned_data.get('vessel_size_category_group', None)
+
+        if cleaned_application_type and cleaned_application_type.code in (settings.APPLICATION_TYPE_DCV_PERMIT['code'], settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
             # If application type is DcvPermit
             if cleaned_fee_season and cleaned_fee_season.fee_periods.count() > 1:
-                # There are more than 1 period in the season
-                raise forms.ValidationError('A season for the {} cannot have more than 1 period.  Selected season {} has {} periods.'.format(
+                # There are more than 1 periods in the season
+                raise forms.ValidationError('The season for the {} cannot have more than 1 period.  Selected season: {} has {} periods.'.format(
                     cleaned_application_type.description,
                     cleaned_fee_season.name,
                     cleaned_fee_season.fee_periods.count(),
                 ))
+            if cleaned_vessel_size_category_group and cleaned_vessel_size_category_group.vessel_size_categories.count() > 1:
+                # There are more than 1 categories in the season
+                raise forms.ValidationError('The vessel size category group for the {} cannot have more than 1 vessel size category.  Selected vessel size category group: {} has {} vessel size categories.'.format(
+                    cleaned_application_type.description,
+                    cleaned_vessel_size_category_group.name,
+                    cleaned_vessel_size_category_group.vessel_size_categories.count(),
+                ))
+
+        # Check if the applied season overwraps the existing season
+        existing_fee_constructors = FeeConstructor.objects.filter(application_type=cleaned_application_type, enabled=True)
+        if self.instance and self.instance.id:
+            # Exclude the instance itself (allow edit)
+            existing_fee_constructors = existing_fee_constructors.exclude(id=self.instance.id)
+        for existing_fc in existing_fee_constructors:
+            if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or \
+                    existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
+                # Season overwrapps
+                raise forms.ValidationError('The season applied overwraps the existing season: {} ({} to {})'.format(
+                    existing_fc.fee_season,
+                    existing_fc.fee_season.start_date,
+                    existing_fc.fee_season.end_date))
 
         return cleaned_data
 
@@ -202,7 +238,7 @@ class FeeSeasonAdmin(admin.ModelAdmin):
 class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
-    list_display = ('id', 'application_type', 'fee_season', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment')
+    list_display = ('id', 'application_type', 'fee_season', 'start_date', 'end_date', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment',)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Sort 'fee_season' dropdown by the start_date

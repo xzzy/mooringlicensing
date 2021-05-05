@@ -35,10 +35,35 @@
         </div>
 
         <div v-show="mooringAuthPreference==='ria'" class="row form-group">
-            <draggable :disabled="readonly" class="col-sm-6" v-model="mooringBays">
-                    <div class="form-control" id="mooringList" v-for="mooring in mooringBays" :key="mooring.id">
-                        {{ mooring.name }}
-                    </div>
+            <draggable 
+            :disabled="readonly" 
+            :list="mooringBays"
+            tag="ul"
+            class="list-group col-sm-5 draggable-class"
+            handle=".handle"
+            >
+                <li
+                    class="list-group-item"
+                    v-for="(mooring, index) in mooringBays"
+                    :key="mooring.name"
+                >
+                    <i class="fa fa-align-justify handle"></i>
+                    <!--i class="fa handle"></i-->
+                    <span class="col-sm-1"/>
+                    <span class="text">{{ mooring.name }}</span>
+                    <span class="pull-right">{{ index }}</span>
+                </li>
+
+                 
+
+            <!--tr class="form-control" id="mooringList" v-for="(mooring, index) in mooringBays" :key="mooring.id">
+                        <td scope="row">{{ index }}</td>
+                        <td>{{ mooring.name }}</td>
+                    </tr-->
+                    <!--div class="form-control" id="mooringList" v-for="(mooring, index) in mooringBays" :key="mooring.id">
+                        <span class="pull-left"> {{ mooring.name }}</span>
+                        <span class="pull-right"> {{ index }}</span>
+                    </div-->
             </draggable>
         </div>
     </FormSection>
@@ -75,6 +100,7 @@ import draggable from 'vuedraggable';
                 mooringAuthPreference: null,
                 siteLicenseeEmail: null,
                 mooringSiteId: null,
+                dragging: false,
             }
         },
         computed: {
@@ -121,5 +147,14 @@ import draggable from 'vuedraggable';
 </script>
 
 <style lang="css" scoped>
+.handle {
+    float: left;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    cursor: pointer;
+}
+.draggable-class {
+    padding-left: 3%;
+}
 </style>
 

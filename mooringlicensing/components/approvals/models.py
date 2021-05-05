@@ -22,7 +22,7 @@ from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
-from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
+from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
@@ -643,15 +643,119 @@ class DcvOrganisation(models.Model):
 
 class DcvVessel(models.Model):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
-    uiv_vessel_identifier = models.CharField(max_length=10, unique=True, blank=True, null=True)
+    uvi_vessel_identifier = models.CharField(max_length=10, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     def __str__(self):
-        return self.uiv_vessel_identifier
+        return self.uvi_vessel_identifier
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+class DcvAdmission(RevisionedMixin):
+    LODGEMENT_NUMBER_PREFIX = 'DCV'
+
+    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
+    lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
+    skipper = models.CharField(max_length=50, blank=True, null=True)
+    contact_number = models.CharField(max_length=50, blank=True, null=True)
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions')
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return self.lodgement_number
+
+    @classmethod
+    def get_next_id(cls):
+        ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if len(ids) else 1
+
+    def save(self, **kwargs):
+        if self.lodgement_number in ['', None]:
+            self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
+        super(DcvAdmission, self).save(**kwargs)
+
+    def generate_dcv_admission_doc(self):
+        permit_document = create_dcv_admission_document(self)
+
+
+class DcvAdmissionArrival(RevisionedMixin):
+    dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals')
+    arrival_date = models.DateField(null=True, blank=True)
+    private_visit = models.BooleanField(default=False)
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
+    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
+    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_arrivals')
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return '{} ({})'.format(self.dcv_admission, self.arrival_date)
+
+
+class AgeGroup(models.Model):
+    AGE_GROUP_ADULT = 'adult'
+    AGE_GROUP_CHILD = 'child'
+
+    NAME_CHOICES = (
+        (AGE_GROUP_ADULT, 'Adult'),
+        (AGE_GROUP_CHILD, 'Child'),
+    )
+    code = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0])
+
+    def __str__(self):
+        for item in self.NAME_CHOICES:
+            if self.code == item[0]:
+                return item[1]
+        return ''
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AdmissionType(models.Model):
+    ADMISSION_TYPE_LANDING = 'landing'
+    ADMISSION_TYPE_EXTENDED_STAY = 'extended_stay'
+    ADMISSION_TYPE_NOT_LANDING = 'not_landing'
+    ADMISSION_TYPE_APPROVED_EVENTS = 'approved_events'
+
+    TYPE_CHOICES = (
+        (ADMISSION_TYPE_LANDING, 'Landing'),
+        (ADMISSION_TYPE_EXTENDED_STAY, 'Extended stay'),
+        (ADMISSION_TYPE_NOT_LANDING, 'Not landing'),
+        (ADMISSION_TYPE_APPROVED_EVENTS, 'Approved events'),
+    )
+    code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+
+    def __str__(self):
+        for item in self.TYPE_CHOICES:
+            if self.code == item[0]:
+                return item[1]
+        return ''
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class NumberOfPeople(RevisionedMixin):
+    number = models.PositiveSmallIntegerField(null=True, blank=True, default=0)
+    dcv_admission_arrival = models.ForeignKey(DcvAdmissionArrival, null=True, blank=True)
+    age_group = models.ForeignKey(AgeGroup, null=True, blank=True)
+    admission_type = models.ForeignKey(AdmissionType, null=True, blank=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return '{} ({}, {}, {})'.format(self.number, self.dcv_admission_arrival, self.age_group, self.admission_type)
 
 
 class DcvPermit(RevisionedMixin):
@@ -663,13 +767,13 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_dcv_permits')
+    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits')
     lodgement_number = models.CharField(max_length=10, blank=True, default='')
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
-    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits')
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
-    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True)
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits')
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     @classmethod
@@ -694,8 +798,6 @@ class DcvPermit(RevisionedMixin):
         super(DcvPermit, self).save(**kwargs)
 
     def generate_dcv_permit_doc(self):
-        pass
-        # TODO:
         # self.licence_document = create_approval_document(self, proposal, copied_to_permit, request_user)
         # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         permit_document = create_dcv_permit_document(self)
@@ -705,8 +807,26 @@ class DcvPermit(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+def update_dcv_admission_doc_filename(instance, filename):
+    return '{}/dcv_admissions/{}/admissions/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
+
+
 def update_dcv_permit_doc_filename(instance, filename):
     return '{}/dcv_permits/{}/permits/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
+
+
+class DcvAdmissionDocument(Document):
+    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions')
+    _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
+    can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
+
+    def delete(self, using=None, keep_parents=False):
+        if self.can_delete:
+            return super(DcvAdmissionDocument, self).delete(using, keep_parents)
+        logger.info('Cannot delete existing document object after Application has been submitted : {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class DcvPermitDocument(Document):

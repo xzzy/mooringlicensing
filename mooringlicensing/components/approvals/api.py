@@ -13,12 +13,15 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser, Address
 from datetime import datetime, timedelta, date
 
+from mooringlicensing.components.main.decorators import basic_exception_handler
+from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
+from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
+    DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
 from mooringlicensing.components.proposals.models import Proposal#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel
+    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup
 )
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
@@ -514,6 +517,80 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
+class DcvAdmissionViewSet(viewsets.ModelViewSet):
+    queryset = DcvAdmission.objects.all().order_by('id')
+    serializer_class = DcvAdmissionSerializer
+
+    @staticmethod
+    def _handle_dcv_vessel(dcv_vessel, org_id=None):
+        data = dcv_vessel
+        rego_no_requested = data.get('rego_no', '')
+        uvi_requested = data.get('uvi_vessel_identifier', '')
+        vessel_name_requested = data.get('vessel_name', '')
+        try:
+            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
+        except DcvVessel.DoesNotExist:
+            data['rego_no'] = rego_no_requested
+            data['uvi_vessel_identifier'] = uvi_requested
+            data['vessel_name'] = vessel_name_requested
+            # data['dcv_organisation_id'] = org_id
+            serializer = DcvVesselSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            dcv_vessel = serializer.save()
+        except Exception as e:
+            logger.error(e)
+            raise
+
+        return dcv_vessel
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+
+        dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
+
+        data['submitter'] = request.user.id
+        # data['fee_sid'] = fee_season_requested.get('id')
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        dcv_admission = serializer.save()
+
+        for arrival in data.get('arrivals', None):
+            arrival['dcv_admission'] = dcv_admission.id
+            serializer_arrival = DcvAdmissionArrivalSerializer(data=arrival)
+            serializer_arrival.is_valid(raise_exception=True)
+            dcv_admission_arrival = serializer_arrival.save()
+
+            # Adults
+            age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_ADULT)
+            for admission_type, number in arrival.get('adults').items():
+                number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
+                admission_type_obj = AdmissionType.objects.get(code=admission_type)
+                serializer_num = NumberOfPeopleSerializer(data={
+                    'number': number if number else 0,  # when number is blank, set to 0
+                    'dcv_admission_arrival': dcv_admission_arrival.id,
+                    'age_group': age_group_obj.id,
+                    'admission_type': admission_type_obj.id
+                })
+                serializer_num.is_valid(raise_exception=True)
+                number_of_people = serializer_num.save()
+
+            # Children
+            age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_CHILD)
+            for admission_type, number in arrival.get('children').items():
+                number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
+                admission_type_obj = AdmissionType.objects.get(code=admission_type)
+                serializer_num = NumberOfPeopleSerializer(data={
+                    'number': number if number else 0,  # when number is blank, set to 0
+                    'dcv_admission_arrival': dcv_admission_arrival.id,
+                    'age_group': age_group_obj.id,
+                    'admission_type': admission_type_obj.id
+                })
+                serializer_num.is_valid(raise_exception=True)
+                number_of_people = serializer_num.save()
+
+        return Response(serializer.data)
+
+
 class DcvPermitViewSet(viewsets.ModelViewSet):
     queryset = DcvPermit.objects.all().order_by('id')
     serializer_class = DcvPermitSerializer
@@ -538,16 +615,16 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         return dcv_organisation
 
     @staticmethod
-    def _handle_dcv_vessel(request, org_id):
+    def _handle_dcv_vessel(request, org_id=None):
         data = request.data
         rego_no_requested = request.data.get('rego_no', '')
-        uiv_requested = request.data.get('uiv_vessel_identifier', '')
+        uvi_requested = request.data.get('uvi_vessel_identifier', '')
         vessel_name_requested = request.data.get('vessel_name', '')
         try:
-            dcv_vessel = DcvVessel.objects.get(uiv_vessel_identifier=uiv_requested)
+            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
         except DcvVessel.DoesNotExist:
             data['rego_no'] = rego_no_requested
-            data['uiv_vessel_identifier'] = uiv_requested
+            data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
             data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
@@ -573,6 +650,23 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()
-        dcv_permit.generate_dcv_permit_doc()
 
         return Response(serializer.data)
+
+
+class DcvVesselViewSet(viewsets.ModelViewSet):
+    queryset = DcvVessel.objects.all().order_by('id')
+    serializer_class = DcvVesselSerializer
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def lookup_dcv_vessel(self, request, *args, **kwargs):
+        dcv_vessel = self.get_object()
+        serializer = DcvVesselSerializer(dcv_vessel)
+
+        dcv_vessel_data = serializer.data
+        dcv_vessel_data['annual_admission_permits'] = []  # TODO: retrieve the permits
+        dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
+        dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
+
+        return add_cache_control(Response(dcv_vessel_data))

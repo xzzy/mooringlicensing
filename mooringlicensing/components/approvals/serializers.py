@@ -2,6 +2,7 @@ from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 
 from mooringlicensing.components.main import serializers
+from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
 from mooringlicensing.components.proposals.serializers import ProposalSerializer, InternalProposalSerializer
 #from mooringlicensing.components.main.serializers import ApplicationTypeSerializer
 from mooringlicensing.components.approvals.models import (
@@ -133,19 +134,20 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
 
 
 class DcvVesselSerializer(serializers.ModelSerializer):
-    dcv_organisation_id = serializers.IntegerField()
+    dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
+    dcv_permits = DcvPermitSerializer(many=True, read_only=True)
 
     def validate(self, data):
         field_errors = {}
         non_field_errors = []
 
         if not data['rego_no']:
-            field_errors['rego_no'] = ['Please enter vessel rego_no.',]
+            field_errors['rego_no'] = ['Please enter vessel registration number.',]
         if not data['vessel_name']:
             field_errors['vessel_name'] = ['Please enter vessel name.',]
-        if not data['uiv_vessel_identifier']:
-            field_errors['uiv_vessel_identifier'] = ['Please enter UIV vessel identifier.',]
-        if not data['dcv_organisation_id']:
+        if not data['uvi_vessel_identifier']:
+            field_errors['uvi_vessel_identifier'] = ['Please enter UVI vessel identifier.',]
+        if 'dcv_organisation_id' in data and not data['dcv_organisation_id']:
             field_errors['dcv_organisation_id'] = ['Please enter organisation and/or ABN / ACN.',]
 
         # Raise errors
@@ -162,11 +164,13 @@ class DcvVesselSerializer(serializers.ModelSerializer):
             'id',
             'vessel_name',
             'rego_no',
-            'uiv_vessel_identifier',
+            'uvi_vessel_identifier',
             'dcv_organisation_id',
+            'dcv_permits',
         )
         read_only_fields = (
             'id',
+            'dcv_permits',
         )
 
 
