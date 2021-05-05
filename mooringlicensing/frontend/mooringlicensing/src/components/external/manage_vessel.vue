@@ -111,6 +111,7 @@ export default {
         try {
             let res = null;
             if (this.creatingVessel) {
+                payload.create_vessel = true;
                 res = await vm.$http.post(api_endpoints.vessel, payload);
             } else {
                 const url = `${api_endpoints.vessel}${payload.vessel.id}/`;
