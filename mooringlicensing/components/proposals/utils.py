@@ -371,6 +371,7 @@ def save_proponent_data_wla(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     # vessel
+    #import ipdb; ipdb.set_trace()
     vessel_data = request.data.get("vessel")
     if vessel_data:
         if viewset.action == 'submit':
@@ -459,9 +460,10 @@ def save_vessel_data(instance, request, vessel_data):
         #if vessel_ownership_id:
         #    instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
         #    instance.save()
-    vessel_ownership_data = vessel_data.get("vessel_ownership")
-    for key in vessel_ownership_data.keys():
-        vessel_data.update({key: vessel_ownership_data.get(key)})
+    ### !!! commenting out these 3 lines for now
+    #vessel_ownership_data = vessel_data.get("vessel_ownership")
+    #for key in vessel_ownership_data.keys():
+        #vessel_data.update({key: vessel_ownership_data.get(key)})
     serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
     serializer.is_valid(raise_exception=True)
     print(serializer.validated_data)
@@ -498,6 +500,7 @@ def submit_vessel_data(instance, request, vessel_data):
             serializer.is_valid(raise_exception=True)
             serializer.save()
     else:
+        #import ipdb; ipdb.set_trace()
         vessel = Vessel.objects.get(id=vessel_data.get('id'))
         vessel_details = vessel.latest_vessel_details
     # associate vessel_details with proposal
