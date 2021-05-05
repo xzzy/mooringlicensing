@@ -122,7 +122,7 @@ export default {
                     {
                         uuid: uuid(),
                         arrival_date: null,
-                        private_visit: null,
+                        private_visit: false,
                         adults: {
                             landing: 0,
                             extended_stay: 0,
@@ -183,9 +183,6 @@ export default {
                 placeholder:"Select Vessel Registration",
                 tags: true,
                 createTag: function (tag) {
-                    console.log('in createTag')
-                    console.log('tag: ')
-                    console.log(tag)
                     return {
                         id: tag.term,
                         text: tag.term,
@@ -198,16 +195,10 @@ export default {
                 }
             }).
             on("select2:select",function (e) {
-                console.log('select2:select')
-                console.log('e: ')
-                console.log(e)
+                console.log('in select')
                 var selected = $(e.currentTarget);
-                console.log('selected: ')
-                console.log(selected)
                 //vm.vessel.rego_no = selected.val();
                 const id = selected.val();
-                console.log('val(): ')
-                console.log(id)
                 vm.$nextTick(() => {
                     //if (!isNew) {
                     if (e.params.data.isNew) {
@@ -315,7 +306,7 @@ export default {
                 {
                     uuid: uuid(),
                     arrival_date: null,
-                    private_visit: null,
+                    private_visit: false,
                     adults: {
                         landing: 0,
                         extended_stay: 0,
