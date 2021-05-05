@@ -238,7 +238,7 @@ class FeeSeasonAdmin(admin.ModelAdmin):
 class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
-    list_display = ('id', 'application_type', 'fee_season', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment')
+    list_display = ('id', 'application_type', 'fee_season', 'start_date', 'end_date', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment',)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Sort 'fee_season' dropdown by the start_date

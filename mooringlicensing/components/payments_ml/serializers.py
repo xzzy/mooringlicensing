@@ -130,7 +130,11 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             # if not data['comments']:
             #     field_errors['comments'] = ['Please enter comments.',]
 
-            dcv_permit_qs = DcvPermit.objects.filter(dcv_vessel_id=data.get('dcv_vessel_id', 0), fee_season_id=data.get('fee_season_id', 0))
+            dcv_permit_qs = DcvPermit.objects.filter(
+                dcv_vessel_id=data.get('dcv_vessel_id', 0),
+                fee_season_id=data.get('fee_season_id', 0),
+                dcv_organisation_id=data.get('dcv_organisation_id', 0)  # TODO <== check if works
+            )
             if dcv_permit_qs:
                 dcv_organisation = DcvOrganisation.objects.get(id=data.get('dcv_organisation_id'))
                 dcv_vessel = DcvVessel.objects.get(id=data.get('dcv_vessel_id'))
