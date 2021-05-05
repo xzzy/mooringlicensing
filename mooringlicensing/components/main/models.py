@@ -179,11 +179,14 @@ class Question(models.Model):
 
 class GlobalSettings(models.Model):
     KEY_DCV_PERMIT_TEMPLATE_FILE = 'dcv_permit_template_file'
+    KEY_DCV_ADMISSION_TEMPLATE_FILE = 'dcv_admission_template_file'
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
+        (KEY_DCV_ADMISSION_TEMPLATE_FILE, 'DcvAdmission template file'),
     )
     default_values = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
+        (KEY_DCV_ADMISSION_TEMPLATE_FILE, ''),
     )
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
@@ -308,7 +311,9 @@ class VesselSizeCategory(RevisionedMixin):
 
     @property
     def is_editable(self):
-        return self.vessel_size_category_group.is_editable
+        if self.vessel_size_category_group:
+            return self.vessel_size_category_group.is_editable
+        return True
 
 
 

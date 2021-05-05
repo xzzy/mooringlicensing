@@ -4,9 +4,7 @@
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
-                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
-                        <!--option value="null"></option>
-                        <option v-for="rego in vesselRegoNos" :value="rego">{{rego}}</option-->
+                    <select :disabled="readonly || editingVessel" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                     </select>
                 </div>
             </div>
@@ -19,7 +17,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-9">
-                    <input :readonly="!editableVessel" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required/>
+                    <input :readonly="!editableVesselDetails" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required/>
                 </div>
             </div>
             <!--div v-if="!vessel.read_only" class="row form-group"-->
@@ -38,7 +36,7 @@
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                         <div v-if="companyOwner" class="col-sm-8">
-                            <input type="text" class="form-control" id="registered_owner_company_name" placeholder="Company name" v-model="vessel.vessel_ownership.org_name" required=""/>
+                            <input :readonly="readonly" type="text" class="form-control" id="registered_owner_company_name" placeholder="Company name" v-model="vessel.vessel_ownership.org_name" required=""/>
                         </div>
                     </div>
                 </div>
@@ -74,10 +72,10 @@
                 <label for="" class="col-sm-3 control-label">Permanent or usual place of berthing/mooring of vessel</label>
                 <!--label for="" class="col-sm-3 control-label">Permanent or usual place</label-->
                 <div class="col-sm-9">
-                    <input :readonly="!editableVessel" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
+                    <input :readonly="!editableVesselDetails" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
-            <div class="row form-group">
+            <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -90,7 +88,7 @@
                     />
                 </div>
             </div>
-            <div v-if="proposal.application_type_code==='mla'" class="row form-group">
+            <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -109,31 +107,31 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel length</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
+                    <input :readonly="!editableVesselDetails" type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Overall length of vessel</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
+                    <input :readonly="!editableVesselDetails" type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Displacement tonnage</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
+                    <input :readonly="!editableVesselDetails" type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Draft</label>
                 <div class="col-sm-2">
-                    <input :readonly="!editableVessel" type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
+                    <input :readonly="!editableVesselDetails" type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
                 </div>
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel Type</label>
                 <div class="col-sm-4">
-                    <select :readonly="!editableVessel" class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
+                    <select :readonly="!editableVesselDetails" class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
                         <option v-for="vesselType in vesselTypes" :value="vesselType.code">
                             {{ vesselType.description }}
                         </option>
@@ -179,7 +177,7 @@ from '@/utils/hooks'
         props:{
             proposal:{
                 type: Object,
-                required:true
+                //required:true
             },
             profile:{
                 type: Object,
@@ -189,8 +187,21 @@ from '@/utils/hooks'
                 type: Boolean,
                 default: true,
             },
+            creatingVessel:{
+                type: Boolean,
+            },
+            editingVessel:{
+                type: Boolean,
+            },
         },
         computed: {
+            showDotRegistrationPapers: function() {
+                let retVal = false;
+                if (this.proposal && this.proposal.id) {
+                    retVal = true
+                }
+                return retVal;
+            },
             companyOwner: function() {
                 //let returnVal = false;
                 if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
@@ -204,18 +215,25 @@ from '@/utils/hooks'
                     return this.vessel.vessel_ownership.registered_owner;
                 }
             },
-            editableVessel: function() {
-                if (!this.readonly) {
+            orgName: function() {
+                if (this.vessel && this.vessel.vessel_ownership) {
+                    return this.vessel.vessel_ownership.org_name;
+                }
+            },
+            editableVesselDetails: function() {
+                let retVal = false;
+                if (this.creatingVessel) {
+                    retVal = true;
+                } else if (!this.readonly) {
                     // front-end lookup 
-                    if (this.vessel.hasOwnProperty('read_only')) {
-                        return !this.vessel.read_only;
+                    if (this.vessel.vessel_details.hasOwnProperty('read_only')) {
+                        retVal = !this.vessel.vessel_details.read_only;
                     // vessel stored on Proposal
                     } else if (this.proposal) {
-                        return this.proposal.editable_vessel;
+                        retVal = this.proposal.editable_vessel_details;
                     }
-                } else {
-                    return false;
                 }
+                return retVal;
             },
             profileFullName: function() {
                 if (this.profile) {
@@ -245,16 +263,38 @@ from '@/utils/hooks'
                 }
                 return url;
             },
+            applicationTypeCodeMLA: function() {
+                if (this.proposal && this.proposal.application_type_code==='mla') {
+                    return true;
+                }
+            },
 
         },
         methods:{
+            validateRegoNo: function(data) {
+                // force uppercase and no whitespace
+                data = data.toUpperCase();
+                data = data.replace(/\s/g,"");
+                data = data.replace(/\W/g,"");
+                /*
+                if (!data.disabled && data.text && typeof(data.text) === "string") {
+                    // force uppercase and no whitespace
+                    data = data.text.toUpperCase();
+                    console.log(data);
+                    data = data.text.replace(/\s/g,"");
+                    data = data.text.replace(/\W/g,"");
+                }
+                */
+                return data;
+            },
             initialiseSelects: function(){
                 let vm = this;
                 $(vm.$refs.vessel_rego_nos).select2({
                     minimumInputLength: 2,
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Vessel Registration",
+                    //placeholder:"Select Vessel Registration",
+                    placeholder:"",
                     tags: true,
                     createTag: function (tag) {
                         return {
@@ -266,25 +306,42 @@ from '@/utils/hooks'
                     ajax: {
                         url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
-                    }
+                        data: function(params) {
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                                create_vessel: vm.creatingVessel,
+                                org_name: vm.orgName,
+                            }
+                            return query;
+                        },
+                    },
+                    //templateSelection: vm.validateRegoNo,
+                    //templateResult: vm.validateRegoNo,
+                    templateSelection: function(data) {
+                        console.log(data);
+                        return vm.validateRegoNo(data.text);
+                    },
                 }).
-                on("select2:select",function (e) {
+                on("select2:select", function (e) {
                     var selected = $(e.currentTarget);
-                    //vm.vessel.rego_no = selected.val();
-                    const id = selected.val();
+                    let data = e.params.data.id;
                     vm.$nextTick(() => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
                             console.log("fetch new vessel");
                             // fetch draft/approved vessel
-                            vm.lookupVessel(id);
+                            vm.lookupVessel(data);
                         } else {
+                            data = vm.validateRegoNo(data);
+
                             vm.vessel = Object.assign({}, 
-                                {   
-                                    read_only: false,
+                                {
                                     new_vessel: true,
-                                    rego_no: id,
-                                    vessel_details: {},
+                                    rego_no: data,
+                                    vessel_details: {
+                                        read_only: false,
+                                    },
                                     vessel_ownership: {
                                         registered_owner: 'current_user',
                                     }
@@ -297,19 +354,26 @@ from '@/utils/hooks'
                     vm.vessel.rego_no = '';
                     vm.vessel = Object.assign({}, 
                         {   
-                            read_only: false,
-                            vessel_details: {},
+                            vessel_details: {
+                                read_only: false,
+                            },
                             vessel_ownership: {
                                 registered_owner: 'current_user',
                             }
                         });
-
-                    //vm.selectedRego = ''
                 }).
                 on("select2:open",function (e) {
-                    //document.getElementsByClassName("select2-search__field")[0].focus();
-                    console.log($(".select2-search__field"));
-                    $(".select2-search__field")[0].focus();
+                    const searchField = $(".select2-search__field")
+                    // move focus to select2 field
+                    searchField[0].focus();
+                    // prevent spacebar from being used
+                    searchField.on("keydown",function (e) {
+                        //console.log(e.which);
+                        if ([32,].includes(e.which)) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
                 });
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
@@ -349,7 +413,11 @@ from '@/utils/hooks'
                 const vesselData = res.body;
                 console.log(res);
                 if (vesselData && vesselData.rego_no) {
-                    this.vessel = Object.assign({}, vesselData);
+                    if (this.creatingVessel) {
+                        this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
+                    } else {
+                        this.vessel = Object.assign({}, vesselData);
+                    }
                 }
             },
             fetchVessel: async function() {
@@ -380,20 +448,28 @@ from '@/utils/hooks'
                             this.proposal.id + '/fetch_vessel/'
                         )
                     }
-                    const res = await this.$http.get(url);
-                    const vesselData = res.body;
-                    if (vesselData && vesselData.rego_no) {
-                        this.vessel = Object.assign({}, vesselData);
-                    }
-                    this.readRegoNo();
+                    await this.fetchSubmittedVesselCommon(url);
                 }
             },
+            fetchSubmittedVesselCommon: async function(url) {
+                const res = await this.$http.get(url);
+                const vesselData = res.body;
+                if (vesselData && vesselData.rego_no) {
+                    this.vessel = Object.assign({}, vesselData);
+                }
+                this.readRegoNo();
+            },
         },
-        mounted:function () {
+        mounted: function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
                 //await this.fetchVesselRegoNos();
-                await this.fetchVessel();
+                if (this.proposal) {
+                    await this.fetchVessel();
+                } else if (!this.creatingVessel) {
+                    const url = api_endpoints.lookupVesselOwnership(this.$route.params.id);
+                    this.fetchSubmittedVesselCommon(url);
+                }
                 this.initialiseSelects();
                 this.addEventListeners();
             });
@@ -405,7 +481,7 @@ from '@/utils/hooks'
 
 <style lang="css" scoped>
     input[type=text] {
-        padding-left: 12px;
+        padding-left: 1em;
     }
 </style>
 

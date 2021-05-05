@@ -192,6 +192,7 @@ export default {
       canEditPeriod: function(){
         return this.proposal ? this.proposal.can_user_edit: 'false';
       },
+      /*
       application_type_tclass: function(){
         return api_endpoints.t_class;
       },
@@ -201,6 +202,7 @@ export default {
       application_type_event: function(){
         return api_endpoints.event;
       },
+      */
       trainingCompleted: function(){
         if(this.proposal.application_type== 'Event')
           {
@@ -215,17 +217,31 @@ export default {
           }
           return show;
       },
+      applicationTypeCode: function() {
+          if (this.proposal) {
+              return this.proposal.application_type_code;
+          }
+      },
+      /*
+      annualAdmissionApplication: function() {
+          let retVal = false;
+          if (this.proposal && this.proposal.application_type_code === 'aaa') {
+              retVal = true;
+          }
+          return retVal;
+      },
+      */
 
   },
   methods: {
     proposal_refs:function(){
-      if(this.proposal.application_type_code == 'wla') {
+      if(this.applicationTypeCode == 'wla') {
           return this.$refs.waiting_list_application;
-      } else if (this.proposal.application_type_code == 'aaa') {
+      } else if (this.applicationTypeCode == 'aaa') {
           return this.$refs.annual_admission_application;
-      } else if (this.proposal.application_type_code == 'aua') {
+      } else if (this.applicationTypeCode == 'aua') {
           return this.$refs.authorised_user_application;
-      } else if (this.proposal.application_type_code == 'mla') {
+      } else if (this.applicationTypeCode == 'mla') {
           return this.$refs.mooring_licence_application;
       } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
@@ -350,7 +366,6 @@ export default {
                 );
             };
             vm.savingProposal=false;
-            console.log(res);
             return res;
         } else {
             swal({

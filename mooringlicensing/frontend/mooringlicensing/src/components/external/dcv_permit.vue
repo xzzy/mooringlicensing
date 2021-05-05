@@ -23,9 +23,9 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">UIV vessel identifier</label>
+                <label for="" class="col-sm-3 control-label">UVI vessel identifier</label>
                 <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uiv_vessel_identifier" placeholder="" v-model="dcv_permit.uiv_vessel_identifier">
+                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_permit.uvi_vessel_identifier">
                 </div>
             </div>
             <div class="row form-group">
@@ -52,8 +52,8 @@
                             <div class="navbar-inner">
                                 <div class="container">
                                     <p class="pull-right" style="margin-top:5px">
-                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>Submit and Pay&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="submit_and_pay" class="btn btn-primary" value="Submit and Pay" :disabled="paySubmitting"/>
+                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>Pay and Submit&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
+                                        <input v-else type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit" :disabled="paySubmitting"/>
                                     </p>
                                 </div>
                             </div>
@@ -80,7 +80,7 @@ export default {
                 organisation: '',
                 abn_acn: '',
                 season: null,
-                uiv_vessel_identifier: '',
+                uvi_vessel_identifier: '',
                 rego_no: '',
                 vessel_name: '',
             },
@@ -106,17 +106,17 @@ export default {
         },
     },
     methods: {
-        submit_and_pay: function(){
-            // submit_and_pay() --> save_and_pay() --> post_and_redirect()
+        pay_and_submit: function(){
+            // pay_and_submit() --> save_and_pay() --> post_and_redirect()
             let vm = this
             vm.paySubmitting = true;
 
             swal({
                 title: "DCV Permit Application",
-                text: "Are you sure you want to submit and pay for this application?",
+                text: "Are you sure you want to pay and submit for this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: "Submit and Pay",
+                confirmButtonText: "Pay and Submit",
             }).then(
                 (res)=>{
                     vm.save_and_pay();
@@ -131,7 +131,7 @@ export default {
             try{
                 const res = await this.save(false, '/api/dcv_permit/')
                 this.dcv_permit.id = res.body.id
-                await this.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                await helpers.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
             } catch(err) {
                 helpers.processError(err)
             }
@@ -150,24 +150,6 @@ export default {
             } catch(err){
                 helpers.processError(err)
             }
-        },
-        post_and_redirect: function(url, postData) {
-            /* http.post and ajax do not allow redirect from Django View (post method), 
-               this function allows redirect by mimicking a form submit.
-
-               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-            */
-            var postFormStr = "<form method='POST' action='" + url + "'>";
-
-            for (var key in postData) {
-                if (postData.hasOwnProperty(key)) {
-                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
-                }
-            }
-            postFormStr += "</form>";
-            var formElement = $(postFormStr);
-            $('body').append(formElement);
-            $(formElement).submit();
         },
         fetchFilterLists: function(){
             let vm = this;

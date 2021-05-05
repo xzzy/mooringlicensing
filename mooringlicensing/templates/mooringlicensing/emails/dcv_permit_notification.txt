@@ -1,0 +1,10 @@
+{%  extends 'mooringlicensing/emails/base_email.txt' %}
+
+{%  block content %}
+    DCV Permit been issued
+
+    DCV Permit : {{ dcv_permit.lodgement_number }}
+
+    Please find the invoice and DCV Permit attached.
+
+{%  endblock %}

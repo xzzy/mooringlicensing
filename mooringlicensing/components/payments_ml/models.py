@@ -11,8 +11,6 @@ from ledger.accounts.models import RevisionedMixin, EmailUser
 from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
-# from mooringlicensing.components.approvals.models import DcvPermit
-# from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import Proposal, ProposalType
 
@@ -96,6 +94,32 @@ class Payment(RevisionedMixin):
         return "paid"
 
 
+class DcvAdmissionFee(Payment):
+    PAYMENT_TYPE_INTERNET = 0
+    PAYMENT_TYPE_RECEPTION = 1
+    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_TEMPORARY = 3
+    PAYMENT_TYPE_CHOICES = (
+        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
+        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
+        (PAYMENT_TYPE_BLACK, 'Black booking'),
+        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
+    )
+
+    dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
+    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
+    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
+
+    def __str__(self):
+        return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class DcvPermitFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
@@ -111,7 +135,7 @@ class DcvPermitFee(Payment):
     dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
 
@@ -152,13 +176,18 @@ class FeeSeason(RevisionedMixin):
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):
-        num_item = self.fee_periods.count()
-        num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
-
         if self.start_date:
-            return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
+            return self.name
         else:
             return '{} (No periods found)'.format(self.name)
+
+        # num_item = self.fee_periods.count()
+        # num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
+        #
+        # if self.start_date:
+        #     return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
+        # else:
+        #     return '{} (No periods found)'.format(self.name)
 
     def get_first_period(self):
         first_period = self.fee_periods.order_by('start_date').first()
@@ -200,11 +229,13 @@ class FeePeriod(RevisionedMixin):
     # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
 
     def __str__(self):
-        return 'Name: {}, Start Date: {}'.format(self.name, self.start_date)
+        return '{} (start: {})'.format(self.name, self.start_date)
 
     @property
     def is_editable(self):
-        return self.fee_season.is_editable
+        if self.fee_season:
+            return self.fee_season.is_editable
+        return True
 
     # def save(self, **kwargs):
     #     if not self.is_editable:
@@ -227,10 +258,17 @@ class FeeConstructor(RevisionedMixin):
     def __str__(self):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
-    def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date(), age_group=None, admission_type=None):
         fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
         vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length).order_by('start_size').last()
-        fee_item = FeeItem.objects.filter(fee_constructor=self, fee_period=fee_period, vessel_size_category=vessel_size_category, proposal_type=proposal_type)
+        fee_item = FeeItem.objects.filter(
+            fee_constructor=self,
+            fee_period=fee_period,
+            vessel_size_category=vessel_size_category,
+            proposal_type=proposal_type,
+            age_group=age_group,
+            admission_type=admission_type,
+        )
 
         if fee_item:
             return fee_item[0]
@@ -241,6 +279,18 @@ class FeeConstructor(RevisionedMixin):
     @property
     def is_editable(self):
         return True if not self.num_of_times_used_for_payment else False
+
+    @property
+    def start_date(self):
+        if self.fee_season:
+            return self.fee_season.start_date
+        return None
+
+    @property
+    def end_date(self):
+        if self.fee_season:
+            return self.fee_season.end_date
+        return None
 
     @property
     def num_of_times_used_for_payment(self):
@@ -341,14 +391,19 @@ class FeeItem(RevisionedMixin):
     fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
     vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
     proposal_type = models.ForeignKey(ProposalType, null=True, blank=True)
-    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
+    # For DcvAdmission
+    age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
+    admission_type = models.ForeignKey('AdmissionType', null=True, blank=True)
 
     def __str__(self):
         return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category)
 
     @property
     def is_editable(self):
-        return self.fee_constructor.is_editable
+        if self.fee_constructor:
+            return self.fee_constructor.is_editable
+        return True
 
     class Meta:
         app_label = 'mooringlicensing'

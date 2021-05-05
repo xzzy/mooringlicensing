@@ -1,5 +1,9 @@
 import logging
+
+from django.contrib.auth.models import Group
+
 from mooringlicensing import settings
+from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, GlobalSettings
 from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
     ProposalApproverGroup
@@ -42,6 +46,14 @@ class DefaultDataManager(object):
                 type.oracle_code = settings.APPLICATION_TYPE_DCV_PERMIT['oracle_code']
                 type.save()
                 logger.info("Created ApplicationType: {}".format(type.description))
+
+            # Create record for the DCV Admission
+            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
+            if created:
+                type.description = settings.APPLICATION_TYPE_DCV_ADMISSION['description']
+                type.oracle_code = settings.APPLICATION_TYPE_DCV_ADMISSION['oracle_code']
+                type.save()
+                logger.info("Created ApplicationType: {}".format(type.description))
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
@@ -73,3 +85,30 @@ class DefaultDataManager(object):
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
                 logger.error('{}, Key: {}'.format(e, item[0]))
+
+        # AgeGroup for the DcvAdmission fees
+        for item in AgeGroup.NAME_CHOICES:
+            try:
+                type, created = AgeGroup.objects.get_or_create(code=item[0])
+                if created:
+                    logger.info("Created AgeGroup: {}".format(item[1]))
+            except Exception as e:
+                logger.error('{}, AgeGroup: {}'.format(e, item[1]))
+
+        # AdmissionType for the DcvAdmission fees
+        for item in AdmissionType.TYPE_CHOICES:
+            try:
+                type, created = AdmissionType.objects.get_or_create(code=item[0])
+                if created:
+                    logger.info("Created AdmissionType: {}".format(item[1]))
+            except Exception as e:
+                logger.error('{}, AdmissionType: {}'.format(e, item[1]))
+
+        # Groups
+        for group_name in settings.CUSTOM_GROUPS:
+            try:
+                group, created = Group.objects.get_or_create(name=group_name)
+                if created:
+                    logger.info("Created group: {}".format(group_name))
+            except Exception as e:
+                logger.error('{}, Group name: {}'.format(e, group_name))

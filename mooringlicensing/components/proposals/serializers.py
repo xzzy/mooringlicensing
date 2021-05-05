@@ -200,7 +200,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
-    editable_vessel = serializers.SerializerMethodField()
+    editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
 
@@ -262,7 +262,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'org_name',
                 'percentage',
-                'editable_vessel',
+                'editable_vessel_details',
                 'individual_owner',
                 'insurance_choice',
                 'preferred_bay_id',
@@ -274,8 +274,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 )
         read_only_fields=('documents',)
 
-    def get_editable_vessel(self, obj):
-        return obj.editable_vessel
+    def get_editable_vessel_details(self, obj):
+        return obj.editable_vessel_details
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
@@ -479,7 +479,6 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("preferred_bay_id"):
@@ -535,7 +534,6 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -575,7 +573,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         print("validate data")
         print(data)
         custom_errors = {}
@@ -926,14 +923,16 @@ class VesselSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ListVesselSerializer(serializers.ModelSerializer):
+class ListVesselDetailsSerializer(serializers.ModelSerializer):
     rego_no = serializers.SerializerMethodField()
     vessel_length = serializers.SerializerMethodField()
+    vessel_type = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
         fields = (
                 'id',
+                'vessel_id',
                 'vessel_type',
                 'rego_no', # link to rego number
                 'vessel_name', 
@@ -953,12 +952,66 @@ class ListVesselSerializer(serializers.ModelSerializer):
     def get_vessel_length(self, obj):
         return obj.vessel_applicable_length
 
+    def get_vessel_type(self, obj):
+        return obj.get_vessel_type_display()
+
+
+class ListVesselOwnershipSerializer(serializers.ModelSerializer):
+    vessel_details = serializers.SerializerMethodField()
+    emailuser = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'id',
+                'emailuser',
+                'owner_name',
+                'percentage',
+                'vessel_details',
+                )
+
+    def get_emailuser(self, obj):
+        serializer = EmailUserSerializer(obj.owner.emailuser)
+        return serializer.data
+
+    def get_vessel_details(self, obj):
+        serializer = ListVesselDetailsSerializer(obj.vessel.latest_vessel_details)
+        return serializer.data
+
+    def get_owner_name(self, obj):
+        return obj.org_name if obj.org_name else str(obj.owner)
+
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
+    read_only = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
-        fields = '__all__'
+        fields = (
+                'blocking_proposal',
+                'vessel_type',
+                'vessel',
+                'vessel_name',
+                'vessel_overall_length',
+                'vessel_length',
+                'vessel_draft',
+                'vessel_beam',
+                'vessel_weight',
+                'berth_mooring',
+                'created',
+                'updated',
+                'status',
+                'exported',
+                'read_only',
+                )
+
+    def get_read_only(self, obj):
+        ro = True
+        if obj.status == 'draft' and (
+            not obj.blocking_proposal or
+            obj.blocking_proposal.submitter == self.context.get('request').user):
+            ro = False
+        return ro
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
@@ -1008,9 +1061,30 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def validate(self, data):
+        #import ipdb; ipdb.set_trace()
         custom_errors = {}
-        if data.get("percentage") > 100:
-            custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
+        percentage = data.get("percentage")
+        owner = data.get("owner")
+        org_name = data.get("org_name")
+        vessel = data.get("vessel")
+        total = 0
+        if percentage:
+            #custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
+            qs = self.instance.vessel.vesselownership_set.all()
+            for vo in qs:
+                # Same VesselOwnership record? - match vo with incoming data
+                if (vo.owner == owner and 
+                (vo.org_name == org_name or (not vo.org_name and not org_name)) and
+                vo.vessel == vessel):
+                    # handle percentage change on VesselOwnership obj
+                    #total += percentage if percentage else 0
+                    total += percentage
+                else:
+                    total += vo.percentage if vo.percentage else 0
+            if total > 100:
+                #raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
+                custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
+
         if data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():
@@ -1018,7 +1092,6 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         return data
 
     #def validate_percentage(self, value):
-    #    #import ipdb; ipdb.set_trace()
     #    if value > 100:
     #        #raise serializers.ValidationError({"Ownership percentage": "Max value is 100"})
     #        raise serializers.ValidationError("Max value is 100")

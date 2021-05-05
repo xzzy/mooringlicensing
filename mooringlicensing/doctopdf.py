@@ -6,7 +6,7 @@ from docxtpl import DocxTemplate
 from mooringlicensing.components.main.models import GlobalSettings
 
 
-def create_apiary_licence_pdf_contents(dcv_permit):
+def create_dcv_permit_pdf_contents(dcv_permit):
     #import ipdb; ipdb.set_trace()
     # print ("Letter File")
     # confirmation_doc = None
@@ -20,8 +20,7 @@ def create_apiary_licence_pdf_contents(dcv_permit):
     if licence_template._file:
         path_to_template = licence_template._file.path
     else:
-        # Use default template file
-        path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
+        raise Exception('DcvPermit template file not found.')
 
     doc = DocxTemplate(path_to_template)
     # address = ''
@@ -51,6 +50,43 @@ def create_apiary_licence_pdf_contents(dcv_permit):
         os.mkdir(temp_directory)
 
     f_name = temp_directory + 'dcv_permit_' + str(dcv_permit.id)
+    new_doc_file = f_name + '.docx'
+    new_pdf_file = f_name + '.pdf'
+    doc.save(new_doc_file)
+    os.system("libreoffice --headless --convert-to pdf " + new_doc_file + " --outdir " + temp_directory)
+
+    file_contents = None
+    with open(new_pdf_file, 'rb') as f:
+        file_contents = f.read()
+    os.remove(new_doc_file)
+    os.remove(new_pdf_file)
+    return file_contents
+
+
+def create_dcv_admission_pdf_contents(dcv_admission):
+    licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_DCV_ADMISSION_TEMPLATE_FILE)
+
+    if licence_template._file:
+        path_to_template = licence_template._file.path
+    else:
+        raise Exception('DcvAdmission template file not found.')
+
+    doc = DocxTemplate(path_to_template)
+    serializer_context = {
+        'dcv_admission': dcv_admission,
+    }
+    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
+    # context = context_obj.data
+    # doc.render(context)
+    doc.render({})
+
+    temp_directory = settings.BASE_DIR + "/tmp/"
+    try:
+        os.stat(temp_directory)
+    except:
+        os.mkdir(temp_directory)
+
+    f_name = temp_directory + 'dcv_admission' + str(dcv_admission.id)
     new_doc_file = f_name + '.docx'
     new_pdf_file = f_name + '.pdf'
     doc.save(new_doc_file)

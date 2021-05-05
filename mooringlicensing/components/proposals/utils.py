@@ -33,6 +33,7 @@ from mooringlicensing.components.proposals.serializers import (
         SaveMooringLicenceApplicationSerializer,
         SaveAuthorisedUserApplicationSerializer,
         SaveAnnualAdmissionApplicationSerializer,
+        VesselSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -336,7 +337,6 @@ def save_proponent_data(instance, request, viewset):
         save_proponent_data_mla(instance, request, viewset)
 
 def save_proponent_data_aaa(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -358,7 +358,6 @@ def save_proponent_data_aaa(instance, request, viewset):
             save_vessel_data(instance, request, vessel_data)
 
 def save_proponent_data_wla(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -372,6 +371,7 @@ def save_proponent_data_wla(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     # vessel
+    #import ipdb; ipdb.set_trace()
     vessel_data = request.data.get("vessel")
     if vessel_data:
         if viewset.action == 'submit':
@@ -381,7 +381,6 @@ def save_proponent_data_wla(instance, request, viewset):
 
 
 def save_proponent_data_mla(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -407,7 +406,6 @@ def save_proponent_data_mla(instance, request, viewset):
 
 
 def save_proponent_data_aua(instance, request, viewset):
-    #import ipdb; ipdb.set_trace()
     print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -439,25 +437,17 @@ def save_proponent_data_aua(instance, request, viewset):
 #    #save_proposal_data(instance, request)
 #    submit_vessel_data(instance, request)
 
+# draft and submit
 def save_vessel_data(instance, request, vessel_data):
     print("save vessel data")
     #vessel_data = request.data.get("vessel")
+    vessel_details_data = {}
     if not vessel_data.get("read_only"):
         print('if not vessel_data.get("read_only")')
         vessel_details_data = vessel_data.get("vessel_details")
-        vessel_ownership_data = vessel_data.get("vessel_ownership")
         # add vessel details and vessel ownership to vessel_data
         for key in vessel_details_data.keys():
             vessel_data.update({key: vessel_details_data.get(key)})
-        for key in vessel_ownership_data.keys():
-            vessel_data.update({key: vessel_ownership_data.get(key)})
-        #print("vessel_data")
-        #print(vessel_data)
-
-        serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
-        serializer.is_valid(raise_exception=True)
-        print(serializer.validated_data)
-        serializer.save()
         # clear stored instance.vessel_details
         instance.vessel_details = None
         instance.save()
@@ -466,11 +456,18 @@ def save_vessel_data(instance, request, vessel_data):
         if vessel_details_id:
             instance.vessel_details = VesselDetails.objects.get(id=vessel_details_id)
             instance.save()
-        vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
-        if vessel_ownership_id:
-            instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
-            instance.save()
-
+        #vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
+        #if vessel_ownership_id:
+        #    instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
+        #    instance.save()
+    ### !!! commenting out these 3 lines for now
+    #vessel_ownership_data = vessel_data.get("vessel_ownership")
+    #for key in vessel_ownership_data.keys():
+        #vessel_data.update({key: vessel_ownership_data.get(key)})
+    serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
+    serializer.is_valid(raise_exception=True)
+    print(serializer.validated_data)
+    serializer.save()
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
@@ -481,7 +478,7 @@ def submit_vessel_data(instance, request, vessel_data):
     if not vessel_data.get("read_only"):
         if not vessel_data.get('rego_no'):
             raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
-        rego_no = vessel_data.get('rego_no').replace(" ", "").strip() # successfully avoiding dupes?
+        rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
         vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
         
         vessel_details_data = vessel_data.get("vessel_details")
@@ -502,9 +499,13 @@ def submit_vessel_data(instance, request, vessel_data):
             serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-        # associate vessel_details with proposal
-        instance.vessel_details = vessel_details
-        instance.save()
+    else:
+        #import ipdb; ipdb.set_trace()
+        vessel = Vessel.objects.get(id=vessel_data.get('id'))
+        vessel_details = vessel.latest_vessel_details
+    # associate vessel_details with proposal
+    instance.vessel_details = vessel_details
+    instance.save()
     # record ownership data
     submit_vessel_ownership(instance, request, vessel_data)
 
@@ -542,6 +543,70 @@ def submit_vessel_ownership(instance, request, vessel_data):
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
 
+# no proposal - manage vessels
+def save_bare_vessel_data(request, vessel_obj=None):
+    #import ipdb; ipdb.set_trace()
+    print("save bare vessel data")
+    #if not vessel_data.get("read_only"):
+    vessel_data = request.data.get("vessel")
+    if not vessel_data.get('rego_no'):
+        raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
+    rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
+    if vessel_obj:
+        vessel = vessel_obj
+    else:
+        vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+    
+    vessel_details_data = vessel_data.get("vessel_details")
+    # add vessel to vessel_details_data
+    vessel_details_data["vessel"] = vessel.id
+
+    ## Vessel Details
+    vessel_details = vessel.latest_vessel_details
+    if not vessel_details:
+        serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        #vessel_details = serializer.save()
+        # set proposal now has sole right to edit vessel_details
+        #vessel_details.blocking_proposal = instance
+        #vessel_details.save()
+    else:
+        serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+    # record ownership data
+    save_bare_vessel_ownership(request, vessel_data, vessel)
+    return VesselSerializer(vessel).data
+
+
+# no proposal - manage vessels
+def save_bare_vessel_ownership(request, vessel_data, vessel):
+    print("save bare vessel ownership data")
+    vessel_ownership_data = vessel_data.get("vessel_ownership")
+    if vessel_ownership_data.get('individual_owner') is None:
+        raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
+    elif not vessel_ownership_data.get('individual_owner') and not vessel_ownership_data.get("org_name"):
+        raise serializers.ValidationError({"Missing information": "You must supply the company name"})
+    vessel_ownership_data['vessel'] = vessel.id
+    org_name = vessel_ownership_data.get("org_name")
+    owner, created = Owner.objects.get_or_create(emailuser=request.user)
+
+    vessel_ownership_data['owner'] = owner.id
+    #vessel_ownership = instance.vessel_ownership
+    #if not vessel_ownership:
+    vessel_ownership, created = VesselOwnership.objects.get_or_create(
+            owner=owner, 
+            vessel=vessel, 
+            #org_name=registered_owner_company_name_strip
+            org_name=org_name
+            )
+    if request.data.get('create_vessel') and not created:
+        raise serializers.ValidationError("You are already listed as an owner of this vessel.\
+                Please select Options > Manage Vessels to edit this vessel.")
+    serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
+    serializer.is_valid(raise_exception=True)
+    vessel_ownership = serializer.save()
 
 #from mooringlicensing.components.main.models import ApplicationType
 

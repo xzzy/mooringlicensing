@@ -9,9 +9,9 @@ from ledger.settings_base import TIME_ZONE
 from rest_framework import serializers
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
 
 #test
 from mooringlicensing.components.proposals.models import Proposal
@@ -84,6 +84,58 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     return response
 
 
+def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, vouchers=[], internal=False):
+    db_processes_after_success = {}
+
+    target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+    target_date = target_datetime.date()
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+    db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+    application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
+    vessel_length = 1  # any number greater than 0
+    proposal_type = None
+
+    line_items = []
+    for dcv_admission_arrival in dcv_admission.dcv_admission_arrivals.all():
+        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
+
+        if not fee_constructor:
+            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, dcv_admission_arrival.arrival_date))
+
+        fee_items = []
+        number_of_people_str = []
+        total_amount = 0
+
+        for number_of_people in dcv_admission_arrival.numberofpeople_set.all():
+            if number_of_people.number:
+                # When more than 1 people,
+                fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, dcv_admission_arrival.arrival_date, number_of_people.age_group, number_of_people.admission_type)
+                fee_item.number_of_people = number_of_people.number
+                fee_items.append(fee_item)
+                number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
+                total_amount += fee_item.amount * number_of_people.number
+
+        line_item = {
+            'ledger_description': '{} Fee: {} (Arrival: {}, {})'.format(
+                fee_constructor.application_type.description,
+                dcv_admission.lodgement_number,
+                dcv_admission_arrival.arrival_date,
+                ', '.join(number_of_people_str),
+            ),
+            'oracle_code': application_type.oracle_code,
+            'price_incl_tax': total_amount,
+            'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
+            'quantity': 1,
+        }
+        line_items.append(line_item)
+
+    logger.info('{}'.format(line_items))
+
+    return line_items, db_processes_after_success
+
+
 def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
 
@@ -96,7 +148,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         proposal_type = instance.proposal_type
     elif isinstance(instance, DcvPermit):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-        vessel_length = 1
+        vessel_length = 1  # any number greater than 0
         proposal_type = None
 
     target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
@@ -127,7 +179,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     line_items = [
         {
             'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
-                application_type.description,
+                fee_constructor.application_type.description,
                 instance.lodgement_number,
                 fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
                 fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
@@ -147,6 +199,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
 NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
 NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
+NAME_SESSION_DCV_ADMISSION_INVOICE = 'mooringlicensing_dcv_admission_invoice'
 
 
 def set_session_application_invoice(session, application_fee):
@@ -195,10 +248,33 @@ def get_session_dcv_permit_invoice(session):
     try:
         return DcvPermitFee.objects.get(id=dcv_permit_fee_id)
     except DcvPermitFee.DoesNotExist:
-        raise Exception('Application not found for application {}'.format(dcv_permit_fee_id))
+        raise Exception('DcvPermit not found for application {}'.format(dcv_permit_fee_id))
 
 
 def delete_session_dcv_permit_invoice(session):
     if NAME_SESSION_DCV_PERMIT_INVOICE in session:
         del session[NAME_SESSION_DCV_PERMIT_INVOICE]
+        session.modified = True
+
+
+def set_session_dcv_admission_invoice(session, dcv_admission_fee):
+    session[NAME_SESSION_DCV_ADMISSION_INVOICE] = dcv_admission_fee.id
+    session.modified = True
+
+
+def get_session_dcv_admission_invoice(session):
+    if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
+        dcv_admission_fee_id = session[NAME_SESSION_DCV_ADMISSION_INVOICE]
+    else:
+        raise Exception('DcvAdmission not in Session')
+
+    try:
+        return DcvAdmissionFee.objects.get(id=dcv_admission_fee_id)
+    except DcvAdmissionFee.DoesNotExist:
+        raise Exception('DcvAdmission not found for application {}'.format(dcv_admission_fee_id))
+
+
+def delete_session_dcv_admission_invoice(session):
+    if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
+        del session[NAME_SESSION_DCV_ADMISSION_INVOICE]
         session.modified = True
