@@ -122,7 +122,7 @@ export default {
                     {
                         uuid: uuid(),
                         arrival_date: null,
-                        private_visit: null,
+                        private_visit: false,
                         adults: {
                             landing: 0,
                             extended_stay: 0,
