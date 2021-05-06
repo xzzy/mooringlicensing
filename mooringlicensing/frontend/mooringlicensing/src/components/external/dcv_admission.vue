@@ -82,7 +82,7 @@
 </template>
 
 <script>
-import 'eonasdan-bootstrap-datetimepicker';
+//import 'eonasdan-bootstrap-datetimepicker';
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
@@ -92,7 +92,7 @@ import uuid from 'uuid'
 var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-  
+
 export default {
     name: 'DcvAdmissionPage',
     props: {
@@ -204,14 +204,14 @@ export default {
                     if (e.params.data.isNew) {
                         // fetch the selected vessel from the backend
                         console.log("new");
-                        vm.dcv_admission.dcv_vessel = 
+                        vm.dcv_admission.dcv_vessel =
                         {
                             id: id,
                             uvi_vessel_identifier: '',
                             rego_no: id,
                             vessel_name: '',
                         }
-                        //vm.dcv_admission.dcv_vessel = Object.assign({}, 
+                        //vm.dcv_admission.dcv_vessel = Object.assign({},
                         //    {
                         //        rego_no: id,
                         //    });
@@ -226,7 +226,7 @@ export default {
                 console.log('select2:unselect')
                 var selected = $(e.currentTarget);
                 //vm.dcv_admission.dcv_vessel.rego_no = '';
-                vm.dcv_admission.dcv_vessel = Object.assign({}, 
+                vm.dcv_admission.dcv_vessel = Object.assign({},
                     {
                         id: null,
                         uvi_vessel_identifier: '',
