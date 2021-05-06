@@ -1,9 +1,6 @@
 <template>
-    <div class="container" id="dcvDash">
-        <FormSection :formCollapse="false" label="DCV Permits" Index="dcv_permits">
-
-        </FormSection>
-        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission_fees">
+    <div class="container" id="compliancesDash">
+        <FormSection :formCollapse="false" label="Compliances" Index="compliances">
 
         </FormSection>
     </div>
@@ -12,7 +9,7 @@
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
 export default {
-    name: 'InternalDcvDashboard',
+    name: 'InternalCompliancesDashboard',
     data() {
         let vm = this;
         return {
