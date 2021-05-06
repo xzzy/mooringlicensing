@@ -72,6 +72,7 @@ REST_FRAMEWORK = {
 MIDDLEWARE_CLASSES += [
     'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
+    'mooringlicensing.middleware.CacheControlMiddleware',
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))

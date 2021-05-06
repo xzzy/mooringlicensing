@@ -34,6 +34,7 @@ from mooringlicensing.components.proposals.serializers import (
         SaveAuthorisedUserApplicationSerializer,
         SaveAnnualAdmissionApplicationSerializer,
         VesselSerializer,
+        VesselOwnershipSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -371,7 +372,6 @@ def save_proponent_data_wla(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     # vessel
-    #import ipdb; ipdb.set_trace()
     vessel_data = request.data.get("vessel")
     if vessel_data:
         if viewset.action == 'submit':
@@ -460,10 +460,10 @@ def save_vessel_data(instance, request, vessel_data):
         #if vessel_ownership_id:
         #    instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
         #    instance.save()
-    ### !!! commenting out these 3 lines for now
-    #vessel_ownership_data = vessel_data.get("vessel_ownership")
-    #for key in vessel_ownership_data.keys():
-        #vessel_data.update({key: vessel_ownership_data.get(key)})
+    # we need this to save vessel ownership to proposal in draft status
+    vessel_ownership_data = vessel_data.get("vessel_ownership")
+    for key in vessel_ownership_data.keys():
+        vessel_data.update({key: vessel_ownership_data.get(key)})
     serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
     serializer.is_valid(raise_exception=True)
     print(serializer.validated_data)
@@ -492,13 +492,13 @@ def submit_vessel_data(instance, request, vessel_data):
             serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
             serializer.is_valid(raise_exception=True)
             vessel_details = serializer.save()
-            # set proposal now has sole right to edit vessel_details
-            vessel_details.blocking_proposal = instance
-            vessel_details.save()
         else:
             serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+        # set proposal now has sole right to edit vessel_details
+        vessel_details.blocking_proposal = instance
+        vessel_details.save()
     else:
         #import ipdb; ipdb.set_trace()
         vessel = Vessel.objects.get(id=vessel_data.get('id'))
@@ -576,8 +576,9 @@ def save_bare_vessel_data(request, vessel_obj=None):
         serializer.is_valid(raise_exception=True)
         serializer.save()
     # record ownership data
-    save_bare_vessel_ownership(request, vessel_data, vessel)
-    return VesselSerializer(vessel).data
+    vessel_ownership = save_bare_vessel_ownership(request, vessel_data, vessel)
+    #return VesselSerializer(vessel).data
+    return VesselOwnershipSerializer(vessel_ownership).data
 
 
 # no proposal - manage vessels
@@ -607,6 +608,7 @@ def save_bare_vessel_ownership(request, vessel_data, vessel):
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
+    return vessel_ownership
 
 #from mooringlicensing.components.main.models import ApplicationType
 
