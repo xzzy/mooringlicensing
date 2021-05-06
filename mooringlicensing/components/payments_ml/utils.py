@@ -118,10 +118,11 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
                 total_amount += fee_item.amount * number_of_people.number
 
         line_item = {
-            'ledger_description': '{} Fee: {} (Arrival: {}, {})'.format(
+            'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
                 fee_constructor.application_type.description,
                 dcv_admission.lodgement_number,
                 dcv_admission_arrival.arrival_date,
+                dcv_admission_arrival.private_visit,
                 ', '.join(number_of_people_str),
             ),
             'oracle_code': application_type.oracle_code,
