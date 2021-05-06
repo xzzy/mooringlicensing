@@ -71,6 +71,7 @@
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
                     :readonly="readonly"
+                    :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
@@ -152,6 +153,9 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            submitterId: {
+                type: Number,
             },
             canEditActivities:{
               type: Boolean,
