@@ -68,14 +68,14 @@ export default {
       },
       creatingVessel: function() {
           let retVal = false;
-          if (this.$route.name === 'new-vessel' && !this.$route.params.id) {
+          if (this.$route.name === 'new-vessel' && !this.$route.params.vessel_id) {
               retVal = true;
           }
           return retVal;
       },
       editingVessel: function() {
           let retVal = false;
-          if (this.$route.name === 'manage-vessel' && this.$route.params.id) {
+          if (this.$route.name === 'manage-vessel' && this.$route.params.vessel_id) {
               retVal = true;
           }
           return retVal;
@@ -124,6 +124,14 @@ export default {
                     'success'
                 );
             };
+            // change route if Save and Continue on Add Vessel page
+            //console.log(res.body);
+            if (this.creatingVessel) {
+                vm.$router.push({
+                    name: 'manage-vessel',
+                    params: { vessel_id: res.body.id }
+                });
+            }
             vm.savingVessel=false;
             return res;
         } catch(err) {

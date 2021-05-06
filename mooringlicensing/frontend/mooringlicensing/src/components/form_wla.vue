@@ -73,6 +73,7 @@
                     :storedSilentElector="silentElector"
                     :proposalId="proposal.id"
                     :readonly="readonly"
+                    :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
@@ -145,6 +146,9 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            submitterId: {
+                type: Number,
             },
             canEditActivities:{
               type: Boolean,
