@@ -988,6 +988,7 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = VesselDetails
         fields = (
+                'id',
                 'blocking_proposal',
                 'vessel_type',
                 'vessel',
@@ -1008,8 +1009,10 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
     def get_read_only(self, obj):
         ro = True
         if obj.status == 'draft' and (
-            not obj.blocking_proposal or
-            obj.blocking_proposal.submitter == self.context.get('request').user):
+            not obj.blocking_proposal 
+            # WG advised to remove 20210505
+            #or obj.blocking_proposal.submitter == self.context.get('request').user
+            ):
             ro = False
         return ro
 
@@ -1085,7 +1088,9 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 #raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
                 custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
 
-        if data.get("percentage") < 25:
+        if not data.get("percentage"):
+            custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
+        elif data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)

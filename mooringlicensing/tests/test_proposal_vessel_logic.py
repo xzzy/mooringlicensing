@@ -272,6 +272,10 @@ class VesselTests(APITestSetup):
         vessel_details_id_1 = proposal.vessel_details.id
         vessel_ownership_id_1 = proposal.vessel_ownership.id
         vessel_id_1 = proposal.vessel_details.vessel_id
+        vessel_1 = Vessel.objects.get(id=vessel_id_1)
+        # proposal 1 should be blocking proposal
+        self.assertEqual(proposal_id, vessel_1.latest_vessel_details.blocking_proposal.id)
+        self.assertEqual(proposal_id, proposal.vessel_details.blocking_proposal.id)
 
         ## Proposal 2 - add vessel from Proposal
         create_response_2 = self.client.post(
@@ -362,4 +366,7 @@ class VesselTests(APITestSetup):
         self.assertEqual(proposal.vessel_details, proposal_2.vessel_details)
         self.assertEqual(proposal.vessel_ownership.vessel, proposal_2.vessel_ownership.vessel)
         self.assertNotEqual(proposal.vessel_ownership, proposal_2.vessel_ownership)
+        # proposal 1 is still blocking proposal
+        self.assertEqual(proposal_id, vessel_1.latest_vessel_details.blocking_proposal.id)
+        self.assertEqual(proposal_id, proposal_2.vessel_details.blocking_proposal.id)
 

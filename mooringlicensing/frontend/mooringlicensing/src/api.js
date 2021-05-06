@@ -15,6 +15,7 @@ module.exports = {
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
 
     profile: '/api/profile',
+    submitter_profile: '/api/submitter_profile',
     organisations: '/api/organisations.json',
     filtered_organisations: '/api/filtered_organisations',
     organisation_requests: '/api/organisation_requests.json',
