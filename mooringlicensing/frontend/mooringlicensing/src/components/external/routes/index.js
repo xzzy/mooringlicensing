@@ -105,7 +105,7 @@ export default
                     name:"new-vessel"
                 },
                 {
-                    path: ':id',
+                    path: ':vessel_id',
                     component: ManageVessel,
                     name:"manage-vessel"
                 },

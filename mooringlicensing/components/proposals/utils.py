@@ -34,6 +34,7 @@ from mooringlicensing.components.proposals.serializers import (
         SaveAuthorisedUserApplicationSerializer,
         SaveAnnualAdmissionApplicationSerializer,
         VesselSerializer,
+        VesselOwnershipSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
@@ -576,8 +577,9 @@ def save_bare_vessel_data(request, vessel_obj=None):
         serializer.is_valid(raise_exception=True)
         serializer.save()
     # record ownership data
-    save_bare_vessel_ownership(request, vessel_data, vessel)
-    return VesselSerializer(vessel).data
+    vessel_ownership = save_bare_vessel_ownership(request, vessel_data, vessel)
+    #return VesselSerializer(vessel).data
+    return VesselOwnershipSerializer(vessel_ownership).data
 
 
 # no proposal - manage vessels
@@ -607,6 +609,7 @@ def save_bare_vessel_ownership(request, vessel_data, vessel):
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
+    return vessel_ownership
 
 #from mooringlicensing.components.main.models import ApplicationType
 

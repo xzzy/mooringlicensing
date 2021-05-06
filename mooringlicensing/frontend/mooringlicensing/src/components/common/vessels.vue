@@ -467,7 +467,7 @@ from '@/utils/hooks'
                 if (this.proposal) {
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
-                    const url = api_endpoints.lookupVesselOwnership(this.$route.params.id);
+                    const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchSubmittedVesselCommon(url);
                 }
                 this.initialiseSelects();

@@ -1008,8 +1008,10 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
     def get_read_only(self, obj):
         ro = True
         if obj.status == 'draft' and (
-            not obj.blocking_proposal or
-            obj.blocking_proposal.submitter == self.context.get('request').user):
+            not obj.blocking_proposal 
+            # WG advised to remove 20210505
+            #or obj.blocking_proposal.submitter == self.context.get('request').user
+            ):
             ro = False
         return ro
 
