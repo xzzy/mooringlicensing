@@ -5,6 +5,7 @@ import OrgAccessTable from '@/components/internal/organisations/dashboard.vue'
 import OrgAccess from '@/components/internal/organisations/access.vue'
 import Organisation from '@/components/internal/organisations/manage.vue'
 import Proposal from '@/components/internal/proposals/proposal.vue'
+import DcvDashboard from '@/components/internal/dcv/dashboard.vue'
 /*
 import User from '../users/manage.vue'
 import Proposal from '../proposals/proposal.vue'
@@ -132,6 +133,22 @@ export default
             ]
         },
         */
+        {
+            path: 'dcv',
+            component: {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: '/',
+                    component: DcvDashboard
+                    //name:"internal-proposal"
+                },
+            ]
+        },
         {
             path: 'proposal',
             component: {
