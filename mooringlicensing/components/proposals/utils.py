@@ -493,13 +493,13 @@ def submit_vessel_data(instance, request, vessel_data):
             serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
             serializer.is_valid(raise_exception=True)
             vessel_details = serializer.save()
-            # set proposal now has sole right to edit vessel_details
-            vessel_details.blocking_proposal = instance
-            vessel_details.save()
         else:
             serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+        # set proposal now has sole right to edit vessel_details
+        vessel_details.blocking_proposal = instance
+        vessel_details.save()
     else:
         #import ipdb; ipdb.set_trace()
         vessel = Vessel.objects.get(id=vessel_data.get('id'))
