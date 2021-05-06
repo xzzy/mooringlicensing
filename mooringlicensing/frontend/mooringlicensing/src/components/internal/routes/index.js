@@ -1,9 +1,10 @@
 
-import InternalDashboard from '../dashboard.vue'
+import InternalDashboard from '@/components/internal/dashboard.vue'
 //import Search from '../search.vue'
-import OrgAccessTable from '../organisations/dashboard.vue'
-import OrgAccess from '../organisations/access.vue'
-import Organisation from '../organisations/manage.vue'
+import OrgAccessTable from '@/components/internal/organisations/dashboard.vue'
+import OrgAccess from '@/components/internal/organisations/access.vue'
+import Organisation from '@/components/internal/organisations/manage.vue'
+import Proposal from '@/components/internal/proposals/proposal.vue'
 /*
 import User from '../users/manage.vue'
 import Proposal from '../proposals/proposal.vue'
@@ -130,6 +131,7 @@ export default
                 },
             ]
         },
+        */
         {
             path: 'proposal',
             component: {
@@ -153,6 +155,7 @@ export default
                             component: Proposal,
                             name:"internal-proposal"
                         },
+                        /*
                         {
                             path: 'referral/:referral_id',
                             component: Referral,
@@ -163,10 +166,12 @@ export default
                             component: DistrictProposal,
                             name:"internal-district-proposal"
                         },
+                        */
                     ]
                 },
             ]
         },
+        /*
         {
             path: 'proposal_compare',
             component: {
