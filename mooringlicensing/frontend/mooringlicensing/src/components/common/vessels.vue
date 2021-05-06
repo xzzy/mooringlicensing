@@ -26,17 +26,41 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input :disabled="readonly" type="radio" id="registered_owner_current_user" :value="true" v-model="vessel.vessel_ownership.individual_owner" required/>
+                            <input 
+                            @change="clearOrgName" 
+                            :disabled="readonly" 
+                            type="radio" 
+                            id="registered_owner_current_user" 
+                            :value="true" 
+                            v-model="vessel.vessel_ownership.individual_owner" 
+                            required
+                            />
                             <label for="registered_owner_current_user" class="control-label">{{  profileFullName }}</label>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input :disabled="readonly" type="radio" id="registered_owner_company" name="registered_owner_company" :value="false" v-model="vessel.vessel_ownership.individual_owner" required=""/>
+                            <input 
+                            :disabled="readonly" 
+                            type="radio" 
+                            id="registered_owner_company" 
+                            name="registered_owner_company" 
+                            :value="false" 
+                            v-model="vessel.vessel_ownership.individual_owner" 
+                            required=""
+                            />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                         <div v-if="companyOwner" class="col-sm-8">
-                            <input :readonly="readonly" type="text" class="form-control" id="registered_owner_company_name" placeholder="Company name" v-model="vessel.vessel_ownership.org_name" required=""/>
+                            <input 
+                            :readonly="readonly" 
+                            type="text" 
+                            class="form-control" 
+                            id="registered_owner_company_name" 
+                            placeholder="Company name" 
+                            v-model="vessel.vessel_ownership.org_name" 
+                            required=""
+                            />
                         </div>
                     </div>
                 </div>
@@ -210,11 +234,18 @@ from '@/utils/hooks'
                 }
                 //return returnVal;
             },
+            individualOwner: function() {
+                if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
+                    return true;
+                }
+            },
+            /*
             registeredOwner: function() {
                 if (this.vessel && this.vessel.vessel_ownership) {
                     return this.vessel.vessel_ownership.registered_owner;
                 }
             },
+            */
             orgName: function() {
                 if (this.vessel && this.vessel.vessel_ownership) {
                     return this.vessel.vessel_ownership.org_name;
@@ -271,6 +302,13 @@ from '@/utils/hooks'
 
         },
         methods:{
+            clearOrgName: function() {
+                this.$nextTick(() => {
+                    if (this.individualOwner) {
+                        this.vessel.vessel_ownership.org_name = '';
+                    }
+                })
+            },
             validateRegoNo: function(data) {
                 // force uppercase and no whitespace
                 data = data.toUpperCase();
@@ -319,7 +357,6 @@ from '@/utils/hooks'
                     //templateSelection: vm.validateRegoNo,
                     //templateResult: vm.validateRegoNo,
                     templateSelection: function(data) {
-                        console.log(data);
                         return vm.validateRegoNo(data.text);
                     },
                 }).
@@ -343,7 +380,7 @@ from '@/utils/hooks'
                                         read_only: false,
                                     },
                                     vessel_ownership: {
-                                        registered_owner: 'current_user',
+                                        //registered_owner: 'current_user',
                                     }
                                 });
                         }
@@ -358,7 +395,7 @@ from '@/utils/hooks'
                                 read_only: false,
                             },
                             vessel_ownership: {
-                                registered_owner: 'current_user',
+                                //registered_owner: 'current_user',
                             }
                         });
                 }).
