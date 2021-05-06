@@ -1,19 +1,21 @@
 
 import InternalDashboard from '@/components/internal/dashboard.vue'
-//import Search from '../search.vue'
 import OrgAccessTable from '@/components/internal/organisations/dashboard.vue'
 import OrgAccess from '@/components/internal/organisations/access.vue'
 import Organisation from '@/components/internal/organisations/manage.vue'
 import Proposal from '@/components/internal/proposals/proposal.vue'
+import DcvDashboard from '@/components/internal/dcv/dashboard.vue'
+import ApprovalDash from '@/components/internal/approvals/dashboard.vue'
+import ComplianceDash from '@/components/internal/compliances/dashboard.vue'
+import StickersDash from '@/components/internal/stickers/dashboard.vue'
+import WaitingListDash from '@/components/internal/waiting_list/dashboard.vue'
+import MooringsDash from '@/components/internal/moorings/dashboard.vue'
+import Search from '@/components/internal/search/dashboard.vue'
 /*
 import User from '../users/manage.vue'
-import Proposal from '../proposals/proposal.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
 import Referral from '../referrals/referral.vue'
-import ApprovalDash from '../approvals/dashboard.vue'
-import ComplianceDash from '../compliances/dashboard.vue'
 import Compliance from '../compliances/access.vue'
-import Approval from '../approvals/approval.vue'
 import PaymentOrder from '@/components/common/tclass/payment_order.vue'
 import Reports from '@/components/reports/reports.vue'
 import ParkEntryFeesDashboard from '../park_entry_fees_dashboard.vue'
@@ -34,32 +36,51 @@ export default
             path: '/',
             component: InternalDashboard
         },
-        /*
         {
             path: 'approvals',
             component: ApprovalDash,
             name:"internal-approvals-dash"
         },
+        /*
         {
             path: 'approval/:approval_id',
             component: Approval,
 
         },
+        */
         {
             path: 'compliances',
             component: ComplianceDash,
-            name:"internal-compliances-dash"
+            name: "internal-compliances-dash"
         },
+        {
+            path: 'waiting_list',
+            component: WaitingListDash,
+            name: "internal-waiting-list-dash"
+        },
+        {
+            path: 'moorings',
+            component: MooringsDash,
+            name: "internal-moorings-dash"
+        },
+        {
+            path: 'sticker',
+            component: StickersDash,
+            name: "internal-stickers-dash"
+        },
+        /*
         {
             path: 'compliance/:compliance_id',
             component: Compliance,
 
         },
+        */
         {
             path: 'search',
             component: Search,
             name:"internal-search"
         },
+        /*
         // {
         //     path: 'payment',
         //     component: PaymentDash,
@@ -132,6 +153,22 @@ export default
             ]
         },
         */
+        {
+            path: 'dcv',
+            component: {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: '/',
+                    component: DcvDashboard,
+                    name:"internal-dcv-dash"
+                },
+            ]
+        },
         {
             path: 'proposal',
             component: {
