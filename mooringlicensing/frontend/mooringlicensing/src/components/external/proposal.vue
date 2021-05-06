@@ -41,6 +41,7 @@
             ref="waiting_list_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
+            :submitterId="submitterId"
             />
 
             <AnnualAdmissionApplication
@@ -50,6 +51,7 @@
             ref="annual_admission_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
+            :submitterId="submitterId"
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
@@ -57,6 +59,7 @@
             :is_external="true" 
             ref="authorised_user_application"
             :readonly="readonly"
+            :submitterId="submitterId"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
@@ -65,6 +68,7 @@
             ref="mooring_licence_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
+            :submitterId="submitterId"
             />
 
             <div>
@@ -157,6 +161,13 @@ export default {
       */
   },
   computed: {
+      submitterId: function() {
+          let submitter = null;
+          if (this.proposal && this.proposal.submitter && this.proposal.submitter.id) {
+              submitter = this.proposal.submitter.id;
+          }
+          return submitter;
+      },
       readonly: function() {
           let returnVal = true;
           if (this.proposal.processing_status === 'Draft') {

@@ -44,7 +44,7 @@ COPY timezone /etc/timezone
 ENV TZ=Australia/Perth
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
-COPY .git ./.git
+#COPY .git ./.git
 COPY mooringlicensing ./mooringlicensing
 RUN python manage_ml.py collectstatic --noinput
 
