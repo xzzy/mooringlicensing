@@ -445,22 +445,38 @@ from '@/utils/hooks'
                     this.vesselTypes.push(vessel_type)
                 }
             },
+            /*
             lookupVessel: async function(id) {
                 const res = await this.$http.get(api_endpoints.lookupVessel(id));
                 const vesselData = res.body;
                 console.log(res);
                 if (vesselData && vesselData.rego_no) {
                     if (this.creatingVessel) {
+                        console.log("lookup - creating vessel")
                         this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
                     } else {
+                        console.log("lookup - not creating vessel")
                         this.vessel = Object.assign({}, vesselData);
                     }
                 }
             },
+            */
+            lookupVessel: async function(id) {
+                const res = await this.$http.get(api_endpoints.lookupVessel(id));
+                const vesselData = res.body;
+                //console.log(res);
+                if (vesselData && vesselData.rego_no) {
+                    this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
+                    this.vessel.id = vesselData.id;
+                    this.vessel.rego_no = vesselData.rego_no;
+                }
+            },
+
             fetchVessel: async function() {
                 if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
                     this.vessel.rego_no = this.proposal.rego_no;
-                    this.vessel.vessel_id = this.proposal.vessel_id;
+                    //this.vessel.vessel_id = this.proposal.vessel_id;
+                    this.vessel.id = this.proposal.vessel_id;
                     let vessel_details = {};
                     vessel_details.vessel_type = this.proposal.vessel_type;
                     vessel_details.vessel_name = this.proposal.vessel_name;
