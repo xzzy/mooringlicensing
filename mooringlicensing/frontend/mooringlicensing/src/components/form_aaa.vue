@@ -65,14 +65,15 @@
                     ref="profile"
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
-                  :readonly="readonly"
+                    :readonly="readonly"
+                    :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
                     <Applicant 
                     :proposal="proposal" 
                     id="proposalStartApplicant"
-                  :readonly="readonly"
+                    :readonly="readonly"
                     />
                   </div>
               </div>
@@ -138,6 +139,9 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            submitterId: {
+                type: Number,
             },
             canEditActivities:{
               type: Boolean,
