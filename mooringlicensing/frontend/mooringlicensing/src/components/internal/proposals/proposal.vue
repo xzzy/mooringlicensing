@@ -7,57 +7,20 @@
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
         <div class="col-md-3">
-            <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       Submission
-                    </div>
-                    <div class="panel-body panel-collapse">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <strong>Submitted by</strong><br/>
-                                {{ proposal.submitter.first_name }}
-                                {{ proposal.submitter.last_name }}
-                            </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <strong>Lodged on</strong><br/>
-                                {{ proposal.lodgement_date | formatDate}}
-                            </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <table class="table small-table">
-                                    <tr>
-                                        <th>Lodgement</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <CommsLogs 
+                :comms_url="comms_url" 
+                :logs_url="logs_url" 
+                :comms_add_url="comms_add_url" 
+                :disable_add_entry="false"
+            />
 
-
-            <!--
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       History
-                    </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Last Modified</th>
-                                        </tr>
-                                        <tr v-for="p in proposal.get_history">
-                                            <td>{{ p.id }}</td>
-                                            <td>{{ p.modified | formatDate}}</td>
-                                        </tr>
-                                    </table>
-                </div>
-            </div>
-            -->
+            <template v-if="canSeeSubmission">
+                <Submission
+                    :submitter_first_name="proposal.submitter.first_name"
+                    :submitter_last_name="proposal.submitter.last_name"
+                    :lodgement_date="proposal.lodgement_date"
+                />
+            </template>
 
             <div class="row">
                 <div class="panel panel-default">
@@ -73,75 +36,7 @@
                             <div class="col-sm-12">
                                 <div class="separator"></div>
                             </div>
-<!--
 
-                            <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
-                                <div class="col-sm-12 top-buffer-s">
-                                    <strong>Referrals</strong><br/>
-                                    <div class="form-group">
-                                        <select :disabled="!canLimitedAction" ref="department_users" class="form-control">
-                                            <option value="null"></option>
-                                            <option v-for="user in department_users" :value="user.email">{{user.name}}</option>
-                                        </select>
-                                        <template v-if='!sendingReferral'>
-                                            <template v-if="selected_referral">
-                                                <label class="control-label pull-left"  for="Name">Comments</label>
-                                                <textarea class="form-control" name="name" v-model="referral_text"></textarea>
-                                                <a v-if="canLimitedAction" @click.prevent="sendReferral()" class="actionBtn pull-right">Send</a>
-                                            </template>
-                                        </template>
-                                        <template v-else>
-                                            <span v-if="canLimitedAction" @click.prevent="sendReferral()" disabled class="actionBtn text-primary pull-right">
-                                                Sending Referral&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
-                                            </span>
-                                        </template>
-                                    </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>Referral</th>
-                                            <th>Status/Action</th>
-                                        </tr>
-                                        <tr v-for="r in proposal.latest_referrals">
-                                            <td>
-                                                <small><strong>{{r.referral}}</strong></small><br/>
-                                                <small><strong>{{r.lodged_on | formatDate}}</strong></small>
-                                            </td>
-                                            <td>
-                                                <small><strong>{{r.processing_status}}</strong></small><br/>
-                                                <template v-if="r.processing_status == 'Awaiting'">
-                                                    <small v-if="canLimitedAction"><a @click.prevent="remindReferral(r)" href="#">Remind</a> / <a @click.prevent="recallReferral(r)"href="#">Recall</a></small>
-                                                </template>
-                                                <template v-else>
-                                                    <small v-if="canLimitedAction"><a @click.prevent="resendReferral(r)" href="#">Resend</a></small>
-                                                </template>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <MoreReferrals @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div>
-                            </template>
-                            <div v-if="!isFinalised" class="col-sm-12 top-buffer-s">
-                                <strong>Currently assigned to</strong><br/>
-                                <div class="form-group">
-                                    <template v-if="proposal.processing_status == 'With Approver'">
-                                        <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_approver">
-                                            <option v-for="member in proposal.allowed_assessors" :value="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                        </select>
-                                        <a v-if="canAssess && proposal.assigned_approver != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
-                                    </template>
-                                    <template v-else>
-                                        <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_officer">
-                                            <option v-for="member in proposal.allowed_assessors" :value="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                        </select>
-                                        <a v-if="canAssess && proposal.assigned_officer != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
-                                    </template>
-                                </div>
-                            </div>
--->
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
                                     <strong>Proposal</strong><br/>
@@ -163,74 +58,92 @@
                                 </div>
                             </template>
                             <div class="col-sm-12 top-buffer-s" v-if="!isFinalised && canAction">
-                                <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <strong>Action</strong>
+                                    </div>
+                                </div>
+                                <template v-if="proposal.processing_status == 'With Assessor'">
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
+                                            <button 
+                                                class="btn btn-primary w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="switchStatus('with_assessor_requirements')"
+                                            >Enter Conditions</button><br/>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor_requirements')">Enter Requirements</button><br/>
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="amendmentRequest()"
+                                            >Request Amendment</button><br/>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedDecline()">Propose to Decline</button>
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="proposedDecline()"
+                                            >Propose Decline</button>
                                         </div>
                                     </div>
                                 </template>
                                 <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')">Back To Processing</button><br/>
+                                            <button 
+                                                class="btn btn-primary w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="switchStatus('with_assessor')"
+                                            >Back To Processing</button>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12" v-if="requirementsComplete">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="proposedApproval()"
+                                            >Propose Grant</button>
                                         </div>
                                     </div>
                                 </template>
                                 <template v-else-if="proposal.processing_status == 'With Approver'">
                                     <div class="row">
-                                        <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <label class="control-label pull-left"  for="Name">Approver Comments</label>
-                                            <textarea class="form-control" name="name" v-model="approver_comment"></textarea><br>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
                                         <div class="col-sm-12" v-if="proposal.proposed_decline_status">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')"><!-- Back To Processing -->Back To Assessor</button><br/>
+                                            <button 
+                                                class="btn btn-primary w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="switchStatus('with_assessor')"
+                                            ><!-- Back To Processing -->Back To Assessor</button>
                                         </div>
                                         <div class="col-sm-12" v-else>
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor_requirements')"><!-- Back To Requirements -->Back To Assessor</button><br/>
+                                            <button 
+                                                class="btn btn-primary w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="switchStatus('with_assessor_requirements')"
+                                            ><!-- Back To Requirements -->Back To Assessor</button><br/>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <!-- v-if="!proposal.proposed_decline_status" -->
                                         <div class="col-sm-12" >
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="issueProposal()">Approve</button><br/>
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="issueProposal()"
+                                            >Grant</button><br/>
                                         </div>
                                         <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="declineProposal()">Decline</button><br/>
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="proposal.can_user_edit" 
+                                                @click.prevent="declineProposal()"
+                                            >Decline</button><br/>
                                         </div>
                                     </div>
                                 </template>
@@ -400,6 +313,7 @@ import datatable from '@vue-utils/datatable.vue'
 //import ProposedApproval from './proposed_issuance.vue'
 //import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import Submission from '@common-utils/submission.vue'
 //import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -488,14 +402,10 @@ export default {
         //ProposedApproval,
         //ApprovalScreen,
         CommsLogs,
+        Submission,
         //MoreReferrals,
         //NewApply,
         //MapLocations,
-    },
-    filters: {
-        formatDate: function(data){
-            return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
-        }
     },
     props: {
         proposalId: {
@@ -509,11 +419,6 @@ export default {
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations, this.proposal.applicant.id + '/contacts') : '';
         },
-        //referralListURL: function(){
-        //    return 'temp';  // TODO: Implement this correctly.
-
-        //    //return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.referrals, 'datatable_list')+'?proposal=' + this.proposal.id : '';
-        //},
         isLoading: function() {
           return this.loading.length > 0
         },
@@ -1098,5 +1003,8 @@ export default {
     margin-top: 15px;
     margin-bottom: 10px;
     width: 100%;
+}
+.w-btn {
+    width: 80%;
 }
 </style>
