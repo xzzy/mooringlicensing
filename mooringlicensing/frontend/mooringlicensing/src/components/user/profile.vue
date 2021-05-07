@@ -257,6 +257,9 @@ export default {
         proposalId: {
             type: Number,
         },
+        submitterId: {
+            type: Number,
+        },
         isApplication:{
                 type: Boolean,
                 default: false
@@ -859,13 +862,19 @@ export default {
             }); 
         },
         fetchProfile: async function(){
-          const response = await Vue.http.get(api_endpoints.profile)
-          this.profile = response.body
-          if (this.profile.residential_address == null){ this.profile.residential_address = {}; }
-          if (this.profile.postal_address == null){ this.profile.postal_address = {}; }
-          //if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
-          this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
-          this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
+            let response = null;
+            //let submitter_id = 666;
+            if (this.submitterId) {
+                response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
+            } else {
+                response = await Vue.http.get(api_endpoints.profile);
+            }
+            this.profile = response.body
+            if (this.profile.residential_address == null){ this.profile.residential_address = {}; }
+            if (this.profile.postal_address == null){ this.profile.postal_address = {}; }
+            //if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
+            this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
+            this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
 
         },
     },
