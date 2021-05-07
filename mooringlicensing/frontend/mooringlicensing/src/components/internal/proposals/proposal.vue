@@ -2,9 +2,9 @@
     <div v-if="proposal" class="container" id="internalProposal">
       <div class="row">
         <h3>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type.description }}</h4>
+        <h4>Proposal Type: {{ proposal.proposal_type.description }}</h4>
         <div v-if="proposal.application_type!='Apiary'">
-            <h4>Approval Level: {{proposal.approval_level }}</h4>
+            <h4>Approval Level: {{ proposal.approval_level }}</h4>
         </div>
         <div class="col-md-3">
             <CommsLogs 
@@ -14,144 +14,29 @@
                 :disable_add_entry="false"
             />
 
-            <template v-if="canSeeSubmission">
-                <Submission
-                    :submitter_first_name="proposal.submitter.first_name"
-                    :submitter_last_name="proposal.submitter.last_name"
-                    :lodgement_date="proposal.lodgement_date"
-                />
-            </template>
+            <Submission v-if="canSeeSubmission"
+                :submitter_first_name="proposal.submitter.first_name"
+                :submitter_last_name="proposal.submitter.last_name"
+                :lodgement_date="proposal.lodgement_date"
+            />
 
-            <div class="row">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        Workflow
-                    </div>
-                    <div class="panel-body panel-collapse">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <strong>Status</strong><br/>
-                                {{ proposal.processing_status }}
-                            </div>
-                            <div class="col-sm-12">
-                                <div class="separator"></div>
-                            </div>
+            <Workflow
+                :display_status="proposal.processing_status"
+                :processing_status="proposal.processing_status"
+                :isFinalised="isFinalised"
+                :canAction="canAction"
+                :can_user_edit="proposal.can_user_edit"
+                :proposed_decline_status="proposal.proposed_decline_status"
+                @showingProposal="showingProposal"
+                @showingRequirements="showingRequirements"
+                @switchStatus="switchStatus"
+                @amendmentRequest="amendmentRequest"
+                @proposedDecline="proposedDecline"
+                @proposedApproval="proposedApproval"
+                @issueProposal="issueProposal"
+                @declineProposal="declineProposal"
+            />
 
-                            <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
-                                    <strong>Proposal</strong><br/>
-                                    <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div>
-                            </template>
-                            <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
-                                    <strong>Requirements</strong><br/>
-                                    <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleRequirements()">Hide Requirements</a>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div>
-                            </template>
-                            <div class="col-sm-12 top-buffer-s" v-if="!isFinalised && canAction">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <strong>Action</strong>
-                                    </div>
-                                </div>
-                                <template v-if="proposal.processing_status == 'With Assessor'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button 
-                                                class="btn btn-primary w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="switchStatus('with_assessor_requirements')"
-                                            >Enter Conditions</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button 
-                                                class="btn btn-primary top-buffer-s w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="amendmentRequest()"
-                                            >Request Amendment</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button 
-                                                class="btn btn-primary top-buffer-s w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="proposedDecline()"
-                                            >Propose Decline</button>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button 
-                                                class="btn btn-primary w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="switchStatus('with_assessor')"
-                                            >Back To Processing</button>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12" v-if="requirementsComplete">
-                                            <button 
-                                                class="btn btn-primary top-buffer-s w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="proposedApproval()"
-                                            >Propose Grant</button>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Approver'">
-                                    <div class="row">
-                                        <div class="col-sm-12" v-if="proposal.proposed_decline_status">
-                                            <button 
-                                                class="btn btn-primary w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="switchStatus('with_assessor')"
-                                            ><!-- Back To Processing -->Back To Assessor</button>
-                                        </div>
-                                        <div class="col-sm-12" v-else>
-                                            <button 
-                                                class="btn btn-primary w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="switchStatus('with_assessor_requirements')"
-                                            ><!-- Back To Requirements -->Back To Assessor</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <!-- v-if="!proposal.proposed_decline_status" -->
-                                        <div class="col-sm-12" >
-                                            <button 
-                                                class="btn btn-primary top-buffer-s w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="issueProposal()"
-                                            >Grant</button><br/>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <button 
-                                                class="btn btn-primary top-buffer-s w-btn" 
-                                                :disabled="proposal.can_user_edit" 
-                                                @click.prevent="declineProposal()"
-                                            >Decline</button><br/>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
         <div class="col-md-1"></div>
         <!--
@@ -314,6 +199,7 @@ import datatable from '@vue-utils/datatable.vue'
 //import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import Submission from '@common-utils/submission.vue'
+import Workflow from '@common-utils/workflow.vue'
 //import MoreReferrals from '@common-utils/more_referrals.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -403,6 +289,7 @@ export default {
         //ApprovalScreen,
         CommsLogs,
         Submission,
+        Workflow,
         //MoreReferrals,
         //NewApply,
         //MapLocations,
@@ -763,6 +650,8 @@ export default {
             }
         },
         switchStatus: function(status){
+            console.log('in switchStatus')
+            console.log(status)
             let vm = this;
             //vm.save_wo();
             //let vm = this;
@@ -989,22 +878,5 @@ export default {
 }
 </script>
 <style scoped>
-.top-buffer-s {
-    margin-top: 10px;
-}
-.actionBtn {
-    cursor: pointer;
-}
-.hidePopover {
-    display: none;
-}
-.separator {
-    border: 1px solid;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    width: 100%;
-}
-.w-btn {
-    width: 80%;
-}
+
 </style>
