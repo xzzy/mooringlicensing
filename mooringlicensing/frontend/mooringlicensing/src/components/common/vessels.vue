@@ -521,7 +521,7 @@ from '@/utils/hooks'
                 }
                 */
                 // read in vessel ownership data from Proposal if in Draft status
-                if (this.proposal.processing_status === 'Draft') {
+                if (this.proposal && this.proposal.processing_status === 'Draft') {
                     if (vesselData && vesselData.rego_no) {
                         this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
                         this.vessel.id = vesselData.id;
@@ -549,7 +549,7 @@ from '@/utils/hooks'
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
-                    this.fetchSubmittedVesselCommon(url);
+                    this.fetchReadonlyVesselCommon(url);
                 }
                 this.initialiseSelects();
                 this.addEventListeners();
