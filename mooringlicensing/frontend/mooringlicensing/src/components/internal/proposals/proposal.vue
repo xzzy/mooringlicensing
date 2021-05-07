@@ -2,7 +2,7 @@
     <div v-if="proposal" class="container" id="internalProposal">
       <div class="row">
         <h3>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type }}</h4>
+        <h4>Proposal Type: {{proposal.proposal_type.description }}</h4>
         <div v-if="proposal.application_type!='Apiary'">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
@@ -17,7 +17,8 @@
                         <div class="row">
                             <div class="col-sm-12">
                                 <strong>Submitted by</strong><br/>
-                                {{ proposal.submitter }}
+                                {{ proposal.submitter.first_name }}
+                                {{ proposal.submitter.last_name }}
                             </div>
                             <div class="col-sm-12 top-buffer-s">
                                 <strong>Lodged on</strong><br/>
@@ -72,6 +73,8 @@
                             <div class="col-sm-12">
                                 <div class="separator"></div>
                             </div>
+<!--
+
                             <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
                                 <div class="col-sm-12 top-buffer-s">
                                     <strong>Referrals</strong><br/>
@@ -115,18 +118,12 @@
                                             </td>
                                         </tr>
                                     </table>
-                                    <template>
-
-                                    </template>
-<!--
                                     <MoreReferrals @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
--->
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
                                 </div>
                             </template>
-<!--
                             <div v-if="!isFinalised" class="col-sm-12 top-buffer-s">
                                 <strong>Currently assigned to</strong><br/>
                                 <div class="form-group">
@@ -420,8 +417,8 @@ export default {
             "proposal": null,
             "original_proposal": null,
             "loading": [],
-            selected_referral: '',
-            referral_text: '',
+            //selected_referral: '',
+            //referral_text: '',
             approver_comment: '',
             form: null,
             members: [],
@@ -478,7 +475,7 @@ export default {
             comms_add_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/action_log'),
             panelClickersInitialised: false,
-            sendingReferral: false,
+            //sendingReferral: false,
         }
     },
     components: {
@@ -512,11 +509,11 @@ export default {
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations, this.proposal.applicant.id + '/contacts') : '';
         },
-        referralListURL: function(){
-            return 'temp';  // TODO: Implement this correctly.
+        //referralListURL: function(){
+        //    return 'temp';  // TODO: Implement this correctly.
 
-            //return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.referrals, 'datatable_list')+'?proposal=' + this.proposal.id : '';
-        },
+        //    //return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.referrals, 'datatable_list')+'?proposal=' + this.proposal.id : '';
+        //},
         isLoading: function() {
           return this.loading.length > 0
         },
@@ -553,10 +550,31 @@ export default {
             return false  // TODO: implement this.  This is just temporary solution
 
             if (this.proposal.processing_status == 'With Approver'){
-                return this.proposal && (this.proposal.processing_status == 'With Assessor' || this.proposal.processing_status == 'With Referral' || this.proposal.processing_status == 'With Assessor (Requirements)') && !this.isFinalised && !this.proposal.can_user_edit && (this.proposal.current_assessor.id == this.proposal.assigned_approver || this.proposal.assigned_approver == null ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+                return 
+                    this.proposal 
+                    && (
+                        this.proposal.processing_status == 'With Assessor' || 
+                        //this.proposal.processing_status == 'With Referral' || 
+                        this.proposal.processing_status == 'With Assessor (Requirements)'
+                    ) 
+                    && !this.isFinalised && !this.proposal.can_user_edit 
+                    && (
+                        this.proposal.current_assessor.id == this.proposal.assigned_approver || 
+                        this.proposal.assigned_approver == null 
+                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
             else{
-                return this.proposal && (this.proposal.processing_status == 'With Assessor' || this.proposal.processing_status == 'With Referral' || this.proposal.processing_status == 'With Assessor (Requirements)') && !this.isFinalised && !this.proposal.can_user_edit && (this.proposal.current_assessor.id == this.proposal.assigned_officer || this.proposal.assigned_officer == null ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+                return 
+                    this.proposal 
+                    && (
+                        this.proposal.processing_status == 'With Assessor' || 
+                        //this.proposal.processing_status == 'With Referral' || 
+                        this.proposal.processing_status == 'With Assessor (Requirements)'
+                    ) && !this.isFinalised && !this.proposal.can_user_edit 
+                    && (
+                        this.proposal.current_assessor.id == this.proposal.assigned_officer || 
+                        this.proposal.assigned_officer == null 
+                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
         canSeeSubmission: function(){
@@ -614,10 +632,10 @@ export default {
         proposedApproval: function(){
             this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             if(this.proposal.proposed_issuance_approval == null){
-                var test_approval={
-                'cc_email': this.proposal.referral_email_list
-            };
-            this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
+                //var test_approval={
+                //    'cc_email': this.proposal.referral_email_list
+                //};
+                //this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
                 // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
             }
             //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
@@ -984,152 +1002,20 @@ export default {
                 $(vm.$refs.department_users).select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Referral"
+                    //placeholder:"Select Referral"
                 }).
                 on("select2:select",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selected_referral = selected.val();
+                    //vm.selected_referral = selected.val();
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selected_referral = ''
+                    //vm.selected_referral = ''
                 });
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
             }
         },
-        sendReferral: function(){
-            let vm = this;
-            //vm.save_wo();
-            vm.checkAssessorData();
-            let formData = new FormData(vm.form);
-            vm.sendingReferral = true;
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-
-            let data = {'email':vm.selected_referral, 'text': vm.referral_text};
-            //vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.department_users).val(null).trigger("change");
-                vm.selected_referral = '';
-                vm.referral_text = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            });
-
-
-          },err=>{
-          });
-
-        //this.$refs.referral_comment.selected_referral = vm.selected_referral;
-        //this.$refs.referral_comment.isModalOpen = true;
-
-          /*  let data = {'email':vm.selected_referral};
-            vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.department_users).val(null).trigger("change");
-                vm.selected_referral = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            }); */
-        },
-        remindReferral:function(r){
-            let vm = this;
-
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/remind')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Reminder',
-                    'A reminder has been sent to '+r.referral,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        resendReferral:function(r){
-            let vm = this;
-
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/resend')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Resent',
-                    'The referral has been resent to '+r.referral,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        recallReferral:function(r){
-            let vm = this;
-
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        }
-
     },
     mounted: function() {
         let vm = this;
