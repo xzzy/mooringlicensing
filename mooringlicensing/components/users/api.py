@@ -155,9 +155,11 @@ class UserViewSet(viewsets.ModelViewSet):
                 user = instance
             )
             instance.residential_address = residential_address
+            #import ipdb; ipdb.set_trace()
             # postal address
             postal_address_data = request.data.get('postal_address')
-            if postal_address_data and postal_address_data.get('same_as_residential'):
+            if request.data.get('postal_same_as_residential'):
+                instance.postal_same_as_residential = True
                 instance.postal_address = residential_address
             elif postal_address_data:
                 postal_serializer = UserAddressSerializer(data=postal_address_data)
