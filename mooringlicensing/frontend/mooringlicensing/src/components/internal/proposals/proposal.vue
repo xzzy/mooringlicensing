@@ -1,396 +1,200 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
-      <div class="row">
-        <h3>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type }}</h4>
-        <div v-if="proposal.application_type!='Apiary'">
-            <h4>Approval Level: {{proposal.approval_level }}</h4>
-        </div>
-        <div class="col-md-3">
-            <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       Submission
-                    </div>
-                    <div class="panel-body panel-collapse">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <strong>Submitted by</strong><br/>
-                                {{ proposal.submitter }}
-                            </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <strong>Lodged on</strong><br/>
-                                {{ proposal.lodgement_date | formatDate}}
-                            </div>
-                            <div class="col-sm-12 top-buffer-s">
-                                <table class="table small-table">
-                                    <tr>
-                                        <th>Lodgement</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </table>
+        <div class="row">
+            <h3>Proposal: {{ proposal.lodgement_number }}</h3>
+            <h4>Proposal Type: {{ proposal.proposal_type.description }}</h4>
+            <div v-if="proposal.application_type!='Apiary'">
+                <h4>Approval Level: {{ proposal.approval_level }}</h4>
+            </div>
+            <div class="col-md-3">
+                <CommsLogs 
+                    :comms_url="comms_url" 
+                    :logs_url="logs_url" 
+                    :comms_add_url="comms_add_url" 
+                    :disable_add_entry="false"
+                />
+
+                <Submission v-if="canSeeSubmission"
+                    :submitter_first_name="proposal.submitter.first_name"
+                    :submitter_last_name="proposal.submitter.last_name"
+                    :lodgement_date="proposal.lodgement_date"
+                />
+
+                <Workflow
+                    :proposal="proposal"
+                    :isFinalised="isFinalised"
+                    :canAction="canAction"
+                    :canAssess="canAssess"
+                    :can_user_edit="proposal.can_user_edit"
+                    @toggleProposal="toggleProposal"
+                    @toggleRequirements="toggleRequirements"
+                    @switchStatus="switchStatus"
+                    @amendmentRequest="amendmentRequest"
+                    @proposedDecline="proposedDecline"
+                    @proposedApproval="proposedApproval"
+                    @issueProposal="issueProposal"
+                    @declineProposal="declineProposal"
+                />
+
+            </div>
+            <div class="col-md-1"></div>
+
+            <div class="col-md-8">
+                <!-- 
+                    Main content here, which probably is a component, such as
+                    <ProposalForm(read-only)>
+                    <ProposalConditions>
+                    <ProposalProposedDecision>
+                    ...
+                -->
+
+<!-- Main content copied from the Disturbance
+                <div class="row">
+                    <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
+                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    </template>
+                    <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
+                        <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
+                    </template>
+                    <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Applicant
+                                            <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
+                                                <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                            </a>
+                                        </h3>
+                                    </div>
+                                    <div class="panel-body panel-collapse collapse in" :id="detailsBody">
+                                          <form class="form-horizontal">
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">Name</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.applicant.name">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="proposal.applicant.abn">
+                                                </div>
+                                              </div>
+                                          </form>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!--
-            <div class="row" v-if="canSeeSubmission">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                       History
-                    </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Last Modified</th>
-                                        </tr>
-                                        <tr v-for="p in proposal.get_history">
-                                            <td>{{ p.id }}</td>
-                                            <td>{{ p.modified | formatDate}}</td>
-                                        </tr>
-                                    </table>
-                </div>
-            </div>
-            -->
-
-            <div class="row">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        Workflow
-                    </div>
-                    <div class="panel-body panel-collapse">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <strong>Status</strong><br/>
-                                {{ proposal.processing_status }}
-                            </div>
-                            <div class="col-sm-12">
-                                <div class="separator"></div>
-                            </div>
-                            <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
-                                <div class="col-sm-12 top-buffer-s">
-                                    <strong>Referrals</strong><br/>
-                                    <div class="form-group">
-                                        <select :disabled="!canLimitedAction" ref="department_users" class="form-control">
-                                            <option value="null"></option>
-                                            <option v-for="user in department_users" :value="user.email">{{user.name}}</option>
-                                        </select>
-                                        <template v-if='!sendingReferral'>
-                                            <template v-if="selected_referral">
-                                                <label class="control-label pull-left"  for="Name">Comments</label>
-                                                <textarea class="form-control" name="name" v-model="referral_text"></textarea>
-                                                <a v-if="canLimitedAction" @click.prevent="sendReferral()" class="actionBtn pull-right">Send</a>
-                                            </template>
-                                        </template>
-                                        <template v-else>
-                                            <span v-if="canLimitedAction" @click.prevent="sendReferral()" disabled class="actionBtn text-primary pull-right">
-                                                Sending Referral&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
-                                            </span>
-                                        </template>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Address Details
+                                            <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
+                                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            </a>
+                                        </h3>
                                     </div>
-                                    <table class="table small-table">
-                                        <tr>
-                                            <th>Referral</th>
-                                            <th>Status/Action</th>
-                                        </tr>
-                                        <tr v-for="r in proposal.latest_referrals">
-                                            <td>
-                                                <small><strong>{{r.referral}}</strong></small><br/>
-                                                <small><strong>{{r.lodged_on | formatDate}}</strong></small>
-                                            </td>
-                                            <td>
-                                                <small><strong>{{r.processing_status}}</strong></small><br/>
-                                                <template v-if="r.processing_status == 'Awaiting'">
-                                                    <small v-if="canLimitedAction"><a @click.prevent="remindReferral(r)" href="#">Remind</a> / <a @click.prevent="recallReferral(r)"href="#">Recall</a></small>
-                                                </template>
-                                                <template v-else>
-                                                    <small v-if="canLimitedAction"><a @click.prevent="resendReferral(r)" href="#">Resend</a></small>
-                                                </template>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <template>
+                                    <div class="panel-body panel-collapse collapse" :id="addressBody">
+                                          <form class="form-horizontal">
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">Street</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.applicant.address.line1">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.applicant.address.locality">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">State</label>
+                                                <div class="col-sm-2">
+                                                    <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.applicant.address.state">
+                                                </div>
+                                                <label for="" class="col-sm-2 control-label">Postcode</label>
+                                                <div class="col-sm-2">
+                                                    <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.applicant.address.postcode">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >Country</label>
+                                                <div class="col-sm-4">
+                                                    <input disabled type="text" class="form-control" name="country" v-model="proposal.applicant.address.country"/>
+                                                </div>
+                                              </div>
+                                           </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Contact Details
+                                            <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
+                                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            </a>
+                                        </h3>
+                                    </div>
+                                    <div class="panel-body panel-collapse collapse" :id="contactsBody">
+                                        <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                    </template>
-<!--
-                                    <MoreReferrals @refreshFromResponse="refreshFromResponse" :proposal="proposal" :canAction="canLimitedAction" :isFinalised="isFinalised" :referral_url="referralListURL"/>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
+
+                                    <div v-if="proposal.application_type=='Apiary'">
+                                        <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
+                                    </div>
+                                    <div v-else>
+                                        <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
+                                        <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                                    </div>
+
+
+                                    <div>
+                                        <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+                                        <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
+                                        <input type='hidden' name="proposal_id" :value="1" />
+                                        <div class="row" style="margin-bottom: 50px">
+                                          <div class="navbar navbar-fixed-bottom" v-if="hasAssessorMode" style="background-color: #f5f5f5;">
+                                            <div class="navbar-inner">
+                                                <div v-if="hasAssessorMode" class="container">
+                                                  <p class="pull-right">
+                                                    <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                                  </p>
+                                                </div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </template>
+                </div>
 -->
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div>
-                            </template>
+            </div>
+        </div>
 <!--
-                            <div v-if="!isFinalised" class="col-sm-12 top-buffer-s">
-                                <strong>Currently assigned to</strong><br/>
-                                <div class="form-group">
-                                    <template v-if="proposal.processing_status == 'With Approver'">
-                                        <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_approver">
-                                            <option v-for="member in proposal.allowed_assessors" :value="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                        </select>
-                                        <a v-if="canAssess && proposal.assigned_approver != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
-                                    </template>
-                                    <template v-else>
-                                        <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_officer">
-                                            <option v-for="member in proposal.allowed_assessors" :value="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                        </select>
-                                        <a v-if="canAssess && proposal.assigned_officer != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
-                                    </template>
-                                </div>
-                            </div>
--->
-                            <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
-                                    <strong>Proposal</strong><br/>
-                                    <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Proposal</a>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div>
-                            </template>
-                            <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
-                                    <strong>Requirements</strong><br/>
-                                    <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleRequirements()">Hide Requirements</a>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div>
-                            </template>
-                            <div class="col-sm-12 top-buffer-s" v-if="!isFinalised && canAction">
-                                <template v-if="proposal.processing_status == 'With Assessor' || proposal.processing_status == 'With Referral'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor_requirements')">Enter Requirements</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedDecline()">Propose to Decline</button>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')">Back To Processing</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12" v-if="requirementsComplete">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
-                                        </div>
-                                    </div>
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Approver'">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <strong>Action</strong><br/>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <label class="control-label pull-left"  for="Name">Approver Comments</label>
-                                            <textarea class="form-control" name="name" v-model="approver_comment"></textarea><br>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12" v-if="proposal.proposed_decline_status">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')"><!-- Back To Processing -->Back To Assessor</button><br/>
-                                        </div>
-                                        <div class="col-sm-12" v-else>
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor_requirements')"><!-- Back To Requirements -->Back To Assessor</button><br/>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <!-- v-if="!proposal.proposed_decline_status" -->
-                                        <div class="col-sm-12" >
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="issueProposal()">Approve</button><br/>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="declineProposal()">Decline</button><br/>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-1"></div>
-        <!--
-        <div class="col-md-8">
-            <div class="row">
-                <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                    <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
-                </template>
-                <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
-                    <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
-                </template>
-                <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
-                    <div class="col-md-12">
-                        <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Applicant
-                                        <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
-                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div class="panel-body panel-collapse collapse in" :id="detailsBody">
-                                      <form class="form-horizontal">
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">Name</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.applicant.name">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="proposal.applicant.abn">
-                                            </div>
-                                          </div>
-                                      </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Address Details
-                                        <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div class="panel-body panel-collapse collapse" :id="addressBody">
-                                      <form class="form-horizontal">
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">Street</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.applicant.address.line1">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-                                            <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.applicant.address.locality">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">State</label>
-                                            <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.applicant.address.state">
-                                            </div>
-                                            <label for="" class="col-sm-2 control-label">Postcode</label>
-                                            <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.applicant.address.postcode">
-                                            </div>
-                                          </div>
-                                          <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label" >Country</label>
-                                            <div class="col-sm-4">
-                                                <input disabled type="text" class="form-control" name="country" v-model="proposal.applicant.address.country"/>
-                                            </div>
-                                          </div>
-                                       </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="row">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    <h3 class="panel-title">Contact Details
-                                        <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                        </a>
-                                    </h3>
-                                </div>
-                                <div class="panel-body panel-collapse collapse" :id="contactsBody">
-                                    <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12">
-                        <div class="row">
-                            <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
-
-                                <div v-if="proposal.application_type=='Apiary'">
-                                    <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
-                                </div>
-                                <div v-else>
-                                    <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
-                                    <NewApply v-if="proposal" :proposal="proposal"></NewApply>
-                                </div>
-
-
-                                <div>
-                                    <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
-                                    <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
-                                    <input type='hidden' name="proposal_id" :value="1" />
-                                    <div class="row" style="margin-bottom: 50px">
-                                      <div class="navbar navbar-fixed-bottom" v-if="hasAssessorMode" style="background-color: #f5f5f5;">
-                                        <div class="navbar-inner">
-                                            <div v-if="hasAssessorMode" class="container">
-                                              <p class="pull-right">
-                                                <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
-                                              </p>
-                                            </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-        -->
-        </div>
-        <!--
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
-        -->
+-->
     </div>
 </template>
+
 <script>
 //import ProposalDisturbance from '../../form.vue'
 //import ProposalApiary from '@/components/form_apiary.vue'
@@ -403,10 +207,10 @@ import datatable from '@vue-utils/datatable.vue'
 //import ProposedApproval from './proposed_issuance.vue'
 //import ApprovalScreen from './proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
-//import MoreReferrals from '@common-utils/more_referrals.vue'
+import Submission from '@common-utils/submission.vue'
+import Workflow from '@common-utils/workflow.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers } from '@/utils/hooks'
-//import MapLocations from '@common-utils/map_locations.vue'
 export default {
     name: 'InternalProposal',
     data: function() {
@@ -420,8 +224,8 @@ export default {
             "proposal": null,
             "original_proposal": null,
             "loading": [],
-            selected_referral: '',
-            referral_text: '',
+            //selected_referral: '',
+            //referral_text: '',
             approver_comment: '',
             form: null,
             members: [],
@@ -478,7 +282,7 @@ export default {
             comms_add_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/action_log'),
             panelClickersInitialised: false,
-            sendingReferral: false,
+            //sendingReferral: false,
         }
     },
     components: {
@@ -491,14 +295,11 @@ export default {
         //ProposedApproval,
         //ApprovalScreen,
         CommsLogs,
+        Submission,
+        Workflow,
         //MoreReferrals,
         //NewApply,
         //MapLocations,
-    },
-    filters: {
-        formatDate: function(data){
-            return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
-        }
     },
     props: {
         proposalId: {
@@ -511,11 +312,6 @@ export default {
     computed: {
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations, this.proposal.applicant.id + '/contacts') : '';
-        },
-        referralListURL: function(){
-            return 'temp';  // TODO: Implement this correctly.
-
-            //return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.referrals, 'datatable_list')+'?proposal=' + this.proposal.id : '';
         },
         isLoading: function() {
           return this.loading.length > 0
@@ -553,10 +349,31 @@ export default {
             return false  // TODO: implement this.  This is just temporary solution
 
             if (this.proposal.processing_status == 'With Approver'){
-                return this.proposal && (this.proposal.processing_status == 'With Assessor' || this.proposal.processing_status == 'With Referral' || this.proposal.processing_status == 'With Assessor (Requirements)') && !this.isFinalised && !this.proposal.can_user_edit && (this.proposal.current_assessor.id == this.proposal.assigned_approver || this.proposal.assigned_approver == null ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+                return 
+                    this.proposal 
+                    && (
+                        this.proposal.processing_status == 'With Assessor' || 
+                        //this.proposal.processing_status == 'With Referral' || 
+                        this.proposal.processing_status == 'With Assessor (Requirements)'
+                    ) 
+                    && !this.isFinalised && !this.proposal.can_user_edit 
+                    && (
+                        this.proposal.current_assessor.id == this.proposal.assigned_approver || 
+                        this.proposal.assigned_approver == null 
+                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
             else{
-                return this.proposal && (this.proposal.processing_status == 'With Assessor' || this.proposal.processing_status == 'With Referral' || this.proposal.processing_status == 'With Assessor (Requirements)') && !this.isFinalised && !this.proposal.can_user_edit && (this.proposal.current_assessor.id == this.proposal.assigned_officer || this.proposal.assigned_officer == null ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+                return 
+                    this.proposal 
+                    && (
+                        this.proposal.processing_status == 'With Assessor' || 
+                        //this.proposal.processing_status == 'With Referral' || 
+                        this.proposal.processing_status == 'With Assessor (Requirements)'
+                    ) && !this.isFinalised && !this.proposal.can_user_edit 
+                    && (
+                        this.proposal.current_assessor.id == this.proposal.assigned_officer || 
+                        this.proposal.assigned_officer == null 
+                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
         canSeeSubmission: function(){
@@ -614,10 +431,10 @@ export default {
         proposedApproval: function(){
             this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             if(this.proposal.proposed_issuance_approval == null){
-                var test_approval={
-                'cc_email': this.proposal.referral_email_list
-            };
-            this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
+                //var test_approval={
+                //    'cc_email': this.proposal.referral_email_list
+                //};
+                //this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
                 // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
             }
             //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
@@ -737,11 +554,11 @@ export default {
           });
         },
 
-        toggleProposal:function(){
-            this.showingProposal = !this.showingProposal;
+        toggleProposal:function(value){
+            this.showingProposal = value
         },
-        toggleRequirements:function(){
-            this.showingRequirements = !this.showingRequirements;
+        toggleRequirements:function(value){
+            this.showingRequirements = value
         },
         updateAssignedOfficerSelect:function(){
             let vm = this;
@@ -840,6 +657,8 @@ export default {
             }
         },
         switchStatus: function(status){
+            console.log('in switchStatus')
+            console.log(status)
             let vm = this;
             //vm.save_wo();
             //let vm = this;
@@ -984,152 +803,20 @@ export default {
                 $(vm.$refs.department_users).select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Referral"
+                    //placeholder:"Select Referral"
                 }).
                 on("select2:select",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selected_referral = selected.val();
+                    //vm.selected_referral = selected.val();
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selected_referral = ''
+                    //vm.selected_referral = ''
                 });
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
             }
         },
-        sendReferral: function(){
-            let vm = this;
-            //vm.save_wo();
-            vm.checkAssessorData();
-            let formData = new FormData(vm.form);
-            vm.sendingReferral = true;
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-
-            let data = {'email':vm.selected_referral, 'text': vm.referral_text};
-            //vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.department_users).val(null).trigger("change");
-                vm.selected_referral = '';
-                vm.referral_text = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            });
-
-
-          },err=>{
-          });
-
-        //this.$refs.referral_comment.selected_referral = vm.selected_referral;
-        //this.$refs.referral_comment.isModalOpen = true;
-
-          /*  let data = {'email':vm.selected_referral};
-            vm.sendingReferral = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assesor_send_referral')),JSON.stringify(data),{
-                emulateJSON:true
-            }).then((response) => {
-                vm.sendingReferral = false;
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Sent',
-                    'The referral has been sent to '+vm.department_users.find(d => d.email == vm.selected_referral).name,
-                    'success'
-                )
-                $(vm.$refs.department_users).val(null).trigger("change");
-                vm.selected_referral = '';
-            }, (error) => {
-                console.log(error);
-                swal(
-                    'Referral Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-                vm.sendingReferral = false;
-            }); */
-        },
-        remindReferral:function(r){
-            let vm = this;
-
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/remind')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Reminder',
-                    'A reminder has been sent to '+r.referral,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        resendReferral:function(r){
-            let vm = this;
-
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/resend')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Resent',
-                    'The referral has been resent to '+r.referral,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        recallReferral:function(r){
-            let vm = this;
-
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.referrals,r.id+'/recall')).then(response => {
-                vm.original_proposal = helpers.copyObject(response.body);
-                vm.proposal = response.body;
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                swal(
-                    'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
-                    'success'
-                )
-            },
-            error => {
-                swal(
-                    'Proposal Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        }
-
     },
     mounted: function() {
         let vm = this;
@@ -1198,19 +885,5 @@ export default {
 }
 </script>
 <style scoped>
-.top-buffer-s {
-    margin-top: 10px;
-}
-.actionBtn {
-    cursor: pointer;
-}
-.hidePopover {
-    display: none;
-}
-.separator {
-    border: 1px solid;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    width: 100%;
-}
+
 </style>
