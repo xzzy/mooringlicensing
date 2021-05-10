@@ -110,8 +110,8 @@
                             <div class="col-sm-3">
                             </div>
                             <div class="col-sm-6">
-                              <input :readonly="readonly" type="checkbox" id="same_as_residential" v-model="profile.postal_address.same_as_residential"/>
-                              <label for="same_as_residential" class="control-label">Same as residential address</label>
+                              <input :readonly="readonly" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential"/>
+                              <label for="postal_same_as_residential" class="control-label">Same as residential address</label>
                             </div>
                           </div>
                           <div class="form-group">
@@ -357,7 +357,7 @@ export default {
     },
     computed: {
         postalAddressReadonly: function() {
-            if (this.readonly || this.profile.postal_address.same_as_residential) {
+            if (this.readonly || this.profile.postal_same_as_residential) {
                 return true;
             }
         },
@@ -591,8 +591,9 @@ export default {
             vm.updatingAddress = true;
             let payload = {}
             payload.residential_address = Object.assign({}, vm.profile.residential_address);
-            if (!vm.profile.postal_address.same_as_residential) {
-                payload.postal_address = Object.assign({}, vm.profile.postal_address);
+            payload.postal_address = Object.assign({}, vm.profile.postal_address);
+            if (vm.profile.postal_same_as_residential) {
+                payload.postal_same_as_residential = true;
             }
             try {
                 const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
