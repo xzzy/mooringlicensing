@@ -21,14 +21,13 @@
                 />
 
                 <Workflow
-                    :display_status="proposal.processing_status"
-                    :processing_status="proposal.processing_status"
+                    :proposal="proposal"
                     :isFinalised="isFinalised"
                     :canAction="canAction"
+                    :canAssess="canAssess"
                     :can_user_edit="proposal.can_user_edit"
-                    :proposed_decline_status="proposal.proposed_decline_status"
-                    @showingProposal="showingProposal"
-                    @showingRequirements="showingRequirements"
+                    @toggleProposal="toggleProposal"
+                    @toggleRequirements="toggleRequirements"
                     @switchStatus="switchStatus"
                     @amendmentRequest="amendmentRequest"
                     @proposedDecline="proposedDecline"
@@ -39,145 +38,154 @@
 
             </div>
             <div class="col-md-1"></div>
-<!--
-          <div class="col-md-8">
-              <div class="row">
-                  <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                      <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
-                  </template>
-                  <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
-                      <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
-                  </template>
-                  <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
-                      <div class="col-md-12">
-                          <div class="row">
-                              <div class="panel panel-default">
-                                  <div class="panel-heading">
-                                      <h3 class="panel-title">Applicant
-                                          <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
-                                              <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                          </a>
-                                      </h3>
-                                  </div>
-                                  <div class="panel-body panel-collapse collapse in" :id="detailsBody">
-                                        <form class="form-horizontal">
-                                            <div class="form-group">
-                                              <label for="" class="col-sm-3 control-label">Name</label>
-                                              <div class="col-sm-6">
-                                                  <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.applicant.name">
-                                              </div>
-                                            </div>
-                                            <div class="form-group">
-                                              <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
-                                              <div class="col-sm-6">
-                                                  <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="proposal.applicant.abn">
-                                              </div>
-                                            </div>
-                                        </form>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                      <div class="col-md-12">
-                          <div class="row">
-                              <div class="panel panel-default">
-                                  <div class="panel-heading">
-                                      <h3 class="panel-title">Address Details
-                                          <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
-                                              <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                          </a>
-                                      </h3>
-                                  </div>
-                                  <div class="panel-body panel-collapse collapse" :id="addressBody">
-                                        <form class="form-horizontal">
-                                            <div class="form-group">
-                                              <label for="" class="col-sm-3 control-label">Street</label>
-                                              <div class="col-sm-6">
-                                                  <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.applicant.address.line1">
-                                              </div>
-                                            </div>
-                                            <div class="form-group">
-                                              <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-                                              <div class="col-sm-6">
-                                                  <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.applicant.address.locality">
-                                              </div>
-                                            </div>
-                                            <div class="form-group">
-                                              <label for="" class="col-sm-3 control-label">State</label>
-                                              <div class="col-sm-2">
-                                                  <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.applicant.address.state">
-                                              </div>
-                                              <label for="" class="col-sm-2 control-label">Postcode</label>
-                                              <div class="col-sm-2">
-                                                  <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.applicant.address.postcode">
-                                              </div>
-                                            </div>
-                                            <div class="form-group">
-                                              <label for="" class="col-sm-3 control-label" >Country</label>
-                                              <div class="col-sm-4">
-                                                  <input disabled type="text" class="form-control" name="country" v-model="proposal.applicant.address.country"/>
-                                              </div>
-                                            </div>
-                                         </form>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                      <div class="col-md-12">
-                          <div class="row">
-                              <div class="panel panel-default">
-                                  <div class="panel-heading">
-                                      <h3 class="panel-title">Contact Details
-                                          <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
-                                              <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                          </a>
-                                      </h3>
-                                  </div>
-                                  <div class="panel-body panel-collapse collapse" :id="contactsBody">
-                                      <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
-                                      </table>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
 
-                      <div class="col-md-12">
-                          <div class="row">
-                              <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
+            <div class="col-md-8">
+                <!-- 
+                    Main content here, which probably is a component, such as
+                    <ProposalForm(read-only)>
+                    <ProposalConditions>
+                    <ProposalProposedDecision>
+                    ...
+                -->
 
-                                  <div v-if="proposal.application_type=='Apiary'">
-                                      <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
-                                  </div>
-                                  <div v-else>
-                                      <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
-                                      <NewApply v-if="proposal" :proposal="proposal"></NewApply>
-                                  </div>
-
-
-                                  <div>
-                                      <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
-                                      <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
-                                      <input type='hidden' name="proposal_id" :value="1" />
-                                      <div class="row" style="margin-bottom: 50px">
-                                        <div class="navbar navbar-fixed-bottom" v-if="hasAssessorMode" style="background-color: #f5f5f5;">
-                                          <div class="navbar-inner">
-                                              <div v-if="hasAssessorMode" class="container">
-                                                <p class="pull-right">
-                                                  <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
-                                                </p>
+<!-- Main content copied from the Disturbance
+                <div class="row">
+                    <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
+                        <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    </template>
+                    <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
+                        <Requirements :proposal="proposal" @refreshRequirements="refreshRequirements"/>
+                    </template>
+                    <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Applicant
+                                            <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
+                                                <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                            </a>
+                                        </h3>
+                                    </div>
+                                    <div class="panel-body panel-collapse collapse in" :id="detailsBody">
+                                          <form class="form-horizontal">
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">Name</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.applicant.name">
+                                                </div>
                                               </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >ABN/ACN</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="applicantABN" placeholder="" v-model="proposal.applicant.abn">
+                                                </div>
+                                              </div>
+                                          </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Address Details
+                                            <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
+                                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            </a>
+                                        </h3>
+                                    </div>
+                                    <div class="panel-body panel-collapse collapse" :id="addressBody">
+                                          <form class="form-horizontal">
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">Street</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.applicant.address.line1">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                                                <div class="col-sm-6">
+                                                    <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.applicant.address.locality">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label">State</label>
+                                                <div class="col-sm-2">
+                                                    <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.applicant.address.state">
+                                                </div>
+                                                <label for="" class="col-sm-2 control-label">Postcode</label>
+                                                <div class="col-sm-2">
+                                                    <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.applicant.address.postcode">
+                                                </div>
+                                              </div>
+                                              <div class="form-group">
+                                                <label for="" class="col-sm-3 control-label" >Country</label>
+                                                <div class="col-sm-4">
+                                                    <input disabled type="text" class="form-control" name="country" v-model="proposal.applicant.address.country"/>
+                                                </div>
+                                              </div>
+                                           </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Contact Details
+                                            <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
+                                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            </a>
+                                        </h3>
+                                    </div>
+                                    <div class="panel-body panel-collapse collapse" :id="contactsBody">
+                                        <table ref="contacts_datatable" :id="contacts_table_id" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="row">
+                                <form :action="proposal_form_url" method="post" name="new_proposal" enctype="multipart/form-data">
+
+                                    <div v-if="proposal.application_type=='Apiary'">
+                                        <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
+                                    </div>
+                                    <div v-else>
+                                        <ProposalDisturbance form_width="inherit" :withSectionsSelector="false" v-if="proposal" :proposal="proposal"> </ProposalDisturbance>
+                                        <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                                    </div>
+
+
+                                    <div>
+                                        <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+                                        <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
+                                        <input type='hidden' name="proposal_id" :value="1" />
+                                        <div class="row" style="margin-bottom: 50px">
+                                          <div class="navbar navbar-fixed-bottom" v-if="hasAssessorMode" style="background-color: #f5f5f5;">
+                                            <div class="navbar-inner">
+                                                <div v-if="hasAssessorMode" class="container">
+                                                  <p class="pull-right">
+                                                    <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                                  </p>
+                                                </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                  </div>
-                              </form>
-                          </div>
-                      </div>
-                  </template>
-              </div>
-          </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </template>
+                </div>
 -->
+            </div>
         </div>
 <!--
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
@@ -546,11 +554,11 @@ export default {
           });
         },
 
-        toggleProposal:function(){
-            this.showingProposal = !this.showingProposal;
+        toggleProposal:function(value){
+            this.showingProposal = value
         },
-        toggleRequirements:function(){
-            this.showingRequirements = !this.showingRequirements;
+        toggleRequirements:function(value){
+            this.showingRequirements = value
         },
         updateAssignedOfficerSelect:function(){
             let vm = this;
