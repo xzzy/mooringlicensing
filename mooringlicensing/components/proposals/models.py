@@ -1748,24 +1748,21 @@ class Vessel(models.Model):
     def __str__(self):
         return self.rego_no
 
+   # @property
+   # def latest_vessel_details(self):
+   #     latest = None
+   #     if self.vesseldetails_set.filter(status="draft"):
+   #         latest = self.vesseldetails_set.filter(status="draft")[0]
+   #     elif self.vesseldetails_set.filter(status="approved"):
+   #         latest = self.vesseldetails_set.filter(status="approved")[0]
+   #     return latest
+
     @property
     def latest_vessel_details(self):
-        latest = None
-        if self.vesseldetails_set.filter(status="draft"):
-            latest = self.vesseldetails_set.filter(status="draft")[0]
-        elif self.vesseldetails_set.filter(status="approved"):
-            latest = self.vesseldetails_set.filter(status="approved")[0]
-        return latest
+        return self.vesseldetails_set.order_by('updated')[0]
 
 
 class VesselDetails(models.Model): # ManyToManyField link in Proposal
-    STATUS_TYPES = (
-            ('approved', 'Approved'),
-            ('draft', 'Draft'),
-            ('old', 'Old'),
-            ('declined', 'Declined'),
-            )
-    blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
@@ -1777,7 +1774,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     berth_mooring = models.CharField(max_length=200, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
+    #status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
     #owner = models.ForeignKey('Owner') # this owner can edit
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
@@ -1793,34 +1790,59 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     def vessel_applicable_length(self):
         return self.vessel_overall_length
 
+class CompanyOwnership(models.Model):
+    STATUS_TYPES = (
+            ('approved', 'Approved'),
+            ('draft', 'Draft'),
+            ('old', 'Old'),
+            ('declined', 'Declined'),
+            )
+    blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True)
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
+    vessel = models.ForeignKey(Vessel)
+    company = models.ForeignKey('Company')
+    percentage = models.IntegerField(null=True, blank=True)
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True)
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Company Ownership"
+        app_label = 'mooringlicensing'
+        #unique_together = ['owner', 'vessel', 'org_name']
+
+    def __str__(self):
+        return "{}: {}".format(self.owner, self.vessel)
+
     def save(self, *args, **kwargs):
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
         if not self.pk:
-            vessel_details_set = VesselDetails.objects.filter(vessel=self.vessel)
+            vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel)
             for vd in vessel_details_set:
-                if vd.status == "draft":
-                    raise ValueError("Multiple draft records for the same vessel are not allowed")
-        super(VesselDetails, self).save(*args,**kwargs)
-
+                if vd.status == "approved":
+                    raise ValueError("Multiple approved records for the same vessel are not allowed")
+        super(CompanyOwnership, self).save(*args,**kwargs)
 
 
 class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
-    org_name = models.CharField(max_length=200, blank=True, null=True)
-    #percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    #org_name = models.CharField(max_length=200, blank=True, null=True)
+    company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
     percentage = models.IntegerField(null=True, blank=True)
-    #editable = models.BooleanField(default=False) # must be False after every add/edit
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
-        unique_together = ['owner', 'vessel', 'org_name']
+        #unique_together = ['owner', 'vessel', 'org_name']
 
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
@@ -1854,6 +1876,19 @@ class Owner(models.Model):
     #        return self.org_contact
     #    else:
     #        self.emailuser.get_full_name()
+
+
+class Company(models.Model):
+    name = models.CharField(max_length=200, blank=True, null=True)
+    vessels = models.ManyToManyField(Vessel, through=CompanyOwnership) # these owner/vessel association
+
+    class Meta:
+        verbose_name_plural = "Companies"
+        app_label = 'mooringlicensing'
+        #unique_together = ['owner', 'vessel', 'org_name']
+
+    def __str__(self):
+        return "{}: {}".format(self.name, self.id)
 
 
 class VesselRegistrationDocument(Document):
