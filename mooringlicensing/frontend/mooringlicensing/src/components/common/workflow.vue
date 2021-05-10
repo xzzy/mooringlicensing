@@ -8,13 +8,38 @@
                         <div class="row">
                             <div class="col-sm-12">
                                 <strong>Status</strong><br/>
-                                {{ display_status }}
+                                {{ proposal.processing_status }}
                             </div>
                             <div class="col-sm-12">
                                 <div class="separator"></div>
                             </div>
+                            <div v-if="!isFinalised" class="col-sm-12 top-buffer-s">
+                                <strong>Currently assigned to</strong><br/>
+                                <div class="form-group">
+                                    <template v-if="proposal.processing_status == 'With Approver'">
+                                        <template v-if="proposal.assigned_approver">
+                                            <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_approver">
+                                                <option v-for="member in proposal.allowed_assessors" :value="member.id">{{ member.first_name }} {{ member.last_name }}</option>
+                                            </select>
+                                        </template>
+                                        <template v-if="proposal.current_assessor">
+                                            <a v-if="canAssess && proposal.assigned_approver != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
+                                        </template>
+                                    </template>
+                                    <template v-else>
+                                        <template v-if="proposal.assigned_officer">
+                                            <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_officer">
+                                                <option v-for="member in proposal.allowed_assessors" :value="member.id">{{ member.first_name }} {{ member.last_name }}</option>
+                                            </select>
+                                        </template>
+                                        <template v-if="proposal.current_assessor">
+                                            <a v-if="canAssess && proposal.assigned_officer != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
 
-                            <template v-if="processing_status == 'With Assessor (Requirements)' || processing_status == 'With Approver' || isFinalised">
+                            <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
                                     <strong>Proposal</strong><br/>
                                     <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Proposal</a>
@@ -24,7 +49,7 @@
                                     <div class="separator"></div>
                                 </div>
                             </template>
-                            <template v-if="processing_status == 'With Approver' || isFinalised">
+                            <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                                 <div class="col-sm-12">
                                     <strong>Requirements</strong><br/>
                                     <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
@@ -40,7 +65,7 @@
                                         <strong>Action</strong>
                                     </div>
                                 </div>
-                                <template v-if="processing_status == 'With Assessor'">
+                                <template v-if="proposal.processing_status == 'With Assessor'">
                                     <div class="row">
                                         <div class="col-sm-12">
                                             <button 
@@ -69,7 +94,7 @@
                                         </div>
                                     </div>
                                 </template>
-                                <template v-else-if="processing_status == 'With Assessor (Requirements)'">
+                                <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
                                     <div class="row">
                                         <div class="col-sm-12">
                                             <button 
@@ -89,9 +114,9 @@
                                         </div>
                                     </div>
                                 </template>
-                                <template v-else-if="processing_status == 'With Approver'">
+                                <template v-else-if="proposal.processing_status == 'With Approver'">
                                     <div class="row">
-                                        <div class="col-sm-12" v-if="proposed_decline_status">
+                                        <div class="col-sm-12" v-if="proposal.proposed_decline_status">
                                             <button 
                                                 class="btn btn-primary w-btn" 
                                                 :disabled="can_user_edit" 
@@ -139,14 +164,18 @@ export default {
         }
     },
     props: {
-        display_status: {
-            type: String,
-            default: '',
+        proposal: {
+            type: Object,
+            default: null,
         },
-        processing_status: {
-            type: String,
-            default: '',
-        },
+        //display_status: {
+        //    type: String,
+        //    default: '',
+        //},
+        //processing_status: {
+        //    type: String,
+        //    default: '',
+        //},
         isFinalised: {
             type: Boolean,
             default: false,
@@ -155,14 +184,18 @@ export default {
             type: Boolean,
             default: false,
         },
+        canAssess: {
+            type: Boolean,
+            default: false,
+        },
         can_user_edit: {
             type: Boolean,
             default: false,
         },
-        proposed_decline_status: {
-            type: Boolean,
-            default: false,
-        },
+        //proposed_decline_status: {
+        //    type: Boolean,
+        //    default: false,
+        //},
     },
     filters: {
         formatDate: function(data){
@@ -172,11 +205,11 @@ export default {
     methods: {
         toggleProposal:function(){
             this.showingProposal = !this.showingProposal;
-            this.$emit('showingProposal', this.showingProposal)
+            this.$emit('toggleProposal', this.showingProposal)
         },
         toggleRequirements:function(){
             this.showingRequirements = !this.showingRequirements;
-            this.$emit('showingRequirements', this.showingRequirements)
+            this.$emit('toggleRequirements', this.showingRequirements)
         },
         switchStatus: function(value){
             this.$emit('switchStatus', value)
