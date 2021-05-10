@@ -7,6 +7,7 @@ module.exports = {
     vessel_types_dict:"/api/vessel_types_dict",
     insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
+    company_names:"/api/company_names",
     dcv_vessel_rego_nos:"/api/dcv_vessel_rego_nos",
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",

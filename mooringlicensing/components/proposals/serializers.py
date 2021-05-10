@@ -960,6 +960,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     vessel_details = serializers.SerializerMethodField()
     emailuser = serializers.SerializerMethodField()
     owner_name = serializers.SerializerMethodField()
+    percentage = serializers.SerializerMethodField()
     class Meta:
         model = VesselOwnership
         fields = (
@@ -979,7 +980,16 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_owner_name(self, obj):
-        return obj.org_name if obj.org_name else str(obj.owner)
+        if obj.company_ownership:
+            return obj.company_ownership.company.name
+        else:
+            return str(obj.owner)
+
+    def get_percentage(self, obj):
+        if obj.company_ownership:
+            return obj.company_ownership.percentage
+        else:
+            return obj.percentage
 
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
@@ -989,7 +999,7 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
         model = VesselDetails
         fields = (
                 'id',
-                'blocking_proposal',
+                #'blocking_proposal',
                 'vessel_type',
                 'vessel',
                 'vessel_name',
@@ -1001,20 +1011,24 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'created',
                 'updated',
-                'status',
+                #'status',
                 'exported',
                 'read_only',
                 )
 
     def get_read_only(self, obj):
-        ro = True
-        if obj.status == 'draft' and (
-            not obj.blocking_proposal 
-            # WG advised to remove 20210505
-            #or obj.blocking_proposal.submitter == self.context.get('request').user
-            ):
-            ro = False
-        return ro
+        # ???
+        return False
+
+    #def get_read_only(self, obj):
+    #    ro = True
+    #    if obj.status == 'draft' and (
+    #        not obj.blocking_proposal 
+    #        # WG advised to remove 20210505
+    #        #or obj.blocking_proposal.submitter == self.context.get('request').user
+    #        ):
+    #        ro = False
+    #    return ro
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
@@ -1057,8 +1071,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner',
                 'vessel',
                 'percentage',
-                'org_name',
-                #'editable',
+                #'org_name',
                 'start_date',
                 'end_date',
                 )
@@ -1071,26 +1084,34 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         org_name = data.get("org_name")
         vessel = data.get("vessel")
         total = 0
-        if percentage:
-            #custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
-            qs = self.instance.vessel.vesselownership_set.all()
-            for vo in qs:
-                # Same VesselOwnership record? - match vo with incoming data
-                if (vo.owner == owner and 
-                (vo.org_name == org_name or (not vo.org_name and not org_name)) and
-                vo.vessel == vessel):
-                    # handle percentage change on VesselOwnership obj
-                    #total += percentage if percentage else 0
-                    total += percentage
-                else:
-                    total += vo.percentage if vo.percentage else 0
-            if total > 100:
-                #raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
-                custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
+        ## 20210510 - need separate function
+        #if percentage:
+        #    # individual ownership
+        #    qs = self.instance.vessel.vesselownership_set.all()
+        #    for vo in qs:
+        #        # Same VesselOwnership record? - match vo with incoming data
+        #        if vo.owner == owner and not vo.company_ownership and vo.vessel == vessel:
+        #            # handle percentage change on VesselOwnership obj
+        #            total += percentage
+        #        else:
+        #            total += vo.percentage if vo.percentage else 0
+        #    # company ownership
+        #    qs2 = self.instance.vessel.companyownership_set.all()
+        #    for co in qs2:
+        #        # Same Ownership record? - match vo with incoming data
+        #        if (co.owner == owner and co.company_ownership == org_name or (not vo.org_name and not org_name)) and
+        #        vo.vessel == vessel):
+        #            # handle percentage change on VesselOwnership obj
+        #            total += percentage
+        #        else:
+        #            total += vo.percentage if vo.percentage else 0
 
-        if not data.get("percentage"):
-            custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
-        elif data.get("percentage") < 25:
+        #    if total > 100:
+        #        custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
+
+        #if not data.get("percentage"):
+         #   custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
+        if data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)

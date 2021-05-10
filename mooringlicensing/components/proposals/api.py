@@ -69,6 +69,7 @@ from mooringlicensing.components.proposals.models import (
     VesselOwnership,
     MooringBay,
     Owner,
+    Company,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -158,6 +159,35 @@ class GetDcvVesselRegoNos(views.APIView):
         return add_cache_control(Response())
 
 
+#class GetVesselRegoNos(views.APIView):
+#    renderer_classes = [JSONRenderer, ]
+#
+#    def get(self, request, format=None):
+#        #import ipdb; ipdb.set_trace()
+#        search_term = request.GET.get('term', '')
+#        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+#        org_name = request.GET.get('org_name', '')
+#        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+#        if search_term:
+#            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
+#            data_transform = []
+#            owner_set = Owner.objects.filter(emailuser=request.user)
+#            if create_vessel and owner_set:
+#                for rego in data:
+#                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
+#                    vessel_ownership_set = VesselOwnership.objects.filter(
+#                        owner=owner_set[0], 
+#                        vessel=vessel, 
+#                        org_name=org_name if org_name else None
+#                        )
+#                    # request.user owns vessel
+#                    if not vessel_ownership_set:
+#                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
+#            else:
+#                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+#            return Response({"results": data_transform})
+#        return add_cache_control(Response())
+
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
@@ -165,25 +195,29 @@ class GetVesselRegoNos(views.APIView):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
         create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        org_name = request.GET.get('org_name', '')
+        #org_name = request.GET.get('org_name', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
             data_transform = []
-            owner_set = Owner.objects.filter(emailuser=request.user)
-            if create_vessel and owner_set:
-                for rego in data:
-                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-                    vessel_ownership_set = VesselOwnership.objects.filter(
-                        owner=owner_set[0], 
-                        vessel=vessel, 
-                        org_name=org_name if org_name else None
-                        )
-                    # request.user owns vessel
-                    if not vessel_ownership_set:
-                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-            else:
-                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+            return Response({"results": data_transform})
+        return add_cache_control(Response())
+
+
+class GetCompanyNames(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
+        search_term = request.GET.get('term', '')
+        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+        #org_name = request.GET.get('org_name', '')
+        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        if search_term:
+            data = Company.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+            data_transform = []
+            data_transform = [{'id': company['id'], 'text': company['name']} for company in data] 
             return Response({"results": data_transform})
         return add_cache_control(Response())
 

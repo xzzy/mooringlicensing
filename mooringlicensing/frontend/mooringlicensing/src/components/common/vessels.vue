@@ -53,7 +53,8 @@
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                         <div v-if="!individualOwner" class="col-sm-8">
-                            <input 
+                            <select :disabled="readonly" id="company_name"  ref="company_name" class="form-control" style="width: 40%"/>
+                            <!--input 
                             :readonly="readonly" 
                             type="text" 
                             class="form-control" 
@@ -61,7 +62,7 @@
                             placeholder="Company name" 
                             v-model="vessel.vessel_ownership.org_name" 
                             required=""
-                            />
+                            /-->
                         </div>
                     </div>
                 </div>
@@ -187,6 +188,10 @@ from '@/utils/hooks'
                 vessel: {
                     vessel_details: {},
                     vessel_ownership: {
+                        company_ownership: {
+                            company: {
+                            }
+                        },
                         //registered_owner: 'current_user',
                     }
                 },
@@ -328,8 +333,97 @@ from '@/utils/hooks'
                 */
                 return data;
             },
-            initialiseSelects: function(){
+            initialiseCompanyNameSelect: function(){
                 let vm = this;
+                // Vessel search
+                $(vm.$refs.company_name).select2({
+                    minimumInputLength: 2,
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    //placeholder:"Select Vessel Registration",
+                    placeholder:"",
+                    tags: true,
+                    createTag: function (tag) {
+                        return {
+                            id: tag.term,
+                            text: tag.term,
+                            tag: true
+                        };
+                    },
+                    ajax: {
+                        url: api_endpoints.company_names,
+                        dataType: 'json',
+                        data: function(params) {
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                                //create_vessel: vm.creatingVessel,
+                                //org_name: vm.orgName,
+                            }
+                            return query;
+                        },
+                    },
+                    //templateSelection: vm.validateRegoNo,
+                    //templateResult: vm.validateRegoNo,
+                    /*
+                    templateSelection: function(data) {
+                        return vm.validateRegoNo(data.text);
+                    },
+                    */
+                }).
+                on("select2:select", function (e) {
+                    var selected = $(e.currentTarget);
+                    let data = e.params.data.id;
+                    console.log(e.params.data)
+                    vm.$nextTick(() => {
+                        //if (!isNew) {
+                        if (!e.params.data.tag) {
+                            //console.log("fetch new vessel");
+                            // fetch draft/approved vessel
+                            //vm.lookupVessel(data);
+                        } else {
+                            //data = vm.validateRegoNo(data);
+                            let text = e.params.data.text;
+                            //vm.vessel.vessel_ownership.company_ownership.company.name = text;
+
+                            let companyOwnership = {
+                                company: {
+                                    name: text,
+                                }
+                            }
+                            vm.vessel.vessel_ownership.company_ownership = Object.assign({}, companyOwnership);
+                            console.log(data)
+                        }
+                    });
+                }).
+                /*
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.vessel.rego_no = '';
+                    vm.vessel = Object.assign({}, 
+                        {   
+                            vessel_details: {
+                                read_only: false,
+                            },
+                            vessel_ownership: {
+                                //registered_owner: 'current_user',
+                            }
+                        });
+                }).
+                */
+                on("select2:open",function (e) {
+                    const searchField = $(".select2-search__field")
+                    // move focus to select2 field
+                    searchField[0].focus();
+                });
+                // read company name if exists on vessel.vue open
+                vm.readCompanyName();
+            },
+            readCompanyName: function() {
+            },
+            initialiseRegoNoSelect: function(){
+                let vm = this;
+                // Vessel search
                 $(vm.$refs.vessel_rego_nos).select2({
                     minimumInputLength: 2,
                     "theme": "bootstrap",
@@ -375,7 +469,7 @@ from '@/utils/hooks'
                         } else {
                             data = vm.validateRegoNo(data);
 
-                            vm.vessel = Object.assign({}, 
+                            vm.vessel = Object.assign({},
                                 {
                                     new_vessel: true,
                                     rego_no: data,
@@ -551,7 +645,9 @@ from '@/utils/hooks'
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
                 }
-                this.initialiseSelects();
+                //this.initialiseSelects();
+                this.initialiseRegoNoSelect();
+                this.initialiseCompanyNameSelect();
                 this.addEventListeners();
             });
         },
