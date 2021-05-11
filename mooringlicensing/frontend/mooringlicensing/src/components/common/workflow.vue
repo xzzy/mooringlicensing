@@ -17,24 +17,16 @@
                                 <strong>Currently assigned to</strong><br/>
                                 <div class="form-group">
                                     <template v-if="proposal.processing_status == 'With Approver'">
-                                        <template v-if="proposal.assigned_approver">
                                             <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_approver">
                                                 <option v-for="member in proposal.allowed_assessors" :value="member.id">{{ member.first_name }} {{ member.last_name }}</option>
                                             </select>
-                                        </template>
-                                        <template v-if="proposal.current_assessor">
                                             <a v-if="canAssess && proposal.assigned_approver != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
-                                        </template>
                                     </template>
                                     <template v-else>
-                                        <template v-if="proposal.assigned_officer">
                                             <select ref="assigned_officer" :disabled="!canAction" class="form-control" v-model="proposal.assigned_officer">
                                                 <option v-for="member in proposal.allowed_assessors" :value="member.id">{{ member.first_name }} {{ member.last_name }}</option>
                                             </select>
-                                        </template>
-                                        <template v-if="proposal.current_assessor">
                                             <a v-if="canAssess && proposal.assigned_officer != proposal.current_assessor.id" @click.prevent="assignRequestUser()" class="actionBtn pull-right">Assign to me</a>
-                                        </template>
                                     </template>
                                 </div>
                             </div>
@@ -101,11 +93,12 @@
                                                 class="btn btn-primary w-btn" 
                                                 :disabled="can_user_edit" 
                                                 @click.prevent="switchStatus('with_assessor')"
-                                            >Back To Processing</button>
+                                            >Back To Application</button>
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12" v-if="requirementsComplete">
+                                        <!-- div class="col-sm-12" v-if="requirementsComplete" -->
+                                        <div class="col-sm-12" v-if="proposal.requirements_completed">
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
