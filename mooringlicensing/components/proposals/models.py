@@ -697,7 +697,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def assessor_assessment(self):
-        qs=self.assessment.filter(referral_assessment=False, referral_group=None)
+        # qs=self.assessment.filter(referral_assessment=False, referral_group=None)
+        qs = self.assessment.all()  # <== Is this correct???
         if qs:
             return qs[0]
         else:
