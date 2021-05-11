@@ -193,7 +193,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     # proposal_type = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     submitter = EmailUserSerializer()
-    other_details = serializers.SerializerMethodField()
+    # other_details = serializers.SerializerMethodField()
 
     get_history = serializers.ReadOnlyField()
     # fee_invoice_url = serializers.SerializerMethodField()
@@ -645,23 +645,23 @@ class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
     #org_applicant = OrganisationSerializer()
     processing_status = serializers.SerializerMethodField(read_only=True)
-    review_status = serializers.SerializerMethodField(read_only=True)
+    # review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
     submitter = EmailUserAppViewSerializer()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
-    can_edit_activities = serializers.SerializerMethodField()
-    can_edit_period = serializers.SerializerMethodField()
+    # can_edit_activities = serializers.SerializerMethodField()
+    # can_edit_period = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
-    region = serializers.CharField(source='region.name', read_only=True)
-    district = serializers.CharField(source='district.name', read_only=True)
+    # region = serializers.CharField(source='region.name', read_only=True)
+    # district = serializers.CharField(source='district.name', read_only=True)
     reversion_ids = serializers.SerializerMethodField()
     assessor_assessment=ProposalAssessmentSerializer(read_only=True)
-    referral_assessments=ProposalAssessmentSerializer(read_only=True, many=True)
+    # referral_assessments=ProposalAssessmentSerializer(read_only=True, many=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
 
@@ -670,18 +670,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
         fields = (
                 'id',
                 'application_type',
-                'activity',
+                # 'activity',
                 'approval_level',
                 'approval_level_document',
-                'region',
-                'district',
-                'tenure',
+                # 'region',
+                # 'district',
+                # 'tenure',
                 'title',
-                'data',
-                'schema',
+                # 'data',
+                # 'schema',
                 'customer_status',
                 'processing_status',
-                'review_status',
+                # 'review_status',
                 'applicant',
                 'org_applicant',
                 'proxy_applicant',
@@ -689,7 +689,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'applicant_type',
                 'assigned_officer',
                 'assigned_approver',
-                'previous_application',
+                # 'previous_application',
                 'get_history',
                 'lodgement_date',
                 'modified_date',
@@ -708,30 +708,33 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'proposed_decline_status',
                 'proposaldeclineddetails',
                 'permit',
-                'reference',
+                # 'reference',
                 'lodgement_number',
                 'lodgement_sequence',
                 'can_officer_process',
                 'proposal_type',
                 'applicant_details',
-                'other_details',
-                'activities_land',
-                'land_access',
-                'land_access',
-                'trail_activities',
-                'trail_section_activities',
-                'activities_marine',
-                'training_completed',
-                'can_edit_activities',
-                'can_edit_period',
+                # 'other_details',
+                # 'activities_land',
+                # 'land_access',
+                # 'land_access',
+                # 'trail_activities',
+                # 'trail_section_activities',
+                # 'activities_marine',
+                # 'training_completed',
+                # 'can_edit_activities',
+                # 'can_edit_period',
                 'reversion_ids',
                 'assessor_assessment',
-                'referral_assessments',
+                # 'referral_assessments',
                 'fee_invoice_url',
                 'fee_paid',
                 'requirements_completed'
                 )
-        read_only_fields=('documents','requirements')
+        read_only_fields = (
+            'documents',
+            'requirements',
+        )
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
@@ -751,15 +754,15 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'assessor_box_view': obj.assessor_comments_view(user)
         }
 
-    def get_can_edit_activities(self,obj):
-        request = self.context['request']
-        user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-        return obj.can_edit_activities(user)
+    # def get_can_edit_activities(self,obj):
+    #     request = self.context['request']
+    #     user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+    #     return obj.can_edit_activities(user)
 
-    def get_can_edit_period(self,obj):
-        request = self.context['request']
-        user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-        return obj.can_edit_period(user)
+    # def get_can_edit_period(self,obj):
+    #     request = self.context['request']
+    #     user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+    #     return obj.can_edit_period(user)
 
     def get_readonly(self,obj):
         return True

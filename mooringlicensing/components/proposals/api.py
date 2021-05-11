@@ -737,7 +737,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #     serializer = InternalFilmingProposalSerializer(instance,context={'request':request})
         # elif instance.application_type.name==ApplicationType.EVENT:
         #     serializer = InternalEventProposalSerializer(instance,context={'request':request})
-        serializer = ProposalSerializer(instance, context={'request': request})
+        serializer = InternalProposalSerializer(instance, context={'request': request})
         return add_cache_control(Response(serializer.data))
 
     #@detail_route(methods=['post'])
