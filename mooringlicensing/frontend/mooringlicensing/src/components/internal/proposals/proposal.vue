@@ -845,6 +845,8 @@ export default {
     },
     created: function() {
         Vue.http.get(`/api/proposal/${this.$route.params.proposal_id}/internal_proposal.json`).then(res => {
+            console.log('res.body: ')
+            console.log(res.body)
             this.proposal = res.body;
             this.original_proposal = helpers.copyObject(res.body);
             //this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
