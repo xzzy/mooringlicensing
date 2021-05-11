@@ -1,11 +1,11 @@
 <template lang="html">
-    <div>
+    <div class="">
 
-        <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
+        <div v-if="proposal" id="scrollspy-heading" class="" >
             <h4>Waiting List Application: {{proposal.lodgement_number}}</h4>
         </div>
 
-        <div class="col-md-12">
+        <div class="">
             <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
               <li class="nav-item">
                 <a class="nav-link active" id="pills-applicant-tab" data-toggle="pill" href="#pills-applicant" role="tab" aria-controls="pills-applicant" aria-selected="true">
