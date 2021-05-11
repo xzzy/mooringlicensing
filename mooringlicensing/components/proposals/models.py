@@ -2063,6 +2063,7 @@ class ProposalDeclinedDetails(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
+
 class ProposalOnHold(models.Model):
     #proposal = models.OneToOneField(Proposal, related_name='onhold')
     proposal = models.OneToOneField(Proposal)
@@ -2194,7 +2195,6 @@ class ProposalRequirement(OrderedModel):
 
     class Meta:
         app_label = 'mooringlicensing'
-
 
     @property
     def requirement(self):
