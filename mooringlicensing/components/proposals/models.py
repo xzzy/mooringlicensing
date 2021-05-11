@@ -965,19 +965,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    #def add_default_requirements(self):
-    #    #Add default standard requirements to Proposal
-    #    due_date=None
-    #    if self.application_type.name==ApplicationType.TCLASS:
-    #        due_date=self.other_details.nominated_start_date
-    #    if self.application_type.name==ApplicationType.FILMING:
-    #        due_date=self.filming_activity.commencement_date
-    #    if self.application_type.name==ApplicationType.EVENT:
-    #        due_date=self.event_activity.commencement_date
-    #    default_requirements=ProposalStandardRequirement.objects.filter(application_type=self.application_type, default=True, obsolete=False)
-    #    if default_requirements:
-    #        for req in default_requirements:
-    #            r, created=ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date= due_date)
+    def add_default_requirements(self):
+        # Add default standard requirements to Proposal
+        due_date = None
+        # if self.application_type.name == ApplicationType.TCLASS:
+        #     due_date = self.other_details.nominated_start_date
+        # elif self.application_type.name == ApplicationType.FILMING:
+        #     due_date = self.filming_activity.commencement_date
+        # elif self.application_type.name == ApplicationType.EVENT:
+        #     due_date = self.event_activity.commencement_date
+        default_requirements = ProposalStandardRequirement.objects.filter(application_type=self.application_type, default=True, obsolete=False)
+        if default_requirements:
+            for req in default_requirements:
+                r, created = ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date=due_date)
 
     def move_to_status(self, request, status, approver_comment):
         if not self.can_assess(request.user):
@@ -999,9 +999,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # Create a log entry for the proposal
                 if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
-                    self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id), request)
                 elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
-                    self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id),request)
+                    self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
         else:
             raise ValidationError('The provided status cannot be found.')
 
@@ -2075,15 +2075,13 @@ class ProposalOnHold(models.Model):
 
 
 @python_2_unicode_compatible
-#class ProposalStandardRequirement(models.Model):
 class ProposalStandardRequirement(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
-    #application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
-    participant_number_required=models.BooleanField(default=False)
-    default=models.BooleanField(default=False)
-
+    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
+    participant_number_required = models.BooleanField(default=False)
+    default = models.BooleanField(default=False)
 
     def __str__(self):
         return self.code
@@ -2103,7 +2101,6 @@ class ProposalStandardRequirement(RevisionedMixin):
     #     if not self.pk:
     #         if default and self.default:
     #             raise ValidationError('There can only be one default Standard requirement per Application type')
-
 
 
 class ProposalUserAction(UserAction):
@@ -2138,6 +2135,9 @@ class ProposalUserAction(UserAction):
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
     ACTION_PROPOSED_APPROVAL = "Application {} has been proposed for approval"
     ACTION_PROPOSED_DECLINE = "Application {} has been proposed for decline"
+
+    ACTION_ENTER_REQUIREMENTS = "Enter Requirements for proposal {}"
+    ACTION_BACK_TO_PROCESSING = "Back to processing for proposal {}"
 
     #Approval
     ACTION_REISSUE_APPROVAL = "Reissue licence for application {}"

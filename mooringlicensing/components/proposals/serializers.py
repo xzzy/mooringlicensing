@@ -729,7 +729,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 # 'referral_assessments',
                 'fee_invoice_url',
                 'fee_paid',
-                'requirements_completed'
+                'requirements_completed',
+                'application_type_dict',
                 )
         read_only_fields = (
             'documents',
