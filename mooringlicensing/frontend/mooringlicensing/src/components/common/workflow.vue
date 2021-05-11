@@ -97,7 +97,8 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12" v-if="requirementsComplete">
+                                        <!-- div class="col-sm-12" v-if="requirementsComplete" -->
+                                        <div class="col-sm-12" v-if="proposal.requirements_completed">
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
