@@ -503,27 +503,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #        print(traceback.print_exc())
     #        raise serializers.ValidationError(str(e))
 
-    #def internal_serializer_class(self):
-    #    try:
-    #        application_type = Proposal.objects.get(id=self.kwargs.get('id')).application_type.name
-    #        if application_type == ApplicationType.TCLASS:
-    #            return InternalProposalSerializer
-    #        elif application_type == ApplicationType.FILMING:
-    #            return InternalFilmingProposalSerializer
-    #        elif application_type == ApplicationType.EVENT:
-    #            return InternalEventProposalSerializer
-    #    except serializers.ValidationError:
-    #        print(traceback.print_exc())
-    #        raise
-    #    except ValidationError as e:
-    #        if hasattr(e,'error_dict'):
-    #            raise serializers.ValidationError(repr(e.error_dict))
-    #        else:
-    #            if hasattr(e,'message'):
-    #                raise serializers.ValidationError(e.message)
-    #    except Exception as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(str(e))
+    def internal_serializer_class(self):
+       try:
+           return InternalProposalSerializer
+           # application_type = Proposal.objects.get(id=self.kwargs.get('id')).application_type.code
+           # if application_type == ApplicationType.TCLASS:
+           #     return InternalProposalSerializer
+           # elif application_type == ApplicationType.FILMING:
+           #     return InternalFilmingProposalSerializer
+           # elif application_type == ApplicationType.EVENT:
+           #     return InternalEventProposalSerializer
+       except serializers.ValidationError:
+           print(traceback.print_exc())
+           raise
+       except ValidationError as e:
+           if hasattr(e,'error_dict'):
+               raise serializers.ValidationError(repr(e.error_dict))
+           else:
+               if hasattr(e,'message'):
+                   raise serializers.ValidationError(e.message)
+       except Exception as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(str(e))
 
 
     #@list_route(methods=['GET',])
@@ -838,9 +839,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if not status:
                 raise serializers.ValidationError('Status is required')
             else:
-                if not status in ['with_assessor','with_assessor_requirements','with_approver']:
+                if status not in ['with_assessor', 'with_assessor_requirements', 'with_approver']:
                     raise serializers.ValidationError('The status provided is not allowed')
-            instance.move_to_status(request,status, approver_comment)
+            instance.move_to_status(request, status, approver_comment)
             #serializer = InternalProposalSerializer(instance,context={'request':request})
             serializer_class = self.internal_serializer_class()
             serializer = serializer_class(instance,context={'request':request})
