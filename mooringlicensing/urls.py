@@ -62,6 +62,8 @@ router.register(r'dcv_vessel', approval_api.DcvVesselViewSet)
 router.register(r'vesselownership', proposal_api.VesselOwnershipViewSet)
 router.register(r'dcv_permit', mooringlicensing.components.approvals.api.DcvPermitViewSet)
 router.register(r'dcv_admission', mooringlicensing.components.approvals.api.DcvAdmissionViewSet)
+router.register(r'company', proposal_api.CompanyViewSet)
+router.register(r'companyownership', proposal_api.CompanyOwnershipViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),

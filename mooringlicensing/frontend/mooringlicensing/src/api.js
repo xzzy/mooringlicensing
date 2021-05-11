@@ -41,6 +41,9 @@ module.exports = {
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
     },
+    lookupCompanyOwnership: function(id) {
+        return `/api/company/${id}/lookup_company_ownership.json`;
+    },
     lookupDcvVessel: function(id) {
         return `/api/dcv_vessel/${id}/lookup_dcv_vessel.json`;
     },

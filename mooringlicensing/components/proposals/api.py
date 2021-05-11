@@ -70,6 +70,7 @@ from mooringlicensing.components.proposals.models import (
     MooringBay,
     Owner,
     Company,
+    CompanyOwnership,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -99,7 +100,10 @@ from mooringlicensing.components.proposals.serializers import (
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
-    MooringBaySerializer, EmailUserSerializer,
+    MooringBaySerializer, 
+    EmailUserSerializer,
+    CompanyOwnershipSerializer,
+    CompanySerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -1159,11 +1163,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if vessel_ownership:
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                #vessel_ownership_data["registered_owner"] = "company_name" if vessel_ownership.org_name else 'current_user'
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
             else:
                 vessel_ownership_data["percentage"] = instance.percentage
                 vessel_ownership_data["individual_owner"] = instance.individual_owner
+                #if instance.company_ownership:
+                 #   vessel_ownership_data["company_ownership"] = CompanyOwnershipSerializer(instance.company_ownership).data
             vessel_data["vessel_details"] = vessel_details_serializer.data
             vessel_data["vessel_ownership"] = vessel_ownership_data
             return add_cache_control(Response(vessel_data))
@@ -1503,10 +1508,98 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_serializer = VesselOwnershipSerializer(vo)
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
         #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-        vessel_ownership_data["individual_owner"] = False if vo.org_name else True
+        #vessel_ownership_data["individual_owner"] = False if vo.org_name else True
+        vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
+
+
+class CompanyViewSet(viewsets.ModelViewSet):
+    queryset = Company.objects.all().order_by('id')
+    serializer_class = CompanySerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def lookup_company_ownership(self, request, *args, **kwargs):
+        company = self.get_object()
+        #serializer = CompanySerializer(company)
+        ## discover common vessel ownership
+        vessel_id = request.data.get('vessel_id')
+        co_list = []
+        if vessel_id:
+            co_qs = CompanyOwnership.objects.filter(vessel=Vessel.objects.get(id=vessel_id), company=company)
+            # add business rules
+            for co in co_qs.order_by('updated'):
+                co_list.append(co)
+            #co = co_list.order_by(updated)[0]
+            co = co_list[0]
+            serializer = CompanyOwnershipSerializer(co)
+            return add_cache_control(Response(serializer.data))
+        else:
+            return add_cache_control(Response())
+
+
+class CompanyOwnershipViewSet(viewsets.ModelViewSet):
+    queryset = CompanyOwnership.objects.all().order_by('id')
+    serializer_class = CompanyOwnershipSerializer
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def lookup_company_ownership(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        vessel_details = vessel.latest_vessel_details
+        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+        vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
+        vessel_serializer = VesselSerializer(vessel)
+        vessel_data = vessel_serializer.data
+        vessel_data["vessel_details"] = vessel_details_serializer.data
+        #vessel_ownership_data = {}
+        #if vessel_details.blocking_proposal:
+            #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
+            #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
+            #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
+            #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
+
+        #vessel_data["vessel_ownership"] = vessel_ownership_data
+        # lookup vessels must be marked as read-only
+
+        # vessel_ownership
+        vessel_ownership_data = {}
+        # check if this emailuser has a matching record for this vessel
+        owner_qs = Owner.objects.filter(emailuser=request.user)
+        if owner_qs:
+            owner = owner_qs[0]
+            vo_qs = vessel.vesselownership_set.filter(owner=owner)
+            if vo_qs:
+                vessel_ownership = vo_qs[0]
+                vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
+                vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
+                #vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
+        #vessel_data["read_only"] = True
+        vessel_data["vessel_ownership"] = vessel_ownership_data
+        return add_cache_control(Response(vessel_data))
+
+    #@renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        with transaction.atomic():
+            #save_bare_vessel_data(request)
+            vessel_data = save_bare_vessel_data(request)
+            return add_cache_control(Response(vessel_data))
+            #return add_cache_control(redirect(reverse('external')))
+
+    #@renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def update(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        with transaction.atomic():
+            instance = self.get_object()
+            vessel_data = save_bare_vessel_data(request, instance)
+            return add_cache_control(Response(vessel_data))
+
 
 
 class VesselViewSet(viewsets.ModelViewSet):
@@ -1544,7 +1637,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                #vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
@@ -1613,8 +1707,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                     vd = vo.vessel.latest_vessel_details
                     if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
                         search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                        vd.vessel_type in matching_vessel_type_choices or
-                        search_text in (vo.org_name.lower() or str(vo.owner).lower())
+                        vd.vessel_type in matching_vessel_type_choices 
+                        #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
                 #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
