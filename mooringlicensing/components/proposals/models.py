@@ -488,12 +488,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     berth_mooring = models.CharField(max_length=200, blank=True)
-    # draft proposal status VesselOwnership records - goes to VesselOwnership master record after approval
-    org_name = models.CharField(max_length=200, blank=True, null=True)
-    #percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    #org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.IntegerField(null=True, blank=True)
-    # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
+    company_ownership_percentage = models.IntegerField(null=True, blank=True)
+    company_ownership_name = models.CharField(max_length=200, unique=True, blank=True, null=True)
+    # only for draft status proposals, otherwise retrieve from within vessel_ownership
+    #company_ownership = models.ForeignKey('CompanyOwnership', blank=True, null=True)
     ## Insurance component field
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
     ## Mooring component field
@@ -535,11 +536,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def editable_vessel_details(self):
         editable = True
-        if self.vessel_details:
-            if self.vessel_details.status == 'draft' and (
-                    self.vessel_details.blocking_proposal != self or 
-                    not self.vessel_details.blocking_proposal):
-                editable = False
+        #if self.vessel_details:
+        #    if self.vessel_details.status == 'draft' and (
+        #            self.vessel_details.blocking_proposal != self or 
+        #            not self.vessel_details.blocking_proposal):
+        #        editable = False
         return editable
 
     @property
@@ -1819,10 +1820,12 @@ class CompanyOwnership(models.Model):
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
         if not self.pk:
-            vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel)
+            vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
             for vd in vessel_details_set:
-                if vd.status == "approved":
-                    raise ValueError("Multiple approved records for the same vessel are not allowed")
+                if vd.status == "draft":
+                    raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
+                elif vd.status == "approved" and self.status == "approved":
+                    raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
         super(CompanyOwnership, self).save(*args,**kwargs)
 
 
@@ -1879,7 +1882,7 @@ class Owner(models.Model):
 
 
 class Company(models.Model):
-    name = models.CharField(max_length=200, blank=True, null=True)
+    name = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessels = models.ManyToManyField(Vessel, through=CompanyOwnership) # these owner/vessel association
 
     class Meta:

@@ -39,7 +39,10 @@ from mooringlicensing.components.proposals.models import (
     VesselDetails,
     VesselOwnership,
     Vessel,
-    MooringBay, ProposalType,
+    MooringBay, 
+    ProposalType,
+    Company,
+    CompanyOwnership,
 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -187,6 +190,36 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
         )
 
 
+class CompanySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Company
+        fields = (
+                'id',
+                'name',
+                )
+
+
+class CompanyOwnershipSerializer(serializers.ModelSerializer):
+    company = CompanySerializer()
+
+    class Meta:
+        model = CompanyOwnership
+        fields = (
+                'id',
+                'blocking_proposal',
+                'status',
+                'vessel',
+                'company',
+                'percentage',
+                'start_date',
+                'end_date',
+                'created',
+                'updated',
+                )
+
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -203,6 +236,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
+    #company_ownership = CompanyOwnershipSerializer() 
 
     class Meta:
         model = Proposal
@@ -260,7 +294,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
-                'org_name',
+                #'org_name',
                 'percentage',
                 'editable_vessel_details',
                 'individual_owner',
@@ -271,6 +305,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'site_licensee_email',
                 'mooring_site_id',
                 'mooring_authorisation_preference',
+                'company_ownership_name',
+                'company_ownership_percentage',
                 )
         read_only_fields=('documents',)
 
@@ -490,7 +526,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            if not self.instance.individual_owner and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -597,6 +633,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
+    #company_ownership_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
@@ -613,9 +650,11 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
-                'org_name',
+                #'org_name',
                 'percentage',
                 'individual_owner',
+                'company_ownership_percentage',
+                'company_ownership_name',
                 )
 
 
@@ -1063,7 +1102,7 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
-    org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
+    #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = VesselOwnership
@@ -1081,7 +1120,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         custom_errors = {}
         percentage = data.get("percentage")
         owner = data.get("owner")
-        org_name = data.get("org_name")
+        #org_name = data.get("org_name")
         vessel = data.get("vessel")
         total = 0
         ## 20210510 - need separate function
