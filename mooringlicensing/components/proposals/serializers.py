@@ -1110,6 +1110,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner',
                 'vessel',
                 'percentage',
+                'company_ownership',
                 #'org_name',
                 'start_date',
                 'end_date',
@@ -1150,17 +1151,11 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
 
         #if not data.get("percentage"):
          #   custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
-        if data.get("percentage") < 25:
+        if data.get("percentage") and data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
-
-    #def validate_percentage(self, value):
-    #    if value > 100:
-    #        #raise serializers.ValidationError({"Ownership percentage": "Max value is 100"})
-    #        raise serializers.ValidationError("Max value is 100")
-    #    return value
 
 
 class MooringBaySerializer(serializers.ModelSerializer):
@@ -1169,4 +1164,15 @@ class MooringBaySerializer(serializers.ModelSerializer):
         model = MooringBay
         fields = '__all__'
 
+
+class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
+    #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
+
+    class Meta:
+        model = CompanyOwnership
+        fields = (
+                'company',
+                'vessel',
+                'percentage',
+                )
 
