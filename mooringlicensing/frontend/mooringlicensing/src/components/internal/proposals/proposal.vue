@@ -88,7 +88,10 @@
                 </template>
 
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                    <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    <ApprovalScreen 
+                        :proposal="proposal" 
+                        @refreshFromResponse="refreshFromResponse"
+                    />
                 </template>
 
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
@@ -228,10 +231,29 @@
 -->
             </div>
         </div>
+
+        <ProposedApproval 
+            ref="proposed_approval" 
+            :processing_status="proposal.processing_status" 
+            :proposal_id="proposal.id" 
+            :proposal_type='proposal.proposal_type.code' 
+            :isApprovalLevelDocument="isApprovalLevelDocument" 
+            :submitter_email="proposal.submitter.email" 
+            :applicant_email="applicant_email" 
+            @refreshFromResponse="refreshFromResponse"
+        />
 <!--
-        <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
-        <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
+        <ProposedDecline 
+            ref="proposed_decline" 
+            :processing_status="proposal.processing_status" 
+            :proposal_id="proposal.id" 
+            @refreshFromResponse="refreshFromResponse"
+        />
+        <AmendmentRequest 
+            ref="amendment_request" 
+            :proposal_id="proposal.id" 
+            @refreshFromResponse="refreshFromResponse"
+        />
 -->
     </div>
 </template>
@@ -245,8 +267,8 @@ import Vue from 'vue'
 //import AmendmentRequest from './amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from '@/components/internal/proposals/proposal_requirements.vue'
-//import ProposedApproval from './proposed_issuance.vue'
-//import ApprovalScreen from './proposal_approval.vue'
+import ProposedApproval from '@/components/internal/proposals/proposed_issuance.vue'
+import ApprovalScreen from '@/components/internal/proposals/proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import Submission from '@common-utils/submission.vue'
 import Workflow from '@common-utils/workflow.vue'
@@ -338,8 +360,8 @@ export default {
         //ProposedDecline,
         //AmendmentRequest,
         Requirements,
-        //ProposedApproval,
-        //ApprovalScreen,
+        ProposedApproval,
+        ApprovalScreen,
         CommsLogs,
         Submission,
         Workflow,
@@ -482,11 +504,13 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: function(){
+            console.log('proposedDecline')
             this.save_wo();
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
         },
         proposedApproval: function(){
+            console.log('proposedApproval')
             this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             if(this.proposal.proposed_issuance_approval == null){
                 //var test_approval={
