@@ -239,6 +239,11 @@ from '@/utils/hooks'
                 type: Boolean,
             },
         },
+        watch: {
+            individualOwner: async function() {
+                await this.retrieveIndividualOwner();
+            },
+        },
         computed: {
             showDotRegistrationPapers: function() {
                 let retVal = false;
@@ -330,6 +335,21 @@ from '@/utils/hooks'
 
         },
         methods:{
+            retrieveIndividualOwner: async function() {
+                if (this.individualOwner && this.vessel.id) {
+                    const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
+                    const res = await this.$http.post(url);
+                    if (res.body) {
+                        let vesselOwnership = Object.assign({}, res.body);
+                        vesselOwnership.individual_owner = true;
+                        vesselOwnership.company_ownership = {
+                            company: {}
+                        }
+                        this.vessel.vessel_ownership = Object.assign({}, vesselOwnership);
+                        this.vessel = Object.assign({}, this.vessel);
+                    }
+                }
+            },
             clearOrgName: function() {
                 this.$nextTick(() => {
                     if (this.individualOwner) {
@@ -418,21 +438,16 @@ from '@/utils/hooks'
                         }
                     });
                 }).
-                /*
                 on("select2:unselect",function (e) {
-                    var selected = $(e.currentTarget);
-                    vm.vessel.rego_no = '';
-                    vm.vessel = Object.assign({}, 
-                        {   
-                            vessel_details: {
-                                read_only: false,
-                            },
-                            vessel_ownership: {
-                                //registered_owner: 'current_user',
-                            }
-                        });
+                    //var selected = $(e.currentTarget);
+                    let companyOwnership = {
+                        company: {
+                            //name: text,
+                        }
+                    }
+                    vm.vessel.vessel_ownership.company_ownership = Object.assign({}, companyOwnership);
+                    vm.vessel = Object.assign({}, vm.vessel);
                 }).
-                */
                 on("select2:open",function (e) {
                     const searchField = $(".select2-search__field")
                     // move focus to select2 field
@@ -496,12 +511,14 @@ from '@/utils/hooks'
                 on("select2:select", function (e) {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
-                    vm.$nextTick(() => {
+                    vm.$nextTick(async () => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
                             console.log("fetch new vessel");
                             // fetch draft/approved vessel
-                            vm.lookupVessel(data);
+                            await vm.lookupVessel(data);
+                            console.log("individual")
+                            await vm.retrieveIndividualOwner();
                         } else {
                             data = vm.validateRegoNo(data);
 
@@ -716,8 +733,10 @@ from '@/utils/hooks'
                 if (this.proposal) {
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
+                    /*
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
+                    */
                 }
                 //this.initialiseSelects();
                 this.initialiseRegoNoSelect();
