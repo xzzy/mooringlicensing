@@ -1854,7 +1854,7 @@ class CompanyOwnership(models.Model):
 
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
-        latest_ids = VesselOwnership.objects.values("owner", "vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
         #return self.first()
 
@@ -1891,6 +1891,13 @@ class VesselOwnership(models.Model):
     #    if total > 100:
     #        raise serializers.ValidationError({"Vessel ownership percentage": "Cannot exceed 100%"})
     #    super(VesselOwnership, self).save(*args,**kwargs)
+
+    #@property
+    #def company_owner(self):
+    #    company = False
+    #    if self.company_ownership and self.company_ownership.id:
+    #        company = True
+    #    return company
 
 
 # Non proposal specific
