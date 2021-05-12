@@ -610,7 +610,7 @@ def submit_vessel_ownership(instance, request):
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
     ownership_percentage_validation(vessel_ownership)
-    raise serializers.ValidationError({"Missing information": "blah"})
+    #raise serializers.ValidationError({"Missing information": "blah"})
 
 def ownership_percentage_validation(vessel_ownership):
     individual_ownership_id = None
@@ -638,7 +638,7 @@ def ownership_percentage_validation(vessel_ownership):
     ## Calc total existing
     total_percent = vessel_ownership_percentage
     vessel = vessel_ownership.vessel
-    for vo in vessel.vesselownership_set.all():
+    for vo in vessel.filtered_vesselownership_set.all():
         if hasattr(vo.company_ownership, 'id'):
             if vo.company_ownership.id != company_ownership_id and vo.company_ownership.percentage:
                 total_percent += vo.company_ownership.percentage

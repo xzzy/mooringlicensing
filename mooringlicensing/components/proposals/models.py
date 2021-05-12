@@ -1760,7 +1760,27 @@ class Vessel(models.Model):
 
     @property
     def latest_vessel_details(self):
-        return self.vesseldetails_set.order_by('updated')[0]
+        #return self.vesseldetails_set.order_by('updated')[0]
+        return self.filtered_vesseldetails_set.first()
+
+    @property
+    def filtered_vesselownership_set(self):
+        return self.vesselownership_set.filter(
+                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True)
+                )
+
+    @property
+    def filtered_vesseldetails_set(self):
+        return self.vesseldetails_set.filter(
+                id__in=VesselDetails.filtered_objects.values_list('id', flat=True)
+                )
+
+
+class VesselDetailsManager(models.Manager):
+    def get_queryset(self):
+        latest_ids = VesselDetails.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(VesselDetailsManager, self).get_queryset().filter(id__in=latest_ids)
+        #return self.first()
 
 
 class VesselDetails(models.Model): # ManyToManyField link in Proposal
@@ -1779,6 +1799,8 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     #owner = models.ForeignKey('Owner') # this owner can edit
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+    objects = models.Manager()
+    filtered_objects = VesselDetailsManager()
 
     class Meta:
         verbose_name_plural = "Vessel Details"
@@ -1790,6 +1812,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     @property
     def vessel_applicable_length(self):
         return self.vessel_overall_length
+
 
 class CompanyOwnership(models.Model):
     STATUS_TYPES = (
@@ -1831,15 +1854,9 @@ class CompanyOwnership(models.Model):
 
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
-
-        #qs = VesselOwnership.objects.values("owner", "vessel").annotate(id=Max('id'))
-        #latest_ids = qs.values_list('id', flat=True)
-        #qs = super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
-        #return qs
-        latest_ids = VesselOwnership.objects.filter(id=45)
-        #return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
-        return latest_ids
+        latest_ids = VesselOwnership.objects.values("owner", "vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
+        #return self.first()
 
 
 class VesselOwnership(models.Model):
@@ -1854,7 +1871,9 @@ class VesselOwnership(models.Model):
     updated = models.DateTimeField(auto_now=True)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
-    objects = VesselOwnershipManager()
+    objects = models.Manager()
+    filtered_objects = VesselOwnershipManager()
+    #objects = VesselOwnershipManager()
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
