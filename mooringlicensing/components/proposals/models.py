@@ -40,7 +40,7 @@ from mooringlicensing.components.proposals.email import (
 from mooringlicensing.ordered_model import OrderedModel
 import copy
 import subprocess
-from django.db.models import Q
+from django.db.models import Q, Max
 from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
 from rest_framework import serializers
@@ -492,7 +492,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     percentage = models.IntegerField(null=True, blank=True)
     individual_owner = models.NullBooleanField()
     company_ownership_percentage = models.IntegerField(null=True, blank=True)
-    company_ownership_name = models.CharField(max_length=200, unique=True, blank=True, null=True)
+    company_ownership_name = models.CharField(max_length=200, blank=True, null=True)
     # only for draft status proposals, otherwise retrieve from within vessel_ownership
     #company_ownership = models.ForeignKey('CompanyOwnership', blank=True, null=True)
     ## Insurance component field
@@ -1814,7 +1814,7 @@ class CompanyOwnership(models.Model):
         #unique_together = ['owner', 'vessel', 'org_name']
 
     def __str__(self):
-        return "{}: {}".format(self.owner, self.vessel)
+        return "{}: {}".format(self.company, self.percentage)
 
     def save(self, *args, **kwargs):
         ## do not allow multiple draft or approved status per vessel_id
@@ -1829,6 +1829,19 @@ class CompanyOwnership(models.Model):
         super(CompanyOwnership, self).save(*args,**kwargs)
 
 
+class VesselOwnershipManager(models.Manager):
+    def get_queryset(self):
+        #import ipdb; ipdb.set_trace()
+
+        #qs = VesselOwnership.objects.values("owner", "vessel").annotate(id=Max('id'))
+        #latest_ids = qs.values_list('id', flat=True)
+        #qs = super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
+        #return qs
+        latest_ids = VesselOwnership.objects.filter(id=45)
+        #return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
+        return latest_ids
+
+
 class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
@@ -1841,6 +1854,7 @@ class VesselOwnership(models.Model):
     updated = models.DateTimeField(auto_now=True)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+    objects = VesselOwnershipManager()
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
