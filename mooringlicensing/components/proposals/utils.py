@@ -344,6 +344,13 @@ def save_proponent_data(instance, request, viewset):
 
 def save_proponent_data_aaa(instance, request, viewset):
     print(request.data)
+    # vessel
+    vessel_data = deepcopy(request.data.get("vessel"))
+    if vessel_data:
+        if viewset.action == 'submit':
+            submit_vessel_data(instance, request, vessel_data)
+        elif instance.processing_status == 'draft':
+            save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveAnnualAdmissionApplicationSerializer(
@@ -355,6 +362,9 @@ def save_proponent_data_aaa(instance, request, viewset):
     )
     serializer.is_valid(raise_exception=True)
     serializer.save()
+
+def save_proponent_data_wla(instance, request, viewset):
+    print(request.data)
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
@@ -362,9 +372,6 @@ def save_proponent_data_aaa(instance, request, viewset):
             submit_vessel_data(instance, request, vessel_data)
         elif instance.processing_status == 'draft':
             save_vessel_data(instance, request, vessel_data)
-
-def save_proponent_data_wla(instance, request, viewset):
-    print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveWaitingListApplicationSerializer(
@@ -376,6 +383,10 @@ def save_proponent_data_wla(instance, request, viewset):
     )
     serializer.is_valid(raise_exception=True)
     serializer.save()
+
+
+def save_proponent_data_mla(instance, request, viewset):
+    print(request.data)
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
@@ -383,10 +394,6 @@ def save_proponent_data_wla(instance, request, viewset):
             submit_vessel_data(instance, request, vessel_data)
         elif instance.processing_status == 'draft':
             save_vessel_data(instance, request, vessel_data)
-
-
-def save_proponent_data_mla(instance, request, viewset):
-    print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveMooringLicenceApplicationSerializer(
@@ -401,6 +408,10 @@ def save_proponent_data_mla(instance, request, viewset):
 
     if viewset.action == 'submit':
         proposal_submit(proposal, request)
+
+
+def save_proponent_data_aua(instance, request, viewset):
+    print(request.data)
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
@@ -408,10 +419,6 @@ def save_proponent_data_mla(instance, request, viewset):
             submit_vessel_data(instance, request, vessel_data)
         elif instance.processing_status == 'draft':
             save_vessel_data(instance, request, vessel_data)
-
-
-def save_proponent_data_aua(instance, request, viewset):
-    print(request.data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveAuthorisedUserApplicationSerializer(
@@ -427,13 +434,6 @@ def save_proponent_data_aua(instance, request, viewset):
     if viewset.action == 'submit':
         proposal_submit(proposal, request)
 
-    # vessel
-    vessel_data = deepcopy(request.data.get("vessel"))
-    if vessel_data:
-        if viewset.action == 'submit':
-            submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == 'draft':
-            save_vessel_data(instance, request, vessel_data)
 
 
 #def save_proponent_data_aaa(instance, request, viewset):
@@ -537,7 +537,6 @@ def submit_vessel_data(instance, request, vessel_data):
     submit_vessel_ownership(instance, request)
 
 def submit_vessel_ownership(instance, request):
-    #import ipdb; ipdb.set_trace()
     ## Get Vessel
     vessel = instance.vessel_details.vessel
     ## Vessel Ownership
@@ -580,19 +579,24 @@ def submit_vessel_ownership(instance, request):
                     print(company_ownership_data[key])
         else:
             create_company_ownership = True
-    # update company key from dict to pk
-    company_ownership_data.update({"company": company.id})
-    if create_company_ownership:
-        serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
-        serializer.is_valid(raise_exception=True)
-        company_ownership = serializer.save()
-    elif edit_company_ownership:
-        serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
-        serializer.is_valid(raise_exception=True)
-        company_ownership = serializer.save()
-
+        # update company key from dict to pk
+        company_ownership_data.update({"company": company.id})
+        # add vessel to company_ownership_data
+        company_ownership_data.update({"vessel": vessel.id})
+        if create_company_ownership:
+            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
+            serializer.is_valid(raise_exception=True)
+            company_ownership = serializer.save()
+        elif edit_company_ownership:
+            serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
+            serializer.is_valid(raise_exception=True)
+            company_ownership = serializer.save()
+    ## add to vessel_ownership_data
+    if company_ownership and company_ownership.id:
+        vessel_ownership_data['company_ownership'] = company_ownership.id
+    else:
+        vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
-    vessel_ownership_data['company_ownership'] = company_ownership.id
     owner, created = Owner.objects.get_or_create(emailuser=request.user)
 
     vessel_ownership_data['owner'] = owner.id

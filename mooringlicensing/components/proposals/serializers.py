@@ -526,7 +526,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if not self.instance.individual_owner and not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -549,7 +549,8 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            #if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -583,7 +584,8 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            #if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
             #if not self.instance.hull_identification_number_documents.all():
              #   custom_errors["Hull Identification Number Documents"] = "Please attach"
@@ -625,7 +627,8 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 if not data.get("mooring_site_id"):
                     custom_errors["Mooring Site ID"] = "This field should not be blank"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            #if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
