@@ -52,7 +52,7 @@
                             />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
-                        <div v-show="companyOwner" class="col-sm-8">
+                        <div v-show="companyOwner && vessel.rego_no" class="col-sm-8">
                             <select :disabled="readonly" id="company_name"  ref="company_name" class="form-control" style="width: 40%"/>
                             <!--input 
                             :readonly="readonly" 
@@ -93,7 +93,7 @@
                     required=""
                     />
                 </div>
-                <div v-else-if="companyOwner" class="col-sm-2">
+                <div v-else-if="companyOwner && vessel.rego_no" class="col-sm-2">
                     <input 
                      :readonly="readonly" 
                     type="number" 
@@ -616,6 +616,7 @@ from '@/utils/hooks'
             },
             */
             lookupCompanyOwnership: async function(id) {
+                console.log(id)
                 const url = api_endpoints.lookupCompanyOwnership(id);
                 const payload = {
                     "vessel_id": this.vessel.id,
@@ -623,7 +624,7 @@ from '@/utils/hooks'
                 const res = await this.$http.post(url, payload);
                 const companyOwnershipData = res.body;
                 console.log(res);
-                if (companyOwnershipData && companyOwnershipData.id) {
+                if (companyOwnershipData && companyOwnershipData.company) {
                     //this.$set(this.vessel.vessel_ownership, 'company_ownership', Object.assign({}, res.body));
                     this.$set(this.vessel.vessel_ownership, 'company_ownership', Object.assign({}, res.body));
                     this.vessel = Object.assign({}, this.vessel);

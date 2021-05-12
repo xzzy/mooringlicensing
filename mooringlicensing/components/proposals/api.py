@@ -1527,6 +1527,8 @@ class CompanyViewSet(viewsets.ModelViewSet):
         ## discover common vessel ownership
         vessel_id = request.data.get('vessel_id')
         co_list = []
+        company_data = CompanySerializer(company).data
+        empty_co = {"company": company_data}
         if vessel_id:
             co_qs = CompanyOwnership.objects.filter(vessel=Vessel.objects.get(id=vessel_id), company=company)
             # add business rules
@@ -1538,8 +1540,8 @@ class CompanyViewSet(viewsets.ModelViewSet):
                 serializer = CompanyOwnershipSerializer(co)
                 return add_cache_control(Response(serializer.data))
             else:
-                return add_cache_control(Response())
-        return add_cache_control(Response())
+                return add_cache_control(Response(empty_co))
+        return add_cache_control(Response(empty_co))
 
 
 class CompanyOwnershipViewSet(viewsets.ModelViewSet):

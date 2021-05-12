@@ -648,7 +648,7 @@ def ownership_percentage_validation(vessel_ownership):
     for vo in vessel.filtered_vesselownership_set.all():
         if hasattr(vo.company_ownership, 'id'):
             if (vo.company_ownership.id != company_ownership_id and 
-                    vo.company_ownership.percentage and not 
+                    vo.company_ownership.percentage and
                     vo.company_ownership.blocking_proposal
                     ):
                 total_percent += vo.company_ownership.percentage
