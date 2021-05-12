@@ -88,7 +88,10 @@
                 </template>
 
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                    <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
+                    <ApprovalScreen 
+                        :proposal="proposal" 
+                        @refreshFromResponse="refreshFromResponse"
+                    />
                 </template>
 
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
@@ -265,7 +268,7 @@ import Vue from 'vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from '@/components/internal/proposals/proposal_requirements.vue'
 import ProposedApproval from '@/components/internal/proposals/proposed_issuance.vue'
-//import ApprovalScreen from './proposal_approval.vue'
+import ApprovalScreen from '@/components/internal/proposals/proposal_approval.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import Submission from '@common-utils/submission.vue'
 import Workflow from '@common-utils/workflow.vue'
@@ -358,7 +361,7 @@ export default {
         //AmendmentRequest,
         Requirements,
         ProposedApproval,
-        //ApprovalScreen,
+        ApprovalScreen,
         CommsLogs,
         Submission,
         Workflow,
