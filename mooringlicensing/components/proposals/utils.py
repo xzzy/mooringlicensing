@@ -567,7 +567,7 @@ def submit_vessel_ownership(instance, request):
         if company_ownership_set.filter(status="draft"):
             company_ownership = company_ownership_set.filter(status="draft")[0]
             ## cannot edit draft record with blocking_proposal
-            if not company_ownership.blocking_proposal:
+            if company_ownership.blocking_proposal:
                 edit_company_ownership = False
         elif company_ownership_set.filter(status="approved"):
             company_ownership = company_ownership_set.filter(status="approved")[0]
@@ -594,6 +594,9 @@ def submit_vessel_ownership(instance, request):
     ## add to vessel_ownership_data
     if company_ownership and company_ownership.id:
         vessel_ownership_data['company_ownership'] = company_ownership.id
+        ## set blocking_proposal
+        company_ownership.blocking_proposal = instance
+        company_ownership.save()
     else:
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
@@ -644,7 +647,10 @@ def ownership_percentage_validation(vessel_ownership):
     vessel = vessel_ownership.vessel
     for vo in vessel.filtered_vesselownership_set.all():
         if hasattr(vo.company_ownership, 'id'):
-            if vo.company_ownership.id != company_ownership_id and vo.company_ownership.percentage:
+            if (vo.company_ownership.id != company_ownership_id and 
+                    vo.company_ownership.percentage and not 
+                    vo.company_ownership.blocking_proposal
+                    ):
                 total_percent += vo.company_ownership.percentage
         elif vo.percentage and vo.id != individual_ownership_id:
             total_percent += vo.percentage

@@ -1533,11 +1533,13 @@ class CompanyViewSet(viewsets.ModelViewSet):
             for co in co_qs.order_by('updated'):
                 co_list.append(co)
             #co = co_list.order_by(updated)[0]
-            co = co_list[0]
-            serializer = CompanyOwnershipSerializer(co)
-            return add_cache_control(Response(serializer.data))
-        else:
-            return add_cache_control(Response())
+            if co_list:
+                co = co_list[0]
+                serializer = CompanyOwnershipSerializer(co)
+                return add_cache_control(Response(serializer.data))
+            else:
+                return add_cache_control(Response())
+        return add_cache_control(Response())
 
 
 class CompanyOwnershipViewSet(viewsets.ModelViewSet):
@@ -1601,10 +1603,23 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
             return add_cache_control(Response(vessel_data))
 
 
-
 class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def lookup_individual_ownership(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        owner_set = Owner.objects.filter(emailuser=request.user)
+        if owner_set:
+            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
+            if vo_set:
+                serializer = VesselOwnershipSerializer(vo_set[0])
+                return add_cache_control(Response(serializer.data))
+            else:
+                return add_cache_control(Response())
+        return add_cache_control(Response())
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
