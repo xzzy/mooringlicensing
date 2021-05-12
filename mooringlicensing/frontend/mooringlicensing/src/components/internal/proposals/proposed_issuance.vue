@@ -251,7 +251,7 @@ export default {
             
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal_id+'/proposed_approval'),JSON.stringify(approval),{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id + '/proposed_approval'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
                         vm.issuingApproval = false;
@@ -266,7 +266,7 @@ export default {
                     });
             }
             else if (vm.state == 'final_approval'){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal_id+'/final_approval'),JSON.stringify(approval),{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id+'/final_approval'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
                         vm.issuingApproval = false;
