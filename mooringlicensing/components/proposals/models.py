@@ -1221,7 +1221,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'cc_email':details.get('cc_email')
                     }
 
-                if False:
+                if False:  # We don't need the following logic, do we?
                 # if (self.application_type.code == ApplicationType.FILMING and self.filming_approval_type == self.LICENCE and \
                 #         self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER]) and \
                 #         not self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
@@ -1252,7 +1252,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # Log proposal action
                     self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
                     # Log entry for organisation
-                    applicant_field=getattr(self, self.applicant_field)
+                    applicant_field = getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
 
                 if self.processing_status == self.PROCESSING_STATUS_APPROVED:
@@ -1261,17 +1261,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
                         if self.previous_application:
                             previous_approval = self.previous_application.approval
-                            approval,created = Approval.objects.update_or_create(
+                            approval, created = Approval.objects.update_or_create(
                                 current_proposal = checking_proposal,
                                 defaults = {
-                                    'issue_date' : timezone.now(),
-                                    'expiry_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                    'start_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                                    'issue_date': timezone.now(),
+                                    'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                    'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                     'submitter': self.submitter,
                                     #'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                                     #'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                                    'org_applicant' : self.org_applicant,
-                                    'proxy_applicant' : self.proxy_applicant,
+                                    'org_applicant': self.org_applicant,
+                                    'proxy_applicant': self.proxy_applicant,
                                     'lodgement_number': previous_approval.lodgement_number
                                 }
                             )
@@ -1284,7 +1284,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                         if self.previous_application:
                             previous_approval = self.previous_application.approval
-                            approval,created = Approval.objects.update_or_create(
+                            approval, created = Approval.objects.update_or_create(
                                 current_proposal = checking_proposal,
                                 defaults = {
                                     'issue_date' : timezone.now(),
@@ -1302,17 +1302,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 previous_approval.replaced_by = approval
                                 previous_approval.save()
                     else:
-                        approval,created = Approval.objects.update_or_create(
-                            current_proposal = checking_proposal,
-                            defaults = {
-                                'issue_date' : timezone.now(),
-                                'expiry_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                'start_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                        approval, created = Approval.objects.update_or_create(
+                            current_proposal=checking_proposal,
+                            defaults={
+                                'issue_date': timezone.now(),
+                                'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
                                 #'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                                 #'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                                'org_applicant' : self.org_applicant,
-                                'proxy_applicant' : self.proxy_applicant,
+                                'org_applicant': self.org_applicant,
+                                'proxy_applicant': self.proxy_applicant,
                                 #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
