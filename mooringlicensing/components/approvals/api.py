@@ -153,34 +153,15 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-
-        # Filter by Type(s) according to the tables
-        filter_approval_types = self.request.GET.get('filter_approval_types', '')
-        filter_approval_types = filter_approval_types.split(',')
-        q = Q()
-        for filter_approval_type in filter_approval_types:
-            if filter_approval_type:
-                for item in Approval.__subclasses__():
-                    if hasattr(item, 'code') and item.code == filter_approval_type:
-                        lookup = "{}__isnull".format(item._meta.model_name)
-                        q |= Q(**{lookup: False})
-        qs = Approval.objects.filter(q).order_by('-id') if q else Approval.objects.none()
+        all = Approval.objects.all()
 
         if is_internal(self.request):
-            return qs.all()
+            return all
         elif is_customer(self.request):
-            # Filter by to_be_endorsed
-            filter_by_endorsement = self.request.GET.get('filter_by_endorsement', 'false')
-            filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
-            if filter_by_endorsement:
-                #
-                qs = qs.filter(authoriseduserpermit__endorsed_by=request_user)
-            else:
-                qs = qs.filter(Q(submitter=request_user))  # Not sure if the submitter is the licence holder
+            qs = all.filter(Q(submitter=request_user))
             return qs
-        return qs
+        return Proposal.objects.none()
 
-    # @list_route(methods=['GET',])
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
@@ -193,9 +174,56 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         #     qs = qs.filter(applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
-        result_page = self.paginator.paginate_queryset(qs, request)
+        result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
+        return add_cache_control(self.paginator.get_paginated_response(serializer.data))
+
+    # def get_queryset(self):
+    #     request_user = self.request.user
+    #
+    #     # Filter by Type(s) according to the tables
+    #     filter_approval_types = self.request.GET.get('filter_approval_types', '')
+    #     filter_approval_types = filter_approval_types.split(',')
+    #     q = Q()
+    #     for filter_approval_type in filter_approval_types:
+    #         if filter_approval_type:
+    #             for item in Approval.__subclasses__():
+    #                 if hasattr(item, 'code') and item.code == filter_approval_type:
+    #                     lookup = "{}__isnull".format(item._meta.model_name)
+    #                     q |= Q(**{lookup: False})
+    #     qs = Approval.objects.all()
+    #     qs = qs.filter(q).order_by('-id') if q else Approval.objects.none()
+    #
+    #     if is_internal(self.request):
+    #         return qs.all()
+    #     elif is_customer(self.request):
+    #         # Filter by to_be_endorsed
+    #         filter_by_endorsement = self.request.GET.get('filter_by_endorsement', 'false')
+    #         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
+    #         if filter_by_endorsement:
+    #             #
+    #             qs = qs.filter(authoriseduserpermit__endorsed_by=request_user)
+    #         else:
+    #             qs = qs.filter(Q(submitter=request_user))  # Not sure if the submitter is the licence holder
+    #         return qs
+    #     return qs
+    #
+    # # @list_route(methods=['GET',])
+    # def list(self, request, *args, **kwargs):
+    #     """
+    #     User is accessing /external/ page
+    #     """
+    #     qs = self.get_queryset()
+    #     qs = self.filter_queryset(qs)
+    #     # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
+    #     # applicant_id = request.GET.get('org_id')
+    #     # if applicant_id:
+    #     #     qs = qs.filter(applicant_id=applicant_id)
+    #
+    #     self.paginator.page_size = qs.count()
+    #     result_page = self.paginator.paginate_queryset(qs, request)
+    #     serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
+    #     return self.paginator.get_paginated_response(serializer.data)
 
 
 class ApprovalViewSet(viewsets.ModelViewSet):
