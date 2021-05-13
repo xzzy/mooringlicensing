@@ -199,14 +199,38 @@ class GetVesselRegoNos(views.APIView):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
         create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+        company_name = request.GET.get('company_name')
         #org_name = request.GET.get('org_name', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
             data_transform = []
-            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+            owner_set = Owner.objects.filter(emailuser=request.user)
+            if create_vessel and owner_set:
+                for rego in data:
+                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
+                    vessel_ownership_set = None
+                    if company_name:
+                        company_ownership_set = CompanyOwnership.objects.filter(
+                                vessel=vessel,
+                                company__name=company_name)
+                        vessel_ownership_set = VesselOwnership.objects.filter(
+                            owner=owner_set[0], 
+                            vessel=vessel, 
+                            company_ownership__in=company_ownership_set
+                            )
+                    else:
+                        vessel_ownership_set = VesselOwnership.objects.filter(
+                            owner=owner_set[0],
+                            vessel=vessel
+                            )
+                    # request.user owns vessel
+                    if not vessel_ownership_set:
+                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
+            else:
+                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
-        return add_cache_control(Response())
+        return Response()
 
 
 class GetCompanyNames(views.APIView):
@@ -1585,24 +1609,24 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
 
-    #@renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def create(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        with transaction.atomic():
-            #save_bare_vessel_data(request)
-            vessel_data = save_bare_vessel_data(request)
-            return add_cache_control(Response(vessel_data))
-            #return add_cache_control(redirect(reverse('external')))
+    ##@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    #def create(self, request, *args, **kwargs):
+    #    #import ipdb; ipdb.set_trace()
+    #    with transaction.atomic():
+    #        #save_bare_vessel_data(request)
+    #        vessel_data = save_bare_vessel_data(request)
+    #        return add_cache_control(Response(vessel_data))
+    #        #return add_cache_control(redirect(reverse('external')))
 
-    #@renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def update(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        with transaction.atomic():
-            instance = self.get_object()
-            vessel_data = save_bare_vessel_data(request, instance)
-            return add_cache_control(Response(vessel_data))
+    ##@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    #def update(self, request, *args, **kwargs):
+    #    #import ipdb; ipdb.set_trace()
+    #    with transaction.atomic():
+    #        instance = self.get_object()
+    #        vessel_data = save_bare_vessel_data(request, instance)
+    #        return add_cache_control(Response(vessel_data))
 
 
 class VesselViewSet(viewsets.ModelViewSet):

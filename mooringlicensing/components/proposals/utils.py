@@ -495,8 +495,19 @@ def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
     ## save vessel data into proposal first
     save_vessel_data(instance, request, vessel_data)
-    # now write to VesselDetails and VesselOwnership from Proposal, not request.data
-    #if not vessel_data.get("read_only"):
+    vessel, vessel_details = store_vessel_data(request, vessel_data)
+    # associate vessel_details with proposal
+    instance.vessel_details = vessel_details
+    instance.save()
+    # record ownership data
+    #submit_vessel_ownership(instance, request)
+    vessel_ownership = store_vessel_ownership(request, vessel, instance)
+    # associate vessel_ownership with proposal
+    instance.vessel_ownership = vessel_ownership
+    instance.save()
+    ownership_percentage_validation(vessel_ownership)
+
+def store_vessel_data(request, vessel_data):
     if not vessel_data.get('rego_no'):
         raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
     rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
@@ -527,20 +538,13 @@ def submit_vessel_data(instance, request, vessel_data):
         serializer = SaveVesselDetailsSerializer(existing_vessel_details, vessel_details_data)
         serializer.is_valid(raise_exception=True)
         vessel_details = serializer.save()
-    # set proposal now has sole right to edit vessel_details
-    #vessel_details.blocking_proposal = instance
-    #vessel_details.save()
-    # associate vessel_details with proposal
-    instance.vessel_details = vessel_details
-    instance.save()
-    # record ownership data
-    submit_vessel_ownership(instance, request)
+    return vessel, vessel_details
 
-def submit_vessel_ownership(instance, request):
+def store_vessel_ownership(request, vessel, instance=None):
     ## Get Vessel
-    vessel = instance.vessel_details.vessel
+    #vessel = instance.vessel_details.vessel
     ## Vessel Ownership
-    ## we cannot use vessel_data, because this dict has been modified in save_vessel_data()
+    ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
     vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
@@ -594,9 +598,10 @@ def submit_vessel_ownership(instance, request):
     ## add to vessel_ownership_data
     if company_ownership and company_ownership.id:
         vessel_ownership_data['company_ownership'] = company_ownership.id
-        ## set blocking_proposal
-        company_ownership.blocking_proposal = instance
-        company_ownership.save()
+        if instance:
+            ## set blocking_proposal
+            company_ownership.blocking_proposal = instance
+            company_ownership.save()
     else:
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
@@ -610,14 +615,11 @@ def submit_vessel_ownership(instance, request):
             vessel=vessel, 
             company_ownership=company_ownership
             )
-        # associate vessel_ownership with proposal
-    instance.vessel_ownership = vessel_ownership
-    instance.save()
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
-    ownership_percentage_validation(vessel_ownership)
     #raise serializers.ValidationError({"Missing information": "blah"})
+    return vessel_ownership
 
 def ownership_percentage_validation(vessel_ownership):
     individual_ownership_id = None
@@ -669,8 +671,17 @@ def ownership_percentage_validation(vessel_ownership):
             "Ownership Percentage": "Total of 100 percent exceeded"
             })
 
-# no proposal - manage vessels
 def save_bare_vessel_data(request, vessel_obj=None):
+    print("save bare vessel data")
+    vessel_data = request.data.get("vessel")
+    vessel, vessel_details = store_vessel_data(request, vessel_data)
+    # record ownership data
+    #submit_vessel_ownership(instance, request)
+    vessel_ownership = store_vessel_ownership(request, vessel)
+    return VesselOwnershipSerializer(vessel_ownership).data
+
+# no proposal - manage vessels
+def bak_save_bare_vessel_data(request, vessel_obj=None):
     #import ipdb; ipdb.set_trace()
     print("save bare vessel data")
     #if not vessel_data.get("read_only"):
@@ -706,9 +717,8 @@ def save_bare_vessel_data(request, vessel_obj=None):
     #return VesselSerializer(vessel).data
     return VesselOwnershipSerializer(vessel_ownership).data
 
-
 # no proposal - manage vessels
-def save_bare_vessel_ownership(request, vessel_data, vessel):
+def bak_save_bare_vessel_ownership(request, vessel_data, vessel):
     print("save bare vessel ownership data")
     vessel_ownership_data = vessel_data.get("vessel_ownership")
     if vessel_ownership_data.get('individual_owner') is None:
