@@ -1,7 +1,7 @@
 <template lang="html">
     <div class="">
 
-        <div v-if="proposal" id="scrollspy-heading" class="" >
+        <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
             <h4>Annual Admission Application: {{proposal.lodgement_number}}</h4>
         </div>
 
@@ -139,6 +139,10 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            show_application_title: {
+                type: Boolean,
+                default: true,
             },
             submitterId: {
                 type: Number,
