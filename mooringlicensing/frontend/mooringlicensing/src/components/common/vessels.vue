@@ -457,10 +457,10 @@ from '@/utils/hooks'
                 vm.readCompanyName();
             },
             readCompanyName: function() {
-                console.log("readCompanyName")
                 this.$nextTick(() => {
                     let vm = this;
                     if (vm.vessel.vessel_ownership.company_ownership.company) {
+                        //console.log("readCompanyName")
                         var option = new Option(
                             vm.vessel.vessel_ownership.company_ownership.company.name, 
                             vm.vessel.vessel_ownership.company_ownership.company.name, 
@@ -710,7 +710,7 @@ from '@/utils/hooks'
                         this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
                         this.vessel.id = vesselData.id;
                         this.vessel.rego_no = vesselData.rego_no;
-                        this.vessel.read_only = true;
+                        //this.vessel.read_only = true;
                         /*
                         // vessel ownership
                         this.vessel.vessel_ownership.org_name = this.proposal.org_name;
@@ -725,6 +725,7 @@ from '@/utils/hooks'
                     }
                 }
                 this.readRegoNo();
+                this.readCompanyName();
             },
         },
         mounted: function () {
@@ -734,10 +735,9 @@ from '@/utils/hooks'
                 if (this.proposal) {
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
-                    /*
+                    // route.params.vessel_id in this case is a vesselownership id
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
-                    */
                 }
                 //this.initialiseSelects();
                 this.initialiseRegoNoSelect();

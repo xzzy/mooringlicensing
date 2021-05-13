@@ -1098,6 +1098,7 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
 
 
 class VesselOwnershipSerializer(serializers.ModelSerializer):
+    company_ownership = CompanyOwnershipSerializer() 
 
     class Meta:
         model = VesselOwnership

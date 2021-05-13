@@ -627,13 +627,21 @@ def ownership_percentage_validation(vessel_ownership):
     ## First ensure applicable % >= 25
     if hasattr(vessel_ownership.company_ownership, 'id'):
         company_ownership_id = vessel_ownership.company_ownership.id
-        if vessel_ownership.company_ownership.percentage:
+        if not vessel_ownership.company_ownership.percentage:
+            raise serializers.ValidationError({
+                "Ownership Percentage": "You must specify a percentage"
+                })
+        else:
             if vessel_ownership.company_ownership.percentage < 25:
                 min_percent_fail = True
             else:
                 vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
-    elif vessel_ownership.percentage:
+    elif not vessel_ownership.percentage:
+        raise serializers.ValidationError({
+            "Ownership Percentage": "You must specify a percentage"
+            })
         individual_ownership_id = vessel_ownership.id
+    else:
         if vessel_ownership.percentage < 25:
             min_percent_fail = True
         else:

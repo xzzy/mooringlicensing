@@ -1509,7 +1509,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
         #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
         #vessel_ownership_data["individual_owner"] = False if vo.org_name else True
-        vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
+        vessel_ownership_data["individual_owner"] = False if vo.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
