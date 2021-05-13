@@ -47,11 +47,9 @@ module.exports = {
     lookupDcvVessel: function(id) {
         return `/api/dcv_vessel/${id}/lookup_dcv_vessel.json`;
     },
-    /*
     lookupVesselOwnership: function(id) {
         return `/api/vesselownership/${id}/lookup_vessel_ownership.json`;
     },
-    */
     lookupIndividualOwnership: function(id) {
         return `/api/vessel/${id}/lookup_individual_ownership.json`;
     },
