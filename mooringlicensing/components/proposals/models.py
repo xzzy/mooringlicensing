@@ -1196,7 +1196,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-
     def final_approval(self,request,details):
         from mooringlicensing.components.approvals.models import Approval
         with transaction.atomic():
@@ -1222,10 +1221,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'cc_email':details.get('cc_email')
                     }
 
-
-                if (self.application_type.name == ApplicationType.FILMING and self.filming_approval_type == self.LICENCE and \
-                        self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER]) and \
-                        not self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+                if False:
+                # if (self.application_type.code == ApplicationType.FILMING and self.filming_approval_type == self.LICENCE and \
+                #         self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER]) and \
+                #         not self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
 
                     self.processing_status = self.PROCESSING_STATUS_AWAITING_PAYMENT
                     self.customer_status = self.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -1256,7 +1255,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     applicant_field=getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
 
-
                 if self.processing_status == self.PROCESSING_STATUS_APPROVED:
                     # TODO if it is an ammendment proposal then check appropriately
                     checking_proposal = self
@@ -1281,7 +1279,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 previous_approval.replaced_by = approval
                                 previous_approval.save()
 
-                            self.reset_licence_discount(request.user)
+                            # self.reset_licence_discount(request.user)
 
                     elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                         if self.previous_application:
@@ -1318,7 +1316,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
-                        self.reset_licence_discount(request.user)
+                        # self.reset_licence_discount(request.user)
                     # Generate compliances
                     from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                     if created:
@@ -1349,7 +1347,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.approval = approval
 
                     #send Proposal approval email with attachment
-                    send_proposal_approval_email_notification(self,request)
+                    send_proposal_approval_email_notification(self, request)
                     self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                     self.approval.documents.all().update(can_delete=False)
 
