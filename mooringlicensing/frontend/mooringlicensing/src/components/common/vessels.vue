@@ -52,7 +52,7 @@
                             />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
-                        <div v-show="companyOwner && vessel.rego_no" class="col-sm-8">
+                        <div v-show="companyOwner" class="col-sm-8">
                             <select :disabled="readonly" id="company_name"  ref="company_name" class="form-control" style="width: 40%"/>
                             <!--input 
                             :readonly="readonly" 
@@ -93,7 +93,7 @@
                     required=""
                     />
                 </div>
-                <div v-else-if="companyOwner && vessel.rego_no" class="col-sm-2">
+                <div v-else-if="companyOwner" class="col-sm-2">
                     <input 
                      :readonly="readonly" 
                     type="number" 
@@ -241,7 +241,10 @@ from '@/utils/hooks'
         },
         watch: {
             individualOwner: async function() {
-                await this.retrieveIndividualOwner();
+                if (this.individualOwner) {
+                    console.log("watch indiv")
+                    await this.retrieveIndividualOwner();
+                }
             },
         },
         computed: {
@@ -330,6 +333,11 @@ from '@/utils/hooks'
             applicationTypeCodeMLA: function() {
                 if (this.proposal && this.proposal.application_type_code==='mla') {
                     return true;
+                }
+            },
+            companyName: function() {
+                if (this.vessel.vessel_ownership.company_ownership && this.vessel.vessel_ownership.company_ownership.company) {
+                    return this.vessel.vessel_ownership.company_ownership.company.name;
                 }
             },
 
@@ -459,7 +467,7 @@ from '@/utils/hooks'
             readCompanyName: function() {
                 this.$nextTick(() => {
                     let vm = this;
-                    if (vm.vessel.vessel_ownership.company_ownership.company) {
+                    if (vm.vessel.vessel_ownership.company_ownership && vm.vessel.vessel_ownership.company_ownership.company) {
                         //console.log("readCompanyName")
                         var option = new Option(
                             vm.vessel.vessel_ownership.company_ownership.company.name, 
@@ -497,7 +505,8 @@ from '@/utils/hooks'
                                 term: params.term,
                                 type: 'public',
                                 create_vessel: vm.creatingVessel,
-                                org_name: vm.orgName,
+                                //org_name: vm.orgName,
+                                company_name: vm.companyName,
                             }
                             return query;
                         },
@@ -518,7 +527,9 @@ from '@/utils/hooks'
                             // fetch draft/approved vessel
                             await vm.lookupVessel(data);
                             console.log("individual")
-                            await vm.retrieveIndividualOwner();
+                            if (this.proposal && this.proposal.id) {
+                                await vm.retrieveIndividualOwner();
+                            }
                         } else {
                             data = vm.validateRegoNo(data);
 
