@@ -1,7 +1,7 @@
 <template lang="html">
     <div>
 
-        <div v-if="proposal" id="scrollspy-heading">
+        <div v-if="proposal && show_application_title" id="scrollspy-heading">
             <h4>Authorised User Application: {{proposal.lodgement_number}}</h4>
         </div>
 
@@ -153,6 +153,10 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            show_application_title: {
+                type: Boolean,
+                default: true,
             },
             submitterId: {
                 type: Number,

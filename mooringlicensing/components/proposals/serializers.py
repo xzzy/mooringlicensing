@@ -785,7 +785,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return obj.reversion_ids[:5]
 
     def get_fee_invoice_url(self,obj):
-        return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+        # temp = '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
+        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        return url
 
 
 class ProposalUserActionSerializer(serializers.ModelSerializer):
