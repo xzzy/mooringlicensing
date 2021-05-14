@@ -980,31 +980,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 r, created = ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date=due_date)
 
     def move_to_status(self, request, status, approver_comment):
+        if not status:
+            raise serializers.ValidationError('Status is required')
+        if status not in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
+            raise serializers.ValidationError('The status provided is not allowed')
         if not self.can_assess(request.user):
             raise exceptions.ProposalNotAuthorized()
-        if status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
-            if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
-                raise ValidationError('You cannot change the current status at this time')
-            if self.processing_status != status:
-                if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
-                    self.approver_comment = ''
-                    if approver_comment:
-                        self.approver_comment = approver_comment
-                        self.save()
-                        send_proposal_approver_sendback_email_notification(request, self)
-                self.processing_status = status
-                self.save()
-                if status == 'with_assessor_requirements':
-                    self.add_default_requirements()
+        if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
+            raise ValidationError('You cannot change the current status at this time')
 
-                # Create a log entry for the proposal
-                if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
-                    self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id), request)
-                elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
-                    self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
-        else:
-            raise ValidationError('The provided status cannot be found.')
+        if self.processing_status != status:
+            if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
+                self.approver_comment = ''
+                if approver_comment:
+                    self.approver_comment = approver_comment
+                    self.save()
+                    send_proposal_approver_sendback_email_notification(request, self)
+            self.processing_status = status
+            self.save()
+            if status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+                self.add_default_requirements()
 
+            # Create a log entry for the proposal
+            if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
+                self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id), request)
+            elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+                self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
         if self.application_type.name==ApplicationType.FILMING and self.filming_approval_type=='lawful_authority':
@@ -1196,7 +1197,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-
     def final_approval(self,request,details):
         from mooringlicensing.components.approvals.models import Approval
         with transaction.atomic():
@@ -1222,10 +1222,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'cc_email':details.get('cc_email')
                     }
 
-
-                if (self.application_type.name == ApplicationType.FILMING and self.filming_approval_type == self.LICENCE and \
-                        self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER]) and \
-                        not self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+                if False:  # We don't need the following logic, do we?
+                # if (self.application_type.code == ApplicationType.FILMING and self.filming_approval_type == self.LICENCE and \
+                #         self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER]) and \
+                #         not self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
 
                     self.processing_status = self.PROCESSING_STATUS_AWAITING_PAYMENT
                     self.customer_status = self.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -1253,9 +1253,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # Log proposal action
                     self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
                     # Log entry for organisation
-                    applicant_field=getattr(self, self.applicant_field)
+                    applicant_field = getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id),request)
-
 
                 if self.processing_status == self.PROCESSING_STATUS_APPROVED:
                     # TODO if it is an ammendment proposal then check appropriately
@@ -1263,17 +1262,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
                         if self.previous_application:
                             previous_approval = self.previous_application.approval
-                            approval,created = Approval.objects.update_or_create(
+                            approval, created = Approval.objects.update_or_create(
                                 current_proposal = checking_proposal,
                                 defaults = {
-                                    'issue_date' : timezone.now(),
-                                    'expiry_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                    'start_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                                    'issue_date': timezone.now(),
+                                    'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                    'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                     'submitter': self.submitter,
                                     #'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                                     #'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                                    'org_applicant' : self.org_applicant,
-                                    'proxy_applicant' : self.proxy_applicant,
+                                    'org_applicant': self.org_applicant,
+                                    'proxy_applicant': self.proxy_applicant,
                                     'lodgement_number': previous_approval.lodgement_number
                                 }
                             )
@@ -1281,12 +1280,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 previous_approval.replaced_by = approval
                                 previous_approval.save()
 
-                            self.reset_licence_discount(request.user)
+                            # self.reset_licence_discount(request.user)
 
                     elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                         if self.previous_application:
                             previous_approval = self.previous_application.approval
-                            approval,created = Approval.objects.update_or_create(
+                            approval, created = Approval.objects.update_or_create(
                                 current_proposal = checking_proposal,
                                 defaults = {
                                     'issue_date' : timezone.now(),
@@ -1304,21 +1303,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 previous_approval.replaced_by = approval
                                 previous_approval.save()
                     else:
-                        approval,created = Approval.objects.update_or_create(
-                            current_proposal = checking_proposal,
-                            defaults = {
-                                'issue_date' : timezone.now(),
-                                'expiry_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                'start_date' : datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                        approval, created = Approval.objects.update_or_create(
+                            current_proposal=checking_proposal,
+                            defaults={
+                                'issue_date': timezone.now(),
+                                'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
                                 #'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                                 #'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                                'org_applicant' : self.org_applicant,
-                                'proxy_applicant' : self.proxy_applicant,
+                                'org_applicant': self.org_applicant,
+                                'proxy_applicant': self.proxy_applicant,
                                 #'extracted_fields' = JSONField(blank=True, null=True)
                             }
                         )
-                        self.reset_licence_discount(request.user)
+                        # self.reset_licence_discount(request.user)
                     # Generate compliances
                     from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                     if created:
@@ -1349,7 +1348,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.approval = approval
 
                     #send Proposal approval email with attachment
-                    send_proposal_approval_email_notification(self,request)
+                    send_proposal_approval_email_notification(self, request)
                     self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                     self.approval.documents.all().update(can_delete=False)
 

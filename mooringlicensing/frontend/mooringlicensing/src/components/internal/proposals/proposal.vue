@@ -52,6 +52,7 @@
                     <WaitingListApplication
                         v-if="proposal && proposal.application_type_dict.code==='wla'"
                         :proposal="proposal" 
+                        :show_application_title="false"
                         :is_external="false" 
                         ref="waiting_list_application"
                         :showElectoralRoll="showElectoralRoll"
@@ -62,6 +63,7 @@
                     <AnnualAdmissionApplication
                         v-if="proposal && proposal.application_type_dict.code==='aaa'"
                         :proposal="proposal" 
+                        :show_application_title="false"
                         :is_external="false" 
                         ref="annual_admission_application"
                         :showElectoralRoll="showElectoralRoll"
@@ -71,6 +73,7 @@
                     <AuthorisedUserApplication
                         v-if="proposal && proposal.application_type_dict.code==='aua'"
                         :proposal="proposal" 
+                        :show_application_title="false"
                         :is_external="false" 
                         ref="authorised_user_application"
                         :readonly="readonly"
@@ -79,6 +82,7 @@
                     <MooringLicenceApplication
                         v-if="proposal && proposal.application_type_dict.code==='mla'"
                         :proposal="proposal" 
+                        :show_application_title="false"
                         :is_external="false" 
                         ref="mooring_licence_application"
                         :showElectoralRoll="showElectoralRoll"

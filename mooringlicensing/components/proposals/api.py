@@ -766,133 +766,70 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
+    @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.assign_officer(request,request.user)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.assign_officer(request,request.user)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
+        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user_id = request.data.get('assessor_id',None)
+        user = None
+        if not user_id:
+            raise serializers.ValidationError('An assessor id is required')
         try:
-            instance = self.get_object()
-            user_id = request.data.get('assessor_id',None)
-            user = None
-            if not user_id:
-                raise serializers.ValidationError('An assessor id is required')
-            try:
-                user = EmailUser.objects.get(id=user_id)
-            except EmailUser.DoesNotExist:
-                raise serializers.ValidationError('A user with the id passed in does not exist')
-            instance.assign_officer(request,user)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            user = EmailUser.objects.get(id=user_id)
+        except EmailUser.DoesNotExist:
+            raise serializers.ValidationError('A user with the id passed in does not exist')
+        instance.assign_officer(request,user)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['GET',])
+    @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.unassign(request)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.unassign(request)
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def switch_status(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            status = request.data.get('status')
-            approver_comment = request.data.get('approver_comment')
-            if not status:
-                raise serializers.ValidationError('Status is required')
-            else:
-                if status not in ['with_assessor', 'with_assessor_requirements', 'with_approver']:
-                    raise serializers.ValidationError('The status provided is not allowed')
-            instance.move_to_status(request, status, approver_comment)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            # if instance.application_type.name==ApplicationType.TCLASS:
-            #     serializer = InternalProposalSerializer(instance,context={'request':request})
-            # elif instance.application_type.name==ApplicationType.FILMING:
-            #     serializer = InternalFilmingProposalSerializer(instance,context={'request':request})
-            # elif instance.application_type.name==ApplicationType.EVENT:
-            #     serializer = InternalProposalSerializer(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        status = request.data.get('status')
+        approver_comment = request.data.get('approver_comment')
+        instance.move_to_status(request, status, approver_comment)
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            status = request.data.get('status')
-            if not status:
-                raise serializers.ValidationError('Status is required')
+        instance = self.get_object()
+        status = request.data.get('status')
+        if not status:
+            raise serializers.ValidationError('Status is required')
+        else:
+            if instance.application_type.name==ApplicationType.FILMING and instance.filming_approval_type=='lawful_authority':
+                status='with_assessor'
             else:
-                if instance.application_type.name==ApplicationType.FILMING and instance.filming_approval_type=='lawful_authority':
-                    status='with_assessor'
-                else:
-                    if not status in ['with_approver']:
-                        raise serializers.ValidationError('The status provided is not allowed')
-            instance.reissue_approval(request,status)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+                if not status in ['with_approver']:
+                    raise serializers.ValidationError('The status provided is not allowed')
+        instance.reissue_approval(request,status)
+        serializer = InternalProposalSerializer(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['GET',])
     def renew_approval(self, request, *args, **kwargs):
@@ -919,120 +856,60 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def proposed_approval(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = ProposedApprovalSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.proposed_approval(request,serializer.validated_data)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = ProposedApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.proposed_approval(request,serializer.validated_data)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def approval_level_document(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance = instance.assing_approval_level_document(request)
-            serializer = InternalProposalSerializer(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance = instance.assing_approval_level_document(request)
+        serializer = InternalProposalSerializer(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = ProposedApprovalSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.final_approval(request,serializer.validated_data)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = ProposedApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.final_approval(request, serializer.validated_data)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = PropedDeclineSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.proposed_decline(request,serializer.validated_data)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = PropedDeclineSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.proposed_decline(request,serializer.validated_data)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
+    @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = PropedDeclineSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.final_decline(request,serializer.validated_data)
-            #serializer = InternalProposalSerializer(instance,context={'request':request})
-            serializer_class = self.internal_serializer_class()
-            serializer = serializer_class(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = PropedDeclineSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.final_decline(request,serializer.validated_data)
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return add_cache_control(Response(serializer.data))
 
     #@detail_route(methods=['POST',])
     #@renderer_classes((JSONRenderer,))
