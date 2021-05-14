@@ -51,14 +51,16 @@
                                     <div class="separator"></div>
                                 </div>
                             </template>
-                            <div class="col-sm-12 top-buffer-s" v-if="!isFinalised && canAction">
+                            <div class="col-sm-12 top-buffer-s" v-if="display_actions">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <strong>Action</strong>
                                     </div>
                                 </div>
+<!--
                                 <template v-if="proposal.processing_status == 'With Assessor'">
-                                    <div class="row">
+-->
+                                    <div class="row" v-if="display_action_enter_conditions">
                                         <div class="col-sm-12">
                                             <button 
                                                 class="btn btn-primary w-btn" 
@@ -67,7 +69,8 @@
                                             >Enter Conditions</button><br/>
                                         </div>
                                     </div>
-                                    <div class="row">
+
+                                    <div class="row" v-if="display_action_request_amendment">
                                         <div class="col-sm-12">
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
@@ -76,7 +79,8 @@
                                             >Request Amendment</button><br/>
                                         </div>
                                     </div>
-                                    <div class="row">
+
+                                    <div class="row" v-if="display_action_propose_decline">
                                         <div class="col-sm-12">
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
@@ -85,20 +89,26 @@
                                             >Propose Decline</button>
                                         </div>
                                     </div>
+<!--
                                 </template>
                                 <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
-                                    <div class="row">
+-->
+                                    <div class="row" v-if="display_action_back_to_application">
                                         <div class="col-sm-12">
                                             <button 
-                                                class="btn btn-primary w-btn" 
+                                                class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
                                                 @click.prevent="switchStatus('with_assessor')"
                                             >Back To Application</button>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <!-- div class="col-sm-12" v-if="requirementsComplete" -->
+
+<!--
+                                        <div class="col-sm-12" v-if="requirementsComplete">
                                         <div class="col-sm-12" v-if="proposal.requirements_completed">
+-->
+                                    <div class="row" v-if="display_action_propose_grant">
+                                        <div class="col-sm-12">
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
@@ -106,31 +116,45 @@
                                             >Propose Grant</button>
                                         </div>
                                     </div>
+<!--
                                 </template>
                                 <template v-else-if="proposal.processing_status == 'With Approver'">
-                                    <div class="row">
+                                    <div class="row" v-if="display_action_back_to_assessor">
                                         <div class="col-sm-12" v-if="proposal.proposed_decline_status">
+-->
+                                    <div class="row" v-if="display_action_back_to_assessor">
+                                        <div class="col-sm-12">
                                             <button 
-                                                class="btn btn-primary w-btn" 
+                                                class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
                                                 @click.prevent="switchStatus('with_assessor')"
                                             ><!-- Back To Processing -->Back To Assessor</button>
                                         </div>
+                                    </div>
+
+<!--
                                         <div class="col-sm-12" v-else>
+-->
+                                    <div class="row" v-if="display_action_back_to_assessor_requirements">
+                                        <div class="col-sm-12">
                                             <button 
-                                                class="btn btn-primary w-btn" 
+                                                class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
                                                 @click.prevent="switchStatus('with_assessor_requirements')"
                                             ><!-- Back To Requirements -->Back To Assessor</button><br/>
                                         </div>
                                     </div>
-                                    <div class="row">
+
+                                    <div class="row" v-if="display_action_grant">
                                         <div class="col-sm-12" >
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 @click.prevent="issueProposal()"
                                             >Grant</button><br/>
                                         </div>
+                                    </div>
+
+                                    <div class="row" v-if="display_action_decline">
                                         <div class="col-sm-12">
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
@@ -138,7 +162,9 @@
                                             >Decline</button><br/>
                                         </div>
                                     </div>
+<!--
                                 </template>
+-->
                             </div>
                         </div>
                     </div>
@@ -147,6 +173,8 @@
 </template>
 
 <script>
+import { constants } from '@/utils/hooks'
+
 export default {
     name: 'Submission',
     data: function() {
@@ -189,6 +217,106 @@ export default {
         //    type: Boolean,
         //    default: false,
         //},
+    },
+    computed: {
+        display_actions: function(){
+            return !this.isFinalised && this.canAction
+        },
+        display_action_request_amendment: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_ASSESSOR){
+                    display = true
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_enter_conditions: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_ASSESSOR){
+                    display = true
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_propose_decline: function(){
+            let display = false
+            try {
+                if([constants.AU_PROPOSAL, constants.ML_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                    if(this.proposal.processing_status === constants.WITH_ASSESSOR){
+                        display = true
+                    }
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_back_to_application: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_ASSESSOR_REQUIREMENTS){
+                    display = true
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_propose_grant: function(){
+            let display = false
+            try {
+                if([constants.AU_PROPOSAL, constants.ML_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                    if(this.proposal.requirements_completed){
+                        display = true
+                    }
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_back_to_assessor: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_APPROVER && this.proposal.proposed_decline_status){
+                    display = true
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_back_to_assessor_requirements: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_APPROVER && !this.proposal.proposed_decline_status){
+                    display = true
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_grant: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_APPROVER){
+                    display = true
+                }
+                if(this.proposal.processing_status === constants.WITH_ASSESSOR_REQUIREMENTS){
+                    if([constants.WL_PROPOSAL, constants.AA_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                        display = true
+                    }
+                }
+            } catch(err) {}
+            return display
+        },
+        display_action_decline: function(){
+            let display = false
+            try {
+                if(this.proposal.processing_status === constants.WITH_APPROVER){
+                    display = true
+                }
+                if(this.proposal.processing_status === constants.WITH_ASSESSOR){
+                    if([constants.WL_PROPOSAL, constants.AA_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                        display = true
+                    }
+                }
+            } catch(err) {}
+            return display
+        },
     },
     filters: {
         formatDate: function(data){
