@@ -1,7 +1,7 @@
 <template>
     <div class="container" id="WaitingListDash">
         <FormSection :formCollapse="false" label="Waiting List" Index="waiting_list">
-            <WaitingListTable 
+            <WaitingListTable
                 level="internal"
             />
         </FormSection>
@@ -10,7 +10,7 @@
 
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
-import WaitingListTable from "@/components/common/table_waiting_list"
+import WaitingListTable from "@/components/common/table_approval_waiting_list"
 
 export default {
     name: 'InternalWaigintListDashboard',
