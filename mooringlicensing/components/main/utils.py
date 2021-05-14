@@ -1,11 +1,11 @@
 import requests
 import json
-from datetime import timedelta, date, datetime
 import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
 from mooringlicensing.components.proposals.models import MooringBay
+from rest_framework import serializers
 
 
 def add_cache_control(response):
@@ -100,3 +100,15 @@ def retrieve_marine_parks():
 #    return from_date
 
 
+def handle_validation_error(e):
+    # if hasattr(e, 'error_dict'):
+    #     raise serializers.ValidationError(repr(e.error_dict))
+    # else:
+    #     raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+    if hasattr(e, 'error_dict'):
+        raise serializers.ValidationError(repr(e.error_dict))
+    else:
+        if hasattr(e, 'message'):
+            raise serializers.ValidationError(e.message)
+        else:
+            raise
