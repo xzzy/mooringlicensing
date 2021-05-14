@@ -153,14 +153,14 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        all = Approval.objects.all()
+        all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
 
         if is_internal(self.request):
             return all
         elif is_customer(self.request):
             qs = all.filter(Q(submitter=request_user))
             return qs
-        return Proposal.objects.none()
+        return Approval.objects.none()
 
     def list(self, request, *args, **kwargs):
         """

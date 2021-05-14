@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from ledger.accounts.models import EmailUser
 
@@ -16,10 +18,14 @@ from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
 
+logger = logging.getLogger('mooringlicensing')
+
+
 class EmailUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUser
         fields = ('id','email','first_name','last_name','title','organisation')
+
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
     org_applicant = serializers.SerializerMethodField(read_only=True)
@@ -382,6 +388,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                 'description': obj.child_obj.description,
             }
         except ObjectDoesNotExist:
+            # Should not reach here
+            logger.error('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
             return {
                 'code': 'child-obj-notfound',
                 'description': 'child-obj-notfound',
