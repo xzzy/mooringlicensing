@@ -24,7 +24,7 @@
                                 </div>
                                 <div class="row" v-show="showstartDateError">
                                     <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
-                    
+
                                 </div>
                             </div>
                             <div class="form-group">
@@ -44,9 +44,9 @@
                                 </div>
                                 <div class="row" v-show="showtoDateError">
                                     <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
-                    
+
                                 </div>
-                                
+
                             </div>
                             <div class="form-group">
                                 <div class="row">
@@ -76,7 +76,7 @@
                                         <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this proposal, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
                                         <label v-else class="control-label pull-left"  for="Name">After approving this proposal, approval will be emailed to {{submitter_email}}.</label>
                                     </div>
-                                    
+
                                 </div>
                             </div>
                         </div>
@@ -172,7 +172,7 @@ export default {
             return vm.startDateError;
         },
         title: function(){
-            return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
+            return this.processing_status == 'With Approver' ? 'Grant' : 'Propose grant';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
@@ -248,7 +248,7 @@ export default {
             let vm = this;
             vm.errors = false;
             let approval = JSON.parse(JSON.stringify(vm.approval));
-            
+
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id + '/proposed_approval'),JSON.stringify(approval),{
@@ -278,7 +278,7 @@ export default {
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
             }
-           
+
         },
         addFormValidations: function() {
             let vm = this;
