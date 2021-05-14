@@ -980,31 +980,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 r, created = ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date=due_date)
 
     def move_to_status(self, request, status, approver_comment):
+        if not status:
+            raise serializers.ValidationError('Status is required')
+        if status not in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
+            raise serializers.ValidationError('The status provided is not allowed')
         if not self.can_assess(request.user):
             raise exceptions.ProposalNotAuthorized()
-        if status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
-            if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
-                raise ValidationError('You cannot change the current status at this time')
-            if self.processing_status != status:
-                if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
-                    self.approver_comment = ''
-                    if approver_comment:
-                        self.approver_comment = approver_comment
-                        self.save()
-                        send_proposal_approver_sendback_email_notification(request, self)
-                self.processing_status = status
-                self.save()
-                if status == 'with_assessor_requirements':
-                    self.add_default_requirements()
+        if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
+            raise ValidationError('You cannot change the current status at this time')
 
-                # Create a log entry for the proposal
-                if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
-                    self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id), request)
-                elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
-                    self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
-        else:
-            raise ValidationError('The provided status cannot be found.')
+        if self.processing_status != status:
+            if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
+                self.approver_comment = ''
+                if approver_comment:
+                    self.approver_comment = approver_comment
+                    self.save()
+                    send_proposal_approver_sendback_email_notification(request, self)
+            self.processing_status = status
+            self.save()
+            if status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+                self.add_default_requirements()
 
+            # Create a log entry for the proposal
+            if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
+                self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id), request)
+            elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+                self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
         if self.application_type.name==ApplicationType.FILMING and self.filming_approval_type=='lawful_authority':
