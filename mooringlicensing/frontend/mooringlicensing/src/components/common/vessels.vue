@@ -538,7 +538,7 @@ from '@/utils/hooks'
                                     new_vessel: true,
                                     rego_no: data,
                                     vessel_details: {
-                                        read_only: false,
+                                        //read_only: false,
                                     },
                                     vessel_ownership: {
                                         company_ownership: {
@@ -555,7 +555,7 @@ from '@/utils/hooks'
                     vm.vessel = Object.assign({}, 
                         {   
                             vessel_details: {
-                                read_only: false,
+                                //read_only: false,
                             },
                             vessel_ownership: {
                                 company_ownership: {
