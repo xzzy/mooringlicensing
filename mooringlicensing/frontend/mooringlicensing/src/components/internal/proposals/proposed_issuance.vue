@@ -271,7 +271,7 @@ export default {
                     }).then((response)=>{
                         vm.issuingApproval = false;
                         vm.close();
-                        vm.$emit('refreshFromResponse',response);
+                        vm.$emit('refreshFromResponse', response);
                     },(error)=>{
                         vm.errors = true;
                         vm.issuingApproval = false;

@@ -530,56 +530,52 @@ export default {
             this.$refs.proposed_approval.isModalOpen = true;
         },
         issueProposal:function(){
+            console.log('in issueProposal')
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
 
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
-                if (this.proposal.approval_level_comment!='')
-                {
+                if (this.proposal.approval_level_comment!=''){
                     let vm = this;
                     let data = new FormData();
                     data.append('approval_level_comment', vm.proposal.approval_level_comment)
                     //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
                     console.log('3')
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id+'/approval_level_comment'),data,{
-                        emulateJSON:true
-                        }).then(res=>{
-                    vm.proposal = res.body;
-                    vm.refreshFromResponse(res);
-                    },err=>{
-                    console.log(err);
-                    });
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id+'/approval_level_comment'), data, {emulateJSON:true}).then(
+                        res => {
+                            vm.proposal = res.body;
+                            vm.refreshFromResponse(res);
+                        }, err => {
+                            console.log(err);
+                        }
+                    );
                 }
             }
-            if(this.isApprovalLevelDocument && this.proposal.approval_level_comment=='')
-            {
+            if(this.isApprovalLevelDocument && this.proposal.approval_level_comment==''){
                 swal(
                     'Error',
                     'Please add Approval document or comments before final approval',
                     'error'
                 )
-            }
-            else{
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            this.$refs.proposed_approval.state = 'final_approval';
-            this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-            if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
-                var start_date=new Date();
-                start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
-
-                $(this.$refs.proposed_approval.$refs.start_date).data('DateTimePicker').date(start_date);
-            }
-            if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.expiry_date!=null){
-                var expiry_date=new Date();
-                expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
-
-                $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
-            }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
+            } else {
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                this.$refs.proposed_approval.state = 'final_approval';
+                this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
+                    var start_date=new Date();
+                    start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
+                    $(this.$refs.proposed_approval.$refs.start_date).data('DateTimePicker').date(start_date);
+                }
+                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.expiry_date!=null){
+                    var expiry_date=new Date();
+                    expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
+                    $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
+                }
+                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+                // if(this.proposal.applicant.email){
+                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+                // }
+                this.$refs.proposed_approval.isModalOpen = true;
             }
 
         },
@@ -649,6 +645,7 @@ export default {
             this.showingRequirements = value
         },
         updateAssignedOfficerSelect:function(){
+            console.log('updateAssignedOfficerSelect')
             let vm = this;
             if (vm.proposal.processing_status == 'With Approver'){
                 $(vm.$refs.assigned_officer).val(vm.proposal.assigned_approver);
@@ -679,6 +676,7 @@ export default {
             });
         },
         refreshFromResponse:function(response){
+            console.log('in refreshFromResponse')
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
@@ -853,6 +851,7 @@ export default {
             })
         },
         initialiseAssignedOfficerSelect:function(reinit=false){
+            console.log('initialiseAssignedOfficerSelect')
             let vm = this;
             if (reinit){
                 $(vm.$refs.assigned_officer).data('select2') ? $(vm.$refs.assigned_officer).select2('destroy'): '';
