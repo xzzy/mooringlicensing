@@ -1,10 +1,10 @@
+import logging
+
 from django.conf import settings
-from ledger.accounts.models import EmailUser,Address
+from ledger.accounts.models import EmailUser
 
 from mooringlicensing.components.main import serializers
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
-from mooringlicensing.components.proposals.serializers import ProposalSerializer, InternalProposalSerializer
-#from mooringlicensing.components.main.serializers import ApplicationTypeSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -14,13 +14,18 @@ from mooringlicensing.components.organisations.models import (
     Organisation
 )
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
-from mooringlicensing.components.proposals.serializers import ProposalSerializer
 from rest_framework import serializers
+from django.core.exceptions import ObjectDoesNotExist
+
+
+logger = logging.getLogger('mooringlicensing')
+
 
 class EmailUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUser
         fields = ('id','email','first_name','last_name','title','organisation')
+
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
     org_applicant = serializers.SerializerMethodField(read_only=True)
@@ -377,7 +382,17 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
     def get_approval_type_dict(self, obj):
-        return {
-            'code': obj.child_obj.code,
-            'description': obj.child_obj.description,
-        }
+        try:
+            return {
+                'code': obj.child_obj.code,
+                'description': obj.child_obj.description,
+            }
+        except ObjectDoesNotExist:
+            # Should not reach here
+            logger.error('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
+            return {
+                'code': 'child-obj-notfound',
+                'description': 'child-obj-notfound',
+            }
+        except:
+            raise
