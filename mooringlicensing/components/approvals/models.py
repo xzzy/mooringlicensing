@@ -22,7 +22,8 @@ from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
-from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document
+from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
+    create_approval_doc
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
@@ -299,13 +300,15 @@ class Approval(RevisionedMixin):
         return False
 
     def generate_doc(self, user, preview=False):
-        from mooringlicensing.components.approvals.pdf import create_approval_doc, create_approval_pdf_bytes
-        copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
+        # copied_to_permit = self.copiedToPermit_fields(self.current_proposal)  #Get data related to isCopiedToPermit tag
 
         if preview:
-            return create_approval_pdf_bytes(self,self.current_proposal, copied_to_permit, user)
+            from mooringlicensing.doctopdf import create_approval_doc_bytes
+            # return create_approval_doc_bytes(self, self.current_proposal, copied_to_permit, user)
+            return create_approval_doc_bytes(self, self.current_proposal, None, user)
 
-        self.licence_document = create_approval_doc(self,self.current_proposal, copied_to_permit, user)
+        # self.licence_document = create_approval_doc(self, self.current_proposal, copied_to_permit, user)
+        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
@@ -339,10 +342,8 @@ class Approval(RevisionedMixin):
     #                raise
     #    return copied_data
 
-
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
-
 
     def expire_approval(self,user):
         with transaction.atomic():
@@ -519,7 +520,7 @@ class Approval(RevisionedMixin):
         elif hasattr(self, 'mooringlicence'):
             return self.mooringlicence
         else:
-            raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AAP, AUP or ML")
+            raise ObjectDoesNotExist("Approval must have an associated child object - WLA, AAP, AUP or ML")
 
     @classmethod
     def approval_types_dict(cls, include_codes=[]):

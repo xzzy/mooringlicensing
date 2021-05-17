@@ -199,7 +199,7 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     def get_fields(self, request, obj=None):
-        if obj.key in (GlobalSettings.KEY_DCV_PERMIT_TEMPLATE_FILE, GlobalSettings.KEY_DCV_ADMISSION_TEMPLATE_FILE):
+        if obj.key in GlobalSettings.keys_for_file:
             return ['key', '_file',]
         else:
             return ['key', 'value',]
