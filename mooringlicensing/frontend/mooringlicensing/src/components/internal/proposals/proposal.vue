@@ -90,15 +90,20 @@
                         :submitterId="proposal.submitter.id"
                     />
                 </template>
-
+<!--
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
+-->
+                <template v-if="display_approval_screen">
                     <ApprovalScreen 
                         :proposal="proposal" 
                         @refreshFromResponse="refreshFromResponse"
                     />
                 </template>
 
+<!--
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
+-->
+                <template v-if="display_requirements">
                     <Requirements 
                         :proposal="proposal" 
                         @refreshRequirements="refreshRequirements"
@@ -277,7 +282,7 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import Submission from '@common-utils/submission.vue'
 import Workflow from '@common-utils/workflow.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
-import { api_endpoints, helpers } from '@/utils/hooks'
+import { api_endpoints, helpers, constants } from '@/utils/hooks'
 import WaitingListApplication from '@/components/form_wla.vue';
 import AnnualAdmissionApplication from '@/components/form_aaa.vue';
 import AuthorisedUserApplication from '@/components/form_aua.vue';
@@ -386,6 +391,22 @@ export default {
 
     },
     computed: {
+        display_approval_screen: function(){
+            console.log('in display_approval_screen')
+            let ret_val = 
+                this.proposal.processing_status == constants.WITH_APPROVER || 
+                this.isFinalised
+            console.log(ret_val)
+            return ret_val
+        },
+        display_requirements: function(){
+            console.log('in display_requirements')
+            let ret_val = 
+                this.proposal.processing_status == constants.WITH_ASSESSOR_REQUIREMENTS || 
+                ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
+            console.log(ret_val)
+            return ret_val
+        },
         showElectoralRoll: function(){
             // TODO: implement
             return true
@@ -615,29 +636,27 @@ export default {
             vm.highlight_deficient_fields(deficient_fields);
         },
         save: function(e) {
-          let vm = this;
-          vm.checkAssessorData();
-          let formData = new FormData(vm.form);
-          vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-              swal(
-                'Saved',
-                'Your proposal has been saved',
-                'success'
-              )
-          },err=>{
-          });
+            let vm = this;
+            vm.checkAssessorData();
+            let formData = new FormData(vm.form);
+            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+                swal(
+                  'Saved',
+                  'Your proposal has been saved',
+                  'success'
+                )
+            },err=>{ });
         },
         save_wo: function() {
-          let vm = this;
-          vm.checkAssessorData();
-          let formData = new FormData(vm.form);
-          vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+            let vm = this;
+            vm.checkAssessorData();
+            let formData = new FormData(vm.form);
+            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
 
 
-          },err=>{
-          });
+            },err=>{
+            });
         },
-
         toggleProposal:function(value){
             this.showingProposal = value
         },
@@ -677,6 +696,8 @@ export default {
         },
         refreshFromResponse:function(response){
             console.log('in refreshFromResponse')
+            console.log('response')
+            console.log(response)
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
