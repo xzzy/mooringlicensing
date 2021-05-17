@@ -37,6 +37,7 @@ module.exports = {
     mooringlicenceapplication: '/api/mooringlicenceapplication/',
     proposal: '/api/proposal/',
     vessel: '/api/vessel/',
+    vesselownership: '/api/vesselownership/',
 
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
