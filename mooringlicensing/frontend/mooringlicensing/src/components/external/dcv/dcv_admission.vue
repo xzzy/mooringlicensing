@@ -46,6 +46,7 @@
                     @delete_arrival="delete_arrival"
                     :key="arrival.uuid"
                     :dcv_vessel="dcv_admission.dcv_vessel"
+                    :fee_configurations="fee_configurations"
                 />
             </template>
 
@@ -143,6 +144,7 @@ export default {
                 dcv_permit: [],
             },
             paySubmitting: false,
+            fee_configurations: null,
         }
     },
     components:{
@@ -322,38 +324,16 @@ export default {
                 }
             )
         },
-        //addEventListeners: function () {
-        //    let vm = this;
-        //    let el_fr = $(vm.$refs.arrivalDatePicker);
-        //    let options = {
-        //        format: "DD/MM/YYYY",
-        //        showClear: true ,
-        //        useCurrent: false,
-        //    };
-
-        //    el_fr.datetimepicker(options);
-
-        //    el_fr.on("dp.change", function(e) {
-        //        let selected_date = null;
-        //        if (e.date){
-        //            // Date selected
-        //            selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
-        //            vm.on_site_information.period_from = selected_date;
-        //        } else {
-        //            // Date not selected
-        //            vm.on_site_information.period_from = selected_date;
-        //        }
-        //    });
-        //},
     },
     mounted: function () {
         this.$nextTick(() => {
             this.initialiseSelects()
-            //this.addEventListeners()
         });
     },
-    created: function() {
-
+    created: async function() {
+        const res = await this.$http.get(api_endpoints.fee_configurations)
+        console.log(res.body)
+        this.fee_configurations = res.body
     },
 }
 </script>
