@@ -43,12 +43,13 @@ class ApprovalRenewalNotificationEmail(TemplateEmailBase):
 
 
 def send_approval_expire_email_notification(approval):
-    if approval.is_lawful_authority:
-        email = FilmingLawfulAuthorityApprovalExpireNotificationEmail()
-    if approval.is_filming_licence:
-        email = FilmingLicenceApprovalExpireNotificationEmail()
-    else:
-        email = ApprovalExpireNotificationEmail()
+    # if approval.is_lawful_authority:
+    #     email = FilmingLawfulAuthorityApprovalExpireNotificationEmail()
+    # if approval.is_filming_licence:
+    #     email = FilmingLicenceApprovalExpireNotificationEmail()
+    # else:
+    #     email = ApprovalExpireNotificationEmail()
+    email = ApprovalExpireNotificationEmail()
     proposal = approval.current_proposal
 
     url=settings.SITE_URL if settings.SITE_URL else ''

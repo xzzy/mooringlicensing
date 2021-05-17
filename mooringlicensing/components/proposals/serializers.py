@@ -867,7 +867,7 @@ class ProposedApprovalSerializer(serializers.Serializer):
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True)
 
-class PropedDeclineSerializer(serializers.Serializer):
+class ProposedDeclineSerializer(serializers.Serializer):
     reason = serializers.CharField()
     cc_email = serializers.CharField(required=False, allow_null=True)
 
