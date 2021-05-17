@@ -731,7 +731,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def amendment_requests(self):
-        qs =AmendmentRequest.objects.filter(proposal = self)
+        qs =AmendmentRequest.objects.filter(proposal=self)
         return qs
 
     #Check if there is an pending amendment request exist for the proposal
@@ -1065,7 +1065,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def final_decline(self,request,details):
+    def final_decline(self, request, details):
         with transaction.atomic():
             try:
                 if not self.can_assess(request.user):
@@ -1607,11 +1607,12 @@ class WaitingListApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args,**kwargs)
+        # super(Proposal, self).save(*args,**kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+        super(Proposal, self).save(*args,**kwargs)
 
     def final_approval(self, request, details):
         with transaction.atomic():
@@ -1748,6 +1749,36 @@ class WaitingListApplication(Proposal):
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
+                return self
+
+            except:
+                raise
+
+    def final_decline(self, request, details):
+        with transaction.atomic():
+            try:
+                if not self.can_assess(request.user):
+                    raise exceptions.ProposalNotAuthorized()
+                if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
+                    raise ValidationError('You cannot decline if it is not with approver')
+
+                proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
+                    proposal=self,
+                    defaults={'officer': request.user, 'reason': details.get('reason'), 'cc_email': details.get('cc_email', None)}
+                )
+                self.proposed_decline_status = True
+                self.processing_status = 'declined'
+                self.customer_status = 'declined'
+                self.save()
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
+                # Log entry for organisation
+                applicant_field=getattr(self, self.applicant_field)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
+                send_proposal_decline_email_notification(self, request, proposal_decline)
+
+                return self
+
             except:
                 raise
 
@@ -1773,7 +1804,10 @@ class AnnualAdmissionApplication(Proposal):
             self.save()
 
     def final_approval(self, request, details):
-        raise NotImplementedError('Implement AnnualAdmissionApplication.final_approval()')
+        raise NotImplementedError('Implement AnnualAdmissionApplication.final_approval()  Remember to return self')
+
+    def final_decline(self, request, details):
+        raise NotImplementedError('Implement AnnualAdmissionApplication.final_decline()  Remember to return self')
 
 
 class AuthorisedUserApplication(Proposal):
@@ -1797,7 +1831,10 @@ class AuthorisedUserApplication(Proposal):
             self.save()
 
     def final_approval(self, request, details):
-        raise NotImplementedError('Inplement AuthorisedUserApplication.final_approval()')
+        raise NotImplementedError('Inplement AuthorisedUserApplication.final_approval() Remember to return self')
+
+    def final_decline(self, request, details):
+        raise NotImplementedError('Implement AuthorisedUserApplication.final_decline() Remember to return self')
 
 
 class MooringLicenceApplication(Proposal):
@@ -1821,7 +1858,10 @@ class MooringLicenceApplication(Proposal):
             self.save()
 
     def final_approval(self, request, details):
-        raise NotImplementedError('Implement MooringLicenceApplication.final_approval()')
+        raise NotImplementedError('Implement MooringLicenceApplication.final_approval() Remember to return self')
+
+    def final_decline(self, request, details):
+        raise NotImplementedError('Implement MooringLicenceApplication.final_decline() Remember to return self')
 
 
 class ProposalLogDocument(Document):
@@ -2112,6 +2152,7 @@ class ProposalRequest(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
+
 class ComplianceRequest(ProposalRequest):
     REASON_CHOICES = (('outstanding', 'There are currently outstanding returns for the previous licence'),
                       ('other', 'Other'))
@@ -2159,7 +2200,6 @@ class AmendmentRequest(ProposalRequest):
     class Meta:
         app_label = 'mooringlicensing'
 
-
     def generate_amendment(self,request):
         with transaction.atomic():
             try:
@@ -2171,21 +2211,22 @@ class AmendmentRequest(ProposalRequest):
                         proposal.processing_status = 'draft'
                         proposal.customer_status = 'draft'
                         proposal.save()
-                        proposal.documents.all().update(can_hide=True)
-                        proposal.required_documents.all().update(can_hide=True)
+                        # proposal.documents.all().update(can_hide=True)
+                        # proposal.required_documents.all().update(can_hide=True)
                     # Create a log entry for the proposal
-                    proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+                    proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
-                    applicant_field=getattr(proposal, proposal.applicant_field)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+                    applicant_field = getattr(proposal, proposal.applicant_field)
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 
                     # send email
 
-                    send_amendment_email_notification(self,request, proposal)
+                    send_amendment_email_notification(self, request, proposal)
 
                 self.save()
             except:
                 raise
+
 
 class Assessment(ProposalRequest):
     STATUS_CHOICES = (('awaiting_assessment', 'Awaiting Assessment'), ('assessed', 'Assessed'),

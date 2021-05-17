@@ -251,19 +251,17 @@
             :applicant_email="applicant_email" 
             @refreshFromResponse="refreshFromResponse"
         />
-<!--
         <ProposedDecline 
             ref="proposed_decline" 
             :processing_status="proposal.processing_status" 
-            :proposal_id="proposal.id" 
+            :proposal="proposal" 
             @refreshFromResponse="refreshFromResponse"
         />
         <AmendmentRequest 
             ref="amendment_request" 
-            :proposal_id="proposal.id" 
+            :proposal="proposal" 
             @refreshFromResponse="refreshFromResponse"
         />
--->
     </div>
 </template>
 
@@ -272,8 +270,8 @@
 //import ProposalApiary from '@/components/form_apiary.vue'
 //import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
-//import ProposedDecline from './proposal_proposed_decline.vue'
-//import AmendmentRequest from './amendment_request.vue'
+import ProposedDecline from '@/components/internal/proposals/proposal_proposed_decline.vue'
+import AmendmentRequest from '@/components/internal/proposals/amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from '@/components/internal/proposals/proposal_requirements.vue'
 import ProposedApproval from '@/components/internal/proposals/proposed_issuance.vue'
@@ -366,8 +364,8 @@ export default {
         //ProposalDisturbance,
         //ProposalApiary,
         datatable,
-        //ProposedDecline,
-        //AmendmentRequest,
+        ProposedDecline,
+        AmendmentRequest,
         Requirements,
         ProposedApproval,
         ApprovalScreen,
@@ -529,7 +527,7 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: function(){
-            console.log('proposedDecline')
+            console.log('in proposedDecline')
             this.save_wo();
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
@@ -601,6 +599,7 @@ export default {
 
         },
         declineProposal:function(){
+            console.log('in declineProposal')
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
         },

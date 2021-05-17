@@ -98,7 +98,7 @@ from mooringlicensing.components.proposals.serializers import (
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
-    MooringBaySerializer, EmailUserSerializer,
+    MooringBaySerializer, EmailUserSerializer, ProposedDeclineSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -881,18 +881,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # instance.final_approval(request, serializer.validated_data)
-        instance.child_obj.final_approval(request, serializer.validated_data)
+        instance = instance.child_obj.final_approval(request, serializer.validated_data)  # Remember return the object updated in the method.
         serializer_class = self.internal_serializer_class()
-        # serializer = serializer_class(instance, context={'request': request})
-        serializer = serializer_class(instance.child_obj, context={'request': request})
+        serializer = serializer_class(instance, context={'request': request})
         return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = PropedDeclineSerializer(data=request.data)
+        serializer = ProposedDeclineSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.proposed_decline(request,serializer.validated_data)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
@@ -904,12 +902,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = PropedDeclineSerializer(data=request.data)
+        serializer = ProposedDeclineSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.final_decline(request,serializer.validated_data)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        # instance.final_decline(request,serializer.validated_data)
+        instance = instance.child_obj.final_decline(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance, context={'request':request})
         return add_cache_control(Response(serializer.data))
 
     #@detail_route(methods=['POST',])
@@ -1220,34 +1218,25 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
 
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            reason_id=request.data.get('reason')
-            data = {
-                #'schema': qs_proposal_type.order_by('-version').first().schema,
-                'text': request.data.get('text'),
-                'proposal': request.data.get('proposal'),
-                'reason': AmendmentReason.objects.get(id=reason_id) if reason_id else None,
-            }
-            serializer = self.get_serializer(data= request.data)
-            #serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception = True)
-            instance = serializer.save()
-            instance.generate_amendment(request)
-            serializer = self.get_serializer(instance)
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        data = request.data
+        reason_id = request.data.get('reason_id')
+        proposal = request.data.get('proposal', None)
+        data['reason'] = reason_id
+        data['proposal'] = proposal['id']
+        # data = {
+        #     #'schema': qs_proposal_type.order_by('-version').first().schema,
+        #     'text': request.data.get('text'),
+        #     'proposal': request.data.get('proposal'),
+        #     'reason': AmendmentReason.objects.get(id=reason_id) if reason_id else None,
+        # }
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception = True)
+        instance = serializer.save()
+        instance.generate_amendment(request)
+        serializer = self.get_serializer(instance)
+        return add_cache_control(Response(serializer.data))
 
 
 #class AccreditationTypeView(views.APIView):
