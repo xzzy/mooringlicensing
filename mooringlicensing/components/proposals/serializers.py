@@ -1003,6 +1003,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     emailuser = serializers.SerializerMethodField()
     owner_name = serializers.SerializerMethodField()
     percentage = serializers.SerializerMethodField()
+    record_sale_link = serializers.SerializerMethodField()
     class Meta:
         model = VesselOwnership
         fields = (
@@ -1011,6 +1012,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner_name',
                 'percentage',
                 'vessel_details',
+                'record_sale_link',
                 )
 
     def get_emailuser(self, obj):
@@ -1033,6 +1035,10 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         else:
             return obj.percentage
 
+    def get_record_sale_link(self, obj):
+        #return '<a href="{}" class="action-{}" data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id, obj.id)
+        #return '<a href=# class="action-{}" data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
+        return '<a href=# data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
     read_only = serializers.SerializerMethodField()
@@ -1103,6 +1109,16 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = VesselOwnership
         fields = '__all__'
+
+
+class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
+    end_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=True,allow_null=False)
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'end_date',
+                )
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
