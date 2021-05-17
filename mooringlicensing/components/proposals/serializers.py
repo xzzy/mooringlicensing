@@ -39,7 +39,10 @@ from mooringlicensing.components.proposals.models import (
     VesselDetails,
     VesselOwnership,
     Vessel,
-    MooringBay, ProposalType,
+    MooringBay, 
+    ProposalType,
+    Company,
+    CompanyOwnership,
 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -187,6 +190,36 @@ class ProposalTypeSerializer(serializers.ModelSerializer):
         )
 
 
+class CompanySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Company
+        fields = (
+                'id',
+                'name',
+                )
+
+
+class CompanyOwnershipSerializer(serializers.ModelSerializer):
+    company = CompanySerializer()
+
+    class Meta:
+        model = CompanyOwnership
+        fields = (
+                'id',
+                'blocking_proposal',
+                'status',
+                'vessel',
+                'company',
+                'percentage',
+                'start_date',
+                'end_date',
+                'created',
+                'updated',
+                )
+
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -203,6 +236,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
+    #company_ownership = CompanyOwnershipSerializer() 
 
     class Meta:
         model = Proposal
@@ -260,7 +294,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
-                'org_name',
+                #'org_name',
                 'percentage',
                 'editable_vessel_details',
                 'individual_owner',
@@ -271,6 +305,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'site_licensee_email',
                 'mooring_site_id',
                 'mooring_authorisation_preference',
+                'company_ownership_name',
+                'company_ownership_percentage',
                 )
         read_only_fields=('documents',)
 
@@ -490,7 +526,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -513,7 +549,8 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            #if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -547,7 +584,8 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            #if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
             #if not self.instance.hull_identification_number_documents.all():
              #   custom_errors["Hull Identification Number Documents"] = "Please attach"
@@ -589,7 +627,8 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 if not data.get("mooring_site_id"):
                     custom_errors["Mooring Site ID"] = "This field should not be blank"
             # Vessel docs
-            if not self.instance.vessel_registration_documents.all():
+            #if not self.instance.vessel_registration_documents.all():
+            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -597,6 +636,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
+    #company_ownership_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
@@ -613,9 +653,11 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
-                'org_name',
+                #'org_name',
                 'percentage',
                 'individual_owner',
+                'company_ownership_percentage',
+                'company_ownership_name',
                 )
 
 
@@ -966,6 +1008,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     vessel_details = serializers.SerializerMethodField()
     emailuser = serializers.SerializerMethodField()
     owner_name = serializers.SerializerMethodField()
+    percentage = serializers.SerializerMethodField()
     class Meta:
         model = VesselOwnership
         fields = (
@@ -985,7 +1028,16 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_owner_name(self, obj):
-        return obj.org_name if obj.org_name else str(obj.owner)
+        if obj.company_ownership:
+            return obj.company_ownership.company.name
+        else:
+            return str(obj.owner)
+
+    def get_percentage(self, obj):
+        if obj.company_ownership:
+            return obj.company_ownership.percentage
+        else:
+            return obj.percentage
 
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
@@ -995,7 +1047,7 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
         model = VesselDetails
         fields = (
                 'id',
-                'blocking_proposal',
+                #'blocking_proposal',
                 'vessel_type',
                 'vessel',
                 'vessel_name',
@@ -1007,20 +1059,24 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'created',
                 'updated',
-                'status',
+                #'status',
                 'exported',
                 'read_only',
                 )
 
     def get_read_only(self, obj):
-        ro = True
-        if obj.status == 'draft' and (
-            not obj.blocking_proposal 
-            # WG advised to remove 20210505
-            #or obj.blocking_proposal.submitter == self.context.get('request').user
-            ):
-            ro = False
-        return ro
+        # ???
+        return False
+
+    #def get_read_only(self, obj):
+    #    ro = True
+    #    if obj.status == 'draft' and (
+    #        not obj.blocking_proposal 
+    #        # WG advised to remove 20210505
+    #        #or obj.blocking_proposal.submitter == self.context.get('request').user
+    #        ):
+    #        ro = False
+    #    return ro
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
@@ -1048,6 +1104,7 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
 
 
 class VesselOwnershipSerializer(serializers.ModelSerializer):
+    company_ownership = CompanyOwnershipSerializer() 
 
     class Meta:
         model = VesselOwnership
@@ -1055,7 +1112,7 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
-    org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
+    #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = VesselOwnership
@@ -1063,8 +1120,8 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner',
                 'vessel',
                 'percentage',
-                'org_name',
-                #'editable',
+                'company_ownership',
+                #'org_name',
                 'start_date',
                 'end_date',
                 )
@@ -1074,39 +1131,41 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         custom_errors = {}
         percentage = data.get("percentage")
         owner = data.get("owner")
-        org_name = data.get("org_name")
+        #org_name = data.get("org_name")
         vessel = data.get("vessel")
         total = 0
-        if percentage:
-            #custom_errors["Ownership Percentage"] = "Maximum of 100 percent"
-            qs = self.instance.vessel.vesselownership_set.all()
-            for vo in qs:
-                # Same VesselOwnership record? - match vo with incoming data
-                if (vo.owner == owner and 
-                (vo.org_name == org_name or (not vo.org_name and not org_name)) and
-                vo.vessel == vessel):
-                    # handle percentage change on VesselOwnership obj
-                    #total += percentage if percentage else 0
-                    total += percentage
-                else:
-                    total += vo.percentage if vo.percentage else 0
-            if total > 100:
-                #raise ValueError({"Vessel ownership percentage": "Cannot exceed 100%"})
-                custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
+        ## 20210510 - need separate function
+        #if percentage:
+        #    # individual ownership
+        #    qs = self.instance.vessel.vesselownership_set.all()
+        #    for vo in qs:
+        #        # Same VesselOwnership record? - match vo with incoming data
+        #        if vo.owner == owner and not vo.company_ownership and vo.vessel == vessel:
+        #            # handle percentage change on VesselOwnership obj
+        #            total += percentage
+        #        else:
+        #            total += vo.percentage if vo.percentage else 0
+        #    # company ownership
+        #    qs2 = self.instance.vessel.companyownership_set.all()
+        #    for co in qs2:
+        #        # Same Ownership record? - match vo with incoming data
+        #        if (co.owner == owner and co.company_ownership == org_name or (not vo.org_name and not org_name)) and
+        #        vo.vessel == vessel):
+        #            # handle percentage change on VesselOwnership obj
+        #            total += percentage
+        #        else:
+        #            total += vo.percentage if vo.percentage else 0
 
-        if not data.get("percentage"):
-            custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
-        elif data.get("percentage") < 25:
+        #    if total > 100:
+        #        custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
+
+        #if not data.get("percentage"):
+         #   custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
+        if data.get("percentage") and data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
-
-    #def validate_percentage(self, value):
-    #    if value > 100:
-    #        #raise serializers.ValidationError({"Ownership percentage": "Max value is 100"})
-    #        raise serializers.ValidationError("Max value is 100")
-    #    return value
 
 
 class MooringBaySerializer(serializers.ModelSerializer):
@@ -1115,4 +1174,15 @@ class MooringBaySerializer(serializers.ModelSerializer):
         model = MooringBay
         fields = '__all__'
 
+
+class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
+    #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
+
+    class Meta:
+        model = CompanyOwnership
+        fields = (
+                'company',
+                'vessel',
+                'percentage',
+                )
 

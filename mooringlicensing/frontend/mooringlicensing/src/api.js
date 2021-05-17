@@ -7,6 +7,7 @@ module.exports = {
     vessel_types_dict:"/api/vessel_types_dict",
     insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
+    company_names:"/api/company_names",
     dcv_vessel_rego_nos:"/api/dcv_vessel_rego_nos",
     fee_configurations: "/api/fee_configurations",
     approval_types_dict:"/api/approval_types_dict",
@@ -44,12 +45,17 @@ module.exports = {
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
     },
+    lookupCompanyOwnership: function(id) {
+        return `/api/company/${id}/lookup_company_ownership.json`;
+    },
     lookupDcvVessel: function(id) {
         return `/api/dcv_vessel/${id}/lookup_dcv_vessel.json`;
     },
-
     lookupVesselOwnership: function(id) {
         return `/api/vesselownership/${id}/lookup_vessel_ownership.json`;
+    },
+    lookupIndividualOwnership: function(id) {
+        return `/api/vessel/${id}/lookup_individual_ownership.json`;
     },
 
     discard_proposal: function (id) {
