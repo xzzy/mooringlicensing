@@ -881,8 +881,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.final_approval(request, serializer.validated_data)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        # instance.final_approval(request, serializer.validated_data)
+        instance.child_obj.final_approval(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return add_cache_control(Response(serializer.data))
@@ -1525,4 +1525,3 @@ class ProposalAssessmentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
