@@ -40,7 +40,7 @@ from mooringlicensing.components.proposals.email import (
 from mooringlicensing.ordered_model import OrderedModel
 import copy
 import subprocess
-from django.db.models import Q
+from django.db.models import Q, Max
 from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
 from rest_framework import serializers
@@ -488,12 +488,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     berth_mooring = models.CharField(max_length=200, blank=True)
-    # draft proposal status VesselOwnership records - goes to VesselOwnership master record after approval
-    org_name = models.CharField(max_length=200, blank=True, null=True)
-    #percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    #org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.IntegerField(null=True, blank=True)
-    # derive this after submit, rather than store
     individual_owner = models.NullBooleanField()
+    company_ownership_percentage = models.IntegerField(null=True, blank=True)
+    company_ownership_name = models.CharField(max_length=200, blank=True, null=True)
+    # only for draft status proposals, otherwise retrieve from within vessel_ownership
+    #company_ownership = models.ForeignKey('CompanyOwnership', blank=True, null=True)
     ## Insurance component field
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
     ## Mooring component field
@@ -535,11 +536,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def editable_vessel_details(self):
         editable = True
-        if self.vessel_details:
-            if self.vessel_details.status == 'draft' and (
-                    self.vessel_details.blocking_proposal != self or 
-                    not self.vessel_details.blocking_proposal):
-                editable = False
+        #if self.vessel_details:
+        #    if self.vessel_details.status == 'draft' and (
+        #            self.vessel_details.blocking_proposal != self or 
+        #            not self.vessel_details.blocking_proposal):
+        #        editable = False
         return editable
 
     @property
@@ -1896,24 +1897,41 @@ class Vessel(models.Model):
     def __str__(self):
         return self.rego_no
 
+   # @property
+   # def latest_vessel_details(self):
+   #     latest = None
+   #     if self.vesseldetails_set.filter(status="draft"):
+   #         latest = self.vesseldetails_set.filter(status="draft")[0]
+   #     elif self.vesseldetails_set.filter(status="approved"):
+   #         latest = self.vesseldetails_set.filter(status="approved")[0]
+   #     return latest
+
     @property
     def latest_vessel_details(self):
-        latest = None
-        if self.vesseldetails_set.filter(status="draft"):
-            latest = self.vesseldetails_set.filter(status="draft")[0]
-        elif self.vesseldetails_set.filter(status="approved"):
-            latest = self.vesseldetails_set.filter(status="approved")[0]
-        return latest
+        #return self.vesseldetails_set.order_by('updated')[0]
+        return self.filtered_vesseldetails_set.first()
+
+    @property
+    def filtered_vesselownership_set(self):
+        return self.vesselownership_set.filter(
+                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True)
+                )
+
+    @property
+    def filtered_vesseldetails_set(self):
+        return self.vesseldetails_set.filter(
+                id__in=VesselDetails.filtered_objects.values_list('id', flat=True)
+                )
+
+
+class VesselDetailsManager(models.Manager):
+    def get_queryset(self):
+        latest_ids = VesselDetails.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(VesselDetailsManager, self).get_queryset().filter(id__in=latest_ids)
+        #return self.first()
 
 
 class VesselDetails(models.Model): # ManyToManyField link in Proposal
-    STATUS_TYPES = (
-            ('approved', 'Approved'),
-            ('draft', 'Draft'),
-            ('old', 'Old'),
-            ('declined', 'Declined'),
-            )
-    blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
@@ -1925,10 +1943,12 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     berth_mooring = models.CharField(max_length=200, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
+    #status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
     #owner = models.ForeignKey('Owner') # this owner can edit
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+    objects = models.Manager()
+    filtered_objects = VesselDetailsManager()
 
     class Meta:
         verbose_name_plural = "Vessel Details"
@@ -1941,34 +1961,72 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     def vessel_applicable_length(self):
         return self.vessel_overall_length
 
+
+class CompanyOwnership(models.Model):
+    STATUS_TYPES = (
+            ('approved', 'Approved'),
+            ('draft', 'Draft'),
+            ('old', 'Old'),
+            ('declined', 'Declined'),
+            )
+    blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True)
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
+    vessel = models.ForeignKey(Vessel)
+    company = models.ForeignKey('Company')
+    percentage = models.IntegerField(null=True, blank=True)
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField(null=True)
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Company Ownership"
+        app_label = 'mooringlicensing'
+        #unique_together = ['owner', 'vessel', 'org_name']
+
+    def __str__(self):
+        return "{}: {}".format(self.company, self.percentage)
+
     def save(self, *args, **kwargs):
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
         if not self.pk:
-            vessel_details_set = VesselDetails.objects.filter(vessel=self.vessel)
+            vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
             for vd in vessel_details_set:
                 if vd.status == "draft":
-                    raise ValueError("Multiple draft records for the same vessel are not allowed")
-        super(VesselDetails, self).save(*args,**kwargs)
+                    raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
+                elif vd.status == "approved" and self.status == "approved":
+                    raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
+        super(CompanyOwnership, self).save(*args,**kwargs)
 
+
+class VesselOwnershipManager(models.Manager):
+    def get_queryset(self):
+        latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
+        #return self.first()
 
 
 class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
-    org_name = models.CharField(max_length=200, blank=True, null=True)
-    #percentage = models.DecimalField(max_digits=5, decimal_places=2, default='0.00')
+    #org_name = models.CharField(max_length=200, blank=True, null=True)
+    company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
     percentage = models.IntegerField(null=True, blank=True)
-    #editable = models.BooleanField(default=False) # must be False after every add/edit
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
+    created = models.DateTimeField(default=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+    objects = models.Manager()
+    filtered_objects = VesselOwnershipManager()
+    #objects = VesselOwnershipManager()
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
-        unique_together = ['owner', 'vessel', 'org_name']
+        #unique_together = ['owner', 'vessel', 'org_name']
 
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
@@ -1981,6 +2039,13 @@ class VesselOwnership(models.Model):
     #    if total > 100:
     #        raise serializers.ValidationError({"Vessel ownership percentage": "Cannot exceed 100%"})
     #    super(VesselOwnership, self).save(*args,**kwargs)
+
+    #@property
+    #def company_owner(self):
+    #    company = False
+    #    if self.company_ownership and self.company_ownership.id:
+    #        company = True
+    #    return company
 
 
 # Non proposal specific
@@ -2002,6 +2067,19 @@ class Owner(models.Model):
     #        return self.org_contact
     #    else:
     #        self.emailuser.get_full_name()
+
+
+class Company(models.Model):
+    name = models.CharField(max_length=200, unique=True, blank=True, null=True)
+    vessels = models.ManyToManyField(Vessel, through=CompanyOwnership) # these owner/vessel association
+
+    class Meta:
+        verbose_name_plural = "Companies"
+        app_label = 'mooringlicensing'
+        #unique_together = ['owner', 'vessel', 'org_name']
+
+    def __str__(self):
+        return "{}: {}".format(self.name, self.id)
 
 
 class VesselRegistrationDocument(Document):
