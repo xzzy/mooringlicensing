@@ -1608,12 +1608,11 @@ class WaitingListApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        # super(Proposal, self).save(*args,**kwargs)
+        super(Proposal, self).save(*args,**kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
-        super(Proposal, self).save(*args,**kwargs)
 
     def final_approval(self, request, details):
         with transaction.atomic():
