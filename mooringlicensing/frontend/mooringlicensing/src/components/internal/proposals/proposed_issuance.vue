@@ -266,6 +266,7 @@ export default {
                     });
             }
             else if (vm.state == 'final_approval'){
+                console.log('final_approval in proposed_issuance.vue')
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id+'/final_approval'),JSON.stringify(approval),{
                         emulateJSON:true,
                     }).then((response)=>{
