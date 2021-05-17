@@ -746,6 +746,7 @@ from '@/utils/hooks'
                 if (this.proposal) {
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
+                    console.log("what is this")
                     // route.params.vessel_id in this case is a vesselownership id
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
