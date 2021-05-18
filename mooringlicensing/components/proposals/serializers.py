@@ -773,6 +773,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'requirements_completed',
                 'application_type_dict',
+                'vessel_details_id', 
+                'vessel_ownership_id', 
+                'insurance_choice',
+                'preferred_bay_id',
+                'silent_elector',
+                'bay_preferences_numbered',
+                'site_licensee_email',
+                'mooring_site_id',
+                'mooring_authorisation_preference',
+                #'individual_owner',
+                #'company_ownership_name',
+                #'company_ownership_percentage',
                 )
         read_only_fields = (
             'documents',
@@ -889,7 +901,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
             'require_due_date',
             'copied_for_renewal',
         )
-        read_only_fields = ('id', 'order', 'requirement', 'copied_from', 'proposal',)
+        read_only_fields = ('id', 'order', 'requirement', 'copied_from')
 
     def create(self, validated_data):
         return super(ProposalRequirementSerializer, self).create(validated_data)
