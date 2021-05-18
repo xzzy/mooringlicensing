@@ -889,7 +889,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
             'require_due_date',
             'copied_for_renewal',
         )
-        read_only_fields = ('id', 'order', 'requirement', 'copied_from', 'proposal',)
+        read_only_fields = ('id', 'order', 'requirement', 'copied_from')
 
     def create(self, validated_data):
         return super(ProposalRequirementSerializer, self).create(validated_data)
