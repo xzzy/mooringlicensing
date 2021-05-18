@@ -7,7 +7,7 @@
                         <!-- <alert v-if="isApprovalLevelDocument" type="warning"><strong>{{warningString}}</strong></alert> -->
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
-                            <div class="form-group">
+                            <div v-show="showProposedStartEndDate" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
@@ -27,7 +27,7 @@
 
                                 </div>
                             </div>
-                            <div class="form-group">
+                            <div v-show="showProposedStartEndDate" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
@@ -98,7 +98,8 @@
 //import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import {helpers, api_endpoints} from "@/utils/hooks.js"
+import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+
 export default {
     name:'Proposed-Approval',
     components:{
@@ -186,7 +187,10 @@ export default {
         preview_licence_url: function() {
           return (this.proposal_id) ? `/preview/licence-pdf/${this.proposal_id}` : '';
         },
-
+        showProposedStartEndDate: function(){
+            // For mooringlicensing, we don't neeed 'start date' and 'expiry date' at all...?
+            return false
+        },
     },
     methods:{
         preview:function () {
@@ -285,8 +289,8 @@ export default {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
                 rules: {
-                    start_date:"required",
-                    due_date:"required",
+                    //start_date:"required",
+                    //due_date:"required",
                     approval_details:"required",
                 },
                 messages: {
