@@ -678,6 +678,7 @@ from '@/utils/hooks'
                     vessel_details.vessel_weight = this.proposal.vessel_weight;
                     vessel_details.berth_mooring = this.proposal.berth_mooring;
                     this.vessel.vessel_details = Object.assign({}, vessel_details);
+                    this.readOwnershipFromProposal();
                 } else {
                     let url = '';
                     if (this.proposal && this.proposal.id && this.proposal.vessel_details_id) {
@@ -689,7 +690,6 @@ from '@/utils/hooks'
                     }
                     await this.fetchReadonlyVesselCommon(url);
                 }
-                this.readOwnershipFromProposal();
             },
             readOwnershipFromProposal: function() {
                 let vessel_ownership = {};
@@ -746,7 +746,6 @@ from '@/utils/hooks'
                 if (this.proposal) {
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
-                    console.log("what is this")
                     // route.params.vessel_id in this case is a vesselownership id
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
