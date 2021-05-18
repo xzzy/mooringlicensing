@@ -103,6 +103,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringBaySerializer, EmailUserSerializer, ProposedDeclineSerializer,
     CompanyOwnershipSerializer,
     CompanySerializer,
+    VesselOwnershipSaleDateSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -1405,6 +1406,36 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def record_sale(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #serializer = CompanySerializer(company)
+        ## discover common vessel ownership
+        #import ipdb; ipdb.set_trace()
+        sale_date = request.data.get('sale_date')
+        print("sale_date")
+        print(sale_date)
+        if sale_date:
+            serializer = VesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            #instance.end_date = sale_date
+            #instance.save()
+        else:
+            raise serializers.ValidationError("Missing information: You must specify a sale date")
+        return Response()
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def fetch_sale_date(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #serializer = CompanySerializer(company)
+        ## discover common vessel ownership
+        #import ipdb; ipdb.set_trace()
+        serializer = VesselOwnershipSaleDateSerializer(instance)
+        return Response(serializer.data)
 
 
 class CompanyViewSet(viewsets.ModelViewSet):

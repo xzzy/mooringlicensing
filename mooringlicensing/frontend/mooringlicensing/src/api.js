@@ -40,7 +40,7 @@ module.exports = {
     vessel: '/api/vessel/',
     proposal_standard_requirements:"/api/proposal_standard_requirements.json",
     proposal_requirements:"/api/proposal_requirements.json",
-
+    vesselownership: '/api/vesselownership/',
 
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
