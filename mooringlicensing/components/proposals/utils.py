@@ -383,6 +383,8 @@ def save_proponent_data_wla(instance, request, viewset):
     )
     serializer.is_valid(raise_exception=True)
     serializer.save()
+    if instance.pending_amendment_request:
+        proposal_submit(instance, request)
 
 
 def save_proponent_data_mla(instance, request, viewset):
