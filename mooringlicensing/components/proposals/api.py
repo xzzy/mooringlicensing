@@ -1239,17 +1239,14 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
 #                'proposal': request.data.get('proposal'),
 #                'referral_group': request.data.get('referral_group'),
 #            }
-
-            #serializer = self.get_serializer(data= request.data)
-            data = request.data
-            data['proposal_id'] = request.data.get('proposal')
-            data.pop('proposal')
-            # serializer = self.get_serializer(data=json.loads(request.data.get('data')))
-            serializer = self.get_serializer(data=data)
+            #import ipdb; ipdb.set_trace()
+            serializer = self.get_serializer(data= request.data)
+            #serializer = self.get_serializer(data=json.loads(request.data.get('data')))
+            #serializer = self.get_serializer(data=data)
             #serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception = True)
             instance = serializer.save()
-            instance.add_documents(request)
+            #instance.add_documents(request)
             #serializer = self.get_serializer(instance)
             return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
