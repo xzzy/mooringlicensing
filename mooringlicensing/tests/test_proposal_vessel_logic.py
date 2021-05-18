@@ -14,26 +14,54 @@ class VesselTests(APITestSetup):
 
     def test_create_bare_vessel_add_to_proposal(self):
         create_vessel_data = {
-                'vessel': {
-                    'new_vessel': True, 
-                    'rego_no': '20210503_1', 
-                    'vessel_details': {
-                        'read_only': False, 
-                        'vessel_name': '20210503_1', 
-                        'berth_mooring': 'home', 
-                        'vessel_length': '23', 
-                        'vessel_overall_length': '34',
-                        'vessel_weight': '45', 
-                        'vessel_draft': '56', 
-                        'vessel_type': 'tender'
-                        }, 
-                    'vessel_ownership': {
-                        'registered_owner': 'current_user', 
-                        'individual_owner': True, 
-                        'percentage': '35'
+                "vessel": {
+                    "new_vessel": True,
+                    "rego_no":"20210517_2",
+                    "vessel_details": {
+                        #"read_only": False,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "berth_mooring":"fghx",
+                        "vessel_length":"45",
+                        "vessel_overall_length":"56",
+                        "vessel_weight":"67",
+                        "vessel_draft":"78",
+                        "vessel_type":"tender"
+                        },
+                    "vessel_ownership": {
+                        "company_ownership": {
+                            "company": {
+                                "name":"20210517_2"
+                                },
+                            "percentage":"25"
+                            },
+                        "individual_owner": False
                         }
-                    }
+                    },
+                "create_vessel": True
                 }
+
+
+        #create_vessel_data = {
+        #        'vessel': {
+        #            'new_vessel': True, 
+        #            'rego_no': '20210503_1', 
+        #            'vessel_details': {
+        #                'read_only': False, 
+        #                'vessel_name': '20210503_1', 
+        #                'berth_mooring': 'home', 
+        #                'vessel_length': '23', 
+        #                'vessel_overall_length': '34',
+        #                'vessel_weight': '45', 
+        #                'vessel_draft': '56', 
+        #                'vessel_type': 'tender'
+        #                }, 
+        #            'vessel_ownership': {
+        #                'registered_owner': 'current_user', 
+        #                'individual_owner': True, 
+        #                'percentage': '35'
+        #                }
+        #            }
+        #        }
 
         self.client.login(email=self.customer1, password='pass')
         self.client.enforce_csrf_checks=True
@@ -77,23 +105,51 @@ class VesselTests(APITestSetup):
 
         self.assertEqual(get_response_2.status_code, 200)
         # save Proposal2
-        draft_proposal_data = {
-                "proposal": {}, 
+        draft_proposal_2_data = {
+                "proposal": {},
                 "vessel": {
+                    "new_vessel": True,
+                    "rego_no":"20210517_2",
                     "vessel_details": {
-                        "id": vessel_details_id_1
-                        }, 
+                        #"read_only": False,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "berth_mooring":"fghx",
+                        "vessel_length":"45",
+                        "vessel_overall_length":"56",
+                        "vessel_weight":"67",
+                        "vessel_draft":"78",
+                        "vessel_type":"tender"
+                        },
                     "vessel_ownership": {
-                        #"id": vessel_ownership_id_1
-                        }, 
-                    "id": vessel_id_1,
-                    "read_only": True,
-                    }
+                        "company_ownership": {
+                            "company": {
+                                "name":"20210517_2"
+                                },
+                            "percentage":"25"
+                            },
+                        "individual_owner": False
+                        }
+                    },
+                "create_vessel": True
                 }
+
+        #draft_proposal_data = {
+        #        "proposal": {}, 
+        #        "vessel": {
+        #            "vessel_details": {
+        #                "id": vessel_details_id_1
+        #                }, 
+        #            "vessel_ownership": {
+        #                #"id": vessel_ownership_id_1
+        #                }, 
+        #            "id": vessel_id_1,
+        #            "read_only": True,
+        #            }
+        #        }
 
         draft_response = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_2_id),
-                draft_proposal_data, 
+                draft_proposal_2_data, 
                 format='json',
                 HTTP_HOST=HTTP_HOST_FOR_TEST,
         )
@@ -113,23 +169,70 @@ class VesselTests(APITestSetup):
         # submit api endpoint
         submit_proposal_2_data = {
                 "proposal": {
-                    "preferred_bay_id": MooringBay.objects.last().id,
                     "silent_elector": False,
-                    }, 
+                    #"preferred_bay_id":11
+                    "preferred_bay_id": MooringBay.objects.last().id,
+                    },
                 "vessel": {
                     "vessel_details": {
-                        "id": vessel_details_id_1
-                        }, 
+                        "id":128,
+                        "vessel_type":"cabin_cruiser",
+                        "vessel":116,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "vessel_overall_length":"45.00",
+                        "vessel_length":"34.00",
+                        "vessel_draft":"67.00",
+                        "vessel_beam":"0.00",
+                        "vessel_weight":"56.00",
+                        "berth_mooring":"fghx asdffd",
+                        "created":"2021-05-17T02:53:14.146946Z",
+                        "updated":"2021-05-17T03:12:12.968954Z",
+                        "exported": False,
+                        #"read_only": False
+                        },
                     "vessel_ownership": {
-                        #"id": vessel_ownership_id_1
-                        "org_name": "Company1", 
-                        "percentage": "65", # increase to 66 to cause serializer validation error 
-                        "individual_owner": False
-                        }, 
-                    "id": vessel_id_1,
-                    "read_only": True,
+                        "percentage": None,
+                        "individual_owner": False,
+                        "company_ownership": {
+                            "id":13,
+                            "blocking_proposal":152,
+                            "status":"draft",
+                            "vessel":116,
+                            "company": {
+                                "id":11,
+                                "name":"20210517_1"
+                                },
+                            "percentage":25,
+                            "start_date":"2021-05-17T02:53:14.157933Z",
+                            "end_date": None,
+                            "created":"2021-05-17T02:53:14.157953Z",
+                            "updated":"2021-05-17T03:12:13.010817Z"
+                            }
+                        },
+                    "rego_no":"20210517_1",
+                    "id":116
                     }
                 }
+
+        #submit_proposal_2_data = {
+        #        "proposal": {
+        #            "preferred_bay_id": MooringBay.objects.last().id,
+        #            "silent_elector": False,
+        #            }, 
+        #        "vessel": {
+        #            "vessel_details": {
+        #                "id": vessel_details_id_1
+        #                }, 
+        #            "vessel_ownership": {
+        #                #"id": vessel_ownership_id_1
+        #                "org_name": "Company1", 
+        #                "percentage": "65", # increase to 66 to cause serializer validation error 
+        #                "individual_owner": False
+        #                }, 
+        #            "id": vessel_id_1,
+        #            "read_only": True,
+        #            }
+        #        }
         submit_2_response = self.client.post(
                 '/api/proposal/{}/submit/'.format(proposal_2_id),
                 submit_proposal_2_data, 
@@ -173,27 +276,54 @@ class VesselTests(APITestSetup):
         self.assertEqual(get_response.status_code, 200)
         #######################
         draft_proposal_data = {
-                "proposal": {}, 
                 "vessel": {
+                    "new_vessel": True,
+                    "rego_no":"20210517_2",
                     "vessel_details": {
-                        "vessel_type": "cabin_cruiser", 
-                        "vessel_name": "gfhj", 
-                        "vessel_overall_length": "45", 
-                        "vessel_length": "34", 
-                        "vessel_draft": "67", 
-                        "vessel_beam": "0.00", 
-                        "vessel_weight": "56", 
-                        "berth_mooring": "fghx"
-                        }, 
+                        #"read_only": False,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "berth_mooring":"fghx",
+                        "vessel_length":"45",
+                        "vessel_overall_length":"56",
+                        "vessel_weight":"67",
+                        "vessel_draft":"78",
+                        "vessel_type":"tender"
+                        },
                     "vessel_ownership": {
-                        "org_name": None, 
-                        "percentage": "26", 
-                        "individual_owner": None
-                        }, 
-                    "rego_no": "20210407_1", 
-                    "vessel_id": None
-                    }
+                        "company_ownership": {
+                            "company": {
+                                "name":"20210517_2"
+                                },
+                            "percentage":"25"
+                            },
+                        "individual_owner": False
+                        }
+                    },
+                "create_vessel": True
                 }
+
+        #draft_proposal_data = {
+        #        "proposal": {}, 
+        #        "vessel": {
+        #            "vessel_details": {
+        #                "vessel_type": "cabin_cruiser", 
+        #                "vessel_name": "gfhj", 
+        #                "vessel_overall_length": "45", 
+        #                "vessel_length": "34", 
+        #                "vessel_draft": "67", 
+        #                "vessel_beam": "0.00", 
+        #                "vessel_weight": "56", 
+        #                "berth_mooring": "fghx"
+        #                }, 
+        #            "vessel_ownership": {
+        #                "org_name": None, 
+        #                "percentage": "26", 
+        #                "individual_owner": None
+        #                }, 
+        #            "rego_no": "20210407_1", 
+        #            "vessel_id": None
+        #            }
+        #        }
 
         draft_response = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_id),
@@ -229,29 +359,76 @@ class VesselTests(APITestSetup):
         #        }
         submit_proposal_data = {
                 "proposal": {
-                    "silent_elector": True,
-                    "preferred_bay_id": MooringBay.objects.first().id,
-                    }, 
+                    "silent_elector": False,
+                    #"preferred_bay_id":11
+                    "preferred_bay_id": MooringBay.objects.last().id,
+                    },
                 "vessel": {
                     "vessel_details": {
-                        "vessel_type": "cabin_cruiser", 
-                        "vessel_name": "gfhj", 
-                        "vessel_overall_length": "45", 
-                        "vessel_length": "34", 
-                        "vessel_draft": "67", 
-                        "vessel_beam": "0.00", 
-                        "vessel_weight": "56", 
-                        "berth_mooring": "fghx"
-                        }, 
+                        "id":128,
+                        "vessel_type":"cabin_cruiser",
+                        "vessel":116,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "vessel_overall_length":"45.00",
+                        "vessel_length":"34.00",
+                        "vessel_draft":"67.00",
+                        "vessel_beam":"0.00",
+                        "vessel_weight":"56.00",
+                        "berth_mooring":"fghx asdffd",
+                        "created":"2021-05-17T02:53:14.146946Z",
+                        "updated":"2021-05-17T03:12:12.968954Z",
+                        "exported": False,
+                        #"read_only": False
+                        },
                     "vessel_ownership": {
-                        "org_name": None, 
-                        "percentage": "26", 
-                        "individual_owner": True
-                        }, 
-                    "rego_no": "20210407_1", 
-                    "vessel_id": None
+                        "percentage": None,
+                        "individual_owner": False,
+                        "company_ownership": {
+                            "id":13,
+                            "blocking_proposal":152,
+                            "status":"draft",
+                            "vessel":116,
+                            "company": {
+                                "id":11,
+                                "name":"20210517_1"
+                                },
+                            "percentage":25,
+                            "start_date":"2021-05-17T02:53:14.157933Z",
+                            "end_date": None,
+                            "created":"2021-05-17T02:53:14.157953Z",
+                            "updated":"2021-05-17T03:12:13.010817Z"
+                            }
+                        },
+                    "rego_no":"20210517_1",
+                    "id":116
                     }
                 }
+
+        #submit_proposal_data = {
+        #        "proposal": {
+        #            "silent_elector": True,
+        #            "preferred_bay_id": MooringBay.objects.first().id,
+        #            }, 
+        #        "vessel": {
+        #            "vessel_details": {
+        #                "vessel_type": "cabin_cruiser", 
+        #                "vessel_name": "gfhj", 
+        #                "vessel_overall_length": "45", 
+        #                "vessel_length": "34", 
+        #                "vessel_draft": "67", 
+        #                "vessel_beam": "0.00", 
+        #                "vessel_weight": "56", 
+        #                "berth_mooring": "fghx"
+        #                }, 
+        #            "vessel_ownership": {
+        #                "org_name": None, 
+        #                "percentage": "26", 
+        #                "individual_owner": True
+        #                }, 
+        #            "rego_no": "20210407_1", 
+        #            "vessel_id": None
+        #            }
+        #        }
 
         submit_response = self.client.post(
                 '/api/proposal/{}/submit/'.format(proposal_id),
@@ -274,8 +451,8 @@ class VesselTests(APITestSetup):
         vessel_id_1 = proposal.vessel_details.vessel_id
         vessel_1 = Vessel.objects.get(id=vessel_id_1)
         # proposal 1 should be blocking proposal
-        self.assertEqual(proposal_id, vessel_1.latest_vessel_details.blocking_proposal.id)
-        self.assertEqual(proposal_id, proposal.vessel_details.blocking_proposal.id)
+        #self.assertEqual(proposal_id, vessel_1.latest_vessel_details.blocking_proposal.id)
+        #self.assertEqual(proposal_id, proposal.vessel_details.blocking_proposal.id)
 
         ## Proposal 2 - add vessel from Proposal
         create_response_2 = self.client.post(
@@ -295,19 +472,46 @@ class VesselTests(APITestSetup):
 
         self.assertEqual(get_response_2.status_code, 200)
         # save Proposal2
-        draft_proposal_data = {
-                "proposal": {}, 
+        draft_proposal_2_data = {
                 "vessel": {
+                    "new_vessel": True,
+                    "rego_no":"20210517_2",
                     "vessel_details": {
-                        "id": vessel_details_id_1
-                        }, 
+                        #"read_only": False,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "berth_mooring":"fghx",
+                        "vessel_length":"45",
+                        "vessel_overall_length":"56",
+                        "vessel_weight":"67",
+                        "vessel_draft":"78",
+                        "vessel_type":"tender"
+                        },
                     "vessel_ownership": {
-                        #"id": vessel_ownership_id_1
-                        }, 
-                    "id": vessel_id_1,
-                    "read_only": True,
-                    }
+                        "company_ownership": {
+                            "company": {
+                                "name":"20210517_2"
+                                },
+                            "percentage":"25"
+                            },
+                        "individual_owner": False
+                        }
+                    },
+                "create_vessel": True
                 }
+
+        #draft_proposal_data = {
+        #        "proposal": {}, 
+        #        "vessel": {
+        #            "vessel_details": {
+        #                "id": vessel_details_id_1
+        #                }, 
+        #            "vessel_ownership": {
+        #                #"id": vessel_ownership_id_1
+        #                }, 
+        #            "id": vessel_id_1,
+        #            "read_only": True,
+        #            }
+        #        }
 
         draft_response = self.client.post(
                 '/api/proposal/{}/draft/'.format(proposal_2_id),
@@ -331,23 +535,70 @@ class VesselTests(APITestSetup):
         # submit api endpoint
         submit_proposal_2_data = {
                 "proposal": {
-                    "preferred_bay_id": MooringBay.objects.last().id,
                     "silent_elector": False,
-                    }, 
+                    #"preferred_bay_id":11
+                    "preferred_bay_id": MooringBay.objects.last().id,
+                    },
                 "vessel": {
                     "vessel_details": {
-                        "id": vessel_details_id_1
-                        }, 
+                        "id":128,
+                        "vessel_type":"cabin_cruiser",
+                        "vessel":116,
+                        "vessel_name":"gfhj ijuhiuh",
+                        "vessel_overall_length":"45.00",
+                        "vessel_length":"34.00",
+                        "vessel_draft":"67.00",
+                        "vessel_beam":"0.00",
+                        "vessel_weight":"56.00",
+                        "berth_mooring":"fghx asdffd",
+                        "created":"2021-05-17T02:53:14.146946Z",
+                        "updated":"2021-05-17T03:12:12.968954Z",
+                        "exported": False,
+                        #"read_only": False
+                        },
                     "vessel_ownership": {
-                        #"id": vessel_ownership_id_1
-                        "org_name": "Company1", 
-                        "percentage": "26", 
-                        "individual_owner": False
-                        }, 
-                    "id": vessel_id_1,
-                    "read_only": True,
+                        "percentage": None,
+                        "individual_owner": False,
+                        "company_ownership": {
+                            "id":13,
+                            "blocking_proposal":152,
+                            "status":"draft",
+                            "vessel":116,
+                            "company": {
+                                "id":11,
+                                "name":"20210517_1"
+                                },
+                            "percentage":25,
+                            "start_date":"2021-05-17T02:53:14.157933Z",
+                            "end_date": None,
+                            "created":"2021-05-17T02:53:14.157953Z",
+                            "updated":"2021-05-17T03:12:13.010817Z"
+                            }
+                        },
+                    "rego_no":"20210517_1",
+                    "id":116
                     }
                 }
+
+        #submit_proposal_2_data = {
+        #        "proposal": {
+        #            "preferred_bay_id": MooringBay.objects.last().id,
+        #            "silent_elector": False,
+        #            }, 
+        #        "vessel": {
+        #            "vessel_details": {
+        #                "id": vessel_details_id_1
+        #                }, 
+        #            "vessel_ownership": {
+        #                #"id": vessel_ownership_id_1
+        #                "org_name": "Company1", 
+        #                "percentage": "26", 
+        #                "individual_owner": False
+        #                }, 
+        #            "id": vessel_id_1,
+        #            "read_only": True,
+        #            }
+        #        }
         submit_2_response = self.client.post(
                 '/api/proposal/{}/submit/'.format(proposal_2_id),
                 submit_proposal_2_data, 
@@ -362,11 +613,17 @@ class VesselTests(APITestSetup):
         proposal_2.processing_status = 'with_assessor'
         proposal_2.customer_status = 'with_assessor'
         proposal_2.save()
+        #import ipdb; ipdb.set_trace()
         # proposal and proposal2 should now share the same vessel_details
-        self.assertEqual(proposal.vessel_details, proposal_2.vessel_details)
+        ## no longer true - we just take the latest vessel_details record
+        #self.assertEqual(proposal.vessel_details, proposal_2.vessel_details)
         self.assertEqual(proposal.vessel_ownership.vessel, proposal_2.vessel_ownership.vessel)
-        self.assertNotEqual(proposal.vessel_ownership, proposal_2.vessel_ownership)
-        # proposal 1 is still blocking proposal
-        self.assertEqual(proposal_id, vessel_1.latest_vessel_details.blocking_proposal.id)
-        self.assertEqual(proposal_id, proposal_2.vessel_details.blocking_proposal.id)
+
+        #self.assertNotEqual(proposal.vessel_ownership, proposal_2.vessel_ownership)
+        
+        print(proposal.vessel_ownership.company_ownership.blocking_proposal.id)
+        print(proposal_2.vessel_ownership.company_ownership.blocking_proposal.id)
+        self.assertEqual(proposal.vessel_ownership.company_ownership.blocking_proposal.id,
+                proposal_2.vessel_ownership.company_ownership.blocking_proposal.id
+                )
 
