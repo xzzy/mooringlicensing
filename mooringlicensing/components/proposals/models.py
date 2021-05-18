@@ -1331,7 +1331,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # Log creation
                         # Generate the document
                         approval.generate_doc(request.user)
-                        self.generate_compliances(approval, request)
+                        ## TODO: 20210518 - add this after approval.expiry_date is set
+                        #self.generate_compliances(approval, request)
                         # send the doc and log in approval and org
                     else:
                         # Generate the document
@@ -1341,7 +1342,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         if approval_compliances:
                             for c in approval_compliances:
                                 c.delete()
-                        self.generate_compliances(approval, request)
+                        ## TODO: 20210518 - add this after approval.expiry_date is set
+                        #self.generate_compliances(approval, request)
                         # Log proposal action
                         self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id),request)
                         # Log entry for organisation
@@ -1718,7 +1720,8 @@ class WaitingListApplication(Proposal):
                     # Log creation
                     # Generate the document
                     approval.generate_doc(request.user)
-                    self.generate_compliances(approval, request)
+                    ## TODO: 20210518 - add this after approval.expiry_date is set
+                    #self.generate_compliances(approval, request)
                     # send the doc and log in approval and org
                 else:
                     # Generate the document
@@ -1729,7 +1732,8 @@ class WaitingListApplication(Proposal):
                     if approval_compliances:
                         for c in approval_compliances:
                             c.delete()
-                    self.generate_compliances(approval, request)
+                    ## TODO: 20210518 - add this after approval.expiry_date is set
+                    #self.generate_compliances(approval, request)
                     # Log proposal action
                     self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
                     # Log entry for organisation
