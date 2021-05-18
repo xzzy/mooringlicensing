@@ -58,6 +58,7 @@
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
+                        :key="computedProposalId"
                     />
 
                     <AnnualAdmissionApplication
@@ -389,6 +390,11 @@ export default {
 
     },
     computed: {
+        computedProposalId: function(){
+            if (this.proposal) {
+                return this.proposal.id;
+            }
+        },
         display_approval_screen: function(){
             console.log('in display_approval_screen')
             let ret_val = 
