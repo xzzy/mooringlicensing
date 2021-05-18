@@ -1,7 +1,7 @@
 <template id="proposal_requirements">
     <div class="panel panel-default">
         <div class="panel-heading">
-            <h3 class="panel-title">Requirements
+            <h3 class="panel-title">Conditions
                 <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
                     <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                 </a>
@@ -10,7 +10,7 @@
         <div class="panel-body panel-collapse collapse in" :id="panelBody">
             <form class="form-horizontal" action="index.html" method="post">
                 <div class="col-sm-12">
-                    <button v-if="hasAssessorMode" @click.prevent="addRequirement()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Requirement</button>
+                    <button v-if="hasAssessorMode" @click.prevent="addRequirement()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Condition</button>
                 </div>
                 <datatable ref="requirements_datatable" :id="'requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
             </form>
@@ -85,13 +85,6 @@ export default {
                             return result;
                         },
                         'createdCell': helpers.dtPopoverCellFn,
-
-                        /*'createdCell': function (cell) {
-                            //TODO why this is not working?
-                            // the call to popover is done in the 'draw' event
-                            $(cell).popover();
-                        }*/
-
                     },
                     {
                         data: "due_date",
@@ -120,10 +113,11 @@ export default {
                         orderable: false
                     },
                     {
+                        data: "id",
                         mRender:function (data,type,full) {
                             let links = '';
                             if (vm.proposal.assessor_mode.has_assessor_mode){
-                                if(full.copied_from==null || full.apiary_renewal)
+                                if(full.copied_from==null)
                                 {
                                     links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
                                 }
@@ -135,6 +129,7 @@ export default {
                         orderable: false
                     },
                     {
+                        data: "id",
                         mRender:function (data,type,full) {
                             let links = '';
                             // TODO check permission to change the order
@@ -223,8 +218,8 @@ export default {
         fetchRequirements(){
             console.log('fetchRequirements')
             let vm = this;
-            //let url = api_endpoints.proposal_standard_requirements
-            let url = api_endpoints.proposal_requirements
+            let url = api_endpoints.proposal_standard_requirements
+            //let url = api_endpoints.proposal_requirements
             console.log('url: ' + url)
             vm.$http.get(url).then((response) => {
                 vm.requirements = response.body

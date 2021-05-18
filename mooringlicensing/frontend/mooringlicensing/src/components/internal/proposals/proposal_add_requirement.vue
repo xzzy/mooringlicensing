@@ -348,6 +348,11 @@ export default {
             on("select2:unselect",function (e) {
                 var selected = $(e.currentTarget);
                 vm.requirement.standard_requirement = selected.val();
+            }).
+            on("select2:open",function (e) {
+                const searchField = $(".select2-search__field")
+                // move focus to select2 field
+                searchField[0].focus();
             });
        }
    },

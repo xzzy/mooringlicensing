@@ -7,6 +7,7 @@
         :readonly=false
         :creatingVessel="creatingVessel"
         :editingVessel="editingVessel"
+        :key="uuid"
         />
         <div>
             <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -57,6 +58,7 @@ export default {
     return {
         profile: {},
         savingVessel: false,
+        uuid: 0,
     }
   },
   components: {
@@ -127,6 +129,7 @@ export default {
             // change route if Save and Continue on Add Vessel page
             //console.log(res.body);
             if (this.creatingVessel) {
+                this.uuid++;
                 vm.$router.push({
                     name: 'manage-vessel',
                     params: { vessel_id: res.body.id }

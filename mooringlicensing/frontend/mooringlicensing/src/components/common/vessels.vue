@@ -538,7 +538,7 @@ from '@/utils/hooks'
                                     new_vessel: true,
                                     rego_no: data,
                                     vessel_details: {
-                                        read_only: false,
+                                        //read_only: false,
                                     },
                                     vessel_ownership: {
                                         company_ownership: {
@@ -555,7 +555,7 @@ from '@/utils/hooks'
                     vm.vessel = Object.assign({}, 
                         {   
                             vessel_details: {
-                                read_only: false,
+                                //read_only: false,
                             },
                             vessel_ownership: {
                                 company_ownership: {
@@ -678,6 +678,7 @@ from '@/utils/hooks'
                     vessel_details.vessel_weight = this.proposal.vessel_weight;
                     vessel_details.berth_mooring = this.proposal.berth_mooring;
                     this.vessel.vessel_details = Object.assign({}, vessel_details);
+                    this.readOwnershipFromProposal();
                 } else {
                     let url = '';
                     if (this.proposal && this.proposal.id && this.proposal.vessel_details_id) {
@@ -689,7 +690,6 @@ from '@/utils/hooks'
                     }
                     await this.fetchReadonlyVesselCommon(url);
                 }
-                this.readOwnershipFromProposal();
             },
             readOwnershipFromProposal: function() {
                 let vessel_ownership = {};
