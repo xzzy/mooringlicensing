@@ -95,9 +95,11 @@ export default {
     methods:{
         ok:function () {
             this.$nextTick(()=>{
-                const formattedSaleDate = moment(this.saleDate, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                //const formattedSaleDate = moment(this.saleDate, 'YYYY-MM-DD');
-                this.sendData(formattedSaleDate);
+                //const formattedSaleDate = moment(this.saleDate, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                const momentSaleDate = moment(this.saleDate, 'DD/MM/YYYY');
+                //const momentSaleDate = moment(this.saleDate);
+                console.log(momentSaleDate);
+                this.sendData(momentSaleDate);
             });
         },
         cancel:function () {
@@ -108,13 +110,14 @@ export default {
             this.errors = false;
             $('.has-error').removeClass('has-error');
             $(this.$refs.sale_date).data('DateTimePicker').clear();
+            this.$emit('closeModal');
         },
-        sendData: async function(formattedSaleDate){
+        sendData: async function(momentSaleDate){
             try {
                 this.saving = true;
                 const url = `${api_endpoints.vesselownership}${this.recordSaleId}/record_sale/`;
                 const res = await this.$http.post(url, {
-                    //"sale_date": formattedSaleDate
+                    //"sale_date": momentSaleDate
                     "sale_date": this.saleDate,
                 });
                 if (res.ok) {
@@ -136,8 +139,8 @@ export default {
             try {
                 const url = `${api_endpoints.vesselownership}${this.recordSaleId}/fetch_sale_date/`;
                 const res = await this.$http.get(url);
-                console.log(res.body)
                 if (res.ok && res.body.end_date) {
+                    console.log(res.body)
                     this.saleDate = moment(res.body.end_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
                     //this.saleDate = moment(res.body.sale_date, 'DD/MM/YYYY');
                 }

@@ -1112,7 +1112,8 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
-    end_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=True,allow_null=False)
+    end_date = serializers.DateTimeField(input_formats=['%d/%m/%Y'],required=True,allow_null=False)
+    #end_date = serializers.DateField(write_only=True, required=True)
 
     class Meta:
         model = VesselOwnership
