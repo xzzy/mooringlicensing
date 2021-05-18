@@ -1831,7 +1831,145 @@ class AuthorisedUserApplication(Proposal):
             self.save()
 
     def final_approval(self, request, details):
-        raise NotImplementedError('Inplement AuthorisedUserApplication.final_approval() Remember to return self')
+        # raise NotImplementedError('Inplement AuthorisedUserApplication.final_approval() Remember to return self')
+        with transaction.atomic():
+            try:
+                self.proposed_decline_status = False
+
+                if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                    # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
+                    pass
+                else:
+                    if not self.can_assess(request.user):
+                        raise exceptions.ProposalNotAuthorized()
+                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
+                        raise ValidationError('You cannot issue the approval if it is not with an assessor')
+                    if not self.applicant_address:
+                        raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+
+                    self.proposed_issuance_approval = {
+                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email':details.get('cc_email')
+                    }
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
+                # Log entry for organisation
+                applicant_field = getattr(self, self.applicant_field)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
+
+                # TODO if it is an ammendment proposal then check appropriately
+                from mooringlicensing.components.approvals.models import Approval
+                checking_proposal = self
+                if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+                    if self.previous_application:
+                        previous_approval = self.previous_application.approval
+                        approval, created = Approval.objects.update_or_create(
+                            current_proposal=checking_proposal,
+                            defaults={
+                                'issue_date': timezone.now(),
+                                'expiry_date': datetime.datetime.strptime(
+                                    self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
+                                                                         '%d/%m/%Y').date(),
+                                'submitter': self.submitter,
+                                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                                'org_applicant': self.org_applicant,
+                                'proxy_applicant': self.proxy_applicant,
+                                'lodgement_number': previous_approval.lodgement_number
+                            }
+                        )
+                        if created:
+                            previous_approval.replaced_by = approval
+                            previous_approval.save()
+
+                        # self.reset_licence_discount(request.user)
+
+                elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                    if self.previous_application:
+                        previous_approval = self.previous_application.approval
+                        approval, created = Approval.objects.update_or_create(
+                            current_proposal=checking_proposal,
+                            defaults={
+                                'issue_date': timezone.now(),
+                                'expiry_date': datetime.datetime.strptime(
+                                    self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
+                                                                         '%d/%m/%Y').date(),
+                                'submitter': self.submitter,
+                                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                                'org_applicant': self.org_applicant,
+                                'proxy_applicant': self.proxy_applicant,
+                                'lodgement_number': previous_approval.lodgement_number
+                            }
+                        )
+                        if created:
+                            previous_approval.replaced_by = approval
+                            previous_approval.save()
+                else:
+                    approval, created = Approval.objects.update_or_create(
+                        current_proposal=checking_proposal,
+                        defaults={
+                            'issue_date': timezone.now(),
+                            'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'),
+                                                                      '%d/%m/%Y').date(),
+                            'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
+                                                                     '%d/%m/%Y').date(),
+                            'submitter': self.submitter,
+                            # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                            # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                            'org_applicant': self.org_applicant,
+                            'proxy_applicant': self.proxy_applicant,
+                            # 'extracted_fields' = JSONField(blank=True, null=True)
+                        }
+                    )
+                    # self.reset_licence_discount(request.user)
+                # Generate compliances
+                from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+                if created:
+                    if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                        approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                                         proposal=self.previous_application,
+                                                                         processing_status='future')
+                        if approval_compliances:
+                            for c in approval_compliances:
+                                c.delete()
+                    # Log creation
+                    # Generate the document
+                    approval.generate_doc(request.user)
+                    self.generate_compliances(approval, request)
+                    # send the doc and log in approval and org
+                else:
+                    # Generate the document
+                    approval.generate_doc(request.user)
+                    # Delete the future compliances if Approval is reissued and generate the compliances again.
+                    approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+                                                                     processing_status='future')
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                    self.generate_compliances(approval, request)
+                    # Log proposal action
+                    self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
+                    # Log entry for organisation
+                    applicant_field = getattr(self, self.applicant_field)
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
+                self.approval = approval
+
+                # send Proposal approval email with attachment
+                send_proposal_approval_email_notification(self, request)
+                self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
+                self.approval.documents.all().update(can_delete=False)
+
+                return self
+
+            except:
+                raise
 
     def final_decline(self, request, details):
         raise NotImplementedError('Implement AuthorisedUserApplication.final_decline() Remember to return self')
