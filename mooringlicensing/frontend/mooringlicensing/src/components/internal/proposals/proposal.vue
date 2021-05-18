@@ -90,15 +90,20 @@
                         :submitterId="proposal.submitter.id"
                     />
                 </template>
-
+<!--
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
+-->
+                <template v-if="display_approval_screen">
                     <ApprovalScreen 
                         :proposal="proposal" 
                         @refreshFromResponse="refreshFromResponse"
                     />
                 </template>
 
+<!--
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
+-->
+                <template v-if="display_requirements">
                     <Requirements 
                         :proposal="proposal" 
                         @refreshRequirements="refreshRequirements"
@@ -246,19 +251,17 @@
             :applicant_email="applicant_email" 
             @refreshFromResponse="refreshFromResponse"
         />
-<!--
         <ProposedDecline 
             ref="proposed_decline" 
             :processing_status="proposal.processing_status" 
-            :proposal_id="proposal.id" 
+            :proposal="proposal" 
             @refreshFromResponse="refreshFromResponse"
         />
         <AmendmentRequest 
             ref="amendment_request" 
-            :proposal_id="proposal.id" 
+            :proposal="proposal" 
             @refreshFromResponse="refreshFromResponse"
         />
--->
     </div>
 </template>
 
@@ -267,8 +270,8 @@
 //import ProposalApiary from '@/components/form_apiary.vue'
 //import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
-//import ProposedDecline from './proposal_proposed_decline.vue'
-//import AmendmentRequest from './amendment_request.vue'
+import ProposedDecline from '@/components/internal/proposals/proposal_proposed_decline.vue'
+import AmendmentRequest from '@/components/internal/proposals/amendment_request.vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from '@/components/internal/proposals/proposal_requirements.vue'
 import ProposedApproval from '@/components/internal/proposals/proposed_issuance.vue'
@@ -277,7 +280,7 @@ import CommsLogs from '@common-utils/comms_logs.vue'
 import Submission from '@common-utils/submission.vue'
 import Workflow from '@common-utils/workflow.vue'
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
-import { api_endpoints, helpers } from '@/utils/hooks'
+import { api_endpoints, helpers, constants } from '@/utils/hooks'
 import WaitingListApplication from '@/components/form_wla.vue';
 import AnnualAdmissionApplication from '@/components/form_aaa.vue';
 import AuthorisedUserApplication from '@/components/form_aua.vue';
@@ -361,8 +364,8 @@ export default {
         //ProposalDisturbance,
         //ProposalApiary,
         datatable,
-        //ProposedDecline,
-        //AmendmentRequest,
+        ProposedDecline,
+        AmendmentRequest,
         Requirements,
         ProposedApproval,
         ApprovalScreen,
@@ -386,6 +389,22 @@ export default {
 
     },
     computed: {
+        display_approval_screen: function(){
+            console.log('in display_approval_screen')
+            let ret_val = 
+                this.proposal.processing_status == constants.WITH_APPROVER || 
+                this.isFinalised
+            console.log(ret_val)
+            return ret_val
+        },
+        display_requirements: function(){
+            console.log('in display_requirements')
+            let ret_val = 
+                this.proposal.processing_status == constants.WITH_ASSESSOR_REQUIREMENTS || 
+                ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
+            console.log(ret_val)
+            return ret_val
+        },
         showElectoralRoll: function(){
             // TODO: implement
             return true
@@ -508,7 +527,7 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: function(){
-            console.log('proposedDecline')
+            console.log('in proposedDecline')
             this.save_wo();
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
@@ -530,60 +549,57 @@ export default {
             this.$refs.proposed_approval.isModalOpen = true;
         },
         issueProposal:function(){
+            console.log('in issueProposal')
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
 
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
-                if (this.proposal.approval_level_comment!='')
-                {
+                if (this.proposal.approval_level_comment!=''){
                     let vm = this;
                     let data = new FormData();
                     data.append('approval_level_comment', vm.proposal.approval_level_comment)
                     //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
                     console.log('3')
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id+'/approval_level_comment'),data,{
-                        emulateJSON:true
-                        }).then(res=>{
-                    vm.proposal = res.body;
-                    vm.refreshFromResponse(res);
-                    },err=>{
-                    console.log(err);
-                    });
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id+'/approval_level_comment'), data, {emulateJSON:true}).then(
+                        res => {
+                            vm.proposal = res.body;
+                            vm.refreshFromResponse(res);
+                        }, err => {
+                            console.log(err);
+                        }
+                    );
                 }
             }
-            if(this.isApprovalLevelDocument && this.proposal.approval_level_comment=='')
-            {
+            if(this.isApprovalLevelDocument && this.proposal.approval_level_comment==''){
                 swal(
                     'Error',
                     'Please add Approval document or comments before final approval',
                     'error'
                 )
-            }
-            else{
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            this.$refs.proposed_approval.state = 'final_approval';
-            this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-            if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
-                var start_date=new Date();
-                start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
-
-                $(this.$refs.proposed_approval.$refs.start_date).data('DateTimePicker').date(start_date);
-            }
-            if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.expiry_date!=null){
-                var expiry_date=new Date();
-                expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
-
-                $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
-            }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
+            } else {
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                this.$refs.proposed_approval.state = 'final_approval';
+                this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
+                    var start_date=new Date();
+                    start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
+                    $(this.$refs.proposed_approval.$refs.start_date).data('DateTimePicker').date(start_date);
+                }
+                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.expiry_date!=null){
+                    var expiry_date=new Date();
+                    expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
+                    $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
+                }
+                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+                // if(this.proposal.applicant.email){
+                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+                // }
+                this.$refs.proposed_approval.isModalOpen = true;
             }
 
         },
         declineProposal:function(){
+            console.log('in declineProposal')
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
         },
@@ -619,29 +635,27 @@ export default {
             vm.highlight_deficient_fields(deficient_fields);
         },
         save: function(e) {
-          let vm = this;
-          vm.checkAssessorData();
-          let formData = new FormData(vm.form);
-          vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-              swal(
-                'Saved',
-                'Your proposal has been saved',
-                'success'
-              )
-          },err=>{
-          });
+            let vm = this;
+            vm.checkAssessorData();
+            let formData = new FormData(vm.form);
+            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+                swal(
+                  'Saved',
+                  'Your proposal has been saved',
+                  'success'
+                )
+            },err=>{ });
         },
         save_wo: function() {
-          let vm = this;
-          vm.checkAssessorData();
-          let formData = new FormData(vm.form);
-          vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+            let vm = this;
+            vm.checkAssessorData();
+            let formData = new FormData(vm.form);
+            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
 
 
-          },err=>{
-          });
+            },err=>{
+            });
         },
-
         toggleProposal:function(value){
             this.showingProposal = value
         },
@@ -649,6 +663,7 @@ export default {
             this.showingRequirements = value
         },
         updateAssignedOfficerSelect:function(){
+            console.log('updateAssignedOfficerSelect')
             let vm = this;
             if (vm.proposal.processing_status == 'With Approver'){
                 $(vm.$refs.assigned_officer).val(vm.proposal.assigned_approver);
@@ -679,6 +694,9 @@ export default {
             });
         },
         refreshFromResponse:function(response){
+            console.log('in refreshFromResponse')
+            console.log('response')
+            console.log(response)
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
@@ -853,6 +871,7 @@ export default {
             })
         },
         initialiseAssignedOfficerSelect:function(reinit=false){
+            console.log('initialiseAssignedOfficerSelect')
             let vm = this;
             if (reinit){
                 $(vm.$refs.assigned_officer).data('select2') ? $(vm.$refs.assigned_officer).select2('destroy'): '';
