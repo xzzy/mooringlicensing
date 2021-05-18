@@ -1631,8 +1631,8 @@ class WaitingListApplication(Proposal):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                     self.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                         'details': details.get('details'),
                         'cc_email':details.get('cc_email')
                     }
@@ -1654,10 +1654,8 @@ class WaitingListApplication(Proposal):
                             current_proposal=checking_proposal,
                             defaults={
                                 'issue_date': timezone.now(),
-                                'expiry_date': datetime.datetime.strptime(
-                                    self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
-                                                                         '%d/%m/%Y').date(),
+                                # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
                                 # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                                 # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
@@ -1671,7 +1669,6 @@ class WaitingListApplication(Proposal):
                             previous_approval.save()
 
                         # self.reset_licence_discount(request.user)
-
                 elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     if self.previous_application:
                         previous_approval = self.previous_application.approval
@@ -1679,10 +1676,8 @@ class WaitingListApplication(Proposal):
                             current_proposal=checking_proposal,
                             defaults={
                                 'issue_date': timezone.now(),
-                                'expiry_date': datetime.datetime.strptime(
-                                    self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
-                                                                         '%d/%m/%Y').date(),
+                                # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                                # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
                                 # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                                 # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
@@ -1699,10 +1694,8 @@ class WaitingListApplication(Proposal):
                         current_proposal=checking_proposal,
                         defaults={
                             'issue_date': timezone.now(),
-                            'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'),
-                                                                      '%d/%m/%Y').date(),
-                            'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
-                                                                     '%d/%m/%Y').date(),
+                            # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                            # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                             'submitter': self.submitter,
                             # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
                             # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
