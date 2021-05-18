@@ -81,6 +81,20 @@ def retrieve_marine_parks():
             #    mooring_bay.active = True
             #    mooring_bay.save()
 
+def handle_validation_error(e):
+    # if hasattr(e, 'error_dict'):
+    #     raise serializers.ValidationError(repr(e.error_dict))
+    # else:
+    #     raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+    if hasattr(e, 'error_dict'):
+        raise serializers.ValidationError(repr(e.error_dict))
+    else:
+        if hasattr(e, 'message'):
+            raise serializers.ValidationError(e.message)
+        else:
+            raise
+
+
 #def add_business_days(from_date, number_of_days):
 #    """ given from_date and number_of_days, returns the next weekday date i.e. excludes Sat/Sun """
 #    to_date = from_date

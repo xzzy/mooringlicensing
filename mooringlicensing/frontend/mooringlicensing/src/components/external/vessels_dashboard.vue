@@ -17,6 +17,14 @@
                 :dtOptions="datatable_options" 
                 :dtHeaders="datatable_headers"
             />
+            <div v-if="recordSaleId">
+                <RecordSale 
+                ref="record_sale" 
+                :recordSaleId="recordSaleId"
+                :key="recordSaleKey"
+                @closeModal="closeModal"
+                />
+            </div>
         </FormSection>
     </div>
 </template>
@@ -25,12 +33,15 @@
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
+import RecordSale from './record_sale.vue'
 
 export default {
     name: 'VesselsDashboard',
     data() {
         let vm = this;
         return {
+            recordSaleId: null,
+            uuid: 0,
             // Datatable settings
             datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Action'],
             datatable_options: {
@@ -149,7 +160,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return `<a href='/external/vesselownership/${full.id}'>Edit</a><br/>`;
+                            let links = '';
+                            links += `<a href='/external/vesselownership/${full.id}'>Edit</a><br/>`;
+                            //links += `<a id="record_sale_${full.id}" href=#>Record Sale</a><br/>`;
+                            links += full.record_sale_link;
+                            return links
                             /*
                             let links = '';
                             if (!vm.is_external){
@@ -182,20 +197,78 @@ export default {
     },
     components:{
         FormSection,
-        datatable
+        datatable,
+        RecordSale,
     },
     watch: {
     },
     computed: {
+        recordSaleKey: function() {
+            return `${this.recordSaleId}_${this.uuid}`
+        },
     },
     methods: {
+        closeModal: function() {
+            this.uuid++;
+        },
         addVessel: function() {
             this.$router.push({
                 name: 'new-vessel'
             });
         },
+        /*
+        actionShortcut: async function(id, approvalType) {
+            let vm = this;
+            let processingTableStr = `.action-${id}`;
+            let processViewStr = `.process-view-${id}`;
+            let processingTable = $(processingTableStr);
+            let processView = $(processViewStr);
+            processingTable.replaceWith("<div><i class='fa fa-2x fa-spinner fa-spin'></i></div>");
+            processView.replaceWith("");
+            let post_url = '/api/feewaivers/' + id + '/final_approval/'
+            let res = await Vue.http.post(post_url, {'approval_type': approvalType});
+            if (res.ok) {
+                // this should also be await?
+                await this.refreshFromResponse();
+            }
+        },
+        */
+        refreshFromResponse: async function(){
+            await this.$refs.vessels_datatable.vmDataTable.ajax.reload();
+        },
+
+        openSaleModal: function() {
+            this.$nextTick(() => {
+                console.log(this.recordSaleId)
+                this.$refs.record_sale.isModalOpen = true;
+            });
+        },
+        addEventListeners: function() {
+            let vm = this;
+            let table = vm.$refs.vessels_datatable.vmDataTable
+            /*
+            table.on('processing.dt', function(e) {
+            })
+            */
+            table.on('click', 'a[data-id]', async function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                //await vm.actionShortcut(id, 'issue');
+                vm.recordSaleId = parseInt(id);
+                vm.openSaleModal();
+            });
+            /*
+            let recordSale = $('#record_sale_96');
+            recordSale.on('click', () => {
+                console.log("record sale")
+            })
+            */
+        }
     },
     mounted: function () {
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
 
     },
     created: function() {
