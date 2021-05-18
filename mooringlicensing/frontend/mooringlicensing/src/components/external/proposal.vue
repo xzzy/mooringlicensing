@@ -411,6 +411,7 @@ export default {
     },
     submit_and_pay: async function() {
         //let formData = this.set_formData()
+        console.log('in submit_and_pay')
         try {
             const res = await this.save(false, this.proposal_submit_url);
             if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
@@ -614,6 +615,7 @@ export default {
 
     },
     submit: async function(){
+        console.log('in submit()')
         let vm = this;
         //let formData = vm.set_formData()
         /*
@@ -649,11 +651,11 @@ export default {
       
         if (!vm.proposal.fee_paid) {
             await vm.submit_and_pay();
-
         } else {
             /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+            console.log('application was pushed back by assessor for amendment')
             vm.save_wo_confirm()
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id + '/submit'), formData).then(res=>{
                 vm.proposal = res.body;
                 vm.$router.push({
                     name: 'submit_proposal',
@@ -689,7 +691,7 @@ export default {
     },
     fetchProposalParks: function(proposal_id){
       let vm=this;
-      vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposals,proposal_id+'/parks_and_trails')).then(response => {
+      vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,proposal_id+'/parks_and_trails')).then(response => {
                 vm.proposal_parks = helpers.copyObject(response.body);
                 console.log(vm.proposal_parks)
             },
