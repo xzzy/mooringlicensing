@@ -21,7 +21,8 @@
                 <RecordSale 
                 ref="record_sale" 
                 :recordSaleId="recordSaleId"
-                :key="recordSaleId"
+                :key="recordSaleKey"
+                @closeModal="closeModal"
                 />
             </div>
         </FormSection>
@@ -40,6 +41,7 @@ export default {
         let vm = this;
         return {
             recordSaleId: null,
+            uuid: 0,
             // Datatable settings
             datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Action'],
             datatable_options: {
@@ -201,8 +203,14 @@ export default {
     watch: {
     },
     computed: {
+        recordSaleKey: function() {
+            return `${this.recordSaleId}_${this.uuid}`
+        },
     },
     methods: {
+        closeModal: function() {
+            this.uuid++;
+        },
         addVessel: function() {
             this.$router.push({
                 name: 'new-vessel'

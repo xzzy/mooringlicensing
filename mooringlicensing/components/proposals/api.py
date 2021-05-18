@@ -1547,6 +1547,8 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         ## discover common vessel ownership
         #import ipdb; ipdb.set_trace()
         sale_date = request.data.get('sale_date')
+        print("sale_date")
+        print(sale_date)
         if sale_date:
             serializer = VesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
             serializer.is_valid(raise_exception=True)
