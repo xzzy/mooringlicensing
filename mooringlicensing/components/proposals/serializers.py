@@ -773,6 +773,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'requirements_completed',
                 'application_type_dict',
+                'vessel_details_id', 
+                'vessel_ownership_id', 
+                'insurance_choice',
+                'preferred_bay_id',
+                'silent_elector',
+                'bay_preferences_numbered',
+                'site_licensee_email',
+                'mooring_site_id',
+                'mooring_authorisation_preference',
+                #'individual_owner',
+                #'company_ownership_name',
+                #'company_ownership_percentage',
                 )
         read_only_fields = (
             'documents',
