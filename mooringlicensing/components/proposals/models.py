@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 import json
 import datetime
-from django.db import models,transaction
+import pytz
+from ledger.settings_base import TIME_ZONE
+from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
@@ -12,7 +14,6 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 from django.conf import settings
 from ledger.accounts.models import EmailUser, RevisionedMixin
-#from ledger.accounts.models import EmailUser
 from ledger.payments.invoice.models import Invoice
 
 from mooringlicensing import exceptions
@@ -392,6 +393,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_LICENCE_AMENDMENT = 'licence_amendment'
     PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE = 'awaiting_applicant_respone'
     PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE = 'awaiting_assessor_response'
+    PROCESSING_STATUS_AWAITING_STICKER = 'awaiting_sticker'
     PROCESSING_STATUS_AWAITING_RESPONSES = 'awaiting_responses'
     PROCESSING_STATUS_READY_FOR_CONDITIONS = 'ready_for_conditions'
     PROCESSING_STATUS_READY_TO_ISSUE = 'ready_to_issue'
@@ -414,6 +416,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_LICENCE_AMENDMENT, 'Licence Amendment'),
                                  (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
                                  (PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE, 'Awaiting Assessor Response'),
+                                 (PROCESSING_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
                                  (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
                                  (PROCESSING_STATUS_READY_FOR_CONDITIONS, 'Ready for Conditions'),
                                  (PROCESSING_STATUS_READY_TO_ISSUE, 'Ready to Issue'),
@@ -530,8 +533,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             return invoice
         else:
+            msg = 'Proposal: {} has {} ApplicationFees.  There should be 0 or 1.'.format(self, self.application_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
+    @property
+    def start_date(self):
+        if self.application_fees.count() < 1:
+            return None
+        elif self.application_fees.count() == 1:
+            application_fee = self.application_fees.first()
+            if application_fee.fee_constructor:
+                return application_fee.fee_constructor.start_date
+            else:
+                return None
+        else:
+            msg = 'Proposal: {} has {} ApplicationFees.  There should be 0 or 1.'.format(self, self.application_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
+    @property
+    def end_date(self):
+        if self.application_fees.count() < 1:
+            return None
+        elif self.application_fees.count() == 1:
+            application_fee = self.application_fees.first()
+            if application_fee.fee_constructor:
+                return application_fee.fee_constructor.end_date
+            else:
+                return None
+        else:
             logger.error('Proposal: {} has {} ApplicationFees.  There should be 0 or 1.'.format(self, self.application_fees.count()))
-            return 'Multiple invoices found'
+            raise ValidationError('Proposal: {} has {} ApplicationFees.  There should be 0 or 1.'.format(self, self.application_fees.count()))
 
     @property
     def editable_vessel_details(self):
@@ -1801,7 +1834,111 @@ class AnnualAdmissionApplication(Proposal):
             self.save()
 
     def final_approval(self, request, details):
-        raise NotImplementedError('Implement AnnualAdmissionApplication.final_approval()  Remember to return self')
+        with transaction.atomic():
+            try:
+                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                current_date = current_datetime.date()
+                # target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+                self.proposed_decline_status = False
+
+                if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                    # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
+                    pass
+                else:
+                    if not self.can_assess(request.user):
+                        raise exceptions.ProposalNotAuthorized()
+                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
+                        raise ValidationError('You cannot issue the approval if it is not with an assessor')
+                    if not self.applicant_address:
+                        raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
+
+                    if self.application_fees.count() < 1:
+                        raise ValidationError('Payment record not found for the Annual Admission Application: {}'.format(self))
+                    elif self.application_fees.count() > 1:
+                        raise ValidationError('More than 1 payment records found for the Annual Admission Application: {}'.format(self))
+
+                    self.proposed_issuance_approval = {
+                        'start_date': current_date.strftime('%d/%m/%Y'),
+                        'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+                        'details': details.get('details'),
+                        'cc_email': details.get('cc_email')
+                    }
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+                # self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
+                # Log entry for organisation
+                applicant_field = getattr(self, self.applicant_field)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
+
+                # TODO if it is an ammendment proposal then check appropriately
+                from mooringlicensing.components.approvals.models import Approval
+                checking_proposal = self
+                if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+                    pass  # TODO: implement
+                elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                    pass  # TODO: implement
+                else:
+                    approval, created = Approval.objects.update_or_create(
+                        current_proposal=checking_proposal,
+                        defaults={
+                            'issue_date': timezone.now(),
+                            'start_date': current_date,
+                            'expiry_date': self.end_date,
+                            'submitter': self.submitter,
+                            # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                            # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                            'org_applicant': self.org_applicant,
+                            'proxy_applicant': self.proxy_applicant,
+                            # 'extracted_fields' = JSONField(blank=True, null=True)
+                        }
+                    )
+                # Generate compliances
+                from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+                if created:
+                    if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                        approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                                         proposal=self.previous_application,
+                                                                         processing_status='future')
+                        if approval_compliances:
+                            for c in approval_compliances:
+                                c.delete()
+                    # Log creation
+                    # Generate the document
+                    approval.generate_doc(request.user)
+                    ## TODO: 20210518 - add this after approval.expiry_date is set
+                    self.generate_compliances(approval, request)
+                    # send the doc and log in approval and org
+                else:
+                    # Generate the document
+                    approval.generate_doc(request.user)
+                    # Delete the future compliances if Approval is reissued and generate the compliances again.
+                    approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+                                                                     processing_status='future')
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                    ## TODO: 20210518 - add this after approval.expiry_date is set
+                    #self.generate_compliances(approval, request)
+                    # Log proposal action
+                    self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
+                    # Log entry for organisation
+                    applicant_field = getattr(self, self.applicant_field)
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
+
+                self.approval = approval
+
+                # send Proposal approval email with attachment
+                send_proposal_approval_email_notification(self, request)
+                self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
+                self.approval.documents.all().update(can_delete=False)
+
+                return self
+
+            except:
+                raise
 
     def final_decline(self, request, details):
         raise NotImplementedError('Implement AnnualAdmissionApplication.final_decline()  Remember to return self')
@@ -2527,6 +2664,7 @@ class ProposalUserAction(UserAction):
     ACTION_CREATE_CONDITION_ = "Create requirement {}"
     ACTION_ISSUE_APPROVAL_ = "Issue Licence for application {}"
     ACTION_AWAITING_PAYMENT_APPROVAL_ = "Awaiting Payment for application {}"
+    ACTION_AWAITING_STICKER = "Awaiting Sticker for application {}"
     ACTION_UPDATE_APPROVAL_ = "Update Licence for application {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"

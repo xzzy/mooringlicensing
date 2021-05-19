@@ -427,7 +427,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'title',
                 'customer_status',
                 'application_type_dict',
-                # 'processing_status',
+                'processing_status',
                 # 'applicant',
                 'submitter',
                 'assigned_officer',
