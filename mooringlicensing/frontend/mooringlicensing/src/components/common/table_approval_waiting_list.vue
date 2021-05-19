@@ -86,6 +86,7 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.id
                         }
                     },
@@ -156,7 +157,10 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            if (full.issue_date){
+                                return moment(full.issue_date).format('DD/MM/YYYY')
+                            }
+                            return ''
                         }
                     },
                     {
