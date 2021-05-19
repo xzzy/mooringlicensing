@@ -24,7 +24,7 @@
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
 export default {
-    name: 'InternalMooringsDashboard',
+    name: 'InternalSearch',
     data() {
         let vm = this;
         return {
