@@ -823,7 +823,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return True
 
     def get_requirements_completed(self,obj):
-        return True
+        return True  # What is this for?
 
     def get_current_assessor(self,obj):
         return {

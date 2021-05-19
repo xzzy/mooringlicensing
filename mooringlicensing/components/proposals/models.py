@@ -26,6 +26,9 @@ from mooringlicensing.components.main.models import (
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
 )
+from ledger.checkout.utils import createCustomBasket
+from ledger.payments.invoice.models import Invoice
+from ledger.payments.invoice.utils import CreateInvoiceBasket
 
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
@@ -48,7 +51,8 @@ from rest_framework import serializers
 
 import logging
 
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_ID, \
+    PAYMENT_SYSTEM_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -340,6 +344,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
+    CUSTOMER_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     # CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DECLINED = 'declined'
@@ -351,6 +356,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # (CUSTOMER_STATUS_TEMP, 'Temporary'),
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
         (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
+        (CUSTOMER_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
         # (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
         (CUSTOMER_STATUS_APPROVED, 'Approved'),
         (CUSTOMER_STATUS_DECLINED, 'Declined'),
@@ -394,6 +400,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE = 'awaiting_applicant_respone'
     PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE = 'awaiting_assessor_response'
     PROCESSING_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    PROCESSING_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     PROCESSING_STATUS_AWAITING_RESPONSES = 'awaiting_responses'
     PROCESSING_STATUS_READY_FOR_CONDITIONS = 'ready_for_conditions'
     PROCESSING_STATUS_READY_TO_ISSUE = 'ready_to_issue'
@@ -417,6 +424,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
                                  (PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE, 'Awaiting Assessor Response'),
                                  (PROCESSING_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+                                 (PROCESSING_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
                                  (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
                                  (PROCESSING_STATUS_READY_FOR_CONDITIONS, 'Ready for Conditions'),
                                  (PROCESSING_STATUS_READY_TO_ISSUE, 'Ready to Issue'),
@@ -1969,6 +1977,8 @@ class AuthorisedUserApplication(Proposal):
         with transaction.atomic():
             try:
                 self.proposed_decline_status = False
+                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                current_date = current_datetime.date()
 
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
@@ -1982,13 +1992,49 @@ class AuthorisedUserApplication(Proposal):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                     self.proposed_issuance_approval = {
-                        'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                         'details': details.get('details'),
-                        'cc_email':details.get('cc_email')
+                        'cc_email': details.get('cc_email')
                     }
-                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+
+                from mooringlicensing.components.payments_ml.utils import create_fee_lines
+                from mooringlicensing.components.payments_ml.models import FeeConstructor
+                line_items, db_operations = create_fee_lines(self)
+                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+
+                if line_items:
+                    with transaction.atomic():
+                        try:
+                            logger.info('Creating filming fee invoice')
+
+                            basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
+                            order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
+                                basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
+                            invoice = Invoice.objects.get(order_number=order.number)
+
+                            from mooringlicensing.components.payments_ml.utils import make_serializable
+                            line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+
+                            from mooringlicensing.components.payments_ml.models import ApplicationFee
+                            annual_rental_fee = ApplicationFee.objects.create(
+                                proposal=self,
+                                fee_constructor=fee_constructor,
+                                # annual_rental_fee_period=annual_rental_fee_period,
+                                invoice_reference=invoice.reference,
+                                # invoice_period_start_date=invoice_period[0],
+                                # invoice_period_end_date=invoice_period[1],
+                                # lines=line_items,  # TODO: We may add this field to the ApplicationFee model
+                            )
+                            # updates.append(annual_rental_fee.invoice_reference)
+
+                        except Exception as e:
+                            err_msg = 'Failed to create annual site fee confirmation'
+                            logger.error('{}\n{}'.format(err_msg, str(e)))
+                            # errors.append(err_msg)
+
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
                 # Log entry for organisation
@@ -2005,13 +2051,9 @@ class AuthorisedUserApplication(Proposal):
                             current_proposal=checking_proposal,
                             defaults={
                                 'issue_date': timezone.now(),
-                                'expiry_date': datetime.datetime.strptime(
-                                    self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
-                                                                         '%d/%m/%Y').date(),
+                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                                'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
-                                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
-                                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
                                 'org_applicant': self.org_applicant,
                                 'proxy_applicant': self.proxy_applicant,
                                 'lodgement_number': previous_approval.lodgement_number
@@ -2022,7 +2064,6 @@ class AuthorisedUserApplication(Proposal):
                             previous_approval.save()
 
                         # self.reset_licence_discount(request.user)
-
                 elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     if self.previous_application:
                         previous_approval = self.previous_application.approval
@@ -2030,13 +2071,9 @@ class AuthorisedUserApplication(Proposal):
                             current_proposal=checking_proposal,
                             defaults={
                                 'issue_date': timezone.now(),
-                                'expiry_date': datetime.datetime.strptime(
-                                    self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
-                                                                         '%d/%m/%Y').date(),
+                                'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                                'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
-                                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
-                                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
                                 'org_applicant': self.org_applicant,
                                 'proxy_applicant': self.proxy_applicant,
                                 'lodgement_number': previous_approval.lodgement_number
@@ -2050,13 +2087,11 @@ class AuthorisedUserApplication(Proposal):
                         current_proposal=checking_proposal,
                         defaults={
                             'issue_date': timezone.now(),
-                            'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'),
-                                                                      '%d/%m/%Y').date(),
-                            'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'),
-                                                                     '%d/%m/%Y').date(),
+                            # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                            # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                            'start_date': current_date.strftime('%d/%m/%Y'),
+                            'expiry_date': self.end_date.strftime('%d/%m/%Y'),
                             'submitter': self.submitter,
-                            # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
-                            # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
                             'org_applicant': self.org_applicant,
                             'proxy_applicant': self.proxy_applicant,
                             # 'extracted_fields' = JSONField(blank=True, null=True)
@@ -2108,6 +2143,41 @@ class AuthorisedUserApplication(Proposal):
     def final_decline(self, request, details):
         raise NotImplementedError('Implement AuthorisedUserApplication.final_decline() Remember to return self')
 
+    def proposed_approval(self, request, details):
+        with transaction.atomic():
+            try:
+                if not self.can_assess(request.user):
+                    raise exceptions.ProposalNotAuthorized()
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+                    raise ValidationError('You cannot propose for approval if it is not with assessor for requirements')
+
+                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                current_date = current_datetime.date()
+
+                self.proposed_issuance_approval = {
+                    'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
+                    # 'start_date': current_date.strftime('%d/%m/%Y'),
+                    # 'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+                    'details': details.get('details'),
+                    'cc_email': details.get('cc_email')
+                }
+                self.proposed_decline_status = False
+                approver_comment = ''
+                self.move_to_status(request, Proposal.PROCESSING_STATUS_WITH_APPROVER, approver_comment)
+                self.assigned_officer = None
+                self.save()
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
+                # Log entry for organisation
+                applicant_field = getattr(self, self.applicant_field)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
+
+                send_approver_approve_email_notification(request, self)
+                return self
+
+            except:
+                raise
+
 
 class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2134,6 +2204,9 @@ class MooringLicenceApplication(Proposal):
 
     def final_decline(self, request, details):
         raise NotImplementedError('Implement MooringLicenceApplication.final_decline() Remember to return self')
+
+    def proposed_approval(self, request, details):
+        raise NotImplementedError('Implement MooringLicenceApplication.proposed_approval() Remember to return self')
 
 
 class ProposalLogDocument(Document):
