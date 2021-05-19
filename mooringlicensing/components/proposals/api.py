@@ -69,6 +69,8 @@ from mooringlicensing.components.proposals.models import (
     VesselOwnership,
     MooringBay,
     Owner,
+    Company,
+    CompanyOwnership,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -98,7 +100,9 @@ from mooringlicensing.components.proposals.serializers import (
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
-    MooringBaySerializer, EmailUserSerializer,
+    MooringBaySerializer, EmailUserSerializer, ProposedDeclineSerializer,
+    CompanyOwnershipSerializer,
+    CompanySerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -158,6 +162,35 @@ class GetDcvVesselRegoNos(views.APIView):
         return add_cache_control(Response())
 
 
+#class GetVesselRegoNos(views.APIView):
+#    renderer_classes = [JSONRenderer, ]
+#
+#    def get(self, request, format=None):
+#        #import ipdb; ipdb.set_trace()
+#        search_term = request.GET.get('term', '')
+#        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+#        org_name = request.GET.get('org_name', '')
+#        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+#        if search_term:
+#            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
+#            data_transform = []
+#            owner_set = Owner.objects.filter(emailuser=request.user)
+#            if create_vessel and owner_set:
+#                for rego in data:
+#                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
+#                    vessel_ownership_set = VesselOwnership.objects.filter(
+#                        owner=owner_set[0], 
+#                        vessel=vessel, 
+#                        org_name=org_name if org_name else None
+#                        )
+#                    # request.user owns vessel
+#                    if not vessel_ownership_set:
+#                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
+#            else:
+#                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+#            return Response({"results": data_transform})
+#        return add_cache_control(Response())
+
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
@@ -165,7 +198,8 @@ class GetVesselRegoNos(views.APIView):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
         create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        org_name = request.GET.get('org_name', '')
+        company_name = request.GET.get('company_name')
+        #org_name = request.GET.get('org_name', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
@@ -174,16 +208,43 @@ class GetVesselRegoNos(views.APIView):
             if create_vessel and owner_set:
                 for rego in data:
                     vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-                    vessel_ownership_set = VesselOwnership.objects.filter(
-                        owner=owner_set[0], 
-                        vessel=vessel, 
-                        org_name=org_name if org_name else None
-                        )
+                    vessel_ownership_set = None
+                    if company_name:
+                        company_ownership_set = CompanyOwnership.objects.filter(
+                                vessel=vessel,
+                                company__name=company_name)
+                        vessel_ownership_set = VesselOwnership.objects.filter(
+                            owner=owner_set[0], 
+                            vessel=vessel, 
+                            company_ownership__in=company_ownership_set
+                            )
+                    else:
+                        vessel_ownership_set = VesselOwnership.objects.filter(
+                            owner=owner_set[0],
+                            vessel=vessel
+                            )
                     # request.user owns vessel
                     if not vessel_ownership_set:
                         data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
             else:
-                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
+                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            return Response({"results": data_transform})
+        return Response()
+
+
+class GetCompanyNames(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
+        search_term = request.GET.get('term', '')
+        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+        #org_name = request.GET.get('org_name', '')
+        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        if search_term:
+            data = Company.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+            data_transform = []
+            data_transform = [{'id': company['id'], 'text': company['name']} for company in data] 
             return Response({"results": data_transform})
         return add_cache_control(Response())
 
@@ -881,17 +942,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.final_approval(request, serializer.validated_data)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        instance = instance.child_obj.final_approval(request, serializer.validated_data)  # Remember return the object updated in the method.
         serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance, context={'request': request})
         return add_cache_control(Response(serializer.data))
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = PropedDeclineSerializer(data=request.data)
+        serializer = ProposedDeclineSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.proposed_decline(request,serializer.validated_data)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
@@ -903,12 +963,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = PropedDeclineSerializer(data=request.data)
+        serializer = ProposedDeclineSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.final_decline(request,serializer.validated_data)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        # instance.final_decline(request,serializer.validated_data)
+        instance = instance.child_obj.final_decline(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
+        serializer = serializer_class(instance, context={'request':request})
         return add_cache_control(Response(serializer.data))
 
     #@detail_route(methods=['POST',])
@@ -1003,11 +1063,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if vessel_ownership:
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                #vessel_ownership_data["registered_owner"] = "company_name" if vessel_ownership.org_name else 'current_user'
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
             else:
                 vessel_ownership_data["percentage"] = instance.percentage
                 vessel_ownership_data["individual_owner"] = instance.individual_owner
+                #if instance.company_ownership:
+                 #   vessel_ownership_data["company_ownership"] = CompanyOwnershipSerializer(instance.company_ownership).data
             vessel_data["vessel_details"] = vessel_details_serializer.data
             vessel_data["vessel_ownership"] = vessel_ownership_data
             return add_cache_control(Response(vessel_data))
@@ -1168,7 +1229,6 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     def create(self, request, *args, **kwargs):
         try:
 #            data = {
@@ -1179,13 +1239,14 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
 #                'proposal': request.data.get('proposal'),
 #                'referral_group': request.data.get('referral_group'),
 #            }
-
-            #serializer = self.get_serializer(data= request.data)
-            serializer = self.get_serializer(data= json.loads(request.data.get('data')))
+            #import ipdb; ipdb.set_trace()
+            serializer = self.get_serializer(data= request.data)
+            #serializer = self.get_serializer(data=json.loads(request.data.get('data')))
+            #serializer = self.get_serializer(data=data)
             #serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception = True)
             instance = serializer.save()
-            instance.add_documents(request)
+            #instance.add_documents(request)
             #serializer = self.get_serializer(instance)
             return add_cache_control(Response(serializer.data))
         except serializers.ValidationError:
@@ -1219,34 +1280,25 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
 
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            reason_id=request.data.get('reason')
-            data = {
-                #'schema': qs_proposal_type.order_by('-version').first().schema,
-                'text': request.data.get('text'),
-                'proposal': request.data.get('proposal'),
-                'reason': AmendmentReason.objects.get(id=reason_id) if reason_id else None,
-            }
-            serializer = self.get_serializer(data= request.data)
-            #serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception = True)
-            instance = serializer.save()
-            instance.generate_amendment(request)
-            serializer = self.get_serializer(instance)
-            return add_cache_control(Response(serializer.data))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        data = request.data
+        reason_id = request.data.get('reason_id')
+        proposal = request.data.get('proposal', None)
+        data['reason'] = reason_id
+        data['proposal'] = proposal['id']
+        # data = {
+        #     #'schema': qs_proposal_type.order_by('-version').first().schema,
+        #     'text': request.data.get('text'),
+        #     'proposal': request.data.get('proposal'),
+        #     'reason': AmendmentReason.objects.get(id=reason_id) if reason_id else None,
+        # }
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception = True)
+        instance = serializer.save()
+        instance.generate_amendment(request)
+        serializer = self.get_serializer(instance)
+        return add_cache_control(Response(serializer.data))
 
 
 #class AccreditationTypeView(views.APIView):
@@ -1348,15 +1400,120 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_serializer = VesselOwnershipSerializer(vo)
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
         #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-        vessel_ownership_data["individual_owner"] = False if vo.org_name else True
+        #vessel_ownership_data["individual_owner"] = False if vo.org_name else True
+        vessel_ownership_data["individual_owner"] = False if vo.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
 
 
+class CompanyViewSet(viewsets.ModelViewSet):
+    queryset = Company.objects.all().order_by('id')
+    serializer_class = CompanySerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def lookup_company_ownership(self, request, *args, **kwargs):
+        company = self.get_object()
+        #serializer = CompanySerializer(company)
+        ## discover common vessel ownership
+        vessel_id = request.data.get('vessel_id')
+        co_list = []
+        company_data = CompanySerializer(company).data
+        empty_co = {"company": company_data}
+        if vessel_id:
+            co_qs = CompanyOwnership.objects.filter(vessel=Vessel.objects.get(id=vessel_id), company=company)
+            # add business rules
+            for co in co_qs.order_by('updated'):
+                co_list.append(co)
+            #co = co_list.order_by(updated)[0]
+            if co_list:
+                co = co_list[0]
+                serializer = CompanyOwnershipSerializer(co)
+                return add_cache_control(Response(serializer.data))
+            else:
+                return add_cache_control(Response(empty_co))
+        return add_cache_control(Response(empty_co))
+
+
+class CompanyOwnershipViewSet(viewsets.ModelViewSet):
+    queryset = CompanyOwnership.objects.all().order_by('id')
+    serializer_class = CompanyOwnershipSerializer
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def lookup_company_ownership(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        vessel_details = vessel.latest_vessel_details
+        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
+        vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
+        vessel_serializer = VesselSerializer(vessel)
+        vessel_data = vessel_serializer.data
+        vessel_data["vessel_details"] = vessel_details_serializer.data
+        #vessel_ownership_data = {}
+        #if vessel_details.blocking_proposal:
+            #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
+            #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
+            #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
+            #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
+
+        #vessel_data["vessel_ownership"] = vessel_ownership_data
+        # lookup vessels must be marked as read-only
+
+        # vessel_ownership
+        vessel_ownership_data = {}
+        # check if this emailuser has a matching record for this vessel
+        owner_qs = Owner.objects.filter(emailuser=request.user)
+        if owner_qs:
+            owner = owner_qs[0]
+            vo_qs = vessel.vesselownership_set.filter(owner=owner)
+            if vo_qs:
+                vessel_ownership = vo_qs[0]
+                vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
+                vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
+                #vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
+        #vessel_data["read_only"] = True
+        vessel_data["vessel_ownership"] = vessel_ownership_data
+        return add_cache_control(Response(vessel_data))
+
+    ##@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    #def create(self, request, *args, **kwargs):
+    #    #import ipdb; ipdb.set_trace()
+    #    with transaction.atomic():
+    #        #save_bare_vessel_data(request)
+    #        vessel_data = save_bare_vessel_data(request)
+    #        return add_cache_control(Response(vessel_data))
+    #        #return add_cache_control(redirect(reverse('external')))
+
+    ##@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    #def update(self, request, *args, **kwargs):
+    #    #import ipdb; ipdb.set_trace()
+    #    with transaction.atomic():
+    #        instance = self.get_object()
+    #        vessel_data = save_bare_vessel_data(request, instance)
+    #        return add_cache_control(Response(vessel_data))
+
+
 class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def lookup_individual_ownership(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        owner_set = Owner.objects.filter(emailuser=request.user)
+        if owner_set:
+            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
+            if vo_set:
+                serializer = VesselOwnershipSerializer(vo_set[0])
+                return add_cache_control(Response(serializer.data))
+            else:
+                return add_cache_control(Response())
+        return add_cache_control(Response())
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -1389,7 +1546,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                #vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
@@ -1458,8 +1616,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                     vd = vo.vessel.latest_vessel_details
                     if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
                         search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                        vd.vessel_type in matching_vessel_type_choices or
-                        search_text in (vo.org_name.lower() or str(vo.owner).lower())
+                        vd.vessel_type in matching_vessel_type_choices 
+                        #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
                 #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
@@ -1525,4 +1683,3 @@ class ProposalAssessmentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
