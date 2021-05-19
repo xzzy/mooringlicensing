@@ -150,8 +150,9 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-if env('CONSOLE_EMAIL_BACKEND', False):
-   EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
+if CONSOLE_EMAIL_BACKEND:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
 

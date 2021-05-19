@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, GlobalSettings
+from mooringlicensing.components.main.utils import retrieve_mooring_areas, retrieve_marine_parks
 from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
     ProposalApproverGroup
 
