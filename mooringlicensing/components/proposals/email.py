@@ -63,10 +63,11 @@ class ApproverSendBackNotificationEmail(TemplateEmailBase):
 
 
 def send_amendment_email_notification(amendment_request, request, proposal):
-    if proposal.is_filming_application:
-        email = FilmingAmendmentRequestSendNotificationEmail()
-    else:
-        email = AmendmentRequestSendNotificationEmail()
+    # if proposal.is_filming_application:
+    #     email = FilmingAmendmentRequestSendNotificationEmail()
+    # else:
+    #     email = AmendmentRequestSendNotificationEmail()
+    email = AmendmentRequestSendNotificationEmail()
     #reason = amendment_request.get_reason_display()
     reason = amendment_request.reason.reason
     url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
