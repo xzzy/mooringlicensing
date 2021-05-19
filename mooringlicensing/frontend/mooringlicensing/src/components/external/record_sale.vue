@@ -95,11 +95,7 @@ export default {
     methods:{
         ok:function () {
             this.$nextTick(()=>{
-                //const formattedSaleDate = moment(this.saleDate, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                const momentSaleDate = moment(this.saleDate, 'DD/MM/YYYY');
-                //const momentSaleDate = moment(this.saleDate);
-                console.log(momentSaleDate);
-                this.sendData(momentSaleDate);
+                this.sendData();
             });
         },
         cancel:function () {
@@ -112,12 +108,11 @@ export default {
             $(this.$refs.sale_date).data('DateTimePicker').clear();
             this.$emit('closeModal');
         },
-        sendData: async function(momentSaleDate){
+        sendData: async function(){
             try {
                 this.saving = true;
                 const url = `${api_endpoints.vesselownership}${this.recordSaleId}/record_sale/`;
                 const res = await this.$http.post(url, {
-                    //"sale_date": momentSaleDate
                     "sale_date": this.saleDate,
                 });
                 if (res.ok) {
@@ -141,16 +136,13 @@ export default {
                 const res = await this.$http.get(url);
                 if (res.ok && res.body.end_date) {
                     console.log(res.body)
-                    this.saleDate = moment(res.body.end_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
-                    //this.saleDate = moment(res.body.sale_date, 'DD/MM/YYYY');
+                    this.saleDate = res.body.end_date;
                 }
-                //this.close()
             } catch(error) {
                 this.errors = true;
                 this.errorString = helpers.apiVueResourceError(error);
             }
         },
-
         eventListeners:function () {
             let vm = this;
             // Initialise Date Picker

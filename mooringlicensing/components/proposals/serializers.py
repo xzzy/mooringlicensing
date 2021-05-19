@@ -2,6 +2,7 @@ from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
 from ledger.payments.invoice.models import Invoice
+#from datetime import date
 
 from mooringlicensing.components.proposals.models import (
     # ProposalType,
@@ -1137,15 +1138,29 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
+class SaveVesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
     end_date = serializers.DateTimeField(input_formats=['%d/%m/%Y'],required=True,allow_null=False)
-    #end_date = serializers.DateField(write_only=True, required=True)
 
     class Meta:
         model = VesselOwnership
         fields = (
                 'end_date',
                 )
+
+
+class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
+    end_date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'end_date',
+                )
+
+    def get_end_date(self, obj):
+        if obj.end_date:
+            return obj.end_date.strftime('%d/%m/%Y')
+
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
