@@ -45,6 +45,17 @@ def check_db_connection():
     except Exception as e:
         connection.connect()
 
+def import_mooring_bookings_data():
+    errors = []
+    updates = []
+    parks_errors, parks_updates = retrieve_marine_parks()
+    mooring_errors, mooring_updates = retrieve_mooring_areas()
+    errors.extend(parks_errors)
+    errors.extend(mooring_errors)
+    updates.extend(parks_updates)
+    updates.extend(mooring_updates)
+    return errors, updates
+
 ## Mooring Bookings API interactions
 def retrieve_mooring_areas():
     try:
@@ -65,7 +76,7 @@ def retrieve_mooring_areas():
                 else:
                     mooring = Mooring.objects.create(
                             mooring_bookings_id=mooring.get("id"), 
-                            name=bay.get("name"),
+                            name=mooring.get("name"),
                             mooring_bay = MooringBay.objects.get(
                                 mooring_bookings_id=mooring.get('marine_park_id'), 
                                     active=True
@@ -85,10 +96,12 @@ def retrieve_mooring_areas():
                 if mooring_obj.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_obj.active = False
                     mooring_obj.save()
+            return [], ['stuff updated']
 
     except Exception as e:
-        raise e
-        #logger.error('retrieve_marine_parks() error', exc_info=True)
+        #raise e
+        logger.error('retrieve_mooring_areas() error', exc_info=True)
+        return ['check log',], []
 
 def retrieve_marine_parks():
     try:
@@ -117,11 +130,13 @@ def retrieve_marine_parks():
                 if mooring_bay.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_bay.active = False
                     mooring_bay.save()
+            return [], ['stuff updated']
                 #else:
                 #    mooring_bay.active = True
                 #    mooring_bay.save()
     except Exception as e:
         logger.error('retrieve_marine_parks() error', exc_info=True)
+        return ['check log',], []
 
 def handle_validation_error(e):
     # if hasattr(e, 'error_dict'):
