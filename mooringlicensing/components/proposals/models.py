@@ -998,8 +998,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise serializers.ValidationError('The status provided is not allowed')
         if not self.can_assess(request.user):
             raise exceptions.ProposalNotAuthorized()
-        if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
-            raise ValidationError('You cannot change the current status at this time')
+        # if self.processing_status == Proposal.PROCESSING_STATUS_WITH_REFERRAL or self.can_user_edit:
+        #     raise ValidationError('You cannot change the current status at this time')
 
         if self.processing_status != status:
             if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
