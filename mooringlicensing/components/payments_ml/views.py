@@ -146,6 +146,7 @@ class ApplicationFeeExistingView(TemplateView):
                 set_session_application_invoice(request.session, application_fee)
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
 
+                request.session['db_processes'] = { 'payment_for_existing_invoice': True }
                 checkout_response = checkout_existing_invoice(
                     request,
                     invoice,
@@ -491,11 +492,19 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice = Invoice.objects.get(order_number=order.number)
             invoice_ref = invoice.reference
 
-            fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            if 'fee_constructor_id' in db_operations:
+                # This payment is for the WLA or AAA
+                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                application_fee.fee_constructor = fee_constructor
+                application_fee.invoice_reference = invoice_ref
+            if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
+                # This payment is for the AUA or MLA
+                # application_fee object has already been created when approved
+                proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+                proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+                proposal.save()
 
             # Update the application_fee object
-            application_fee.invoice_reference = invoice_ref
-            application_fee.fee_constructor = fee_constructor
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:

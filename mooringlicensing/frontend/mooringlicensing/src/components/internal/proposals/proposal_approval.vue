@@ -132,8 +132,10 @@
                                     </template>
                                     <template v-else>
                                         <p><strong>Proposed decision: Issue</strong></p>
+<!--
                                         <p><strong>Proposed start date: {{proposal.proposed_issuance_approval.start_date}}</strong></p>
                                         <p><strong>Proposed expiry date: {{proposal.proposed_issuance_approval.expiry_date}}</strong></p>
+-->
                                         <p><strong>Proposed cc emails: {{proposal.proposed_issuance_approval.cc_email}}</strong></p>
                                     </template>
                                 </template>
