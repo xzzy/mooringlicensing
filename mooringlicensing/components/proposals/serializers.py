@@ -973,6 +973,17 @@ class VesselSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class VesselFullSerializer(serializers.ModelSerializer):
+    vessel_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vessel
+        fields = '__all__'
+
+    def get_vessel_details(self, obj):
+        return VesselDetailsSerializer(obj.latest_vessel_details).data
+
+
 class ListVesselDetailsSerializer(serializers.ModelSerializer):
     rego_no = serializers.SerializerMethodField()
     vessel_length = serializers.SerializerMethodField()
@@ -1050,6 +1061,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
     read_only = serializers.SerializerMethodField()
+    vessel_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
@@ -1070,7 +1082,11 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
                 #'status',
                 'exported',
                 'read_only',
+                'vessel_type_display',
                 )
+
+    def get_vessel_type_display(self, obj):
+        return obj.get_vessel_type_display()
 
     def get_read_only(self, obj):
         # ???

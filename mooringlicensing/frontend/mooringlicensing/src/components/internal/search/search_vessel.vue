@@ -1,19 +1,18 @@
 <template lang="html">
-    <FormSection label="Search Mooring" Index="search_mooring">
+    <FormSection label="Search Vessels" Index="search_vessel">
         <div class="row form-group">
-                <label for="mooring_lookup" class="col-sm-3 control-label">Mooring</label>
+                <label for="vessel_lookup" class="col-sm-3 control-label">Search Vessel by registration number or name</label>
                 <div class="col-sm-6">
                     <select 
-                        id="mooring_lookup"  
-                        name="mooring_lookup"  
-                        ref="mooring_lookup" 
+                        id="vessel_lookup"  
+                        ref="vessel_lookup" 
                         class="form-control" 
                     />
                 </div>
                 <div class="col-sm-3">
                     <input 
                     type="button" 
-                    @click.prevent="openMooring" 
+                    @click.prevent="openVessel" 
                     class="btn btn-primary" 
                     value="View Details"
                     />
@@ -36,39 +35,39 @@ import {
 }
 from '@/utils/hooks'
     export default {
-        name:'SearchMooring',
+        name:'SearchVessel',
         components:{
             FormSection,
         },
          data:function () {
             return {
-                selectedMooring: null,
+                selectedVessel: null,
              }
         },
         computed: {
         },
         methods:{
-            openMooring: function() {
-                console.log("open mooring");
+            openVessel: function() {
+                console.log("open vessel");
                 this.$nextTick(() => {
-                    if (this.selectedMooring) {
+                    if (this.selectedVessel) {
                         this.$router.push({
-                            name: 'internal-mooring-detail',
-                            params: {"mooring_id": this.selectedMooring},
+                            name: 'internal-vessel-detail',
+                            params: {"vessel_id": this.selectedVessel},
                         });
                     }
                 });
 
             },
-            initialiseMooringLookup: function(){
+            initialiseVesselLookup: function(){
                 let vm = this;
-                $(vm.$refs.mooring_lookup).select2({
+                $(vm.$refs.vessel_lookup).select2({
                     minimumInputLength: 2,
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:"Select Mooring",
+                    placeholder:"Select Vessel",
                     ajax: {
-                        url: api_endpoints.mooring_lookup,
+                        url: api_endpoints.vessel_lookup,
                         //url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
@@ -83,11 +82,11 @@ from '@/utils/hooks'
                 on("select2:select", function (e) {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
-                    vm.selectedMooring = data;
+                    vm.selectedVessel = data;
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selectedMooring = null;
+                    vm.selectedVessel = null;
                 }).
                 on("select2:open",function (e) {
                     const searchField = $(".select2-search__field")
@@ -98,7 +97,7 @@ from '@/utils/hooks'
         },
         mounted: function () {
             this.$nextTick(async () => {
-                this.initialiseMooringLookup();
+                this.initialiseVesselLookup();
             });
         },
         created: async function() {

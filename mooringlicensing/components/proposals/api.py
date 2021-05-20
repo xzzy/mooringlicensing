@@ -107,6 +107,7 @@ from mooringlicensing.components.proposals.serializers import (
     SaveVesselOwnershipSaleDateSerializer,
     VesselOwnershipSaleDateSerializer,
     MooringSerializer,
+    VesselFullSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -164,6 +165,26 @@ class GetDcvVesselRegoNos(views.APIView):
             data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return add_cache_control(Response())
+
+
+class GetVessel(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data = VesselDetails.filtered_objects.filter(
+                    Q(vessel__rego_no__icontains=search_term) | 
+                    Q(vessel_name__icontains=search_term)
+                    )[:10]
+            data_transform = []
+            for vd in data:
+                data_transform.append({
+                    'id': vd.vessel.id, 
+                    'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    })
+            return Response({"results": data_transform})
+        return Response()
 
 
 class GetMooring(views.APIView):
@@ -1552,6 +1573,13 @@ class VesselViewSet(viewsets.ModelViewSet):
                 return add_cache_control(Response())
         return add_cache_control(Response())
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def full_details(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        return Response(VesselFullSerializer(vessel).data)
+
+ 
     @detail_route(methods=['GET',])
     @basic_exception_handler
     def lookup_vessel(self, request, *args, **kwargs):
