@@ -80,10 +80,10 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_types = vm.approvalTypesToDisplay.join(',');
+                        d.filter_approval_type = vm.approvalTypesToDisplay.join(',');
 
                         // Add filters selected
-                        d.filter_approval_type = vm.filterApprovalType;
+                        //d.filter_approval_type = vm.filterApprovalType;
                         d.filter_approval_status = vm.filterApprovalStatus;
                     }
                 },

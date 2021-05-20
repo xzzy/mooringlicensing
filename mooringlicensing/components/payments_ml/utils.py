@@ -1,4 +1,5 @@
 import logging
+from _pydecimal import Decimal
 from datetime import datetime
 
 import pytz
@@ -279,3 +280,12 @@ def delete_session_dcv_admission_invoice(session):
     if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
         del session[NAME_SESSION_DCV_ADMISSION_INVOICE]
         session.modified = True
+
+
+def make_serializable(line_items):
+    for line in line_items:
+        for key in line:
+            if isinstance(line[key], Decimal):
+                # Convert Decimal to str
+                line[key] = str(line[key])
+    return line_items

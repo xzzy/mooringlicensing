@@ -178,6 +178,7 @@ export default {
             }
         },
         column_status: function(){
+            let vm = this
             return {
                 // 5. Status
                 data: "id",
@@ -185,6 +186,9 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    if (vm.is_internal){
+                        return full.processing_status
+                    }
                     return full.customer_status
                 }
             }
@@ -361,6 +365,7 @@ export default {
                         d.filter_application_type = vm.filterApplicationType
                         d.filter_application_status = vm.filterApplicationStatus
                         d.filter_applicant = vm.filterApplicant
+                        d.level = vm.level
                     }
                 },
                 dom: 'lBfrtip',
@@ -419,7 +424,11 @@ export default {
 
             // Application Statuses
             vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                vm.application_statuses = response.body
+                if (vm.is_internal){
+                    vm.application_statuses = response.body.internal_statuses
+                } else {
+                    vm.application_statuses = response.body.external_statuses
+                }
             },(error) => {
                 console.log(error);
             })

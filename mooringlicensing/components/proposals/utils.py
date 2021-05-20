@@ -783,9 +783,14 @@ def proposal_submit(proposal,request):
         ret2 = True
 
         if ret1 and ret2:
-            proposal.processing_status = 'with_assessor'
-            proposal.customer_status = 'with_assessor'
-        #    #proposal.documents.all().update(can_delete=False)
+            proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+
+            if proposal.application_type.code == AuthorisedUserApplication.code and proposal.mooring_authorisation_preference.lower() != 'ria':
+                proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+                proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
+
+            #    #proposal.documents.all().update(can_delete=False)
         #    #proposal.required_documents.all().update(can_delete=False)
             proposal.save()
         else:

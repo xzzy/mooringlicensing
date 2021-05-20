@@ -277,7 +277,9 @@ class GetApplicationStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
+        data_ext = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
+        data_int = [{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES]
+        data = {'internal_statuses': data_int, 'external_statuses': data_ext}
         return add_cache_control(Response(data))
 
 
@@ -326,6 +328,8 @@ class ProposalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
+        level = request.GET.get('level', 'external')  # Check where the request comes from
+
         filter_application_type = request.GET.get('filter_application_type')
         if filter_application_type and not filter_application_type.lower() == 'all':
             q = None
@@ -338,7 +342,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         filter_application_status = request.GET.get('filter_application_status')
         if filter_application_status and not filter_application_status.lower() == 'all':
-            queryset = queryset.filter(customer_status=filter_application_status)
+            if level == 'internal':
+                queryset = queryset.filter(processing_status=filter_application_status)
+            else:
+                queryset = queryset.filter(customer_status=filter_application_status)
 
         filter_applicant_id = request.GET.get('filter_applicant')
         if filter_applicant_id and not filter_applicant_id.lower() == 'all':
@@ -922,8 +929,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.proposed_approval(request,serializer.validated_data)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        # instance.proposed_approval(request, serializer.validated_data)
+        instance = instance.child_obj.proposed_approval(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return add_cache_control(Response(serializer.data))
