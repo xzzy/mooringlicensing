@@ -34,6 +34,7 @@
                     @proposedApproval="proposedApproval"
                     @issueProposal="issueProposal"
                     @declineProposal="declineProposal"
+                    @assignRequestUser="assignRequestUser"
                 />
 
             </div>
@@ -41,19 +42,14 @@
             <div class="col-md-1"></div>
 
             <div class="col-md-8">
-                <!-- 
-                    Main content here, which probably is a component, such as
-                    <ProposalForm(read-only)>
-                    <ProposalConditions>
-                    <ProposalProposedDecision>
-                    ...
-                -->
+                <!-- Main contents -->
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <WaitingListApplication
                         v-if="proposal && proposal.application_type_dict.code==='wla'"
                         :proposal="proposal" 
                         :show_application_title="false"
                         :is_external="false" 
+                        :is_internal="true" 
                         ref="waiting_list_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
@@ -66,6 +62,7 @@
                         :proposal="proposal" 
                         :show_application_title="false"
                         :is_external="false" 
+                        :is_internal="true" 
                         ref="annual_admission_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
@@ -76,6 +73,7 @@
                         :proposal="proposal" 
                         :show_application_title="false"
                         :is_external="false" 
+                        :is_internal="true" 
                         ref="authorised_user_application"
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
@@ -85,6 +83,7 @@
                         :proposal="proposal" 
                         :show_application_title="false"
                         :is_external="false" 
+                        :is_internal="true" 
                         ref="mooring_licence_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
@@ -396,11 +395,13 @@ export default {
             }
         },
         display_approval_screen: function(){
-            console.log('in display_approval_screen')
+            console.log(this.proposal.processing_status)
+            console.log(constants.AWAITING_PAYMENT)
             let ret_val = 
                 this.proposal.processing_status == constants.WITH_APPROVER || 
+                this.proposal.processing_status == constants.AWAITING_PAYMENT ||
                 this.isFinalised
-            console.log(ret_val)
+            console.log('display_approval_screen: ' + ret_val)
             return ret_val
         },
         display_requirements: function(){
@@ -682,7 +683,7 @@ export default {
         },
         assignRequestUser: function(){
             let vm = this;
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id+'/assign_request_user')))
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/assign_request_user')))
             .then((response) => {
                 vm.proposal = response.body;
                 vm.original_proposal = helpers.copyObject(response.body);

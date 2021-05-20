@@ -389,10 +389,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_TEMP = 'temp'
     PROCESSING_STATUS_DRAFT = 'draft'
     PROCESSING_STATUS_WITH_ASSESSOR = 'with_assessor'
-    PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR = 'with_district_assessor'
-    PROCESSING_STATUS_ONHOLD = 'on_hold'
-    PROCESSING_STATUS_WITH_QA_OFFICER = 'with_qa_officer'
-    PROCESSING_STATUS_WITH_REFERRAL = 'with_referral'
+    # PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR = 'with_district_assessor'
+    # PROCESSING_STATUS_ONHOLD = 'on_hold'
+    # PROCESSING_STATUS_WITH_QA_OFFICER = 'with_qa_officer'
+    # PROCESSING_STATUS_WITH_REFERRAL = 'with_referral'
     PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS = 'with_assessor_requirements'
     PROCESSING_STATUS_WITH_APPROVER = 'with_approver'
     PROCESSING_STATUS_RENEWAL = 'renewal'
@@ -413,10 +413,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_TEMP, 'Temporary'),
                                  (PROCESSING_STATUS_DRAFT, 'Draft'),
                                  (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
-                                 (PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR, 'With District Assessor'),
-                                 (PROCESSING_STATUS_ONHOLD, 'On Hold'),
-                                 (PROCESSING_STATUS_WITH_QA_OFFICER, 'With QA Officer'),
-                                 (PROCESSING_STATUS_WITH_REFERRAL, 'With Referral'),
+                                 # (PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR, 'With District Assessor'),
+                                 # (PROCESSING_STATUS_ONHOLD, 'On Hold'),
+                                 # (PROCESSING_STATUS_WITH_QA_OFFICER, 'With QA Officer'),
+                                 # (PROCESSING_STATUS_WITH_REFERRAL, 'With Referral'),
                                  (PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, 'With Assessor (Requirements)'),
                                  (PROCESSING_STATUS_WITH_APPROVER, 'With Approver'),
                                  (PROCESSING_STATUS_RENEWAL, 'Renewal'),
@@ -768,7 +768,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def can_officer_process(self):
         """ :return: True if the application is in one of the processable status for Assessor role."""
-        officer_view_state = ['draft','approved','declined','temp','discarded', 'with_referral', 'with_qa_officer', 'waiting_payment', 'partially_approved', 'partially_declined', 'with_district_assessor']
+        officer_view_state = ['draft','approved','declined','temp','discarded', 'with_referral', 'with_qa_officer', 'awaiting_payment', 'partially_approved', 'partially_declined', 'with_district_assessor']
         return False if self.processing_status in officer_view_state else True
 
     @property
@@ -791,39 +791,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
 
     def __assessor_group(self):
-        # TODO get list of assessor groups based on region and activity
-        #if self.region and self.activity:
-        #    try:
-        #        check_group = ProposalAssessorGroup.objects.filter(
-        #            #activities__name__in=[self.activity],
-        #            region__name__in=self.regions_list
-        #        ).distinct()
-        #        if check_group:
-        #            return check_group[0]
-        #    except ProposalAssessorGroup.DoesNotExist:
-        #        pass
-        #default_group = ProposalAssessorGroup.objects.get(default=True)
         return ProposalAssessorGroup.objects.first()
 
-        #return default_group
-
-
     def __approver_group(self):
-        # TODO get list of approver groups based on region and activity
-        #if self.region and self.activity:
-        #    try:
-        #        check_group = ProposalApproverGroup.objects.filter(
-        #            #activities__name__in=[self.activity],
-        #            region__name__in=self.regions_list
-        #        ).distinct()
-        #        if check_group:
-        #            return check_group[0]
-        #    except ProposalApproverGroup.DoesNotExist:
-        #        pass
-        #default_group = ProposalApproverGroup.objects.get(default=True)
         return ProposalApproverGroup.objects.first()
-
-        #return default_group
 
     def __check_proposal_filled_out(self):
         if not self.data:
@@ -857,25 +828,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #    return recipients
 
     #Check if the user is member of assessor group for the Proposal
-    def is_assessor(self,user):
+    def is_assessor(self, user):
         return self.__assessor_group() in user.proposalassessorgroup_set.all()
 
     #Check if the user is member of assessor group for the Proposal
-    def is_approver(self,user):
+    def is_approver(self, user):
         return self.__approver_group() in user.proposalapprovergroup_set.all()
 
-
-    def can_assess(self,user):
+    def can_assess(self, user):
         #if self.processing_status == 'on_hold' or self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements':
-        if self.processing_status in ['on_hold', 'with_qa_officer', 'with_assessor', 'with_referral', 'with_assessor_requirements']:
+        # if self.processing_status in ['on_hold', 'with_qa_officer', 'with_assessor', 'with_referral', 'with_assessor_requirements']:
+        if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS]:
             return self.__assessor_group() in user.proposalassessorgroup_set.all()
-        elif self.processing_status == 'with_approver':
+        elif self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_AWAITING_STICKER]:
             return self.__approver_group() in user.proposalapprovergroup_set.all()
         else:
             return False
 
-    def assessor_comments_view(self,user):
-
+    def assessor_comments_view(self, user):
         if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver':
             try:
                 referral = Referral.objects.get(proposal=self,referral=user)
@@ -893,7 +863,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return False
 
     def has_assessor_mode(self,user):
-        status_without_assessor = ['with_approver','approved','waiting_payment','declined','draft']
+        status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
         if self.processing_status in status_without_assessor:
             return False
         else:
@@ -922,7 +892,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             else:
                 raise ValidationError('You can\'t edit this proposal at this moment')
 
-    def assign_officer(self,request,officer):
+    def assign_officer(self, request, officer):
         with transaction.atomic():
             try:
                 if not self.can_assess(request.user):
