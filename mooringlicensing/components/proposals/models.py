@@ -2038,6 +2038,28 @@ class MooringBay(models.Model):
         app_label = 'mooringlicensing'
 
 
+# not for admin - data comes from Mooring Bookings
+class Mooring(models.Model):
+    name = models.CharField(max_length=100)
+    mooring_bay = models.ForeignKey(MooringBay)
+    active = models.BooleanField(default=True)
+    vessel_size_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
+    vessel_draft_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_beam_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_weight_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    # stored for debugging purposes, not used in ML
+    mooring_bookings_id = models.IntegerField()
+    mooring_bookings_mooring_specification = models.IntegerField()
+    mooring_bookings_bay_id = models.IntegerField()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Moorings"
+        app_label = 'mooringlicensing'
+
+
 # class VesselSizeCategory(models.Model):
 #
 #     STATUS = (
@@ -2188,7 +2210,7 @@ class VesselOwnership(models.Model):
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True)
+    end_date = models.DateField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
     # for cron job
