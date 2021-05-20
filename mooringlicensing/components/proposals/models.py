@@ -345,6 +345,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
     CUSTOMER_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
+    CUSTOMER_STATUS_AWAITING_STICKER = 'awaiting_sticker'
     # CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DECLINED = 'declined'
@@ -357,6 +358,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
         (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
         (CUSTOMER_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
+        (CUSTOMER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
         # (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
         (CUSTOMER_STATUS_APPROVED, 'Approved'),
         (CUSTOMER_STATUS_DECLINED, 'Declined'),
@@ -1822,7 +1824,7 @@ class AnnualAdmissionApplication(Proposal):
                         'cc_email': details.get('cc_email')
                     }
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-                # self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
 
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
