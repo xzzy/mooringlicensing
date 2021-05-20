@@ -1578,7 +1578,6 @@ class VesselViewSet(viewsets.ModelViewSet):
     def full_details(self, request, *args, **kwargs):
         vessel = self.get_object()
         return Response(VesselFullSerializer(vessel).data)
-
  
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -1717,6 +1716,13 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Mooring.objects.filter(active=True)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def internal_list(self, request, *args, **kwargs):
+        # add security
+        serializer = MooringSerializer(Mooring.objects.all(), many=True)
+        return Response(serializer.data)
 
 
 class ProposalAssessmentViewSet(viewsets.ModelViewSet):
