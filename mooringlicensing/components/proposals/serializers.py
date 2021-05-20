@@ -5,38 +5,18 @@ from ledger.payments.invoice.models import Invoice
 #from datetime import date
 
 from mooringlicensing.components.proposals.models import (
-    # ProposalType,
     Proposal,
     ProposalUserAction,
     ProposalLogEntry,
-    # Referral,
     ProposalRequirement,
     ProposalStandardRequirement,
     ProposalDeclinedDetails,
     AmendmentRequest,
     AmendmentReason,
-    # ProposalApplicantDetails,
-    # ProposalActivitiesLand,
-    # ProposalActivitiesMarine,
-    # ProposalPark,
-    # ProposalParkActivity,
-    # Vehicle,
-    # Vessel,
-    # ProposalTrail,
-    # QAOfficerReferral,
-    # ProposalParkAccess,
-    # ProposalTrailSection,
-    # ProposalTrailSectionActivity,
-    # ProposalParkZoneActivity,
-    # ProposalParkZone,
-    # ProposalOtherDetails,
-    # ProposalAccreditation,
     ChecklistQuestion,
     ProposalAssessmentAnswer,
     ProposalAssessment,
     RequirementDocument,
-    # DistrictProposal,
-    # DistrictProposalDeclinedDetails,
     VesselDetails,
     VesselOwnership,
     Vessel,
@@ -44,6 +24,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalType,
     Company,
     CompanyOwnership,
+    Mooring,
 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -1225,6 +1206,17 @@ class MooringBaySerializer(serializers.ModelSerializer):
     class Meta:
         model = MooringBay
         fields = '__all__'
+
+
+class MooringSerializer(serializers.ModelSerializer):
+    mooring_bay_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Mooring
+        fields = '__all__'
+
+    def get_mooring_bay_name(self, obj):
+        return obj.mooring_bay.name
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):

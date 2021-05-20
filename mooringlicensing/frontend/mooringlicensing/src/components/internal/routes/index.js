@@ -10,6 +10,7 @@ import ComplianceDash from '@/components/internal/compliances/dashboard.vue'
 import StickersDash from '@/components/internal/stickers/dashboard.vue'
 import WaitingListDash from '@/components/internal/waiting_list/dashboard.vue'
 import MooringsDash from '@/components/internal/moorings/dashboard.vue'
+import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
 /*
 import User from '../users/manage.vue'
@@ -60,8 +61,25 @@ export default
         },
         {
             path: 'moorings',
-            component: MooringsDash,
-            name: "internal-moorings-dash"
+            //component: MooringsDash,
+            component: {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: '/',
+                    component: MooringsDash,
+                    name: "internal-moorings-dash",
+                },
+                {
+                    path: ':mooring_id',
+                    component: MooringDetail,
+                    name:"internal-mooring-detail"
+                },
+            ]
         },
         {
             path: 'sticker',
