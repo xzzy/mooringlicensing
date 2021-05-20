@@ -837,7 +837,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.assign_officer(request,request.user)
+        instance.assign_officer(request, request.user)
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})

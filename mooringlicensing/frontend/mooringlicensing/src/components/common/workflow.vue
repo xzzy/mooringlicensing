@@ -327,6 +327,9 @@ export default {
         }
     },
     methods: {
+        assignRequestUser: function(){
+            this.$emit('assignRequestUser')
+        },
         toggleProposal:function(){
             this.showingProposal = !this.showingProposal;
             this.$emit('toggleProposal', this.showingProposal)
