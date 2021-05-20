@@ -391,7 +391,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             }
         except ObjectDoesNotExist:
             # Should not reach here
-            logger.error('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
+            logger.warn('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
             return {
                 'code': 'child-obj-notfound',
                 'description': 'child-obj-notfound',

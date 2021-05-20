@@ -780,7 +780,6 @@ export default {
                 console.log(vm.proposal_form_url)
                 vm.$http.post(vm.proposal_form_url, formData).then(res=>{ //save Proposal before changing status so that unsaved assessor data is saved.
                     let data = {'status': status, 'approver_comment': vm.approver_comment}
-                    console.log(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')))
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')), JSON.stringify(data),{
                         emulateJSON:true,
                     })

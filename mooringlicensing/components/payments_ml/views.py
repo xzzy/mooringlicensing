@@ -22,7 +22,8 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCo
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
-    create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice
+    create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
+    checkout_existing_invoice
 from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup
 from mooringlicensing.components.proposals.utils import proposal_submit
 
@@ -130,6 +131,37 @@ class ConfirmationView(TemplateView):
         # serializer = ApprovalLogEntrySerializer(data=email_data)
         # serializer.is_valid(raise_exception=True)
         # serializer.save()
+
+
+class ApplicationFeeExistingView(TemplateView):
+    def get_object(self):
+        return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
+
+    def get(self, request, *args, **kwargs):
+        proposal = self.get_object()
+        application_fee = proposal.application_fees.first()
+
+        try:
+            with transaction.atomic():
+                set_session_application_invoice(request.session, application_fee)
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+
+                checkout_response = checkout_existing_invoice(
+                    request,
+                    invoice,
+                    return_url_ns='fee_success',
+                )
+
+                logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format(
+                    'User {} with id {}'.format(
+                        request.user.get_full_name(), request.user.id
+                    ), application_fee.proposal.lodgement_number
+                ))
+                return checkout_response
+
+        except Exception as e:
+            logger.error('Error Creating Application Fee: {}'.format(e))
+            raise
 
 
 class ApplicationFeeView(TemplateView):
@@ -612,10 +644,8 @@ class InvoicePDFView(View):
             logger.error('Error accessing the Invoice :{}'.format(e))
             raise
 
-
     def get_object(self):
         return get_object_or_404(Invoice, reference=self.kwargs['reference'])
 
     # def check_owner(self, organisation):
     #     return is_in_organisation_contacts(self.request, organisation) or is_internal(self.request) or self.request.user.is_superuser
-
