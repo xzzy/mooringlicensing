@@ -264,7 +264,10 @@ export default {
             let display = false
             try {
                 if([constants.AU_PROPOSAL, constants.ML_PROPOSAL].includes(this.proposal.application_type_dict.code)){
-                    if(this.proposal.requirements_completed){
+                    //if(this.proposal.requirements_completed){
+                    //    display = true
+                    //}
+                    if(this.proposal.processing_status === constants.WITH_ASSESSOR_REQUIREMENTS){
                         display = true
                     }
                 }
@@ -295,8 +298,8 @@ export default {
                 if(this.proposal.processing_status === constants.WITH_APPROVER){
                     display = true
                 }
-                if(this.proposal.processing_status === constants.WITH_ASSESSOR_REQUIREMENTS){
-                    if([constants.WL_PROPOSAL, constants.AA_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                if([constants.WL_PROPOSAL, constants.AA_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                    if(this.proposal.processing_status === constants.WITH_ASSESSOR_REQUIREMENTS){
                         display = true
                     }
                 }
