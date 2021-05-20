@@ -1056,22 +1056,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_assessor':
+                if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     raise ValidationError('You cannot propose to decline if it is not with assessor')
 
                 reason = details.get('reason')
                 ProposalDeclinedDetails.objects.update_or_create(
-                    proposal = self,
-                    defaults={'officer': request.user, 'reason': reason, 'cc_email': details.get('cc_email',None)}
+                    proposal=self,
+                    defaults={'officer': request.user, 'reason': reason, 'cc_email': details.get('cc_email', None)}
                 )
                 self.proposed_decline_status = True
                 approver_comment = ''
-                self.move_to_status(request,'with_approver', approver_comment)
+                self.move_to_status(request, Proposal.PROCESSING_STATUS_WITH_APPROVER, approver_comment)
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
                 # Log entry for organisation
-                applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id),request)
+                applicant_field = getattr(self, self.applicant_field)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
                 send_approver_decline_email_notification(reason, request, self)
             except:
@@ -1082,8 +1082,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'with_approver':
-                    raise ValidationError('You cannot decline if it is not with approver')
+
+                if self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
+                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
+                        # For WLA or AAA, assessor can final decline
+                        raise ValidationError('You cannot decline if it is not with approver')
+                else:
+                    if self.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER:
+                        # For AuA or MLA, approver can final decline
+                        raise ValidationError('You cannot decline if it is not with approver')
 
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
                     proposal = self,
@@ -1762,34 +1769,6 @@ class WaitingListApplication(Proposal):
             except:
                 raise
 
-    def final_decline(self, request, details):
-        with transaction.atomic():
-            try:
-                if not self.can_assess(request.user):
-                    raise exceptions.ProposalNotAuthorized()
-                if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
-                    raise ValidationError('You cannot decline if it is not with approver')
-
-                proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
-                    proposal=self,
-                    defaults={'officer': request.user, 'reason': details.get('reason'), 'cc_email': details.get('cc_email', None)}
-                )
-                self.proposed_decline_status = True
-                self.processing_status = 'declined'
-                self.customer_status = 'declined'
-                self.save()
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
-                # Log entry for organisation
-                applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id), request)
-                send_proposal_decline_email_notification(self, request, proposal_decline)
-
-                return self
-
-            except:
-                raise
-
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -1917,9 +1896,6 @@ class AnnualAdmissionApplication(Proposal):
 
             except:
                 raise
-
-    def final_decline(self, request, details):
-        raise NotImplementedError('Implement AnnualAdmissionApplication.final_decline()  Remember to return self')
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2110,8 +2086,6 @@ class AuthorisedUserApplication(Proposal):
             except:
                 raise
 
-    def final_decline(self, request, details):
-        raise NotImplementedError('Implement AuthorisedUserApplication.final_decline() Remember to return self')
 
     def proposed_approval(self, request, details):
         with transaction.atomic():
@@ -2171,9 +2145,6 @@ class MooringLicenceApplication(Proposal):
 
     def final_approval(self, request, details):
         raise NotImplementedError('Implement MooringLicenceApplication.final_approval() Remember to return self')
-
-    def final_decline(self, request, details):
-        raise NotImplementedError('Implement MooringLicenceApplication.final_decline() Remember to return self')
 
     def proposed_approval(self, request, details):
         raise NotImplementedError('Implement MooringLicenceApplication.proposed_approval() Remember to return self')
@@ -2489,7 +2460,7 @@ class ElectoralRollDocument(Document):
         verbose_name = "Electoral Roll Document"
 
 
-# Vessel details per Proposal 
+# Vessel details per Proposal
 # - allows for customer to edit vessel details during application process
 #class VesselRelations(models.Model):
 #    vessel = models.ForeignKey(Vessel, blank=False, null=False)
@@ -3190,8 +3161,8 @@ class HelpPage(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
         unique_together = (
-                #'application_type', 
-                'help_type', 
+                #'application_type',
+                'help_type',
                 'version'
                 )
 

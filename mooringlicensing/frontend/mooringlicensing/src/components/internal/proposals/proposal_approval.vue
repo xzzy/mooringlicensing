@@ -15,10 +15,10 @@
             </div>
             <div v-else class="col-md-12 alert alert-warning">
                 <div v-if="proposal.proposal_apiary">
-                    <p>The application was declined. The decision was emailed to {{proposal.applicant.name}}</p>
+                    <p>The application was declined. The decision was emailed to {{ proposal.submitter.email }}</p>
                 </div>
                 <div v-else>
-                    <p>The proposal was declined. The decision was emailed to {{proposal.applicant.name}}</p>
+                    <p>The proposal was declined. The decision was emailed to {{ proposal.submitter.email }}</p>
                 </div>
             </div>
         </template>
