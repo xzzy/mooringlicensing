@@ -71,6 +71,7 @@ from mooringlicensing.components.proposals.models import (
     Owner,
     Company,
     CompanyOwnership,
+    Mooring,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -105,6 +106,7 @@ from mooringlicensing.components.proposals.serializers import (
     CompanySerializer,
     SaveVesselOwnershipSaleDateSerializer,
     VesselOwnershipSaleDateSerializer,
+    MooringSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -162,6 +164,19 @@ class GetDcvVesselRegoNos(views.APIView):
             data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return add_cache_control(Response())
+
+
+class GetMooring(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        if search_term:
+            data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
+            return Response({"results": data_transform})
+        return Response()
 
 
 #class GetVesselRegoNos(views.APIView):
@@ -1666,6 +1681,14 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return MooringBay.objects.filter(active=True)
+
+
+class MooringViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Mooring.objects.none()
+    serializer_class = MooringSerializer
+
+    def get_queryset(self):
+        return Mooring.objects.filter(active=True)
 
 
 class ProposalAssessmentViewSet(viewsets.ModelViewSet):
