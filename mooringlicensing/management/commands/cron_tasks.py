@@ -13,7 +13,8 @@ import subprocess
 import logging
 logger = logging.getLogger(__name__)
 
-LOGFILE = 'logs/cron_tasks.log'
+#LOGFILE = 'logs/cron_tasks.log'
+LOGFILE = 'logs/run_cron_tasks.log'
 
 class Command(BaseCommand):
     help = 'Run Mooring Licensing Cron tasks'
@@ -32,7 +33,7 @@ class Command(BaseCommand):
         #subprocess.call('python manage_co.py eclass_expiry_notices' + stdout_redirect, shell=True) 
         #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True) 
         #subprocess.call('python manage_co.py monthly_invoices' + stdout_redirect, shell=True) 
-        subprocess.call('python manage_co.py import_mooring_bookings_data' + stdout_redirect, shell=True) 
+        subprocess.call('python manage_ml.py import_mooring_bookings_data' + stdout_redirect, shell=True) 
 
         logger.info('Command {} completed'.format(__name__))
         self.send_email()

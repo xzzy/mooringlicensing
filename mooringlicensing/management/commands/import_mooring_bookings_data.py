@@ -18,6 +18,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         print("import data")
+        #import ipdb; ipdb.set_trace()
         errors, updates = import_mooring_bookings_data()
 
         #errors = []
