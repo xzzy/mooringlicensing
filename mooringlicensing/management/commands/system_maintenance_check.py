@@ -2,8 +2,8 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 import subprocess
 import os
-from commercialoperator.components.main.models import SystemMaintenance
-from commercialoperator.templatetags.users import system_maintenance_can_start
+from mooringlicensing.components.main.models import SystemMaintenance
+from mooringlicensing.templatetags.users import system_maintenance_can_start
 
 import itertools
 
@@ -14,7 +14,7 @@ class Command(BaseCommand):
     """
     Excecuted from cron, eg:
         SHELL=/bin/bash
-        # Execute every minute. Polls the commercialoperator Admin table SystemMaintenance, and checks if the application can be taken down at the time indicated in the Admin table
+        # Execute every minute. Polls the mooringlicensing Admin table SystemMaintenance, and checks if the application can be taken down at the time indicated in the Admin table
         * * * * * root cd /var/www/ubuntu-1604/app-grp1/commercialoperator_prod.8094  && source venv/bin/activate && python manage_ds.py system_maintenance_check >/dev/null 2>&1
 
     CMD's eg:
