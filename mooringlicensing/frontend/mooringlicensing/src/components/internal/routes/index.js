@@ -11,6 +11,7 @@ import StickersDash from '@/components/internal/stickers/dashboard.vue'
 import WaitingListDash from '@/components/internal/waiting_list/dashboard.vue'
 import MooringsDash from '@/components/internal/moorings/dashboard.vue'
 import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
+import VesselDetail from '@/components/internal/vessels/vessel_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
 /*
 import User from '../users/manage.vue'
@@ -81,6 +82,24 @@ export default
                 },
             ]
         },
+        {
+            path: 'vessel',
+            //component: MooringsDash,
+            component: {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: ':vessel_id',
+                    component: VesselDetail,
+                    name:"internal-vessel-detail"
+                },
+            ]
+        },
+
         {
             path: 'sticker',
             component: StickersDash,

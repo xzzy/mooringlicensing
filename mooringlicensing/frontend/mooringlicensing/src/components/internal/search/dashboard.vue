@@ -3,9 +3,7 @@
         <FormSection :formCollapse="false" label="Search Persons" Index="search_persons">
 
         </FormSection>
-        <FormSection :formCollapse="false" label="Search Vessels" Index="search_vessels">
-
-        </FormSection>
+        <SearchVessel />
         <SearchMooring />
         <FormSection :formCollapse="false" label="Search Sticker Number" Index="search_sticker_number">
 
@@ -22,6 +20,7 @@
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
 import SearchMooring from "./search_mooring.vue"
+import SearchVessel from "./search_vessel.vue"
 export default {
     name: 'InternalSearch',
     data() {
@@ -33,6 +32,7 @@ export default {
     components:{
         FormSection,
         SearchMooring,
+        SearchVessel,
     },
     methods: {
 
