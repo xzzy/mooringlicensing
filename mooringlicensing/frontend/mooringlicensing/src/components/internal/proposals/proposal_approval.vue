@@ -1,15 +1,19 @@
 <template id="proposal_requirements">
     <div>
-        <template v-if="isFinalised">
-            <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
-                <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
-                <p>Expiry date: {{approvalExpiryDate}}
-                <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
-            </div>
-            <div v-else class="col-md-12 alert alert-warning">
-                <p>The proposal was declined. The decision was emailed to {{ proposal.submitter.email }}</p>
-            </div>
-        </template>
+        <div v-if="displayApprovedMsg" class="col-md-12 alert alert-success">
+            <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
+            <p>Expiry date: {{ approvalExpiryDate }}
+            <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
+        </div>
+        <div v-if="displayApprovedAwaitingStickerMsg" class="col-md-12 alert alert-success">
+            <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
+            <p>Status: Awaiting Sticker
+            <p>Expiry date: {{ approvalExpiryDate }}
+            <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
+        </div>
+        <div v-if="displayDeclinedMsg" class="col-md-12 alert alert-warning">
+            <p>The proposal was declined. The decision was emailed to {{ proposal.submitter.email }}</p>
+        </div>
 
 <!--
         <template v-if="proposal.proposal_apiary">
@@ -150,6 +154,7 @@ import RequirementDetail from './proposal_add_requirement.vue'
 //import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import uuid from 'uuid'
+import { constants } from '@/utils/hooks'
 
 export default {
     name: 'InternalProposalRequirements',
@@ -172,6 +177,29 @@ export default {
         //ComponentSiteSelection,
     },
     computed:{
+        displayApprovedMsg: function(){
+            let display = false
+            if (this.proposal.processing_status === constants.APPROVED){
+                display = true
+            }
+            return display
+        },
+        displayApprovedAwaitingStickerMsg: function(){
+            console.log('1' + this.proposal.processing_status)
+            console.log('2' + constants.AWAITING_STICKER)
+            let display = false
+            if (this.proposal.processing_status === constants.AWAITING_STICKER){
+                display = true
+            }
+            return display
+        },
+        displayDeclinedMsg: function(){
+            let display = false
+            if (this.proposal.processing_status === constants.DECLINED){
+                display = true
+            }
+            return display
+        },
         /*
         approvalStartDate: function() {
             let returnDate = null;
@@ -183,8 +211,8 @@ export default {
         */
         approvalExpiryDate: function() {
             let returnDate = null;
-            if (this.proposal && this.proposal.approval) {
-                returnDate = moment(this.proposal.approval.expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            if (this.proposal && this.proposal.end_date) {
+                returnDate = moment(this.proposal.end_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
             return returnDate;
         },

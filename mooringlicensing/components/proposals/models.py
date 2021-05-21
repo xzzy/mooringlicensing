@@ -1311,7 +1311,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval, created = Approval.objects.update_or_create(
                             current_proposal=checking_proposal,
                             defaults={
-                                'issue_date': timezone.now(),
+                                'issue_date': current_datetime,
                                 # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                                 # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
@@ -1332,7 +1332,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval, created = Approval.objects.update_or_create(
                             current_proposal=checking_proposal,
                             defaults={
-                                'issue_date': timezone.now(),
+                                'issue_date': current_datetime,
                                 # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                                 # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
@@ -1350,7 +1350,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     approval, created = Approval.objects.update_or_create(
                         current_proposal=checking_proposal,
                         defaults={
-                            'issue_date': timezone.now(),
+                            'issue_date': current_datetime,
                             'start_date': current_date,
                             'expiry_date': self.end_date,
                             'submitter': self.submitter,
@@ -1438,7 +1438,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if line_items:
                     with transaction.atomic():
                         try:
-                            logger.info('Creating filming fee invoice')
+                            logger.info('Creating invoice for the application: {}'.format(self))
 
                             basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
                             order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
@@ -1482,7 +1482,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval, created = Approval.objects.update_or_create(
                             current_proposal=checking_proposal,
                             defaults={
-                                'issue_date': timezone.now(),
+                                'issue_date': current_datetime,
                                 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
@@ -1502,7 +1502,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval, created = Approval.objects.update_or_create(
                             current_proposal=checking_proposal,
                             defaults={
-                                'issue_date': timezone.now(),
+                                'issue_date': current_datetime,
                                 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                                 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                                 'submitter': self.submitter,
@@ -1515,10 +1515,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             previous_approval.replaced_by = approval
                             previous_approval.save()
                 else:
+                    # TODO: It's too early to create approval here!!!  Approval should be created after payment
                     approval, created = Approval.objects.update_or_create(
                         current_proposal=checking_proposal,
                         defaults={
-                            'issue_date': timezone.now(),
+                            'issue_date': current_datetime,
                             # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
                             # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
                             'start_date': current_date.strftime('%Y-%m-%d'),
