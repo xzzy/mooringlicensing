@@ -135,6 +135,7 @@ MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'mooringlicensing')
 ADMIN_GROUP = env('ADMIN_GROUP', 'MooringLicensing Admin')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '04:05')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
+CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 EMAIL_FROM = DEFAULT_FROM_EMAIL
 
 BASE_URL=env('BASE_URL')
@@ -150,8 +151,9 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-if env('CONSOLE_EMAIL_BACKEND', False):
-   EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
+if CONSOLE_EMAIL_BACKEND:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
 OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
