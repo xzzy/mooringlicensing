@@ -2,40 +2,21 @@ from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
 from ledger.payments.invoice.models import Invoice
+#from datetime import date
 
 from mooringlicensing.components.proposals.models import (
-    # ProposalType,
     Proposal,
     ProposalUserAction,
     ProposalLogEntry,
-    # Referral,
     ProposalRequirement,
     ProposalStandardRequirement,
     ProposalDeclinedDetails,
     AmendmentRequest,
     AmendmentReason,
-    # ProposalApplicantDetails,
-    # ProposalActivitiesLand,
-    # ProposalActivitiesMarine,
-    # ProposalPark,
-    # ProposalParkActivity,
-    # Vehicle,
-    # Vessel,
-    # ProposalTrail,
-    # QAOfficerReferral,
-    # ProposalParkAccess,
-    # ProposalTrailSection,
-    # ProposalTrailSectionActivity,
-    # ProposalParkZoneActivity,
-    # ProposalParkZone,
-    # ProposalOtherDetails,
-    # ProposalAccreditation,
     ChecklistQuestion,
     ProposalAssessmentAnswer,
     ProposalAssessment,
     RequirementDocument,
-    # DistrictProposal,
-    # DistrictProposalDeclinedDetails,
     VesselDetails,
     VesselOwnership,
     Vessel,
@@ -43,6 +24,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalType,
     Company,
     CompanyOwnership,
+    Mooring,
 )
 from mooringlicensing.components.organisations.models import (
                                 Organisation
@@ -991,6 +973,17 @@ class VesselSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class VesselFullSerializer(serializers.ModelSerializer):
+    vessel_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vessel
+        fields = '__all__'
+
+    def get_vessel_details(self, obj):
+        return VesselDetailsSerializer(obj.latest_vessel_details).data
+
+
 class ListVesselDetailsSerializer(serializers.ModelSerializer):
     rego_no = serializers.SerializerMethodField()
     vessel_length = serializers.SerializerMethodField()
@@ -1029,6 +1022,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
     emailuser = serializers.SerializerMethodField()
     owner_name = serializers.SerializerMethodField()
     percentage = serializers.SerializerMethodField()
+    record_sale_link = serializers.SerializerMethodField()
     class Meta:
         model = VesselOwnership
         fields = (
@@ -1037,6 +1031,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner_name',
                 'percentage',
                 'vessel_details',
+                'record_sale_link',
                 )
 
     def get_emailuser(self, obj):
@@ -1059,9 +1054,14 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         else:
             return obj.percentage
 
+    def get_record_sale_link(self, obj):
+        #return '<a href="{}" class="action-{}" data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id, obj.id)
+        #return '<a href=# class="action-{}" data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
+        return '<a href=# data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
 
 class VesselDetailsSerializer(serializers.ModelSerializer):
     read_only = serializers.SerializerMethodField()
+    vessel_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselDetails
@@ -1082,7 +1082,11 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
                 #'status',
                 'exported',
                 'read_only',
+                'vessel_type_display',
                 )
+
+    def get_vessel_type_display(self, obj):
+        return obj.get_vessel_type_display()
 
     def get_read_only(self, obj):
         # ???
@@ -1129,6 +1133,31 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = VesselOwnership
         fields = '__all__'
+
+
+class SaveVesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
+    end_date = serializers.DateTimeField(input_formats=['%d/%m/%Y'],required=True,allow_null=False)
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'end_date',
+                )
+
+
+class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
+    end_date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'end_date',
+                )
+
+    def get_end_date(self, obj):
+        if obj.end_date:
+            return obj.end_date.strftime('%d/%m/%Y')
+
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
@@ -1193,6 +1222,17 @@ class MooringBaySerializer(serializers.ModelSerializer):
     class Meta:
         model = MooringBay
         fields = '__all__'
+
+
+class MooringSerializer(serializers.ModelSerializer):
+    mooring_bay_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Mooring
+        fields = '__all__'
+
+    def get_mooring_bay_name(self, obj):
+        return obj.mooring_bay.name
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
