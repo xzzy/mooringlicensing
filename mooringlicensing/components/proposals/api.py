@@ -191,10 +191,14 @@ class GetMooring(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        private_moorings = request.GET.get('private_moorings')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+            if private_moorings:
+                data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+            else:
+                data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             return Response({"results": data_transform})
         return Response()

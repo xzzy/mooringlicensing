@@ -28,8 +28,14 @@
             </div>
             <div class="row form-group">
                 <label for="mooring_site_id" class="col-sm-3 control-label">Mooring site ID</label>
-                <div class="col-sm-9">
-                    <input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/>
+                <div class="col-sm-4">
+                    <select 
+                        id="mooring_lookup"  
+                        name="mooring_lookup"  
+                        ref="mooring_lookup" 
+                        class="form-control" 
+                    />
+                    <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
                 </div>
             </div>
         </div>
@@ -127,6 +133,43 @@ import draggable from 'vuedraggable';
                     }
                 }
             },
+            initialiseMooringLookup: function(){
+                let vm = this;
+                $(vm.$refs.mooring_lookup).select2({
+                    minimumInputLength: 2,
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Mooring",
+                    ajax: {
+                        url: api_endpoints.mooring_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                                private_moorings: true,
+                            }
+                            return query;
+                        },
+                    },
+                }).
+                on("select2:select", function (e) {
+                    var selected = $(e.currentTarget);
+                    let data = e.params.data.id;
+                    vm.mooringSiteId = data;
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.mooringSiteId = null;
+                }).
+                on("select2:open",function (e) {
+                    const searchField = $(".select2-search__field")
+                    // move focus to select2 field
+                    searchField[0].focus();
+                });
+            },
+
         },
         mounted:function () {
             this.$nextTick(async () => {
@@ -140,6 +183,7 @@ import draggable from 'vuedraggable';
                 if (this.proposal.mooring_authorisation_preference) {
                     this.mooringAuthPreference = this.proposal.mooring_authorisation_preference;
                 }
+                this.initialiseMooringLookup();
             });
 
         },

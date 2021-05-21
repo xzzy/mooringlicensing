@@ -2098,8 +2098,20 @@ class MooringBay(models.Model):
         app_label = 'mooringlicensing'
 
 
+class PrivateMooringManager(models.Manager):
+    def get_queryset(self):
+        #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(PrivateMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2)
+        #return self.first()
+
+
 # not for admin - data comes from Mooring Bookings
 class Mooring(models.Model):
+    MOORING_SPECIFICATION = (
+         (1, 'Rental Mooring'),
+         (2, 'Private Mooring'),
+    )
+
     name = models.CharField(max_length=100)
     mooring_bay = models.ForeignKey(MooringBay)
     active = models.BooleanField(default=True)
@@ -2109,8 +2121,10 @@ class Mooring(models.Model):
     vessel_weight_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     # stored for debugging purposes, not used in ML
     mooring_bookings_id = models.IntegerField()
-    mooring_bookings_mooring_specification = models.IntegerField()
+    mooring_bookings_mooring_specification = models.IntegerField(choices=MOORING_SPECIFICATION)
     mooring_bookings_bay_id = models.IntegerField()
+    objects = models.Manager()
+    private_moorings = PrivateMooringManager()
 
     def __str__(self):
         return self.name
@@ -2118,6 +2132,10 @@ class Mooring(models.Model):
     class Meta:
         verbose_name_plural = "Moorings"
         app_label = 'mooringlicensing'
+
+    @property
+    def specification_display(self):
+        return self.get_mooring_bookings_mooring_specification_display()
 
 
 # class VesselSizeCategory(models.Model):
