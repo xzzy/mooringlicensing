@@ -71,6 +71,7 @@ from mooringlicensing.components.proposals.models import (
     Owner,
     Company,
     CompanyOwnership,
+    Mooring,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
@@ -103,6 +104,10 @@ from mooringlicensing.components.proposals.serializers import (
     MooringBaySerializer, EmailUserSerializer, ProposedDeclineSerializer,
     CompanyOwnershipSerializer,
     CompanySerializer,
+    SaveVesselOwnershipSaleDateSerializer,
+    VesselOwnershipSaleDateSerializer,
+    MooringSerializer,
+    VesselFullSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -160,6 +165,39 @@ class GetDcvVesselRegoNos(views.APIView):
             data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return add_cache_control(Response())
+
+
+class GetVessel(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data = VesselDetails.filtered_objects.filter(
+                    Q(vessel__rego_no__icontains=search_term) | 
+                    Q(vessel_name__icontains=search_term)
+                    )[:10]
+            data_transform = []
+            for vd in data:
+                data_transform.append({
+                    'id': vd.vessel.id, 
+                    'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    })
+            return Response({"results": data_transform})
+        return Response()
+
+
+class GetMooring(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        if search_term:
+            data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
+            return Response({"results": data_transform})
+        return Response()
 
 
 #class GetVesselRegoNos(views.APIView):
@@ -1411,6 +1449,26 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return add_cache_control(Response(vessel_data))
 
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def record_sale(self, request, *args, **kwargs):
+        instance = self.get_object()
+        sale_date = request.data.get('sale_date')
+        if sale_date:
+            serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        else:
+            raise serializers.ValidationError("Missing information: You must specify a sale date")
+        return Response()
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def fetch_sale_date(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = VesselOwnershipSaleDateSerializer(instance)
+        return Response(serializer.data)
+
 
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all().order_by('id')
@@ -1520,6 +1578,12 @@ class VesselViewSet(viewsets.ModelViewSet):
                 return add_cache_control(Response())
         return add_cache_control(Response())
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def full_details(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        return Response(VesselFullSerializer(vessel).data)
+ 
     @detail_route(methods=['GET',])
     @basic_exception_handler
     def lookup_vessel(self, request, *args, **kwargs):
@@ -1649,6 +1713,21 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return MooringBay.objects.filter(active=True)
+
+
+class MooringViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Mooring.objects.none()
+    serializer_class = MooringSerializer
+
+    def get_queryset(self):
+        return Mooring.objects.filter(active=True)
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def internal_list(self, request, *args, **kwargs):
+        # add security
+        serializer = MooringSerializer(Mooring.objects.all(), many=True)
+        return Response(serializer.data)
 
 
 class ProposalAssessmentViewSet(viewsets.ModelViewSet):

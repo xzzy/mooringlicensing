@@ -58,6 +58,7 @@ router.register(r'questions', main_api.QuestionViewSet)
 router.register(r'payment', main_api.PaymentViewSet)
 router.register(r'mooringbays', proposal_api.MooringBayViewSet)
 router.register(r'vessel', proposal_api.VesselViewSet)
+router.register(r'mooring', proposal_api.MooringViewSet)
 router.register(r'dcv_vessel', approval_api.DcvVesselViewSet)
 router.register(r'vesselownership', proposal_api.VesselOwnershipViewSet)
 router.register(r'dcv_permit', mooringlicensing.components.approvals.api.DcvPermitViewSet)
@@ -77,6 +78,8 @@ api_patterns = [
     url(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
     url(r'^api/applicants_dict$', proposal_api.GetApplicantsDict.as_view(), name='get-applicants-dict'),
     url(r'^api/vessel_rego_nos$', proposal_api.GetVesselRegoNos.as_view(), name='get-vessel_rego-nos'),
+    url(r'^api/mooring_lookup$', proposal_api.GetMooring.as_view(), name='get-mooring'),
+    url(r'^api/vessel_lookup$', proposal_api.GetVessel.as_view(), name='get-vessel'),
     url(r'^api/company_names$', proposal_api.GetCompanyNames.as_view(), name='get-company-names'),
     url(r'^api/dcv_vessel_rego_nos$', proposal_api.GetDcvVesselRegoNos.as_view(), name='get-dcv-vessel_rego-nos'),
     url(r'^api/fee_configurations$', payments_api.GetFeeConfigurations.as_view(), name='get-fee-configurations'),
