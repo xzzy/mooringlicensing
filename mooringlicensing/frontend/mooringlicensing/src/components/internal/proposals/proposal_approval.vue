@@ -3,12 +3,12 @@
         <template v-if="isFinalised">
             <div class="col-md-12 alert alert-success" v-if="proposal.processing_status == 'Approved'">
                 <div v-if="proposal.proposal_apiary">
-                    <p>The licence has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                    <p>The licence has been issued and has been emailed to {{ proposal.submitter.email }}</p>
                     <p>Expiry date: {{approvalExpiryDate}}
                     <p>Licence: <a target="_blank" :href="proposal.permit">licence.pdf</a></p>
                 </div>
                 <div v-else>
-                    <p>The approval has been issued and has been emailed to {{proposal.applicant.name}}</p>
+                    <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
                     <p>Expiry date: {{approvalExpiryDate}}
                     <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
                 </div>
