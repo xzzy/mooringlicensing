@@ -7,6 +7,8 @@ module.exports = {
     vessel_types_dict:"/api/vessel_types_dict",
     insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
+    mooring_lookup:"/api/mooring_lookup",
+    vessel_lookup:"/api/vessel_lookup",
     company_names:"/api/company_names",
     dcv_vessel_rego_nos:"/api/dcv_vessel_rego_nos",
     fee_configurations: "/api/fee_configurations",
@@ -38,9 +40,10 @@ module.exports = {
     mooringlicenceapplication: '/api/mooringlicenceapplication/',
     proposal: '/api/proposal/',
     vessel: '/api/vessel/',
+    vessel: '/api/mooring/',
     proposal_standard_requirements:"/api/proposal_standard_requirements.json",
     proposal_requirements:"/api/proposal_requirements.json",
-
+    vesselownership: '/api/vesselownership/',
 
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
