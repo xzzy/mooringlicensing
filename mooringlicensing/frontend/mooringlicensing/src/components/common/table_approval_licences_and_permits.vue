@@ -190,7 +190,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return 'View<br />Amend<br />Renew<br />Request New Sticker<br />Surrender<br />History'
                         }
                     },
                 ],

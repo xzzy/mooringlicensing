@@ -22,7 +22,8 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCo
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
-    create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice
+    create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
+    checkout_existing_invoice
 from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup
 from mooringlicensing.components.proposals.utils import proposal_submit
 
@@ -130,6 +131,38 @@ class ConfirmationView(TemplateView):
         # serializer = ApprovalLogEntrySerializer(data=email_data)
         # serializer.is_valid(raise_exception=True)
         # serializer.save()
+
+
+class ApplicationFeeExistingView(TemplateView):
+    def get_object(self):
+        return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
+
+    def get(self, request, *args, **kwargs):
+        proposal = self.get_object()
+        application_fee = proposal.application_fees.first()
+
+        try:
+            with transaction.atomic():
+                set_session_application_invoice(request.session, application_fee)
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+
+                request.session['db_processes'] = { 'payment_for_existing_invoice': True }
+                checkout_response = checkout_existing_invoice(
+                    request,
+                    invoice,
+                    return_url_ns='fee_success',
+                )
+
+                logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format(
+                    'User {} with id {}'.format(
+                        request.user.get_full_name(), request.user.id
+                    ), application_fee.proposal.lodgement_number
+                ))
+                return checkout_response
+
+        except Exception as e:
+            logger.error('Error Creating Application Fee: {}'.format(e))
+            raise
 
 
 class ApplicationFeeView(TemplateView):
@@ -459,11 +492,19 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice = Invoice.objects.get(order_number=order.number)
             invoice_ref = invoice.reference
 
-            fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            if 'fee_constructor_id' in db_operations:
+                # This payment is for the WLA or AAA
+                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                application_fee.fee_constructor = fee_constructor
+                application_fee.invoice_reference = invoice_ref
+            if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
+                # This payment is for the AUA or MLA
+                # application_fee object has already been created when approved
+                proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+                proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+                proposal.save()
 
             # Update the application_fee object
-            application_fee.invoice_reference = invoice_ref
-            application_fee.fee_constructor = fee_constructor
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
@@ -612,10 +653,8 @@ class InvoicePDFView(View):
             logger.error('Error accessing the Invoice :{}'.format(e))
             raise
 
-
     def get_object(self):
         return get_object_or_404(Invoice, reference=self.kwargs['reference'])
 
     # def check_owner(self, organisation):
     #     return is_in_organisation_contacts(self.request, organisation) or is_internal(self.request) or self.request.user.is_superuser
-
