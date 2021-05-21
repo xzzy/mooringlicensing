@@ -409,7 +409,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'title',
                 'customer_status',
                 'application_type_dict',
-                # 'processing_status',
+                'processing_status',
                 # 'applicant',
                 'submitter',
                 'assigned_officer',
@@ -805,7 +805,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return True
 
     def get_requirements_completed(self,obj):
-        return True
+        return True  # What is this for?
 
     def get_current_assessor(self,obj):
         return {

@@ -178,6 +178,7 @@ export default {
             }
         },
         column_status: function(){
+            let vm = this
             return {
                 // 5. Status
                 data: "id",
@@ -185,6 +186,9 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    if (vm.is_internal){
+                        return full.processing_status
+                    }
                     return full.customer_status
                 }
             }
@@ -237,6 +241,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log(full)
                     let links = '';
                     if (!vm.is_external){
                         if(full.assessor_process){
@@ -246,12 +251,18 @@ export default {
                         }
                     }
                     else{
+                        console.log('aho1')
                         if (full.can_user_edit) {
                             links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
                             links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
                         }
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
+                        }
+                        for (let invoice of full.invoices){
+                            if (invoice.payment_status === 'unpaid'){
+                                links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
+                            }
                         }
                     }
                     return links;
@@ -361,6 +372,7 @@ export default {
                         d.filter_application_type = vm.filterApplicationType
                         d.filter_application_status = vm.filterApplicationStatus
                         d.filter_applicant = vm.filterApplicant
+                        d.level = vm.level
                     }
                 },
                 dom: 'lBfrtip',
@@ -419,7 +431,11 @@ export default {
 
             // Application Statuses
             vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                vm.application_statuses = response.body
+                if (vm.is_internal){
+                    vm.application_statuses = response.body.internal_statuses
+                } else {
+                    vm.application_statuses = response.body.external_statuses
+                }
             },(error) => {
                 console.log(error);
             })

@@ -12,4 +12,5 @@ module.exports = {
     WITH_ASSESSOR: 'With Assessor',
     WITH_ASSESSOR_REQUIREMENTS: 'With Assessor (Requirements)',
     WITH_APPROVER: 'With Approver',
+    AWAITING_PAYMENT: 'Awaiting Payment',
 };
