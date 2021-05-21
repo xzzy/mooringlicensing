@@ -7,6 +7,7 @@ ENV PRODUCTION_EMAIL=False
 ENV EMAIL_INSTANCE="DEV"
 ENV NON_PROD_EMAIL="brendan.blackford@dbca.wa.gov.au,walter.genuit@dbca.wa.gov.au,aaron.farr@dbca.wa.gov.au,katsufumi.shibata@dbca.wa.gov.au"
 ENV SECRET_KEY="ThisisNotRealKey"
+ENV CRON_NOTIFICATION_EMAIL="brendan.blackford@dbca.wa.gov.au"
 
 RUN apt-get clean
 RUN apt-get update
@@ -52,18 +53,21 @@ RUN python manage_ml.py collectstatic --noinput
 RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
 
-#COPY cron /etc/cron.d/dockercron
+COPY cron /etc/cron.d/dockercron
 COPY startup.sh /
 ## Cron start
-#RUN service rsyslog start
-#RUN chmod 0644 /etc/cron.d/dockercron
-#RUN crontab /etc/cron.d/dockercron
-#RUN touch /var/log/cron.log
-#RUN service cron start
+RUN service rsyslog start
+RUN chmod 0644 /etc/cron.d/dockercron
+RUN crontab /etc/cron.d/dockercron
+RUN touch /var/log/cron.log
+RUN service cron start
 RUN chmod 755 /startup.sh
 # cron end
 
 # IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
+# 1. will create dir, if it does not already exist
+# 2. will create profile, if it does not already exist
+RUN mkdir /app/logs/.ipython
 RUN export IPYTHONDIR=/app/logs/.ipython/
 
 EXPOSE 8080
