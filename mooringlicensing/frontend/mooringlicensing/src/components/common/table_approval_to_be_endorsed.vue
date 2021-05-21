@@ -60,10 +60,10 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_types = vm.approvalTypesToDisplay.join(',')
+                        d.filter_approval_type = vm.approvalTypesToDisplay.join(',')
 
                         // Add filters selected
-                        d.filter_approval_type = vm.filterApprovalType
+                        //d.filter_approval_type = vm.filterApprovalType
                         d.filter_approval_status = vm.filterApprovalStatus
                         d.filter_by_endorsement = vm.filter_by_endorsement
                     }
@@ -129,7 +129,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return 'View<br />Revoke<br />Process'
                         }
                     },
                 ],
