@@ -281,6 +281,7 @@ export default {
                     display = true
                 }
             } catch(err) {}
+            console.log('display_action_back_to_assessor: ' + display)
             return display
         },
         display_action_back_to_assessor_requirements: function(){
@@ -290,6 +291,7 @@ export default {
                     display = true
                 }
             } catch(err) {}
+            console.log('display_action_back_to_assessor_requirements: ' + display)
             return display
         },
         display_action_grant: function(){
@@ -327,6 +329,9 @@ export default {
         }
     },
     methods: {
+        assignRequestUser: function(){
+            this.$emit('assignRequestUser')
+        },
         toggleProposal:function(){
             this.showingProposal = !this.showingProposal;
             this.$emit('toggleProposal', this.showingProposal)

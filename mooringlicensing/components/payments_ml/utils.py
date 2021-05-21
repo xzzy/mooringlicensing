@@ -3,9 +3,10 @@ from _pydecimal import Decimal
 from datetime import datetime
 
 import pytz
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
+from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
+    use_existing_basket_from_invoice
 from ledger.settings_base import TIME_ZONE
 from rest_framework import serializers
 
@@ -289,3 +290,52 @@ def make_serializable(line_items):
                 # Convert Decimal to str
                 line[key] = str(line[key])
     return line_items
+
+
+def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
+    #basket_params = {
+    #    # 'products': invoice.order.basket.lines.all(),
+    #    'products': lines,
+    #    'vouchers': vouchers,
+    #    'system': settings.PAYMENT_SYSTEM_ID,
+    #    'custom_basket': True,
+    #}
+
+    basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
+    checkout_params = {
+        'system': settings.PAYMENT_SYSTEM_ID,
+        'fallback_url': request.build_absolute_uri('/'),
+        'return_url': request.build_absolute_uri(reverse(return_url_ns)),
+        'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
+        'force_redirect': True,
+        'invoice_text': invoice.text,
+    }
+
+    if request.user.is_anonymous():
+        # We need to determine the basket owner and set it to the checkout_params to proceed the payment
+        application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
+        # application_fee_invoice = ApplicationFeeInvoice.objects.filter(invoice_reference=invoice.reference)
+        if application_fee:
+            application_fee = application_fee[0]
+            checkout_params['basket_owner'] = application_fee.approval.relevant_applicant_email_user.id
+        else:
+            # Should not reach here
+            # At the moment, there should be only the 'annual rental fee' invoices for anonymous user
+            pass
+
+    create_checkout_session(request, checkout_params)
+
+    # response = HttpResponseRedirect(reverse('checkout:index'))
+    # use HttpResponse instead of HttpResponseRedirect - HttpResonseRedirect does not pass cookies which is important for ledger to get the correct basket
+    response = HttpResponse(
+        "<script> window.location='" + reverse('checkout:index') + "';</script> <a href='" + reverse(
+            'checkout:index') + "'> Redirecting please wait: " + reverse('checkout:index') + "</a>")
+
+    # inject the current basket into the redirect response cookies
+    # or else, anonymous users will be directionless
+    response.set_cookie(
+        settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
+        max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
+        secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
+    )
+    return response
