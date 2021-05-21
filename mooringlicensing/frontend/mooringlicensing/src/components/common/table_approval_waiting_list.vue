@@ -59,7 +59,7 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_types = vm.approvalTypesToDisplay.join(',');
+                        d.filter_approval_type = vm.approvalTypesToDisplay.join(',');
                         d.show_expired_surrendered = vm.show_expired_surrendered
                     }
                 },
@@ -180,7 +180,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return 'View<br />Amend<br />Renew<br />Surrender'
                         }
                     },
                 ],

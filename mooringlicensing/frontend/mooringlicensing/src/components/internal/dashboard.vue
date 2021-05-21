@@ -34,10 +34,10 @@
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import ApplicationsTable from "@/components/common/table_proposals"
-import WaitingListTable from "@/components/common/table_approval_waiting_list"
-import LicencesAndPermitsTable from "@/components/common/table_approval_licences_and_permits"
-import CompliancesTable from "@/components/common/table_compliances"
-import AuthorisedUserApplicationsTable from "@/components/common/table_approval_to_be_endorsed"
+//import WaitingListTable from "@/components/common/table_approval_waiting_list"
+//import LicencesAndPermitsTable from "@/components/common/table_approval_licences_and_permits"
+//import CompliancesTable from "@/components/common/table_compliances"
+//import AuthorisedUserApplicationsTable from "@/components/common/table_approval_to_be_endorsed"
 import { api_endpoints, helpers } from '@/utils/hooks'
 
 export default {
@@ -60,10 +60,10 @@ export default {
     components:{
         FormSection,
         ApplicationsTable,
-        WaitingListTable,
-        LicencesAndPermitsTable,
-        CompliancesTable,
-        AuthorisedUserApplicationsTable,
+        //WaitingListTable,
+        //LicencesAndPermitsTable,
+        //CompliancesTable,
+        //AuthorisedUserApplicationsTable,
     },
     watch: {
 
