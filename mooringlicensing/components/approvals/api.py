@@ -103,7 +103,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         if filter_approval_type and not filter_approval_type.lower() == 'all':
             q = None
             for item in Approval.__subclasses__():
-                if item.code == filter_approval_type:
+                if hasattr(item, 'code') and item.code == filter_approval_type:
                     lookup = "{}__isnull".format(item._meta.model_name)
                     q = Q(**{lookup: False})
                     break

@@ -4,7 +4,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Type</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <select class="form-control" v-model="filterApprovalType">
                         <option value="All">All</option>
                         <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
                     </select>
@@ -22,7 +22,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
-                    <select class="form-control" v-model="filterApplicationStatus">
+                    <select class="form-control" v-model="filterApprovalStatus">
                         <option value="All">All</option>
                         <option v-for="status in application_statuses" :value="status.code">{{ status.description }}</option>
                     </select>
@@ -30,16 +30,10 @@
             </div>
         </div>
 
-        <div v-if="is_external" class="row">
-            <div class="col-md-12">
-                <button type="button" class="btn btn-primary pull-right" @click="new_application_button_clicked">New Application</button>
-            </div>
-        </div>
-
         <div class="row">
             <div class="col-lg-12">
                 <datatable 
-                    ref="application_datatable" 
+                    ref="approval_datatable" 
                     :id="datatable_id" 
                     :dtOptions="datatable_options" 
                     :dtHeaders="datatable_headers"
@@ -72,8 +66,8 @@ export default {
             datatable_id: 'applications-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterApplicationType: null,
-            filterApplicationStatus: null,
+            filterApprovalType: null,
+            filterApprovalStatus: null,
             filterApplicant: null,
 
             // filtering options
@@ -86,22 +80,22 @@ export default {
         datatable
     },
     watch: {
-        filterApplicationStatus: function() {
+        filterApprovalStatus: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationStatus != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
+            vm.$refs.approval_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            //if (vm.filterApprovalStatus != 'All') {
+            //    vm.$refs.approval_datatable.vmDataTable.column('status:name').search('').draw();
             //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
+            //    vm.$refs.approval_datatable.vmDataTable.column('status:name').search(vm.filterApprovalStatus).draw();
             //}
         },
-        filterApplicationType: function() {
+        filterApprovalType: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            vm.$refs.approval_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
         filterApplicant: function(){
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            vm.$refs.approval_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         }
     },
     computed: {
@@ -113,7 +107,7 @@ export default {
         },
         datatable_headers: function(){
             if (this.is_external){
-                return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
+                return ['id', 'Lodgement Number', 'Type', 'Approval Type', 'Status', 'Lodged on', 'Invoice', 'Action']
             }
             if (this.is_internal){
                 return ['id', 'Lodgement Number', 'Type', 'Sticker Number', 'Holder', 'Status', 'Issue Date', 'Reason', 'Approval Letter']
@@ -146,7 +140,7 @@ export default {
         },
         column_type: function(){
             return {
-                // 3. Type (This corresponds to the 'ApplicationType' at the backend)
+                // 3. Type (This corresponds to the 'ApprovalType' at the backend)
                 data: "id",
                 orderable: true,
                 searchable: true,
@@ -175,7 +169,7 @@ export default {
         },
         column_application_type: function(){
             return {
-                // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
+                // 4. Approval Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
                 orderable: true,
                 searchable: true,
@@ -408,8 +402,8 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_application_type = vm.filterApplicationType
-                        d.filter_application_status = vm.filterApplicationStatus
+                        d.filter_approval_type = vm.filterApprovalType
+                        d.filter_approval_status = vm.filterApprovalStatus
                         d.filter_applicant = vm.filterApplicant
                     }
                 },
@@ -424,19 +418,14 @@ export default {
         }
     },
     methods: {
-        new_application_button_clicked: function(){
-            this.$router.push({
-                name: 'apply_proposal'
-            })
-        },
         discardProposal: function(proposal_id) {
             let vm = this;
             swal({
-                title: "Discard Application",
+                title: "Discard Approval",
                 text: "Are you sure you want to discard this proposal?",
                 type: "warning",
                 showCancelButton: true,
-                confirmButtonText: 'Discard Application',
+                confirmButtonText: 'Discard Approval',
                 confirmButtonColor:'#dc3545'
             }).then(() => {
                 vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
@@ -448,8 +437,8 @@ export default {
                         'Your proposal has been discarded',
                         'success'
                     )
-                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.application_datatable.vmDataTable.draw();
+                    //vm.$refs.approval_datatable.vmDataTable.ajax.reload();
+                    vm.$refs.approval_datatable.vmDataTable.draw();
                 }, (error) => {
                     console.log(error);
                 });
@@ -460,14 +449,14 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
-            // Application Types
+            // Approval Types
             vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
                 vm.application_types = response.body
             },(error) => {
                 console.log(error);
             })
 
-            // Application Statuses
+            // Approval Statuses
             vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
                 vm.application_statuses = response.body
             },(error) => {
@@ -486,7 +475,7 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
+            vm.$refs.approval_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id)
