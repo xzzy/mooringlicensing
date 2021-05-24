@@ -17,6 +17,7 @@ from mooringlicensing.components.payments_ml import api as payments_api
 from mooringlicensing.components.proposals import api as proposal_api
 from mooringlicensing.components.approvals import api as approval_api
 from mooringlicensing.components.compliances import api as compliances_api
+from mooringlicensing.components.proposals.views import AuthorisedUserApplicationEndorseView
 from mooringlicensing.components.users import api as users_api
 from mooringlicensing.components.organisations import api as org_api
 from mooringlicensing.components.main import api as main_api
@@ -138,6 +139,7 @@ urlpatterns = [
     url(r'^success/fee/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
     url(r'^dcv_permit_success/fee/$', DcvPermitFeeSuccessView.as_view(), name='dcv_permit_fee_success'),
     url(r'^dcv_admission_success/fee/$', DcvAdmissionFeeSuccessView.as_view(), name='dcv_admission_fee_success'),
+    url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/$', AuthorisedUserApplicationEndorseView.as_view(), name='endorse-url'),
     #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
     #url(r'^zero_fee_success/', booking_views.ZeroApplicationFeeView.as_view(), name='zero_fee_success'),
     #url(r'^payment_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingView.as_view(), name='deferred_invoicing'),
