@@ -79,6 +79,7 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.id
                         }
                     },
@@ -99,7 +100,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.mooring_site_id
                         }
                     },
                     {
@@ -109,7 +110,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.submitter.first_name + ' ' + full.submitter.last_name
                         }
                     },
                     {
@@ -119,7 +120,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.customer_status
                         }
                     },
                     {

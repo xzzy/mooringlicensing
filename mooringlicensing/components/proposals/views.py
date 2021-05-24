@@ -4,10 +4,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
 # from mooringlicensing.components.proposals.utils import create_data_from_form
-from mooringlicensing.components.proposals.models import (Proposal, #Referral, 
-        #ProposalType, 
-        HelpPage
-        )
+from mooringlicensing.components.proposals.models import (Proposal,  # Referral,
+    # ProposalType,
+                                                          HelpPage, AuthorisedUserApplication
+                                                          )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.compliances.models import Compliance
 import json,traceback
@@ -107,3 +107,15 @@ class TestEmailView(View):
         return HttpResponse('Test Email Script Completed')
 
 
+class AuthorisedUserApplicationEndorseView(TemplateView):
+    def get_object(self):
+        return get_object_or_404(AuthorisedUserApplication, uuid=self.kwargs['uuid_str'])
+
+    def get(self, *args, **kwargs):
+        proposal = self.get_object()
+        proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        proposal.save()
+
+        # TODO return correct value
+        return HttpResponse('test')
