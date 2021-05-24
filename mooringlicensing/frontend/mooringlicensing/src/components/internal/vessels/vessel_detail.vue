@@ -1,94 +1,122 @@
 <template lang="html">
-    <div>
-            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-              <li class="nav-item">
-                <a class="nav-link active" id="pills-vessel-details-tab" data-toggle="pill" href="#pills-vessel-details" role="tab" aria-controls="pills-vessel-details" aria-selected="true">
-                  Details
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" id="pills-owners-tab" data-toggle="pill" href="#pills-owners" role="tab" aria-controls="pills-owners" aria-selected="false">
-                  Owner(s)
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" id="pills-bookings-permits-tab" data-toggle="pill" href="#pills-bookings-permits" role="tab" aria-controls="pills-bookings-permits" aria-selected="false">
-                  Bookings/Permits
-                </a>
-              </li>
-            </ul>
+    <div v-if="vessel.vessel_details" class="container" id="internalVessel">
+        <div class="row">
+            <h3>{{ vessel.vessel_details.vessel_name}} - {{ vessel.rego_no }}</h3>
+            <div class="col-md-3">
+                <CommsLogs 
+                    :comms_url="comms_url" 
+                    :logs_url="logs_url" 
+                    :comms_add_url="comms_add_url" 
+                    :disable_add_entry="false"
+                />
 
-            <div class="tab-content" id="pills-tabContent">
-                <div class="tab-pane fade" id="pills-vessel-details" role="tabpanel" aria-labelledby="pills-vessel-details-tab">
-                    <FormSection label="Registration details" Index="registration_details">
-                        <div class="row form-group">
-                            <div class="col-sm-3">
-                                <label>Registration number:</label>
-                            </div>
-                            <div class="col-sm-6">
-                                {{ vessel.rego_no }}
-                            </div>
-                        </div>
-
-                        <div class="row form-group">
-                            <div class="col-sm-3">
-                                <label>Name:</label>
-                            </div>
-                            <div class="col-sm-6">
-                                {{ vessel.vessel_details.vessel_name }}
-                            </div>
-                        </div>
-                    </FormSection>
-                    <FormSection label="Vessel details" Index="vessel_details">
-                        <div class="row form-group">
-                            <div class="col-sm-3">
-                                <label>Vessel length:</label>
-                            </div>
-                            <div class="col-sm-6">
-                                {{ vessel.vessel_details.vessel_length }}
-                            </div>
-                        </div>
-                        <div class="row form-group">
-                            <div class="col-sm-3">
-                                <label>Overall length of vessel:</label>
-                            </div>
-                            <div class="col-sm-6">
-                                {{ vessel.vessel_details.vessel_overall_length }}
-                            </div>
-                        </div>
-                        <div class="row form-group">
-                            <div class="col-sm-3">
-                                <label>Displacement tonnage:</label>
-                            </div>
-                            <div class="col-sm-6">
-                                {{ vessel.vessel_details.vessel_weight }}
-                            </div>
-                        </div>
-                        <div class="row form-group">
-                            <div class="col-sm-3">
-                                <label>Draft:</label>
-                            </div>
-                            <div class="col-sm-6">
-                                {{ vessel.vessel_details.vessel_type_display }}
-                            </div>
-                        </div>
-                    </FormSection>
-                </div>
-                <div class="tab-pane fade" id="pills-owners" role="tabpanel" aria-labelledby="pills-owners-tab">
-                    <FormSection label="Owner(s)" Index="owners">
-                    </FormSection>
-                </div>
-                <div class="tab-pane fade" id="pills-bookings-permits" role="tabpanel" aria-labelledby="pills-bookings-permits-tab">
-                    <FormSection label="Bookings/Permits" Index="bookings_permits">
-                    </FormSection>
-                </div>
             </div>
 
+            <div class="col-md-1"></div>
+
+            <div class="col-md-8">
+
+        <!--div-->
+                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link active" id="pills-vessel-details-tab" data-toggle="pill" href="#pills-vessel-details" role="tab" aria-controls="pills-vessel-details" aria-selected="true">
+                      Details
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" id="pills-owners-tab" data-toggle="pill" href="#pills-owners" role="tab" aria-controls="pills-owners" aria-selected="false">
+                      Owner(s)
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" id="pills-bookings-permits-tab" data-toggle="pill" href="#pills-bookings-permits" role="tab" aria-controls="pills-bookings-permits" aria-selected="false">
+                      Bookings/Permits
+                    </a>
+                  </li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                    <div class="tab-pane fade" id="pills-vessel-details" role="tabpanel" aria-labelledby="pills-vessel-details-tab">
+                        <FormSection label="Registration details" Index="registration_details">
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Registration number:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    {{ vessel.rego_no }}
+                                </div>
+                            </div>
+
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Name:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    {{ vessel.vessel_details.vessel_name }}
+                                </div>
+                            </div>
+                        </FormSection>
+                        <FormSection label="Vessel details" Index="vessel_details">
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Vessel length:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    {{ vessel.vessel_details.vessel_length }}
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Overall length of vessel:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    {{ vessel.vessel_details.vessel_overall_length }}
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Displacement tonnage:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    {{ vessel.vessel_details.vessel_weight }}
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Draft:</label>
+                                </div>
+                                <div class="col-sm-6">
+                                    {{ vessel.vessel_details.vessel_type_display }}
+                                </div>
+                            </div>
+                        </FormSection>
+                    </div>
+                    <div class="tab-pane fade" id="pills-owners" role="tabpanel" aria-labelledby="pills-owners-tab">
+                        <FormSection label="Owner(s)" Index="owners">
+                            <div v-if="vessel.id">
+                                <datatable 
+                                    ref="owners_datatable" 
+                                    :id="datatable_id" 
+                                    :dtOptions="owners_options" 
+                                    :dtHeaders="owners_headers"
+                                />
+                            </div>
+                        </FormSection>
+                    </div>
+                    <div class="tab-pane fade" id="pills-bookings-permits" role="tabpanel" aria-labelledby="pills-bookings-permits-tab">
+                        <FormSection label="Bookings/Permits" Index="bookings_permits">
+                        </FormSection>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
+import CommsLogs from '@common-utils/comms_logs.vue'
+import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
   helpers
@@ -98,16 +126,155 @@ from '@/utils/hooks'
         name:'VesselDetails',
         components:{
             FormSection,
+            CommsLogs,
+            datatable,
         },
-         data:function () {
+        data:function () {
+            let vm = this;
             return {
                 vessel: {
                     vessel_details: {
                     }
                 },
+                comms_url: helpers.add_endpoint_json(api_endpoints.vessel, this.$route.params.vessel_id + '/comms_log'),
+                comms_add_url: helpers.add_endpoint_json(api_endpoints.vessel, this.$route.params.vessel_id + '/add_comms_log'),
+                logs_url: helpers.add_endpoint_json(api_endpoints.vessel, this.$route.params.vessel_id + '/action_log'),
+                datatable_id: 'owners-datatable-' + this._uid,
+                owners_headers: ['Name', 'Company', 'Percentage', 'Phone', 'Start', 'End', 'Action'],
+
              }
         },
         computed: {
+            ownersUrl: function() {
+                return `${api_endpoints.vessel}${this.vessel.id}/lookup_vessel_ownership?format=datatables`;
+            },
+            owners_options: function() {
+                let vm = this;
+                return {
+                    searching: false,
+                    autoWidth: false,
+                    language: {
+                        processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                    },
+                    responsive: true,
+                    //serverSide: true,
+
+                    ajax: {
+                        //"url": `${api_endpoints.vessel}${vm.vessel.id}/lookup_vessel_ownership?format=datatables`,
+                        "url": vm.ownersUrl,
+                        "dataSrc": 'data',
+
+                        // adding extra GET params for Custom filtering
+                        "data": function ( d ) {
+                            console.log(d)
+                            // Add filters selected
+                            //filter_compliance_status = vm.filterComplianceStatus;
+                        }
+                    },
+                    dom: 'lBfrtip',
+                    buttons:[
+                        //{
+                        //    extend: 'csv',
+                        //    exportOptions: {
+                        //        columns: ':visible'
+                        //    }
+                        //},
+                    ],
+                    columns: [
+                        {
+                            // 1. Name
+                            data: "id",
+                            orderable: false,
+                            searchable: false,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return full.owner_full_name;
+                                //return full.id;
+                            }
+                        },
+                        {
+                            // 2. Company
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                let companyName = '';
+                                if (full.company_ownership && full.company_ownership.company) {
+                                    companyName = full.company_ownership.company.name;
+                                }
+                                return companyName;
+                            }
+                            /*
+                            'render': function(row, type, full){
+                                return full.id;
+                            }
+                            */
+                        },
+                        {
+                            // 3. Percentage
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return full.applicable_percentage;
+                                //return full.id;
+                            }
+                        },
+                        {
+                            // 4. Phone
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return full.owner_phone_number;
+                            }
+                        },
+                        {
+                            // 5. Start Date
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                //return full.start_date.toLocaleString();
+                                return full.start_date;
+                                //return '';
+                            }
+                        },
+                        {
+                            // 6. End Date
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                //return full.end_date.toLocaleString();
+                                //return full.end_date ? full.end_date : '';
+                                return full.end_date;
+                                //return '';
+                            }
+                        },
+                        {
+                            // 7. Action
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return 'link to?';
+                            }
+                        },
+                        ],
+                    processing: true,
+                    initComplete: function() {
+                        console.log('in initComplete')
+                    },
+                }
+            },
+
         },
         methods:{
             setTabs:function(){
