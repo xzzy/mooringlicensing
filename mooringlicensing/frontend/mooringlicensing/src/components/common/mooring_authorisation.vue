@@ -168,7 +168,17 @@ import draggable from 'vuedraggable';
                     // move focus to select2 field
                     searchField[0].focus();
                 });
+                vm.readMooringSiteId();
             },
+            readMooringSiteId: async function() {
+                let vm = this;
+                if (vm.proposal.mooring_site_id) {
+                    const res = await vm.$http.get(`${api_endpoints.mooring}${vm.proposal.mooring_site_id}/fetch_mooring_name`);
+                    var option = new Option(res.body.name, vm.proposal.mooring_site_id, true, true);
+                    $(vm.$refs.mooring_lookup).append(option).trigger('change');
+                }
+            },
+
 
         },
         mounted:function () {
