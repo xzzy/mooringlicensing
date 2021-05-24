@@ -890,6 +890,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
     # can_referral_edit=serializers.SerializerMethodField()
     # can_district_assessor_edit=serializers.SerializerMethodField()
     requirement_documents = RequirementDocumentSerializer(many=True, read_only=True)
+    read_due_date = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalRequirement
@@ -915,11 +916,15 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
             # 'can_district_assessor_edit',
             'require_due_date',
             'copied_for_renewal',
+            'read_due_date',
         )
         read_only_fields = ('id', 'order', 'requirement', 'copied_from')
 
     def create(self, validated_data):
         return super(ProposalRequirementSerializer, self).create(validated_data)
+
+    def get_read_due_date(self, obj):
+        return obj.due_date.strftime('%d/%m/%Y')
 
     # def get_can_referral_edit(self,obj):
     #     request = self.context['request']
