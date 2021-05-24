@@ -40,7 +40,7 @@ module.exports = {
     mooringlicenceapplication: '/api/mooringlicenceapplication/',
     proposal: '/api/proposal/',
     vessel: '/api/vessel/',
-    vessel: '/api/mooring/',
+    mooring: '/api/mooring/',
     proposal_standard_requirements:"/api/proposal_standard_requirements.json",
     proposal_requirements:"/api/proposal_requirements.json",
     vesselownership: '/api/vesselownership/',
