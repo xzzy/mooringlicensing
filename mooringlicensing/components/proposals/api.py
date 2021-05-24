@@ -79,6 +79,8 @@ from mooringlicensing.components.proposals.serializers import (
     SaveProposalSerializer,
     ProposalUserActionSerializer,
     ProposalLogEntrySerializer,
+    VesselLogEntrySerializer,
+    MooringLogEntrySerializer,
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
@@ -108,11 +110,15 @@ from mooringlicensing.components.proposals.serializers import (
     VesselOwnershipSaleDateSerializer,
     MooringSerializer,
     VesselFullSerializer,
+    VesselFullOwnershipSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
 from mooringlicensing.components.approvals.models import Approval, DcvVessel
-from mooringlicensing.components.approvals.serializers import ApprovalSerializer
+from mooringlicensing.components.approvals.serializers import (
+        ApprovalSerializer, 
+        LookupApprovalSerializer,
+        )
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.compliances.serializers import ComplianceSerializer
 from ledger.payments.invoice.models import Invoice
@@ -191,10 +197,14 @@ class GetMooring(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        private_moorings = request.GET.get('private_moorings')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+            if private_moorings:
+                data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+            else:
+                data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             return Response({"results": data_transform})
         return Response()
@@ -1564,6 +1574,77 @@ class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def find_related_approvals(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
+        approval_list = []
+        vd_set = VesselDetails.objects.filter(vessel=vessel)
+        for vd in vd_set:
+            for prop in vd.proposal_set.all():
+                if (
+                        prop.approval and 
+                        prop.approval.status == 'current'
+                        #and prop.start_date
+                        ):
+                    if prop.approval not in approval_list:
+                        approval_list.append(prop.approval)
+
+        serializer = LookupApprovalSerializer(approval_list, many=True)
+        return Response(serializer.data)
+        #return Response()
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def lookup_vessel_ownership(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.all(), many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def comms_log(self, request, *args, **kwargs):
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = VesselLogEntrySerializer(qs,many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def add_comms_log(self, request, *args, **kwargs):
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            #request.data['proposal'] = u'{}'.format(instance.id)
+            #request.data['staff'] = u'{}'.format(request.user.id)
+            request.data['vessel'] = u'{}'.format(instance.id)
+            request.data._mutable=mutable
+            serializer = VesselLogEntrySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
+
+            return Response(serializer.data)
+
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def action_log(self, request, *args, **kwargs):
+        #instance = self.get_object()
+        #qs = instance.action_logs.all()
+        #serializer = ProposalUserActionSerializer(qs,many=True)
+        #return add_cache_control(Response(serializer.data))
+        return Response([])
+
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def lookup_individual_ownership(self, request, *args, **kwargs):
@@ -1722,12 +1803,61 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Mooring.objects.filter(active=True)
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def comms_log(self, request, *args, **kwargs):
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = MooringLogEntrySerializer(qs,many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def add_comms_log(self, request, *args, **kwargs):
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            #request.data['proposal'] = u'{}'.format(instance.id)
+            #request.data['staff'] = u'{}'.format(request.user.id)
+            request.data['mooring'] = u'{}'.format(instance.id)
+            request.data._mutable=mutable
+            serializer = MooringLogEntrySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
+
+            return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def action_log(self, request, *args, **kwargs):
+        #instance = self.get_object()
+        #qs = instance.action_logs.all()
+        #serializer = ProposalUserActionSerializer(qs,many=True)
+        #return add_cache_control(Response(serializer.data))
+        return Response([])
+
     @list_route(methods=['GET',])
     @basic_exception_handler
     def internal_list(self, request, *args, **kwargs):
         # add security
         serializer = MooringSerializer(Mooring.objects.all(), many=True)
         return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def fetch_mooring_name(self, request, *args, **kwargs):
+        # add security
+        instance = self.get_object()
+        return Response({"name": instance.name})
 
 
 class ProposalAssessmentViewSet(viewsets.ModelViewSet):

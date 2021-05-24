@@ -41,7 +41,7 @@ import ApplicationsTable from "@/components/common/table_proposals"
 import { api_endpoints, helpers } from '@/utils/hooks'
 
 export default {
-    name: 'ExternalDashboard',
+    name: 'InternalDashboard',
     data() {
         let vm = this;
         return {
