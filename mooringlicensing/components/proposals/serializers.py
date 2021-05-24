@@ -201,7 +201,6 @@ class CompanyOwnershipSerializer(serializers.ModelSerializer):
                 )
 
 
-
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -219,11 +218,15 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
     #company_ownership = CompanyOwnershipSerializer() 
+    start_date = serializers.ReadOnlyField()
+    end_date = serializers.ReadOnlyField()
 
     class Meta:
         model = Proposal
         fields = (
                 'id',
+                'start_date',
+                'end_date',
                 #'application_type',
                 'application_type_code',
                 'application_type_text',
@@ -693,6 +696,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
         model = Proposal
         fields = (
                 'id',
+                'start_date',
+                'end_date',
                 'application_type',
                 # 'activity',
                 'approval_level',
