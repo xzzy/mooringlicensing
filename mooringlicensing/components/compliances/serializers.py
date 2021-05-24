@@ -3,6 +3,7 @@ from ledger.accounts.models import EmailUser,Address
 from mooringlicensing.components.compliances.models import (
     Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
 )
+from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
 from rest_framework import serializers
 
 
@@ -200,6 +201,10 @@ class CompAmendmentRequestDisplaySerializer(serializers.ModelSerializer):
 class ListComplianceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval_number = serializers.SerializerMethodField()
+    requirement = ProposalRequirementSerializer()
+    #approval_type = serializers.SerializerMethodField()
+    approval_submitter = serializers.SerializerMethodField()
+    assigned_to_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Compliance
@@ -208,12 +213,20 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             'lodgement_number',
             'status',
             'approval_number',
+            'requirement',
+            #'approval_type',
+            'approval_submitter',
+            'assigned_to_name',
         )
         datatables_always_serialize = (
             'id',
             'lodgement_number',
             'status',
             'approval_number',
+            'requirement',
+            #'approval_type',
+            'approval_submitter',
+            'assigned_to_name',
         )
 
     def get_status(self, obj):
@@ -221,4 +234,16 @@ class ListComplianceSerializer(serializers.ModelSerializer):
 
     def get_approval_number(self, obj):
         return obj.approval.lodgement_number
+
+    #def get_approval_type(self, obj):
+     #   return obj.approval.child_obj .. etc
+
+    def get_approval_submitter(self, obj):
+        return obj.approval.submitter.get_full_name()
+
+    def get_assigned_to_name(self, obj):
+        assigned_to = ''
+        if obj.assigned_to:
+            assigned_to = obj.assigned_to.get_full_name()
+        return assigned_to
 
