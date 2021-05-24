@@ -1,5 +1,7 @@
 import datetime
 import logging
+import pytz
+from ledger.settings_base import TIME_ZONE
 
 import dateutil.parser
 from django.contrib.auth.models import Group
@@ -16,6 +18,7 @@ from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission
+from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.payments_ml.email import send_dcv_permit_fee_invoice, \
     send_application_submit_confirmation_email, send_dcv_admission_fee_invoice, send_dcv_permit_notification
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
@@ -24,9 +27,11 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice
-from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup
+from mooringlicensing.components.proposals.email import send_proposal_approval_email_notification
+from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup, ProposalUserAction, \
+    AuthorisedUserApplication, MooringLicenceApplication
 from mooringlicensing.components.proposals.utils import proposal_submit
-
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger('payment_checkout')
 
@@ -527,7 +532,56 @@ class ApplicationFeeSuccessView(TemplateView):
 
                 if proposal and invoice.payment_status in ('paid', 'over_paid',):
                     self.adjust_db_operations(db_operations)
-                    proposal_submit(proposal, request)
+
+                    # TODO: implement proposal.post_payment_success()
+                    proposal.post_payment_success(request)
+                    # proposal_submit(proposal, request)
+
+                    if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
+                        # For AUA or MLA, as payment has been done, create approval
+                        if proposal.proposal_type == PROPOSAL_TYPE_RENEWAL:
+                            # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                            pass
+                        elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                            # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                            pass
+                        else:
+                            approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+
+                        if created:
+                            if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                                # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                                pass
+                            # Log creation
+                            # Generate the document
+                            approval.generate_doc(request.user)
+                            proposal.generate_compliances(approval, request)
+                            # send the doc and log in approval and org
+                        else:
+                            # Generate the document
+                            approval.generate_doc(request.user)
+
+                            # Delete the future compliances if Approval is reissued and generate the compliances again.
+                            approval_compliances = Compliance.objects.filter(approval=approval, proposal=proposal, processing_status='future')
+                            for compliance in approval_compliances:
+                                compliance.delete()
+
+                            proposal.generate_compliances(approval, request)
+
+                            # Log proposal action
+                            proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
+
+                            # Log entry for organisation
+                            applicant_field = getattr(proposal, proposal.applicant_field)
+                            applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
+
+                        proposal.approval = approval
+
+                        # send Proposal approval email with attachment
+                        send_proposal_approval_email_notification(proposal, request)
+                        proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
+                        proposal.approval.documents.all().update(can_delete=False)
+
                 else:
                     logger.error('Invoice payment status is {}'.format(invoice.payment_status))
                     raise
