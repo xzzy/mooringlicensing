@@ -43,6 +43,13 @@
 
             <div class="col-md-8">
                 <!-- Main contents -->
+                <template v-if="display_approval_screen">
+                    <ApprovalScreen 
+                        :proposal="proposal" 
+                        @refreshFromResponse="refreshFromResponse"
+                    />
+                </template>
+
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <WaitingListApplication
                         v-if="proposal && proposal.application_type_dict.code==='wla'"
@@ -93,12 +100,6 @@
 <!--
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
 -->
-                <template v-if="display_approval_screen">
-                    <ApprovalScreen 
-                        :proposal="proposal" 
-                        @refreshFromResponse="refreshFromResponse"
-                    />
-                </template>
 
 <!--
                 <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || ((proposal.processing_status == 'With Approver' || isFinalised) && showingRequirements)">
@@ -395,21 +396,16 @@ export default {
             }
         },
         display_approval_screen: function(){
-            console.log(this.proposal.processing_status)
-            console.log(constants.AWAITING_PAYMENT)
             let ret_val = 
                 this.proposal.processing_status == constants.WITH_APPROVER || 
-                this.proposal.processing_status == constants.AWAITING_PAYMENT ||
+                this.proposal.processing_status == constants.AWAITING_STICKER ||
                 this.isFinalised
-            console.log('display_approval_screen: ' + ret_val)
             return ret_val
         },
         display_requirements: function(){
-            console.log('in display_requirements')
             let ret_val = 
                 this.proposal.processing_status == constants.WITH_ASSESSOR_REQUIREMENTS || 
                 ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
-            console.log(ret_val)
             return ret_val
         },
         showElectoralRoll: function(){
