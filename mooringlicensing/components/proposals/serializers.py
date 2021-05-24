@@ -401,7 +401,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
-                # 'aho',
+                'mooring_site_id',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -429,6 +429,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
+                'mooring_site_id',
                 )
 
     def get_assigned_officer(self,obj):
