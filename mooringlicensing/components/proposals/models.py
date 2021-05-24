@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import json
 import datetime
 import pytz
+import uuid
 from ledger.settings_base import TIME_ZONE
 from django.db import models, transaction
 from django.dispatch import receiver
@@ -385,6 +386,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # 'returns_required',
         CUSTOMER_STATUS_AWAITING_PAYMENT,
         CUSTOMER_STATUS_AWAITING_STICKER,
+        CUSTOMER_STATUS_AWAITING_ENDORSEMENT,
         CUSTOMER_STATUS_APPROVED,
         CUSTOMER_STATUS_DECLINED,
         # 'partially_approved',
@@ -2069,6 +2071,9 @@ class AuthorisedUserApplication(Proposal):
     new_application_text = "for an an authorised user permit"
     apply_page_visibility = True
     description = 'Authorised User Application'
+
+    # This uuid is used to generate the URL for the AUA endorsement link
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     class Meta:
         app_label = 'mooringlicensing'
