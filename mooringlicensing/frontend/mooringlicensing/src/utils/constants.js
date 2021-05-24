@@ -13,4 +13,7 @@ module.exports = {
     WITH_ASSESSOR_REQUIREMENTS: 'With Assessor (Requirements)',
     WITH_APPROVER: 'With Approver',
     AWAITING_PAYMENT: 'Awaiting Payment',
+    AWAITING_STICKER: 'Awaiting Sticker',
+    APPROVED: 'Approved',
+    DECLINED: 'Declined',
 };
