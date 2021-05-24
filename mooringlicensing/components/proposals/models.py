@@ -2163,6 +2163,8 @@ class Mooring(models.Model):
 
 class Vessel(models.Model):
     rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
+    # can be individual or company owner
+    blocking_owner = models.ForeignKey('VesselOwnership', blank=True, null=True, related_name='blocked_vessel')
 
     class Meta:
         verbose_name_plural = "Vessels"

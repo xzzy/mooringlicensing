@@ -447,47 +447,29 @@ def save_proponent_data_aua(instance, request, viewset):
 # draft and submit
 def save_vessel_data(instance, request, vessel_data):
     print("save vessel data")
-    #vessel_data = request.data.get("vessel")
     vessel_details_data = {}
-    #if not vessel_data.get("read_only"):
-    ## no read_only!!
-    #print('if not vessel_data.get("read_only")')
+    vessel_id = vessel_data.get('id')
     vessel_details_data = vessel_data.get("vessel_details")
     # add vessel details to vessel_data
     for key in vessel_details_data.keys():
         vessel_data.update({key: vessel_details_data.get(key)})
-    if vessel_data.get('id'):
-        vessel_data.update({"vessel_id": vessel_data.get('id')})
-    # clear stored instance.vessel_details
-    #instance.vessel_details = None
-    #instance.save()
-    ## do not write or link to VesselDetails tables until submit
-    #else:
-    #vessel_details_id = vessel_data.get("vessel_details", {}).get("id")
-    #if vessel_details_id:
-    #    instance.vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-    #    instance.save()
-        #vessel_ownership_id = vessel_data.get("vessel_ownership", {}).get("id")
-        #if vessel_ownership_id:
-        #    instance.vessel_ownership = VesselOwnership.objects.get(id=vessel_ownership_id)
-        #    instance.save()
-    # we need this to save vessel ownership to proposal in draft status
+    #import ipdb; ipdb.set_trace()
+    if vessel_id:
+        vessel_data.update({"vessel_id": vessel_id})
     vessel_ownership_data = vessel_data.get("vessel_ownership")
-    #company_ownership_id = vessel_ownership_data.get('company_ownership', {}).get('id')
+    # check for blocking_owner
+    #if vessel_id and Vessel.objects.get(id=vessel_id).blocking_owner:
+     #   if Vessel.objects.get(id=vessel_id).blocking_owner.id != vessel_ownership_data.get('id'):
+      #      raise serializers.ValidationError({"Blocked Vessel": "Another user has a current application for this vessel"})
     company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
     company_ownership_name = vessel_ownership_data.get('company_ownership', {}).get('company', {}).get('name')
-    # need id also?
-    #if not company_ownership_id:
     vessel_data.update({"company_ownership_percentage": company_ownership_percentage})
     vessel_data.update({"company_ownership_name": company_ownership_name})
-    #else:
-        #vessel_data.update({"company_ownership_id": company_ownership_id})
-    # remove company_ownership from vessel_ownership_date
     vessel_ownership_data.pop('company_ownership', None)
     # copy VesselOwnership fields to vessel_data
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
-    #import ipdb; ipdb.set_trace()
+    # overwrite vessel_data.id with correct value
     serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
     serializer.is_valid(raise_exception=True)
     print(serializer.validated_data)
@@ -620,7 +602,13 @@ def store_vessel_ownership(request, vessel, instance=None):
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
-    #raise serializers.ValidationError({"Missing information": "blah"})
+    # check and set blocking_owner
+    if vessel.blocking_owner and vessel.blocking_owner.id != vessel_ownership.id:
+        raise serializers.ValidationError({"Blocked Vessel": "Another user has a current application for this vessel"})
+    else:
+        vessel.blocking_owner = vessel_ownership
+        vessel.save()
+
     return vessel_ownership
 
 def ownership_percentage_validation(vessel_ownership):
