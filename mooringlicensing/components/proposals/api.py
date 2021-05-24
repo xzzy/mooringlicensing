@@ -79,6 +79,8 @@ from mooringlicensing.components.proposals.serializers import (
     SaveProposalSerializer,
     ProposalUserActionSerializer,
     ProposalLogEntrySerializer,
+    VesselLogEntrySerializer,
+    MooringLogEntrySerializer,
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
@@ -1568,6 +1570,49 @@ class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def comms_log(self, request, *args, **kwargs):
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = VesselLogEntrySerializer(qs,many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def add_comms_log(self, request, *args, **kwargs):
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            #request.data['proposal'] = u'{}'.format(instance.id)
+            #request.data['staff'] = u'{}'.format(request.user.id)
+            request.data['vessel'] = u'{}'.format(instance.id)
+            request.data._mutable=mutable
+            serializer = VesselLogEntrySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
+
+            return Response(serializer.data)
+
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def action_log(self, request, *args, **kwargs):
+        #instance = self.get_object()
+        #qs = instance.action_logs.all()
+        #serializer = ProposalUserActionSerializer(qs,many=True)
+        #return add_cache_control(Response(serializer.data))
+        return Response([])
+
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def lookup_individual_ownership(self, request, *args, **kwargs):
@@ -1725,6 +1770,48 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Mooring.objects.filter(active=True)
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def comms_log(self, request, *args, **kwargs):
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = MooringLogEntrySerializer(qs,many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def add_comms_log(self, request, *args, **kwargs):
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            #request.data['proposal'] = u'{}'.format(instance.id)
+            #request.data['staff'] = u'{}'.format(request.user.id)
+            request.data['mooring'] = u'{}'.format(instance.id)
+            request.data._mutable=mutable
+            serializer = MooringLogEntrySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
+
+            return Response(serializer.data)
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def action_log(self, request, *args, **kwargs):
+        #instance = self.get_object()
+        #qs = instance.action_logs.all()
+        #serializer = ProposalUserActionSerializer(qs,many=True)
+        #return add_cache_control(Response(serializer.data))
+        return Response([])
 
     @list_route(methods=['GET',])
     @basic_exception_handler
