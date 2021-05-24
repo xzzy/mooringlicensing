@@ -93,6 +93,14 @@
                     </div>
                     <div class="tab-pane fade" id="pills-owners" role="tabpanel" aria-labelledby="pills-owners-tab">
                         <FormSection label="Owner(s)" Index="owners">
+                            <div v-if="vessel.id">
+                                <datatable 
+                                    ref="owners_datatable" 
+                                    :id="datatable_id" 
+                                    :dtOptions="owners_options" 
+                                    :dtHeaders="owners_headers"
+                                />
+                            </div>
                         </FormSection>
                     </div>
                     <div class="tab-pane fade" id="pills-bookings-permits" role="tabpanel" aria-labelledby="pills-bookings-permits-tab">
@@ -108,6 +116,7 @@
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
   helpers
@@ -118,8 +127,10 @@ from '@/utils/hooks'
         components:{
             FormSection,
             CommsLogs,
+            datatable,
         },
-         data:function () {
+        data:function () {
+            let vm = this;
             return {
                 vessel: {
                     vessel_details: {
@@ -128,9 +139,142 @@ from '@/utils/hooks'
                 comms_url: helpers.add_endpoint_json(api_endpoints.vessel, this.$route.params.vessel_id + '/comms_log'),
                 comms_add_url: helpers.add_endpoint_json(api_endpoints.vessel, this.$route.params.vessel_id + '/add_comms_log'),
                 logs_url: helpers.add_endpoint_json(api_endpoints.vessel, this.$route.params.vessel_id + '/action_log'),
+                datatable_id: 'owners-datatable-' + this._uid,
+                owners_headers: ['Name', 'Company', 'Percentage', 'Phone', 'Start', 'End', 'Action'],
+
              }
         },
         computed: {
+            ownersUrl: function() {
+                return `${api_endpoints.vessel}${this.vessel.id}/lookup_vessel_ownership?format=datatables`;
+            },
+            owners_options: function() {
+                let vm = this;
+                return {
+                    searching: false,
+                    autoWidth: false,
+                    language: {
+                        processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                    },
+                    responsive: true,
+                    //serverSide: true,
+
+                    ajax: {
+                        //"url": `${api_endpoints.vessel}${vm.vessel.id}/lookup_vessel_ownership?format=datatables`,
+                        "url": vm.ownersUrl,
+                        "dataSrc": 'data',
+
+                        // adding extra GET params for Custom filtering
+                        "data": function ( d ) {
+                            console.log(d)
+                            // Add filters selected
+                            //filter_compliance_status = vm.filterComplianceStatus;
+                        }
+                    },
+                    dom: 'lBfrtip',
+                    buttons:[
+                        //{
+                        //    extend: 'csv',
+                        //    exportOptions: {
+                        //        columns: ':visible'
+                        //    }
+                        //},
+                    ],
+                    columns: [
+                        {
+                            // 1. Name
+                            data: "id",
+                            orderable: false,
+                            searchable: false,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return full.owner_full_name;
+                                //return full.id;
+                            }
+                        },
+                        {
+                            // 2. Company
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                let companyName = '';
+                                if (full.company_ownership && full.company_ownership.company) {
+                                    companyName = full.company_ownership.company.name;
+                                }
+                                return companyName;
+                            }
+                            /*
+                            'render': function(row, type, full){
+                                return full.id;
+                            }
+                            */
+                        },
+                        {
+                            // 3. Percentage
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return full.applicable_percentage;
+                                //return full.id;
+                            }
+                        },
+                        {
+                            // 4. Phone
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return full.owner_phone_number;
+                            }
+                        },
+                        {
+                            // 5. Start Date
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                //return full.start_date.toLocaleString();
+                                return full.start_date;
+                                //return '';
+                            }
+                        },
+                        {
+                            // 6. End Date
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                //return full.end_date.toLocaleString();
+                                //return full.end_date ? full.end_date : '';
+                                return full.end_date;
+                                //return '';
+                            }
+                        },
+                        {
+                            // 7. Action
+                            data: "id",
+                            orderable: true,
+                            searchable: true,
+                            visible: true,
+                            'render': function(row, type, full){
+                                return 'link to?';
+                            }
+                        },
+                        ],
+                    processing: true,
+                    initComplete: function() {
+                        console.log('in initComplete')
+                    },
+                }
+            },
+
         },
         methods:{
             setTabs:function(){

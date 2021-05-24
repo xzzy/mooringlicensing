@@ -1163,6 +1163,52 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class VesselFullOwnershipSerializer(serializers.ModelSerializer):
+    company_ownership = CompanyOwnershipSerializer() 
+    owner_full_name = serializers.SerializerMethodField()
+    applicable_percentage = serializers.SerializerMethodField()
+    start_date = serializers.SerializerMethodField()
+    end_date = serializers.SerializerMethodField()
+    owner_phone_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VesselOwnership
+        fields = (
+                'id',
+                'company_ownership',
+                'percentage',
+                'start_date',
+                'end_date',
+                'owner_full_name',
+                'applicable_percentage',
+                'owner_phone_number',
+                )
+
+    def get_owner_full_name(self, obj):
+        return obj.owner.emailuser.get_full_name()
+
+    def get_applicable_percentage(self, obj):
+        if obj.company_ownership:
+            return obj.company_ownership.percentage
+        else:
+            return obj.percentage
+
+    def get_start_date(self, obj):
+        start_date_str = ''
+        if obj.start_date:
+            start_date_str = obj.start_date.strftime('%d/%m/%Y')
+        return start_date_str
+
+    def get_end_date(self, obj):
+        end_date_str = ''
+        if obj.end_date:
+            end_date_str = obj.end_date.strftime('%d/%m/%Y')
+        return end_date_str
+
+    def get_owner_phone_number(self, obj):
+        return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
+
+
 class SaveVesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
     end_date = serializers.DateTimeField(input_formats=['%d/%m/%Y'],required=True,allow_null=False)
 

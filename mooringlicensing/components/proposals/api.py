@@ -110,11 +110,15 @@ from mooringlicensing.components.proposals.serializers import (
     VesselOwnershipSaleDateSerializer,
     MooringSerializer,
     VesselFullSerializer,
+    VesselFullOwnershipSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
 from mooringlicensing.components.approvals.models import Approval, DcvVessel
-from mooringlicensing.components.approvals.serializers import ApprovalSerializer
+from mooringlicensing.components.approvals.serializers import (
+        ApprovalSerializer, 
+        LookupApprovalSerializer,
+        )
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.compliances.serializers import ComplianceSerializer
 from ledger.payments.invoice.models import Invoice
@@ -1569,6 +1573,34 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
 class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def find_related_approvals(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
+        approval_list = []
+        vd_set = VesselDetails.objects.filter(vessel=vessel)
+        for vd in vd_set:
+            for prop in vd.proposal_set.all():
+                if (
+                        prop.approval and 
+                        prop.approval.status == 'current'
+                        #and prop.start_date
+                        ):
+                    if prop.approval not in approval_list:
+                        approval_list.append(prop.approval)
+
+        serializer = LookupApprovalSerializer(approval_list, many=True)
+        return Response(serializer.data)
+        #return Response()
+
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def lookup_vessel_ownership(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.all(), many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
