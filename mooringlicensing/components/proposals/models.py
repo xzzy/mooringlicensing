@@ -70,7 +70,13 @@ def update_requirement_doc_filename(instance, filename):
     return '{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, instance.requirement.proposal.id,filename)
 
 def update_proposal_comms_log_filename(instance, filename):
-    return '{}/proposals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.proposal.id,filename)
+    return '{}/proposals/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.proposal.id, instance.log_entry.id, filename)
+
+def update_vessel_comms_log_filename(instance, filename):
+    return '{}/vessels/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.vessel.id, instance.log_entry.id, filename)
+
+def update_mooring_comms_log_filename(instance, filename):
+    return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
 
 #def application_type_choicelist():
 #    try:
@@ -2142,8 +2148,20 @@ class MooringBay(models.Model):
         app_label = 'mooringlicensing'
 
 
+class PrivateMooringManager(models.Manager):
+    def get_queryset(self):
+        #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(PrivateMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2)
+        #return self.first()
+
+
 # not for admin - data comes from Mooring Bookings
 class Mooring(models.Model):
+    MOORING_SPECIFICATION = (
+         (1, 'Rental Mooring'),
+         (2, 'Private Mooring'),
+    )
+
     name = models.CharField(max_length=100)
     mooring_bay = models.ForeignKey(MooringBay)
     active = models.BooleanField(default=True)
@@ -2153,8 +2171,10 @@ class Mooring(models.Model):
     vessel_weight_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     # stored for debugging purposes, not used in ML
     mooring_bookings_id = models.IntegerField()
-    mooring_bookings_mooring_specification = models.IntegerField()
+    mooring_bookings_mooring_specification = models.IntegerField(choices=MOORING_SPECIFICATION)
     mooring_bookings_bay_id = models.IntegerField()
+    objects = models.Manager()
+    private_moorings = PrivateMooringManager()
 
     def __str__(self):
         return self.name
@@ -2162,6 +2182,35 @@ class Mooring(models.Model):
     class Meta:
         verbose_name_plural = "Moorings"
         app_label = 'mooringlicensing'
+
+    @property
+    def specification_display(self):
+        return self.get_mooring_bookings_mooring_specification_display()
+
+
+class MooringLogDocument(Document):
+    log_entry = models.ForeignKey('MooringLogEntry',related_name='documents')
+    _file = models.FileField(upload_to=update_mooring_comms_log_filename, max_length=512)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class MooringLogEntry(CommunicationsLogEntry):
+    mooring = models.ForeignKey(Mooring, related_name='comms_logs')
+
+    def __str__(self):
+        return '{} - {}'.format(self.reference, self.subject)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    #def save(self, **kwargs):
+    #    # save the application reference if the reference not provided
+    #    if not self.reference:
+    #        if hasattr(self.proposal, 'reference'):
+    #            self.reference = self.proposal.reference
+    #    super(MooringLogEntry, self).save(**kwargs)
 
 
 # class VesselSizeCategory(models.Model):
@@ -2189,6 +2238,8 @@ class Mooring(models.Model):
 
 class Vessel(models.Model):
     rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
+    # can be individual or company owner
+    blocking_owner = models.ForeignKey('VesselOwnership', blank=True, null=True, related_name='blocked_vessel')
 
     class Meta:
         verbose_name_plural = "Vessels"
@@ -2222,6 +2273,31 @@ class Vessel(models.Model):
         return self.vesseldetails_set.filter(
                 id__in=VesselDetails.filtered_objects.values_list('id', flat=True)
                 )
+
+class VesselLogDocument(Document):
+    log_entry = models.ForeignKey('VesselLogEntry',related_name='documents')
+    _file = models.FileField(upload_to=update_vessel_comms_log_filename, max_length=512)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class VesselLogEntry(CommunicationsLogEntry):
+    vessel = models.ForeignKey(Vessel, related_name='comms_logs')
+
+    def __str__(self):
+        return '{} - {}'.format(self.reference, self.subject)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    #def save(self, **kwargs):
+    #    # save the application reference if the reference not provided
+    #    if not self.reference:
+    #        if hasattr(self.proposal, 'reference'):
+    #            self.reference = self.proposal.reference
+    #    super(VesselLogEntry, self).save(**kwargs)
+
 
 
 class VesselDetailsManager(models.Manager):
