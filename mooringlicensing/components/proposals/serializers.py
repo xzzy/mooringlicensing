@@ -406,7 +406,7 @@ class ListProposalSerializer(BaseProposalSerializer):
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
-                # 'id',
+                'id',
                 'proposal_type',
                 # 'activity',
                 # 'title',
