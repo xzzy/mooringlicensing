@@ -8,6 +8,8 @@ from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalUserAction,
     ProposalLogEntry,
+    VesselLogEntry,
+    MooringLogEntry,
     ProposalRequirement,
     ProposalStandardRequirement,
     ProposalDeclinedDetails,
@@ -836,6 +838,32 @@ class ProposalLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()
     class Meta:
         model = ProposalLogEntry
+        fields = '__all__'
+        read_only_fields = (
+            'customer',
+        )
+
+    def get_documents(self,obj):
+        return [[d.name,d._file.url] for d in obj.documents.all()]
+
+
+class VesselLogEntrySerializer(CommunicationLogEntrySerializer):
+    documents = serializers.SerializerMethodField()
+    class Meta:
+        model = VesselLogEntry
+        fields = '__all__'
+        read_only_fields = (
+            'customer',
+        )
+
+    def get_documents(self,obj):
+        return [[d.name,d._file.url] for d in obj.documents.all()]
+
+
+class MooringLogEntrySerializer(CommunicationLogEntrySerializer):
+    documents = serializers.SerializerMethodField()
+    class Meta:
+        model = MooringLogEntry
         fields = '__all__'
         read_only_fields = (
             'customer',
