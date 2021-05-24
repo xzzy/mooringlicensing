@@ -1733,6 +1733,13 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = MooringSerializer(Mooring.objects.all(), many=True)
         return Response(serializer.data)
 
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def fetch_mooring_name(self, request, *args, **kwargs):
+        # add security
+        instance = self.get_object()
+        return Response({"name": instance.name})
+
 
 class ProposalAssessmentViewSet(viewsets.ModelViewSet):
     #queryset = ProposalRequirement.objects.all()
