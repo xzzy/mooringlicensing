@@ -13,12 +13,12 @@ class EmailUserSerializer(serializers.ModelSerializer):
         fields = ('id','email','first_name','last_name','title','organisation')
 
 class ComplianceSerializer(serializers.ModelSerializer):
-    regions = serializers.CharField(source='proposal.region')
-    activity = serializers.CharField(source='proposal.activity')
+    #regions = serializers.CharField(source='proposal.region')
+    #activity = serializers.CharField(source='proposal.activity')
     title = serializers.CharField(source='proposal.title')
     holder = serializers.CharField(source='proposal.applicant')
-    processing_status = serializers.CharField(source='get_processing_status_display')
-    customer_status = serializers.CharField(source='get_customer_status_display')
+    processing_status = serializers.SerializerMethodField(read_only=True)
+    customer_status = serializers.SerializerMethodField(read_only=True)
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     #submitter = serializers.CharField(source='submitter.get_full_name')
@@ -28,7 +28,10 @@ class ComplianceSerializer(serializers.ModelSerializer):
     assigned_to = serializers.SerializerMethodField(read_only=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
-    application_type = serializers.SerializerMethodField(read_only=True)
+    #application_type = serializers.SerializerMethodField(read_only=True)
+    application_type_code = serializers.SerializerMethodField()
+    application_type_text = serializers.SerializerMethodField()
+    application_type_dict = serializers.SerializerMethodField()
 
 
     class Meta:
@@ -39,8 +42,8 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'due_date',
             'processing_status',
             'customer_status',
-            'regions',
-            'activity',
+            #'regions',
+            #'activity',
             'title',
             'text',
             'holder',
@@ -61,7 +64,9 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'participant_number_required',
             'fee_invoice_reference',
             'fee_paid',
-            'application_type',
+            'application_type_code',
+            'application_type_text',
+            'application_type_dict',
 
         )
 
@@ -81,18 +86,37 @@ class ComplianceSerializer(serializers.ModelSerializer):
             return obj.submitter.get_full_name()
         return None
 
-    def get_application_type(self,obj):
-        if obj.proposal.application_type:
-            return obj.proposal.application_type.name
-        return None
+    #def get_application_type(self,obj):
+     #   if obj.proposal.application_type:
+      #      return obj.proposal.application_type.name
+       # return None
+    def get_application_type_code(self, obj):
+        return obj.proposal.application_type_code
+
+    def get_application_type_text(self, obj):
+        return obj.proposal.child_obj.description
+
+    def get_application_type_dict(self, obj):
+        return {
+            'code': obj.proposal.child_obj.code,
+            'description': obj.proposal.child_obj.description,
+        }
+
+    def get_processing_status(self, obj):
+        return obj.get_processing_status_display()
+
+    def get_customer_status(self, obj):
+        return obj.get_customer_status_display()
+
+
 
 class InternalComplianceSerializer(serializers.ModelSerializer):
-    regions = serializers.CharField(source='proposal.region')
-    activity = serializers.CharField(source='proposal.activity')
+    #regions = serializers.CharField(source='proposal.region')
+    #activity = serializers.CharField(source='proposal.activity')
     title = serializers.CharField(source='proposal.title')
     holder = serializers.CharField(source='proposal.applicant')
-    processing_status = serializers.CharField(source='get_processing_status_display')
-    customer_status = serializers.CharField(source='get_customer_status_display')
+    processing_status = serializers.SerializerMethodField(read_only=True)
+    customer_status = serializers.SerializerMethodField(read_only=True)
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     #submitter = serializers.CharField(source='submitter.get_full_name')
@@ -112,8 +136,8 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
             'due_date',
             'processing_status',
             'customer_status',
-            'regions',
-            'activity',
+            #'regions',
+            #'activity',
             'title',
             'text',
             'holder',
@@ -151,6 +175,13 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
         if obj.submitter:
             return obj.submitter.get_full_name()
         return None
+
+    def get_processing_status(self, obj):
+        return obj.get_processing_status_display()
+
+    def get_customer_status(self, obj):
+        return obj.get_customer_status_display()
+
 
 class SaveComplianceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -217,6 +248,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             #'approval_type',
             'approval_submitter',
             'assigned_to_name',
+            'can_process',
         )
         datatables_always_serialize = (
             'id',
@@ -227,6 +259,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             #'approval_type',
             'approval_submitter',
             'assigned_to_name',
+            'can_process',
         )
 
     def get_status(self, obj):
