@@ -280,6 +280,7 @@ export default {
                     }
         },
         actionColumn: function() {
+            let vm = this;
             return {
                         // 7. Action
                         data: "id",
@@ -287,7 +288,29 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            //return 'not implemented'
+                            let links = '';
+                            if (!vm.is_external){
+                                //if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
+                                if (full.can_process) {
+                                    links +=  `<a href='/internal/compliance/${full.id}'>Process</a><br/>`;
+
+                                }
+                                else {
+                                    links +=  `<a href='/internal/compliance/${full.id}'>View</a><br/>`;
+                                }
+                            }
+                            else{
+                                if (full.can_user_view) {
+                                    links +=  `<a href='/external/compliance/${full.id}'>View</a><br/>`;
+
+                                }
+                                else {
+                                    links +=  `<a href='/external/compliance/${full.id}'>Submit</a><br/>`;
+                                }
+                            }
+                            return links;
+
                         }
                     }
         },
