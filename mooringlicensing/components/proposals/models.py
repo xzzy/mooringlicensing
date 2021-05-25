@@ -545,6 +545,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def endorse_approved(self, request):
+        self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+
+        # TODO: Action Log
+        # self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
+
+        self.save()
+
+    def endorse_declined(self, request):
+        self.customer_status = Proposal.CUSTOMER_STATUS_DECLINED
+        self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
+
+        # TODO: Action Log
+        # self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
+
+        self.save()
+
     def post_payment_success(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
@@ -1134,8 +1152,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     defaults={'officer':request.user,'reason':details.get('reason'),'cc_email':details.get('cc_email',None)}
                 )
                 self.proposed_decline_status = True
-                self.processing_status = 'declined'
-                self.customer_status = 'declined'
+                self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
+                self.customer_status = Proposal.CUSTOMER_STATUS_DECLINED
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
@@ -1318,6 +1336,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
+
+                from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
                 if self.application_type.code == WaitingListApplication.code:
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
@@ -1334,64 +1354,64 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
 
                 # TODO if it is an ammendment proposal then check appropriately
-                from mooringlicensing.components.approvals.models import Approval
+                approval, created = self.create_approval(current_datetime=current_datetime)
                 checking_proposal = self
-                if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
-                    if self.previous_application:
-                        previous_approval = self.previous_application.approval
-                        approval, created = Approval.objects.update_or_create(
-                            current_proposal=checking_proposal,
-                            defaults={
-                                'issue_date': current_datetime,
-                                # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
-                                'submitter': self.submitter,
-                                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
-                                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                                'org_applicant': self.org_applicant,
-                                'proxy_applicant': self.proxy_applicant,
-                                'lodgement_number': previous_approval.lodgement_number
-                            }
-                        )
-                        if created:
-                            previous_approval.replaced_by = approval
-                            previous_approval.save()
+                #if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+                #    if self.previous_application:
+                #        previous_approval = self.previous_application.approval
+                #        approval, created = approval_class.objects.update_or_create(
+                #            current_proposal=checking_proposal,
+                #            defaults={
+                #                'issue_date': current_datetime,
+                #                # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                #                # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                #                'submitter': self.submitter,
+                #                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                #                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                #                # 'org_applicant': self.org_applicant,
+                #                # 'proxy_applicant': self.proxy_applicant,
+                #                'lodgement_number': previous_approval.lodgement_number
+                #            }
+                #        )
+                #        if created:
+                #            previous_approval.replaced_by = approval
+                #            previous_approval.save()
 
-                elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                    if self.previous_application:
-                        previous_approval = self.previous_application.approval
-                        approval, created = Approval.objects.update_or_create(
-                            current_proposal=checking_proposal,
-                            defaults={
-                                'issue_date': current_datetime,
-                                # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
-                                # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
-                                'submitter': self.submitter,
-                                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
-                                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                                'org_applicant': self.org_applicant,
-                                'proxy_applicant': self.proxy_applicant,
-                                'lodgement_number': previous_approval.lodgement_number
-                            }
-                        )
-                        if created:
-                            previous_approval.replaced_by = approval
-                            previous_approval.save()
-                else:
-                    approval, created = Approval.objects.update_or_create(
-                        current_proposal=checking_proposal,
-                        defaults={
-                            'issue_date': current_datetime,
-                            'start_date': current_date,
-                            'expiry_date': self.end_date,
-                            'submitter': self.submitter,
-                            # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
-                            # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
-                            'org_applicant': self.org_applicant,
-                            'proxy_applicant': self.proxy_applicant,
-                            # 'extracted_fields' = JSONField(blank=True, null=True)
-                        }
-                    )
+                #elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                #    if self.previous_application:
+                #        previous_approval = self.previous_application.approval
+                #        approval, created = approval_class.objects.update_or_create(
+                #            current_proposal=checking_proposal,
+                #            defaults={
+                #                'issue_date': current_datetime,
+                #                # 'expiry_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('expiry_date'), '%d/%m/%Y').date(),
+                #                # 'start_date': datetime.datetime.strptime(self.proposed_issuance_approval.get('start_date'), '%d/%m/%Y').date(),
+                #                'submitter': self.submitter,
+                #                # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                #                # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                #                # 'org_applicant': self.org_applicant,
+                #                # 'proxy_applicant': self.proxy_applicant,
+                #                'lodgement_number': previous_approval.lodgement_number
+                #            }
+                #        )
+                #        if created:
+                #            previous_approval.replaced_by = approval
+                #            previous_approval.save()
+                #else:
+                #    approval, created = approval_class.objects.update_or_create(
+                #        current_proposal=checking_proposal,
+                #        defaults={
+                #            'issue_date': current_datetime,
+                #            'start_date': current_date,
+                #            'expiry_date': self.end_date,
+                #            'submitter': self.submitter,
+                #            # 'org_applicant' : self.applicant if isinstance(self.applicant, Organisation) else None,
+                #            # 'proxy_applicant' : self.applicant if isinstance(self.applicant, EmailUser) else None,
+                #            # 'org_applicant': self.org_applicant,
+                #            # 'proxy_applicant': self.proxy_applicant,
+                #            # 'extracted_fields' = JSONField(blank=True, null=True)
+                #        }
+                #    )
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 if created:
@@ -1609,18 +1629,43 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise
 
     def create_approval(self, current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
-        from mooringlicensing.components.approvals.models import Approval
+        """
+        Whenever creating new approval, this function should be called
+        For:
+            WaitingListAllocation
+            AnnualAdmissionPermit
+            AuthorisedUserPermit
+            MooringLicence
+        For:
+            New
+            Renewal
+            Amendment
+        """
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence, AnnualAdmissionPermit, WaitingListAllocation
+
+        if self.application_type.code == AuthorisedUserApplication.code:
+            approval_class = AuthorisedUserPermit
+        elif self.application_type.code == MooringLicenceApplication.code:
+            approval_class = MooringLicence
+        elif self.application_type.code == AnnualAdmissionApplication.code:
+            approval_class = AnnualAdmissionPermit
+        elif self.application_type.code == WaitingListApplication.code:
+            approval_class = WaitingListAllocation
+        else:
+            raise
+
+        # TODO: default data varies according to the ProposalType, too
 
         current_date = current_datetime.date()
-        approval, created = Approval.objects.update_or_create(
+        approval, created = approval_class.objects.update_or_create(
             current_proposal=self,
             defaults={
                 'issue_date': current_datetime,
                 'start_date': current_date.strftime('%Y-%m-%d'),
                 'expiry_date': self.end_date.strftime('%Y-%m-%d'),
                 'submitter': self.submitter,
-                'org_applicant': self.org_applicant,
-                'proxy_applicant': self.proxy_applicant,
+                # 'org_applicant': self.org_applicant,
+                # 'proxy_applicant': self.proxy_applicant,
                 # 'extracted_fields' = JSONField(blank=True, null=True)
             }
         )
@@ -2092,6 +2137,7 @@ class AuthorisedUserApplication(Proposal):
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+
 
 
 class MooringLicenceApplication(Proposal):
