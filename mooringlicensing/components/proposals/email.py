@@ -110,7 +110,8 @@ def send_endersement_of_authorised_user_application_email(request, proposal):
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
-        'endorse_url': endorse_url
+        'endorse_url': endorse_url,
+        'mooring': proposal.mooring_site_id,
     }
     to_address = proposal.site_licensee_email
     cc = []

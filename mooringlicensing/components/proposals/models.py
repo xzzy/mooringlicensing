@@ -545,6 +545,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def endorse_approved(self, request):
+        self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+
+        # TODO: Action Log
+        # self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
+
+        self.save()
+
+    def endorse_declined(self, request):
+        self.customer_status = Proposal.CUSTOMER_STATUS_DECLINED
+        self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
+
+        # TODO: Action Log
+        # self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
+
+        self.save()
+
     def post_payment_success(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
@@ -1134,8 +1152,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     defaults={'officer':request.user,'reason':details.get('reason'),'cc_email':details.get('cc_email',None)}
                 )
                 self.proposed_decline_status = True
-                self.processing_status = 'declined'
-                self.customer_status = 'declined'
+                self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
+                self.customer_status = Proposal.CUSTOMER_STATUS_DECLINED
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
@@ -2092,6 +2110,7 @@ class AuthorisedUserApplication(Proposal):
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+
 
 
 class MooringLicenceApplication(Proposal):

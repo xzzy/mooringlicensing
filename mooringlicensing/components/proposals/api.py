@@ -444,7 +444,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(submitter=request_user) | Q(site_licensee_email=request_user.email))
+            user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
+            qs = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user) | Q(site_licensee_email=request_user.email))
             return qs
         return Proposal.objects.none()
 
@@ -578,31 +579,32 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
+    # filter_backends = (ProposalFilterBackend,)
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
     lookup_field = 'id'
 
     def get_queryset(self):
-        user = self.request.user
+        request_user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()
             return qs
         elif is_customer(self.request):
-            user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
-            queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=user))
+            user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
+            queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user) | Q(site_licensee_email=request_user.email))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
 
-    def get_object(self):
+    #def get_object(self):
 
-        check_db_connection()
-        try:
-            obj = super(ProposalViewSet, self).get_object()
-        except Exception as e:
-            # because current queryset excludes migrated licences
-            obj = get_object_or_404(Proposal, id=self.kwargs['id'])
-        return obj
+    #    check_db_connection()
+    #    try:
+    #        obj = super(ProposalViewSet, self).get_object()
+    #    except Exception as e:
+    #        # because current queryset excludes migrated licences
+    #        obj = get_object_or_404(Proposal, id=self.kwargs['id'])
+    #    return obj
 
     #def get_serializer_class(self):
     #    try:
