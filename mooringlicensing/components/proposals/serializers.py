@@ -1346,6 +1346,34 @@ class MooringBaySerializer(serializers.ModelSerializer):
 
 
 
+class ListMooringSerializer(serializers.ModelSerializer):
+    mooring_bay_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Mooring
+        fields = (
+                'id',
+                'name',
+                'mooring_bay_name',
+                'vessel_size_limit',
+                'vessel_draft_limit',
+                'vessel_beam_limit',
+                'vessel_weight_limit'
+            )
+        datatables_always_serialize = (
+                'id',
+                'name',
+                'mooring_bay_name',
+                'vessel_size_limit',
+                'vessel_draft_limit',
+                'vessel_beam_limit',
+                'vessel_weight_limit'
+            )
+
+    def get_mooring_bay_name(self, obj):
+        return obj.mooring_bay.name
+
+
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
     #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
