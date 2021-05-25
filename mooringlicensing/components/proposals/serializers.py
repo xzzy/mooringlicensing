@@ -366,6 +366,8 @@ class ListProposalSerializer(BaseProposalSerializer):
     assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
     # fee_invoice_references = serializers.SerializerMethodField()
+    mooring = serializers.SerializerMethodField()
+    uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -403,7 +405,10 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
+
                 'mooring_id',
+                'mooring',
+                'uuid',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -431,8 +436,24 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
+
                 'mooring_id',
+                'mooring',
+                'uuid',
                 )
+
+    def get_uuid(self, obj):
+        try:
+            return obj.child_obj.uuid
+        except:
+            return ''
+
+    def get_mooring(self, obj):
+        try:
+            mooring = Mooring.private_moorings.get(id=obj.mooring_site_id)
+            return mooring.name
+        except:
+            return ''
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
