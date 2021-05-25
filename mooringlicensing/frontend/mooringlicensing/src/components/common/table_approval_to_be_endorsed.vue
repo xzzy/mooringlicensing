@@ -130,7 +130,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'View<br />Revoke<br />Process'
+                            return 'View<br />Endorse<br />Decline'
                         }
                     },
                 ],

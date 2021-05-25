@@ -108,14 +108,22 @@ class TestEmailView(View):
 
 
 class AuthorisedUserApplicationEndorseView(TemplateView):
+    template_name = 'mooringlicensing/proposals/authorised_user_application_endorsed.html'
+
     def get_object(self):
         return get_object_or_404(AuthorisedUserApplication, uuid=self.kwargs['uuid_str'])
 
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         proposal = self.get_object()
         proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         proposal.save()
 
-        # TODO return correct value
-        return HttpResponse('test')
+        # TODO: Upon endorsement, the applicant and site licensee receive an email
+
+        context = {
+            'proposal': proposal,
+            'submitter': proposal.submitter,
+        }
+
+        return render(request, self.template_name, context)
