@@ -523,18 +523,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #company_ownership = models.ForeignKey('CompanyOwnership', blank=True, null=True)
     ## Insurance component field
     insurance_choice = models.CharField(max_length=20, choices=INSURANCE_CHOICES, blank=True)
-    ## Mooring component field
+    ## WLA
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True, on_delete=models.SET_NULL)
     ## Electoral Roll component field
     silent_elector = models.NullBooleanField() # if False, user is on electoral roll
-    ## Mooring Authorisation fields
+    ## Mooring Authorisation fields mooring_suthorisation_preferences, bay_preferences_numbered, site_licencee_email and mooring
+    # AUA
     mooring_authorisation_preference = models.CharField(max_length=20, choices=MOORING_AUTH_PREFERENCES, blank=True)
     bay_preferences_numbered = ArrayField(
             models.IntegerField(null=True, blank=True),
             blank=True,null=True,
             )
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
-    mooring_site_id = models.CharField(max_length=200, blank=True, null=True)
+    mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -796,10 +797,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__assessor_group()
         return group.members.all() if group else []
 
-    #@property
-    #def compliance_assessors(self):
-    #    group = self.__assessor_group()
-    #    return group.members.all() if group else []
+    @property
+    def compliance_assessors(self):
+        group = self.__assessor_group()
+        return group.members.all() if group else []
 
     @property
     def can_officer_process(self):

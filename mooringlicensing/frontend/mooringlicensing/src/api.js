@@ -15,6 +15,7 @@ module.exports = {
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",
     compliance_statuses_dict:"/api/compliance_statuses_dict",
+    mooring_statuses_dict:"/api/mooring_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
 
@@ -33,6 +34,7 @@ module.exports = {
     proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
     approvals_paginated_list: '/api/approvals_paginated',
     compliances_paginated_external: '/api/compliances_paginated/list_external',
+    compliances:"/api/compliances.json",
     vessel_external_list: '/api/vessel/list_external',
     waitinglistapplication: '/api/waitinglistapplication/',
     annualadmissionapplication: '/api/annualadmissionapplication/',
