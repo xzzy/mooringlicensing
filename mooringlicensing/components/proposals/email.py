@@ -36,6 +36,11 @@ class AmendmentRequestSendNotificationEmail(TemplateEmailBase):
     html_template = 'mooringlicensing/emails/proposals/send_amendment_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_amendment_notification.txt'
 
+class EndersementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
+    subject = 'Endorsement of Authorised user application'
+    html_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.html'
+    txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
+
 class SubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'A new Application has been submitted.'
     html_template = 'mooringlicensing/emails/proposals/send_submit_notification.html'
@@ -95,6 +100,33 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+
+def send_endersement_of_authorised_user_application_email(request, proposal):
+    email = EndersementOfAuthorisedUserApplicationEmail()
+    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'endorse_url': endorse_url
+    }
+    to_address = proposal.site_licensee_email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+    return msg
 
 
 def send_submit_email_notification(request, proposal):
