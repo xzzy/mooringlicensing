@@ -335,6 +335,17 @@ class GetInsuranceChoicesDict(views.APIView):
         return add_cache_control(Response(data))
 
 
+class GetMooringStatusesDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    #def get(self, request, format=None):
+     #   data = [{'code': i[0], 'description': i[1]} for i in Mooring.MOORING_SPECIFICATION]
+      #  return Response(data)
+    def get(self, request):
+        #data = [{'code': i[0], 'description': i[1]} for i in Mooring.MOORING_SPECIFICATION]
+        return Response(['Licenced', 'Licence application'])
+
+
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
