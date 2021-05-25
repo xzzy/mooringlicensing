@@ -347,7 +347,7 @@ export default {
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
                 } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') { 
                     payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
-                    payload.proposal.mooring_site_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
+                    payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
             }
         // MLA

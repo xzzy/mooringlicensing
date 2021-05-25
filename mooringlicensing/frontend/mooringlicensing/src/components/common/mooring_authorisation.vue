@@ -27,7 +27,7 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="mooring_site_id" class="col-sm-3 control-label">Mooring site ID</label>
+                <label for="mooring_id" class="col-sm-3 control-label">Mooring site ID</label>
                 <div class="col-sm-4">
                     <select 
                         id="mooring_lookup"  
@@ -172,9 +172,9 @@ import draggable from 'vuedraggable';
             },
             readMooringSiteId: async function() {
                 let vm = this;
-                if (vm.proposal.mooring_site_id) {
-                    const res = await vm.$http.get(`${api_endpoints.mooring}${vm.proposal.mooring_site_id}/fetch_mooring_name`);
-                    var option = new Option(res.body.name, vm.proposal.mooring_site_id, true, true);
+                if (vm.proposal.mooring_id) {
+                    const res = await vm.$http.get(`${api_endpoints.mooring}${vm.proposal.mooring_id}/fetch_mooring_name`);
+                    var option = new Option(res.body.name, vm.proposal.mooring_id, true, true);
                     $(vm.$refs.mooring_lookup).append(option).trigger('change');
                 }
             },
@@ -187,8 +187,8 @@ import draggable from 'vuedraggable';
                 if (this.proposal.site_licensee_email) {
                     this.siteLicenseeEmail = this.proposal.site_licensee_email;
                 }
-                if (this.proposal.mooring_site_id) {
-                    this.mooringSiteId = this.proposal.mooring_site_id;
+                if (this.proposal.mooring_id) {
+                    this.mooringSiteId = this.proposal.mooring_id;
                 }
                 if (this.proposal.mooring_authorisation_preference) {
                     this.mooringAuthPreference = this.proposal.mooring_authorisation_preference;
