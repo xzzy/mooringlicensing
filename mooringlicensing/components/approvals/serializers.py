@@ -398,3 +398,43 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             }
         except:
             raise
+
+
+class LookupApprovalSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    approval_type_dict = serializers.SerializerMethodField()
+    submitter_phone_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'lodgement_number',
+            'status',
+            'approval_type_dict',
+            'issue_date',
+            'submitter_phone_number',
+        )
+
+    def get_status(self, obj):
+        return obj.get_status_display()
+
+    def get_approval_type_dict(self, obj):
+        try:
+            return {
+                'code': obj.child_obj.code,
+                'description': obj.child_obj.description,
+            }
+        except ObjectDoesNotExist:
+            # Should not reach here
+            logger.warn('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
+            return {
+                'code': 'child-obj-notfound',
+                'description': 'child-obj-notfound',
+            }
+        except:
+            raise
+
+    def get_submitter_phone_number(self, obj):
+        return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
+
