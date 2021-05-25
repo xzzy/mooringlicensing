@@ -1,7 +1,7 @@
 {%  extends 'mooringlicensing/emails/base_email.txt' %}
 
 {%  block content %}
-    {{ proposal.submitter }} has submitted an application for the authorised user of the mooring: {{ mooring }} of which you are the site licensee.
+    {{ proposal.submitter }} has submitted an application for the authorised user of the mooring: {{ mooring.name }} of which you are the site licensee.
 
     Please click <a href="...">here</a> to endorse this application
 

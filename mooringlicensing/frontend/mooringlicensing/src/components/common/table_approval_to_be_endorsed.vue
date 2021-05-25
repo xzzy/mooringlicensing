@@ -20,7 +20,7 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
-import { api_endpoints, helpers } from '@/utils/hooks'
+import { api_endpoints, helpers, constants } from '@/utils/hooks'
 export default {
     name: 'TableCompliances',
     props: {
@@ -100,7 +100,10 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.mooring
+                            if (full.mooring){
+                                return full.mooring.name
+                            }
+                            return ''
                         }
                     },
                     {
@@ -133,8 +136,10 @@ export default {
                             //return 'View<br />Endorse<br />Decline'
                             let links = '';
                             links +=  `<a href='/external/proposal/${full.id}/'>View</a><br/>`;
-                            links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
-                            links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
+                            if(full.customer_status === constants.AWAITING_ENDORSEMENT){
+                                links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
+                                links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
+                            }
                             return links
                         }
                     },
