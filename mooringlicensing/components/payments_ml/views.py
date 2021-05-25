@@ -30,7 +30,6 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
 from mooringlicensing.components.proposals.email import send_proposal_approval_email_notification
 from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication
-from mooringlicensing.components.proposals.utils import proposal_submit
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger('payment_checkout')

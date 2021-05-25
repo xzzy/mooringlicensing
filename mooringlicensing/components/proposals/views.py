@@ -1,12 +1,13 @@
 from django.http import HttpResponse,JsonResponse
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
 # from mooringlicensing.components.proposals.utils import create_data_from_form
 from mooringlicensing.components.proposals.models import (Proposal,  # Referral,
     # ProposalType,
-                                                          HelpPage, AuthorisedUserApplication
+                                                          HelpPage, AuthorisedUserApplication, Mooring
                                                           )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.compliances.models import Compliance
@@ -108,22 +109,32 @@ class TestEmailView(View):
 
 
 class AuthorisedUserApplicationEndorseView(TemplateView):
-    template_name = 'mooringlicensing/proposals/authorised_user_application_endorsed.html'
 
     def get_object(self):
         return get_object_or_404(AuthorisedUserApplication, uuid=self.kwargs['uuid_str'])
 
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
-        proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+
+        if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            raise ValidationError('You cannot endorse/decline the application not in awaiting-endorsement status')
+
+        action = self.kwargs['action']
+        if action == 'endorse':
+            self.template_name = 'mooringlicensing/proposals/authorised_user_application_endorsed.html'
+            proposal.endorse_approved(request)
+            # TODO: Upon endorsement, the applicant and site licensee receive an email
+        elif action == 'decline':
+            self.template_name = 'mooringlicensing/proposals/authorised_user_application_declined.html'
+            proposal.endorse_declined(request)
+            # TODO: Upon endorsement, the applicant and site licensee receive an email
         proposal.save()
 
-        # TODO: Upon endorsement, the applicant and site licensee receive an email
+        mooring = Mooring.private_moorings.get(id=proposal.mooring_site_id)
 
         context = {
             'proposal': proposal,
-            'submitter': proposal.submitter,
+            'mooring': mooring,
         }
 
         return render(request, self.template_name, context)

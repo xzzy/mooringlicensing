@@ -100,7 +100,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.mooring_site_id
+                            return full.mooring
                         }
                     },
                     {
@@ -130,7 +130,12 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'View<br />Endorse<br />Decline'
+                            //return 'View<br />Endorse<br />Decline'
+                            let links = '';
+                            links +=  `<a href='/external/proposal/${full.id}/'>View</a><br/>`;
+                            links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
+                            links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
+                            return links
                         }
                     },
                 ],
