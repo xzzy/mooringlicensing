@@ -203,6 +203,17 @@ class CompanyOwnershipSerializer(serializers.ModelSerializer):
                 )
 
 
+class MooringSerializer(serializers.ModelSerializer):
+    mooring_bay_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Mooring
+        fields = '__all__'
+
+    def get_mooring_bay_name(self, obj):
+        return obj.mooring_bay.name
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
@@ -366,6 +377,8 @@ class ListProposalSerializer(BaseProposalSerializer):
     assessor_process = serializers.SerializerMethodField()
     # fee_invoice_url = serializers.SerializerMethodField()
     # fee_invoice_references = serializers.SerializerMethodField()
+    mooring = MooringSerializer()
+    uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -403,7 +416,10 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
+
                 'mooring_id',
+                'mooring',
+                'uuid',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -431,8 +447,24 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
+
                 'mooring_id',
+                'mooring',
+                'uuid',
                 )
+
+    def get_uuid(self, obj):
+        try:
+            return obj.child_obj.uuid
+        except:
+            return ''
+
+    # def get_mooring(self, obj):
+    #     try:
+    #         mooring = Mooring.private_moorings.get(id=obj.mooring_site_id)
+    #         return mooring.name
+    #     except:
+    #         return ''
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
@@ -603,7 +635,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print("validate data")
         print(data)
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -1312,15 +1344,6 @@ class MooringBaySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class MooringSerializer(serializers.ModelSerializer):
-    mooring_bay_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Mooring
-        fields = '__all__'
-
-    def get_mooring_bay_name(self, obj):
-        return obj.mooring_bay.name
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
