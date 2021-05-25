@@ -99,6 +99,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSerializer,
     VesselFullSerializer,
     VesselFullOwnershipSerializer,
+    ListMooringSerializer,
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
@@ -1803,6 +1804,72 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
         return MooringBay.objects.filter(active=True)
 
 
+class MooringFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        #filter_mooring_status = request.GET.get('filter_mooring_status')
+        #if filter_mooring_status and not filter_mooring_status.lower() == 'all':
+            ##queryset = queryset.filter(customer_status=filter_compliance_status)
+
+        filter_mooring_bay = request.GET.get('filter_mooring_bay')
+        if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
+            queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class MooringRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(MooringRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class MooringPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (MooringFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (MooringRenderer,)
+    queryset = Mooring.objects.none()
+    serializer_class = ListMooringSerializer
+    #search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        qs = Mooring.objects.none()
+
+        if is_internal(self.request):
+            qs = Mooring.private_moorings.filter(active=True)
+
+        return qs
+
+    @list_route(methods=['GET',])
+    def list_internal(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = ListMooringSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
+
+
 class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Mooring.objects.none()
     serializer_class = MooringSerializer
@@ -1856,7 +1923,9 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @basic_exception_handler
     def internal_list(self, request, *args, **kwargs):
         # add security
-        serializer = MooringSerializer(Mooring.objects.all(), many=True)
+        mooring_qs = Mooring.private_moorings.filter(active=True)
+        #import ipdb; ipdb.set_trace()
+        serializer = ListMooringSerializer(mooring_qs, many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET',])

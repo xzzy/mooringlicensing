@@ -39,6 +39,7 @@ router.register(r'mooringlicenceapplication', proposal_api.MooringLicenceApplica
 router.register(r'proposals_paginated', proposal_api.ProposalPaginatedViewSet)
 router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet)
 router.register(r'compliances_paginated', compliances_api.CompliancePaginatedViewSet)
+router.register(r'moorings_paginated', proposal_api.MooringPaginatedViewSet)
 #router.register(r'booking_paginated',booking_api.BookingPaginatedViewSet)
 #router.register(r'compliance_paginated',compliances_api.CompliancePaginatedViewSet)
 router.register(r'approvals', approval_api.ApprovalViewSet)
