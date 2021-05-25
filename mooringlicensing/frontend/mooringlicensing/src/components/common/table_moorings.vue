@@ -4,9 +4,10 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
-                    <select class="form-control" v-model="filterComplianceStatus">
+                    <select class="form-control" v-model="filterMooringStatus">
                         <option value="All">All</option>
-                        <option v-for="status in compliance_statuses" :value="status.code">{{ status.description }}</option>
+                        <!--option v-for="status in mooring_statuses" :value="status.code">{{ status.description }}</option-->
+                        <option v-for="status in mooring_statuses" :value="status">{{ status }}</option>
                     </select>
                 </div>
             </div>
@@ -15,10 +16,10 @@
         <div class="row">
             <div class="col-lg-12">
                 <datatable 
-                    ref="compliances_datatable" 
+                    ref="moorings_datatable" 
                     :id="datatable_id" 
-                    :dtOptions="compliancesOptions" 
-                    :dtHeaders="compliancesHeaders"
+                    :dtOptions="mooringsOptions" 
+                    :dtHeaders="mooringsHeaders"
                 />
             </div>
         </div>
@@ -30,7 +31,8 @@ import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
-    name: 'TableCompliances',
+    name: 'TableMoorings',
+    /*
     props: {
         level:{
             type: String,
@@ -41,148 +43,31 @@ export default {
             }
         },
     },
+    */
     data() {
         let vm = this;
         return {
-            datatable_id: 'compliances-datatable-' + vm._uid,
+            datatable_id: 'moorings-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterComplianceStatus: null,
-            compliance_statuses: [],
+            filterMooringStatus: null,
+            mooring_statuses: [],
 
-            // Datatable settings
-            /*
-            compliances_headers: ['Id', 'Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'],
-            compliances_options: {
-                searching: false,
-                autoWidth: false,
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-
-                ajax: {
-                    "url": api_endpoints.compliances_paginated_external + '?format=datatables',
-                    "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        // Add filters selected
-                        d.filter_compliance_status = vm.filterComplianceStatus;
-                    }
-                },
-                dom: 'lBfrtip',
-                buttons:[
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                ],
-                columns: [
-                    {
-                        // 1. ID
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: false,
-                        'render': function(row, type, full){
-                            return full.id
-                        }
-                    },
-                    {
-                        // 2. Lodgement Number
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.lodgement_number
-                        }
-                    },
-                    {
-                        // 3. Licence/Permit
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.approval_number
-                        }
-                    },
-                    {
-                        // 4. Condition
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let requirement = '';
-                            if (full.requirement) {
-                                requirement = full.requirement.requirement;
-                            }
-                            return requirement;
-                        }
-                    },
-                    {
-                        // 5. Due Date
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let dueDate = '';
-                            if (full.requirement) {
-                                dueDate = full.requirement.read_due_date;
-                            }
-                            return dueDate;
-                        }
-                    },
-                    {
-                        // 6. Status
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.status
-                        }
-                    },
-                    {
-                        // 7. Action
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                ],
-                processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                },
-
-            },
-            */
         }
     },
     components:{
         datatable
     },
     watch: {
-        filterComplianceStatus: function(){
-            this.$refs.compliances_datatable.vmDataTable.ajax.reload()
+        filterMooringStatus: function(){
+            this.$refs.moorings_datatable.vmDataTable.ajax.reload()
         }
     },
     computed: {
         is_external: function() {
             return this.level == 'external'
         },
-        compliancesHeaders: function() {
+        mooringsHeaders: function() {
             let headers = ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'];
             if (this.level === 'internal') {
                 headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
@@ -351,7 +236,7 @@ export default {
             }
             return columns;
         },
-        compliancesOptions: function() {
+        mooringsOptions: function() {
             let vm = this;
             return {
                 searching: false,
@@ -395,8 +280,8 @@ export default {
             let vm = this;
 
             // Statuses
-            vm.$http.get(api_endpoints.compliance_statuses_dict).then((response) => {
-                vm.compliance_statuses = response.body
+            vm.$http.get(api_endpoints.mooring_statuses_dict).then((response) => {
+                vm.mooring_statuses = response.body
             },(error) => {
                 console.log(error);
             })
