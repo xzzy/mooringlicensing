@@ -1,20 +1,8 @@
 import traceback
-import os
-import base64
-import geojson
 import json
-from six.moves.urllib.parse import urlparse
-from wsgiref.util import FileWrapper
 from django.db.models import Q, Min
 from django.db import transaction, connection
-from django.http import HttpResponse, HttpResponseRedirect
-from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
-from django.conf import settings
-from django.contrib import messages
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
 from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes, parser_classes
 from rest_framework.response import Response
@@ -399,6 +387,14 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_applicant_id and not filter_applicant_id.lower() == 'all':
             queryset = queryset.filter(submitter__id=filter_applicant_id)
 
+        # Filter by endorsement
+        filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
+        filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
+        if filter_by_endorsement:
+            queryset = queryset.filter(site_licensee_email=request.user.email)
+        else:
+            queryset = queryset.exclude(site_licensee_email=request.user.email)
+
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
@@ -437,7 +433,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(submitter=request_user))
+            qs = all.filter(Q(submitter=request_user) | Q(site_licensee_email=request_user.email))
             return qs
         return Proposal.objects.none()
 
