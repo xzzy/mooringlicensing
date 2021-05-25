@@ -15,6 +15,7 @@ module.exports = {
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",
     compliance_statuses_dict:"/api/compliance_statuses_dict",
+    mooring_statuses_dict:"/api/mooring_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
 
