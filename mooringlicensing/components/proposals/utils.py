@@ -42,7 +42,8 @@ from mooringlicensing.components.proposals.serializers import (
         VesselDetailsSerializer,
         )
 from mooringlicensing.components.approvals.models import Approval
-from mooringlicensing.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
+from mooringlicensing.components.proposals.email import send_submit_email_notification, \
+    send_external_submit_email_notification, send_endersement_of_authorised_user_application_email
 #from mooringlicensing.components.main.models import Activity, Park, AccessType, Trail, Section, Zone
 import traceback
 import os
@@ -775,9 +776,10 @@ def proposal_submit(proposal, request):
         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         if proposal.application_type.code == AuthorisedUserApplication.code and proposal.mooring_authorisation_preference.lower() != 'ria':
-            # When this application is AUA, and the mooring authorisation preference is RIA
+            # When this application is AUA, and the mooring authorisation preference is not RIA
             proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
+            ret3 = send_endersement_of_authorised_user_application_email(request, proposal)
         if proposal.application_type.code == MooringLicenceApplication.code:
             # When this application is MLA,
             proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
