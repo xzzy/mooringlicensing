@@ -13,11 +13,11 @@ import MooringsDash from '@/components/internal/moorings/dashboard.vue'
 import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
 import VesselDetail from '@/components/internal/vessels/vessel_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
+import Compliance from '../compliances/access.vue'
 /*
 import User from '../users/manage.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
 import Referral from '../referrals/referral.vue'
-import Compliance from '../compliances/access.vue'
 import PaymentOrder from '@/components/common/tclass/payment_order.vue'
 import Reports from '@/components/reports/reports.vue'
 import ParkEntryFeesDashboard from '../park_entry_fees_dashboard.vue'
@@ -105,13 +105,11 @@ export default
             component: StickersDash,
             name: "internal-stickers-dash"
         },
-        /*
         {
             path: 'compliance/:compliance_id',
             component: Compliance,
 
         },
-        */
         {
             path: 'search',
             component: Search,
