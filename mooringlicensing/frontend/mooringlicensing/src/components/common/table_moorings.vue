@@ -3,14 +3,25 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Status</label>
+                    <label for="">Status:</label>
                     <select class="form-control" v-model="filterMooringStatus">
                         <option value="All">All</option>
                         <!--option v-for="status in mooring_statuses" :value="status.code">{{ status.description }}</option-->
-                        <option v-for="status in mooring_statuses" :value="status">{{ status }}</option>
+                        <option v-for="status in mooringStatuses" :value="status">{{ status }}</option>
                     </select>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Bay:</label>
+                    <select class="form-control" v-model="filterMooringBay">
+                        <option value="All">All</option>
+                        <!--option v-for="status in mooring_statuses" :value="status.code">{{ status.description }}</option-->
+                        <option v-for="bay in mooringBays" :value="bay.id">{{ bay.name }}</option>
+                    </select>
+                </div>
+            </div>
+
         </div>
 
         <div class="row">
@@ -51,7 +62,9 @@ export default {
 
             // selected values for filtering
             filterMooringStatus: null,
-            mooring_statuses: [],
+            filterMooringBay: null,
+            mooringStatuses: [],
+            mooringBays: [],
 
         }
     },
@@ -61,42 +74,47 @@ export default {
     watch: {
         filterMooringStatus: function(){
             this.$refs.moorings_datatable.vmDataTable.ajax.reload()
-        }
+        },
+        filterMooringBay: function(){
+            this.$refs.moorings_datatable.vmDataTable.ajax.reload()
+        },
     },
     computed: {
         is_external: function() {
             return this.level == 'external'
         },
         mooringsHeaders: function() {
+            /*
             let headers = ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'];
             if (this.level === 'internal') {
                 headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
             }
-            return headers;
+            */
+            return ['Mooring', 'Bay', 'Type', 'Status', 'Authorised User Permits', 'Max Vessel Length', 'Max Vessel Draft', 'Action'];
         },
-        approvalSubmitterColumn: function() {
+        mooringNameColumn: function() {
             return {
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.approval_submitter;
+                            return full.name;
                         }
                     }
         },
-        approvalTypeColumn: function() {
+        mooringBayColumn: function() {
             return {
                         data: "id",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.mooring_bay_name;
                         }
                     }
         },
-        lodgementNumberColumn: function() {
+        mooringTypeColumn: function() {
             return {
                         // 2. Lodgement Number
                         data: "id",
@@ -104,11 +122,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return 'Mooring';
                         }
                     }
         },
-        licenceNumberColumn: function() {
+        statusColumn: function() {
             return {
                         // 3. Licence/Permit
                         data: "id",
@@ -116,11 +134,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.approval_number
+                            return 'not implemented';
                         }
                     }
         },
-        conditionColumn: function() {
+        authorisedUserPermitsColumn: function() {
             return {
                         // 4. Condition
                         data: "id",
@@ -128,15 +146,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            let requirement = '';
-                            if (full.requirement) {
-                                requirement = full.requirement.requirement;
-                            }
-                            return requirement;
+                            return 'not implemented';
                         }
                     }
         },
-        dueDateColumn: function() {
+        maxVesselLengthColumn: function() {
             return {
                         // 5. Due Date
                         data: "id",
@@ -144,15 +158,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            let dueDate = '';
-                            if (full.requirement) {
-                                dueDate = full.requirement.read_due_date;
-                            }
-                            return dueDate;
+                            return full.vessel_size_limit;
                         }
                     }
         },
-        statusColumn: function() {
+        maxVesselDraftColumn: function() {
             return {
                         // 6. Status
                         data: "id",
@@ -160,7 +170,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.status
+                            return full.vessel_draft_limit;
                         }
                     }
         },
@@ -173,67 +183,22 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            //return 'not implemented'
-                            let links = '';
-                            if (!vm.is_external){
-                                //if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
-                                if (full.can_process) {
-                                    links +=  `<a href='/internal/compliance/${full.id}'>Process</a><br/>`;
-
-                                }
-                                else {
-                                    links +=  `<a href='/internal/compliance/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            else{
-                                if (full.can_user_view) {
-                                    links +=  `<a href='/external/compliance/${full.id}'>View</a><br/>`;
-
-                                }
-                                else {
-                                    links +=  `<a href='/external/compliance/${full.id}'>Submit</a><br/>`;
-                                }
-                            }
-                            return links;
-
-                        }
-                    }
-        },
-        assignedToNameColumn: function() {
-            return {
-                        // 7. Action
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.assigned_to_name;
+                            return `<a href='/internal/moorings/${full.id}'>View</a><br/>`;
                         }
                     }
         },
 
         applicableColumns: function() {
             let columns = [
-                this.lodgementNumberColumn,
-                this.licenceNumberColumn,
-                this.conditionColumn,
-                this.dueDateColumn,
+                this.mooringNameColumn,
+                this.mooringBayColumn,
+                this.mooringTypeColumn,
                 this.statusColumn,
+                this.authorisedUserPermitsColumn,
+                this.maxVesselLengthColumn,
+                this.maxVesselDraftColumn,
                 this.actionColumn,
                 ]
-            if (this.level === 'internal') {
-                columns = [
-                    this.lodgementNumberColumn,
-                    this.approvalTypeColumn,
-                    this.licenceNumberColumn,
-                    this.approvalSubmitterColumn,
-                    //this.conditionColumn,
-                    this.statusColumn,
-                    this.dueDateColumn,
-                    this.assignedToNameColumn,
-                    this.actionColumn,
-                    ]
-            }
             return columns;
         },
         mooringsOptions: function() {
@@ -248,13 +213,17 @@ export default {
                 serverSide: true,
 
                 ajax: {
-                    "url": api_endpoints.compliances_paginated_external + '?format=datatables',
+                    //"url": `${api_endpoints.mooring}internal_list.json?format=datatables`,
+                    //"url": `${api_endpoints.mooring}internal_list?format=datatables`,
+                    "url": api_endpoints.moorings_paginated_internal + '?format=datatables',
+                    //"url": `${api_endpoints.mooring}internal_list.json`,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         // Add filters selected
-                        d.filter_compliance_status = vm.filterComplianceStatus;
+                        d.filter_mooring_status = vm.filterMooringStatus;
+                        d.filter_mooring_bay = vm.filterMooringBay;
                     }
                 },
                 dom: 'lBfrtip',
@@ -281,10 +250,18 @@ export default {
 
             // Statuses
             vm.$http.get(api_endpoints.mooring_statuses_dict).then((response) => {
-                vm.mooring_statuses = response.body
+                vm.mooringStatuses = response.body
             },(error) => {
                 console.log(error);
             })
+            // Mooring Bays
+            vm.$http.get(api_endpoints.mooring_bays).then((response) => {
+                //for (let bay of response.body) {
+                vm.mooringBays = response.body
+            },(error) => {
+                console.log(error);
+            })
+
         },
     },
     created: function(){
