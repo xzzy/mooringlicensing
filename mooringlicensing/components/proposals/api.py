@@ -583,15 +583,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
-    def get_object(self):
+    #def get_object(self):
 
-        check_db_connection()
-        try:
-            obj = super(ProposalViewSet, self).get_object()
-        except Exception as e:
-            # because current queryset excludes migrated licences
-            obj = get_object_or_404(Proposal, id=self.kwargs['id'])
-        return obj
+    #    check_db_connection()
+    #    try:
+    #        obj = super(ProposalViewSet, self).get_object()
+    #    except Exception as e:
+    #        # because current queryset excludes migrated licences
+    #        obj = get_object_or_404(Proposal, id=self.kwargs['id'])
+    #    return obj
 
     #def get_serializer_class(self):
     #    try:
