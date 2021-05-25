@@ -5,7 +5,10 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
 from mooringlicensing.components.proposals.models import MooringBay, Mooring
+from mooringlicensing.components.approvals.models import Approval
 from rest_framework import serializers
+from openpyxl import Workbook
+import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -183,3 +186,28 @@ def handle_validation_error(e):
             raise serializers.ValidationError(e.message)
         else:
             raise
+
+def sticker_export():
+    approvals = Approval.objects.filter(status='current')
+    base_dir = settings.BASE_DIR
+    file_path = os.path.join(base_dir, "export", "20210525.xlsx")
+
+    wb = Workbook()
+
+    ws1 = wb.create_sheet(title="Owners", index=0)
+    for approval in approvals:
+        ws1.append([approval.id, approval.lodgement_number, approval.status])
+    ws2 = wb.create_sheet(title="Annual Admission", index=1)
+    for approval in approvals:
+        ws2.append([
+            approval.id, 
+            approval.lodgement_number, 
+            approval.status,
+            approval.current_proposal_id,
+            approval.submitter_id,
+            ])
+    ws3 = wb.create_sheet(title="Authorised User", index=2)
+    ws4 = wb.create_sheet(title="Mooring Licence", index=3)
+
+    wb.save(file_path)
+
