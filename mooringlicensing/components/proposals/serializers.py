@@ -290,7 +290,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'silent_elector',
                 'bay_preferences_numbered',
                 'site_licensee_email',
-                'mooring_site_id',
+                'mooring_id',
                 'mooring_authorisation_preference',
                 'company_ownership_name',
                 'company_ownership_percentage',
@@ -403,7 +403,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
-                'mooring_site_id',
+                'mooring_id',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -431,7 +431,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_references',
                 'invoices',
                 # 'fee_paid',
-                'mooring_site_id',
+                'mooring_id',
                 )
 
     def get_assigned_officer(self,obj):
@@ -474,6 +474,7 @@ class ProposalSerializer(BaseProposalSerializer):
 class SaveProposalSerializer(BaseProposalSerializer):
     #assessor_data = serializers.JSONField(required=False)
     preferred_bay_id = serializers.IntegerField(write_only=True, required=False)
+    mooring_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
@@ -484,7 +485,7 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'silent_elector',
                 'bay_preferences_numbered',
                 'site_licensee_email',
-                'mooring_site_id',
+                'mooring_id',
                 'mooring_authorisation_preference',
                 )
         read_only_fields=('id',)
@@ -583,6 +584,7 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
+    mooring_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
@@ -592,7 +594,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'mooring_authorisation_preference',
                 'bay_preferences_numbered',
                 'site_licensee_email',
-                'mooring_site_id',
+                'mooring_id',
                 'customer_status',
                 'processing_status',
                 )
@@ -601,6 +603,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print("validate data")
         print(data)
+        import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -612,7 +615,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
             if data.get("mooring_authorisation_preference") == 'site_licensee':
                 if not data.get("site_licensee_email"):
                     custom_errors["Site Licensee Email"] = "This field should not be blank"
-                if not data.get("mooring_site_id"):
+                if not data.get("mooring_id"):
                     custom_errors["Mooring Site ID"] = "This field should not be blank"
             # Vessel docs
             #if not self.instance.vessel_registration_documents.all():
@@ -770,7 +773,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'silent_elector',
                 'bay_preferences_numbered',
                 'site_licensee_email',
-                'mooring_site_id',
+                'mooring_id',
                 'mooring_authorisation_preference',
                 #'individual_owner',
                 #'company_ownership_name',
