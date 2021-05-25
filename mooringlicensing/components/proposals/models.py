@@ -2139,7 +2139,6 @@ class AuthorisedUserApplication(Proposal):
             self.save()
 
 
-
 class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
@@ -2148,6 +2147,9 @@ class MooringLicenceApplication(Proposal):
     new_application_text = ""
     apply_page_visibility = False
     description = 'Mooring Licence Application'
+
+    # This uuid is used to generate the URL for the ML document upload page
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     class Meta:
         app_label = 'mooringlicensing'
