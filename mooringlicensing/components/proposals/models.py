@@ -796,10 +796,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__assessor_group()
         return group.members.all() if group else []
 
-    #@property
-    #def compliance_assessors(self):
-    #    group = self.__assessor_group()
-    #    return group.members.all() if group else []
+    @property
+    def compliance_assessors(self):
+        group = self.__assessor_group()
+        return group.members.all() if group else []
 
     @property
     def can_officer_process(self):
