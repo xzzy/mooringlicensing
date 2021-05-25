@@ -37,7 +37,7 @@ export default {
         let vm = this;
         return {
             datatable_id: 'to_be_endorsed-datatable-' + vm._uid,
-            approvalTypesToDisplay: ['aup'],
+            approvalTypesToDisplay: ['aua'],
 
             // selected values for filtering
             filterApplicationType: null,
@@ -45,7 +45,7 @@ export default {
             filter_by_endorsement: true,
 
             // Datatable settings
-            to_be_endorsed_headers: ['Number', 'Mooring', 'Applicant', 'Status', 'Action'],
+            to_be_endorsed_headers: ['Id', 'Number', 'Mooring', 'Applicant', 'Status', 'Action'],
             to_be_endorsed_options: {
                 autoWidth: false,
                 language: {
@@ -55,7 +55,7 @@ export default {
                 serverSide: true,
                 searching: false,
                 ajax: {
-                    "url": api_endpoints.approvals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -79,6 +79,7 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.id
                         }
                     },
@@ -99,7 +100,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.mooring_site_id
                         }
                     },
                     {
@@ -109,7 +110,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.submitter.first_name + ' ' + full.submitter.last_name
                         }
                     },
                     {
@@ -119,7 +120,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.status
+                            return full.customer_status
                         }
                     },
                     {
