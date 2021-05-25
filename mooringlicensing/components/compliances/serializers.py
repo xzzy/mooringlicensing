@@ -199,6 +199,7 @@ class CompAmendmentRequestDisplaySerializer(serializers.ModelSerializer):
 
 class ListComplianceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    approval_number = serializers.SerializerMethodField()
 
     class Meta:
         model = Compliance
@@ -206,13 +207,18 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'status',
+            'approval_number',
         )
         datatables_always_serialize = (
             'id',
             'lodgement_number',
             'status',
+            'approval_number',
         )
 
     def get_status(self, obj):
         return obj.get_customer_status_display()
+
+    def get_approval_number(self, obj):
+        return obj.approval.lodgement_number
 
