@@ -130,11 +130,9 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
             # TODO: Upon endorsement, the applicant and site licensee receive an email
         proposal.save()
 
-        mooring = Mooring.private_moorings.get(id=proposal.mooring_site_id)
-
         context = {
             'proposal': proposal,
-            'mooring': mooring,
+            'mooring': proposal.mooring,
         }
 
         return render(request, self.template_name, context)
