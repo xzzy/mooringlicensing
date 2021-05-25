@@ -7,6 +7,8 @@ import DcvPermit from '@/components/external/dcv/dcv_permit.vue'
 import DcvAdmission from '@/components/external/dcv/dcv_admission.vue'
 import VesselsDashboard from '@/components/external/vessels_dashboard.vue'
 import ManageVessel from '@/components/external/manage_vessel.vue'
+import Compliance from '../compliances/access.vue'
+import ComplianceSubmit from '../compliances/submit.vue'
 /*
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
@@ -32,7 +34,6 @@ export default
             path: 'organisations/manage/:org_id',
             component: Organisation
         },
-        /*
         {
             path: 'compliance/:compliance_id',
             component: Compliance
@@ -42,6 +43,7 @@ export default
             component: ComplianceSubmit,
             name:"submit_compliance"
         },
+        /*
         {
             path: 'approval/:approval_id',
             component: Approval,
