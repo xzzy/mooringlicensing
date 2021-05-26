@@ -32,6 +32,7 @@ from mooringlicensing.utils import are_migrations_running
 router = routers.DefaultRouter()
 router.register(r'organisations', org_api.OrganisationViewSet)
 router.register(r'proposal', proposal_api.ProposalViewSet)
+router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet)
 router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationViewSet)
 router.register(r'annualadmissionapplication', proposal_api.AnnualAdmissionApplicationViewSet)
 router.register(r'authoriseduserapplication', proposal_api.AuthorisedUserApplicationViewSet)
