@@ -608,6 +608,19 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         else:
             return add_cache_control(Response())
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def submit(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if not instance.mooring_report_documents.count() or not instance.written_proof_documents.count():
+            # Documents missing
+            raise
+
+        instance.post_upload_other_documents(request)
+        return add_cache_control(Response())
+
 
 class ProposalViewSet(viewsets.ModelViewSet):
     # filter_backends = (ProposalFilterBackend,)
