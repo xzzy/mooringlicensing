@@ -2156,11 +2156,16 @@ class MooringLicenceApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args,**kwargs)
+        super(Proposal, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+    def post_upload_other_documents(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.save()
 
 
 class ProposalLogDocument(Document):

@@ -96,11 +96,47 @@ export default {
             }
             return url;
         },
-
+        submit_url: function(){
+            let url = '';
+            if (this.uuid){
+                url = helpers.add_endpoint_join(
+                    api_endpoints.proposal_by_uuid,
+                    this.uuid + '/submit/'
+                )
+            }
+            return url;
+        }
     },
     methods: {
         submit: function(){
-            console.log('in submit')
+            let vm = this
+            vm.submitting = true;
+
+            swal({
+                title: "Other Documents for Mooring Licence Application",
+                text: "Are you sure you want to submit the documents?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: "Submit",
+            }).then(
+                (res)=>{
+                    vm.perform_submit();
+                    this.submitting = false
+                },
+                (res)=>{
+                    this.submitting = false
+                },
+            )
+        },
+        perform_submit: async function(){
+            console.log('in perform_submit')
+            try{
+                //const res = await this.$http.post(url, this.dcv_permit)
+                const res = await this.$http.post(this.submit_url)
+                return res;
+            } catch(err){
+                helpers.processError(err)
+            }
         }
     },
     mounted: function(){
