@@ -17,7 +17,8 @@ from mooringlicensing.components.payments_ml import api as payments_api
 from mooringlicensing.components.proposals import api as proposal_api
 from mooringlicensing.components.approvals import api as approval_api
 from mooringlicensing.components.compliances import api as compliances_api
-from mooringlicensing.components.proposals.views import AuthorisedUserApplicationEndorseView
+from mooringlicensing.components.proposals.views import AuthorisedUserApplicationEndorseView, \
+    MooringLicenceApplicationDocumentsUploadView
 from mooringlicensing.components.users import api as users_api
 from mooringlicensing.components.organisations import api as org_api
 from mooringlicensing.components.main import api as main_api
@@ -31,6 +32,7 @@ from mooringlicensing.utils import are_migrations_running
 router = routers.DefaultRouter()
 router.register(r'organisations', org_api.OrganisationViewSet)
 router.register(r'proposal', proposal_api.ProposalViewSet)
+router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet)
 router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationViewSet)
 router.register(r'annualadmissionapplication', proposal_api.AnnualAdmissionApplicationViewSet)
 router.register(r'authoriseduserapplication', proposal_api.AuthorisedUserApplicationViewSet)
@@ -143,6 +145,7 @@ urlpatterns = [
     url(r'^dcv_admission_success/fee/$', DcvAdmissionFeeSuccessView.as_view(), name='dcv_admission_fee_success'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
+    url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
     #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
     #url(r'^zero_fee_success/', booking_views.ZeroApplicationFeeView.as_view(), name='zero_fee_success'),
     #url(r'^payment_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingView.as_view(), name='deferred_invoicing'),
