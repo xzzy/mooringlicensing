@@ -113,7 +113,6 @@ def retrieve_mooring_areas():
                             )
                     logger.info("Mooring created: {}".format(str(mooring)))
                     records_updated.append(str(mooring.name))
-                    #print(mooring_bay)
 
             logger.info("Moorings updated: {}".format(str(records_updated)))
             # update active status of any MooringBay records not found in api data
@@ -152,7 +151,6 @@ def retrieve_marine_parks():
                     mooring_bay = MooringBay.objects.create(mooring_bookings_id=bay.get("id"), name=bay.get("name"))
                     logger.info("Mooring Bay created: {}".format(str(mooring_bay)))
                     records_updated.append(str(mooring_bay.name))
-                    #print(mooring_bay)
 
             # update active status of any MooringBay records not found in api data
             for mooring_bay in MooringBay.objects.all():
