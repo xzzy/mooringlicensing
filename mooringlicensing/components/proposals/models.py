@@ -2139,7 +2139,6 @@ class AuthorisedUserApplication(Proposal):
             self.save()
 
 
-
 class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
@@ -2149,16 +2148,24 @@ class MooringLicenceApplication(Proposal):
     apply_page_visibility = False
     description = 'Mooring Licence Application'
 
+    # This uuid is used to generate the URL for the ML document upload page
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+
     class Meta:
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args,**kwargs)
+        super(Proposal, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+    def post_upload_other_documents(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.save()
 
 
 class ProposalLogDocument(Document):
@@ -2561,6 +2568,33 @@ class ElectoralRollDocument(Document):
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Electoral Roll Document"
+
+
+class MooringReportDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide = models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden = models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Mooring Report Document"
+
+
+class WrittenProofDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='written_proof_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide = models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden = models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Written Proof Document"
+
 
 
 # Vessel details per Proposal
