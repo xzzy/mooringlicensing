@@ -31,6 +31,26 @@
                 </div>
             </div>
         </FormSection>
+
+        <div>
+            <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+            <div class="row" style="margin-bottom: 50px">
+                <div  class="container">
+                    <div class="row" style="margin-bottom: 50px">
+                        <div class="navbar navbar-fixed-bottom"  style="background-color: #f5f5f5;">
+                            <div class="navbar-inner">
+                                <div class="container">
+                                    <p class="pull-right" style="margin-top:5px">
+                                        <button v-if="submitting" type="button" class="btn btn-primary" disabled>Submit&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
+                                        <input v-else type="button" @click.prevent="submit" class="btn btn-primary" value="Submit" :disabled="submitting"/>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -45,6 +65,7 @@ export default {
         let vm = this;
         return {
             uuid: '',
+            submitting: false,
         }
     },
     components:{
@@ -52,6 +73,9 @@ export default {
         FileField,
     },
     computed: {
+        csrf_token: function() {
+            return helpers.getCookie('csrftoken')
+        },
         mooring_report_url: function() {
             let url = '';
             if (this.uuid){
@@ -74,8 +98,13 @@ export default {
         },
 
     },
+    methods: {
+        submit: function(){
+            console.log('in submit')
+        }
+    },
     mounted: function(){
         this.uuid = this.$route.params.uuid
-    }
+    },
 }
 </script>
