@@ -645,9 +645,9 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _handle_dcv_vessel(request, org_id=None):
         data = request.data
-        rego_no_requested = request.data.get('rego_no', '')
-        uvi_requested = request.data.get('uvi_vessel_identifier', '')
-        vessel_name_requested = request.data.get('vessel_name', '')
+        rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
+        uvi_requested = request.data.get('dcv_vessel').get('uvi_vessel_identifier', '')
+        vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
         try:
             dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
         except DcvVessel.DoesNotExist:
