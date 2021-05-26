@@ -579,6 +579,36 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         return add_cache_control(Response(serialized_obj.data))
 
 
+class ProposalByUuidViewSet(viewsets.ModelViewSet):
+    queryset = Proposal.objects.none()
+
+    def get_object(self):
+        uuid = self.kwargs.get('pk')
+        return MooringLicenceApplication.objects.get(uuid=uuid)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_mooring_report_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
+        if returned_data:
+            return add_cache_control(Response(returned_data))
+        else:
+            return add_cache_control(Response())
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_written_proof_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='written_proof_document')
+        if returned_data:
+            return add_cache_control(Response(returned_data))
+        else:
+            return add_cache_control(Response())
+
+
 class ProposalViewSet(viewsets.ModelViewSet):
     # filter_backends = (ProposalFilterBackend,)
     queryset = Proposal.objects.none()
