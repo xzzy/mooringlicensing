@@ -8,6 +8,7 @@ from mooringlicensing.components.proposals.models import MooringBay, Mooring
 from mooringlicensing.components.approvals.models import Approval
 from rest_framework import serializers
 from openpyxl import Workbook
+from copy import deepcopy
 import os
 import logging
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ def import_mooring_bookings_data():
 
 ## Mooring Bookings API interactions
 def retrieve_mooring_areas():
+    records_updated = []
     try:
         url = settings.MOORING_BOOKINGS_API_URL + "all-mooring/" + settings.MOORING_BOOKINGS_API_KEY
         res = requests.get(url)
@@ -73,9 +75,27 @@ def retrieve_mooring_areas():
                 mooring_qs = Mooring.objects.filter(mooring_bookings_id=mooring.get("id"))
                 if mooring_qs.count() > 0:
                     mo = mooring_qs[0]
-                    if mo.name != mooring.get("name"):
-                        mo.name=mooring.get("name")
-                        mo.save()
+                    orig_mo = deepcopy(mo)
+                    #if mo.name != mooring.get("name"):
+                    #    # only updates name field?
+                    #    mo.name=mooring.get("name")
+                    #    mo.save()
+                    #    records_updated.append(str(mo.name))
+                    mo.mooring_bookings_id=mooring.get("id")
+                    mo.name=mooring.get("name")
+                    mo.mooring_bay = MooringBay.objects.get(
+                        mooring_bookings_id=mooring.get('marine_park_id'), 
+                            active=True
+                            )
+                    mo.vessel_size_limit = mooring.get('vessel_size_limit')
+                    mo.vessel_draft_limit = mooring.get('vessel_draft_limit')
+                    mo.vessel_beam_limit = mooring.get('vessel_beam_limit')
+                    mo.vessel_weight_limit = mooring.get('vessel_weight_limit')
+                    mo.mooring_bookings_mooring_specification = mooring.get('mooring_specification')
+                    mo.mooring_bookings_bay_id = mooring.get('marine_park_id')
+                    mo.save()
+                    if orig_mo != mo:
+                        records_updated.append(str(mo.name))
                 else:
                     mooring = Mooring.objects.create(
                             mooring_bookings_id=mooring.get("id"), 
@@ -92,21 +112,25 @@ def retrieve_mooring_areas():
                             mooring_bookings_bay_id = mooring.get('marine_park_id')
                             )
                     logger.info("Mooring created: {}".format(str(mooring)))
+                    records_updated.append(str(mooring.name))
                     #print(mooring_bay)
 
+            logger.info("Moorings updated: {}".format(str(records_updated)))
             # update active status of any MooringBay records not found in api data
             for mooring_obj in Mooring.objects.all():
                 if mooring_obj.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_obj.active = False
                     mooring_obj.save()
-            return [], ['stuff updated']
+            return [], records_updated
 
     except Exception as e:
         #raise e
         logger.error('retrieve_mooring_areas() error', exc_info=True)
-        return ['check log',], []
+        # email only prints len() of error list
+        return ['check log',], records_updated
 
 def retrieve_marine_parks():
+    records_updated = []
     try:
         #import ipdb; ipdb.set_trace()
         # CRON (every night?)  Plus management button for manual control.
@@ -123,9 +147,11 @@ def retrieve_marine_parks():
                     if mb.name != bay.get("name"):
                         mb.name=bay.get("name")
                         mb.save()
+                        records_updated.append(str(mb.name))
                 else:
                     mooring_bay = MooringBay.objects.create(mooring_bookings_id=bay.get("id"), name=bay.get("name"))
                     logger.info("Mooring Bay created: {}".format(str(mooring_bay)))
+                    records_updated.append(str(mooring_bay.name))
                     #print(mooring_bay)
 
             # update active status of any MooringBay records not found in api data
@@ -133,13 +159,13 @@ def retrieve_marine_parks():
                 if mooring_bay.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_bay.active = False
                     mooring_bay.save()
-            return [], ['stuff updated']
+            return [], records_updated
                 #else:
                 #    mooring_bay.active = True
                 #    mooring_bay.save()
     except Exception as e:
         logger.error('retrieve_marine_parks() error', exc_info=True)
-        return ['check log',], []
+        return ['check log',], records_updated
 
 def handle_validation_error(e):
     # if hasattr(e, 'error_dict'):
