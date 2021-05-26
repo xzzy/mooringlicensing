@@ -89,7 +89,8 @@ from '@/utils/hooks'
                     vm.selectedVessel = null;
                 }).
                 on("select2:open",function (e) {
-                    const searchField = $(".select2-search__field")
+                    //const searchField = $(".select2-search__field")
+                    const searchField = $('[aria-controls="select2-vessel_lookup-results"]')
                     // move focus to select2 field
                     searchField[0].focus();
                 });
