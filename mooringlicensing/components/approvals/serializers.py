@@ -8,7 +8,11 @@ from mooringlicensing.components.payments_ml.serializers import DcvPermitSeriali
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
-    ApprovalUserAction, DcvOrganisation, DcvVessel
+    ApprovalUserAction, 
+    DcvOrganisation, 
+    DcvVessel,
+    DcvPermit,
+    DcvAdmission,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -438,3 +442,58 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     def get_submitter_phone_number(self, obj):
         return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
 
+
+class ListDcvPermitSerializer(serializers.ModelSerializer):
+    dcv_vessel_uiv = serializers.SerializerMethodField()
+    dcv_organisation_name = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    fee_season = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DcvPermit
+        fields = (
+            'id',
+            'lodgement_number',
+            'lodgement_datetime',            
+            'fee_season',            
+            'start_date',
+            'end_date', 
+            'dcv_vessel_uiv', 
+            'dcv_organisation_name',
+            'status',
+            )
+        datatables_always_serialize = (
+            'id',
+            'lodgement_number',
+            'lodgement_datetime',            
+            'fee_season',            
+            'start_date',
+            'end_date', 
+            'dcv_vessel_uiv', 
+            'dcv_organisation_name',
+            'status',
+            )
+
+    def get_dcv_vessel_uiv(self, obj):
+        if obj.dcv_vessel:
+            return obj.dcv_vessel.uvi_vessel_identifier
+        else:
+            return ''
+
+    def get_dcv_organisation_name(self, obj):
+        if obj.dcv_organisation:
+            return obj.dcv_organisation.name
+        else:
+            return ''
+
+    def get_status(self, obj):
+        status = ''
+        if obj.status:
+            status = obj.status[1]
+        return status
+
+    def get_fee_season(self, obj):
+        fee_season = ''
+        if obj.fee_season:
+            fee_season = obj.fee_season.name
+        return fee_season
