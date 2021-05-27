@@ -43,9 +43,256 @@ export default {
             approvalTypesToDisplay: ['wla'],
             show_expired_surrendered: true,
 
-            // Datatable settings
-            datatable_headers: ['Id', 'Number', 'Bay', 'Application number in Bay', 'Status', 'Vessel Registration', 'Vessel Name', 'Issue Date', 'Expiry Date', 'Action'],
-            datatable_options: {
+        }
+    },
+    components:{
+        datatable
+    },
+    watch: {
+        show_expired_surrendered: function(value){
+            console.log(value)
+            this.$refs.waiting_list_datatable.vmDataTable.ajax.reload()
+        }
+    },
+    computed: {
+        is_external: function() {
+            return this.level == 'external'
+        },
+        is_internal: function() {
+            return this.level == 'internal'
+        },
+        // Datatable settings
+        datatable_headers: function() {
+            if (this.is_external) {
+                return [
+                    'Id', 
+                    'Number', 
+                    'Bay', 
+                    'Application number in Bay', 
+                    'Status', 
+                    'Vessel Registration', 
+                    'Vessel Name', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Action'
+                ]
+            } else if (this.is_internal) {
+                return [
+                    'Id', 
+                    'Number', 
+                    'Holder',
+                    'Status', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Vessel length',
+                    'Vessel draft',
+                    'Mooring area',
+                    'Action'
+                ]
+            }
+        },
+        columnId: function() {
+            return {
+                        // 1. ID
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            console.log(full)
+                            return full.id
+                        }
+                    }
+        },
+        columnLodgementNumber: function() {
+            return {
+                        // 2. Lodgement Number
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.lodgement_number
+                        }
+                    }
+        },
+        /*
+        columnBay: function() {
+            return {
+                        // 3. Bay
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
+                        }
+                    }
+        },
+        */
+        columnApplicationNumberInBay: function() {
+            return {
+                        // 4. Application number in Bay
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.current_proposal_number;
+                        }
+                    }
+        },
+        columnStatus: function() {
+            return {
+                        // 5. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.status
+                        }
+                    }
+        },
+        columnVesselRegistration: function() {
+            return {
+                        // 6. Vessel Registration
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_registration;
+                        }
+                    }
+        },
+        columnVesselName: function() {
+            return {
+                        // 7. Vessel Name
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_name;
+                        }
+                    }
+        },
+        columnIssueDate: function() {
+            return {
+                        // 8. Issue Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.issue_date_str;
+                        }
+                    }
+        },
+        columnExpiryDate: function() {
+            return {
+                        // 9. Expiry Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.expiry_date_str;
+                        }
+                    }
+        },
+        columnAction: function() {
+            return {
+                        // 10. Action
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            //return 'View<br />Amend<br />Renew<br />Surrender'
+                            return 'not implemented'
+                        }
+                    }
+        },
+        columnHolder: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.holder;
+                        }
+                    }
+        },
+        columnPreferredMooringBay: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.preferred_mooring_bay;
+                        }
+                    }
+        },
+        columnVesselLength: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_length;
+                        }
+                    }
+        },
+        columnVesselDraft: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_draft;
+                        }
+                    }
+        },
+
+        datatable_options: function() {
+            let vm = this;
+            let selectedColumns = [];
+            if (vm.is_external) {
+                selectedColumns = [
+                    vm.columnId,
+                    vm.columnLodgementNumber,
+                    //vm.columnBay,
+                    vm.columnPreferredMooringBay,
+                    vm.columnApplicationNumberInBay,
+                    vm.columnStatus,
+                    vm.columnVesselRegistration,
+                    vm.columnVesselName,
+                    vm.columnIssueDate,
+                    vm.columnExpiryDate,
+                    vm.columnAction,
+                ]
+            } else if (vm.is_internal) {
+                selectedColumns = [
+                    vm.columnId,
+                    vm.columnLodgementNumber,
+                    vm.columnHolder,
+                    vm.columnStatus,
+                    vm.columnIssueDate,
+                    vm.columnExpiryDate,
+                    vm.columnVesselLength,
+                    vm.columnVesselDraft,
+                    vm.columnPreferredMooringBay,
+                    vm.columnAction,
+                ]
+            }
+
+            return {
                 autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -78,132 +325,14 @@ export default {
                     //    }
                     //},
                 ],
-                columns: [
-                    {
-                        // 1. ID
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: false,
-                        'render': function(row, type, full){
-                            console.log(full)
-                            return full.id
-                        }
-                    },
-                    {
-                        // 2. Lodgement Number
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.lodgement_number
-                        }
-                    },
-                    {
-                        // 3. Bay
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                    {
-                        // 4. Application number in Bay
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                    {
-                        // 5. Status
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.status
-                        }
-                    },
-                    {
-                        // 6. Vessel Registration
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                    {
-                        // 7. Vessel Name
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                    {
-                        // 8. Issue Date
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            if (full.issue_date){
-                                return moment(full.issue_date).format('DD/MM/YYYY')
-                            }
-                            return ''
-                        }
-                    },
-                    {
-                        // 9. Expiry Date
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                    {
-                        // 10. Action
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'View<br />Amend<br />Renew<br />Surrender'
-                        }
-                    },
-                ],
+                columns: selectedColumns,
                 processing: true,
                 initComplete: function() {
                     console.log('in initComplete')
                 },
-            },
+            }
         }
-    },
-    components:{
-        datatable
-    },
-    watch: {
-        show_expired_surrendered: function(value){
-            console.log(value)
-            this.$refs.waiting_list_datatable.vmDataTable.ajax.reload()
-        }
-    },
-    computed: {
-        is_external: function() {
-            return this.level == 'external'
-        },
+
     },
     methods: {
 

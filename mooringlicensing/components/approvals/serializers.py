@@ -364,6 +364,15 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 class ListApprovalSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval_type_dict = serializers.SerializerMethodField()
+    holder = serializers.SerializerMethodField()
+    issue_date_str = serializers.SerializerMethodField()
+    expiry_date_str = serializers.SerializerMethodField()
+    vessel_length = serializers.SerializerMethodField()
+    vessel_draft = serializers.SerializerMethodField()
+    preferred_mooring_bay = serializers.SerializerMethodField()
+    current_proposal_number = serializers.SerializerMethodField()
+    vessel_registration = serializers.SerializerMethodField()
+    vessel_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -373,6 +382,15 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'status',
             'approval_type_dict',
             'issue_date',
+            'holder',
+            'issue_date_str',
+            'expiry_date_str',
+            'vessel_length',
+            'vessel_draft',
+            'preferred_mooring_bay',
+            'current_proposal_number',
+            'vessel_registration',
+            'vessel_name',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -382,7 +400,52 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'status',
             'approval_type_dict',
             'issue_date',
+            'holder',
+            'issue_date_str',
+            'expiry_date_str',
+            'vessel_length',
+            'vessel_draft',
+            'preferred_mooring_bay',
+            'current_proposal_number',
+            'vessel_registration',
+            'vessel_name',
         )
+
+    def get_current_proposal_number(self, obj):
+        number = ''
+        if obj.current_proposal:
+            number = obj.current_proposal.lodgement_number
+        return number
+
+    def get_vessel_length(self, obj):
+        vessel_length = ''
+        if obj.current_proposal and obj.current_proposal.vessel_details:
+            vessel_length = obj.current_proposal.vessel_details.vessel_applicable_length
+        return vessel_length
+
+    def get_vessel_registration(self, obj):
+        vessel_rego = ''
+        if obj.current_proposal and obj.current_proposal.vessel_details:
+            vessel_rego = obj.current_proposal.vessel_details.vessel.rego_no
+        return vessel_rego
+
+    def get_vessel_name(self, obj):
+        vessel_name = ''
+        if obj.current_proposal and obj.current_proposal.vessel_details:
+            vessel_name = obj.current_proposal.vessel_details.vessel_name
+        return vessel_name
+
+    def get_vessel_draft(self, obj):
+        vessel_draft = ''
+        if obj.current_proposal and obj.current_proposal.vessel_details:
+            vessel_draft = obj.current_proposal.vessel_details.vessel_draft
+        return vessel_draft
+
+    def get_preferred_mooring_bay(self, obj):
+        bay = ''
+        if obj.current_proposal and obj.current_proposal.preferred_bay:
+            bay = obj.current_proposal.preferred_bay.name
+        return bay
 
     def get_status(self, obj):
         return obj.get_status_display()
@@ -402,6 +465,24 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             }
         except:
             raise
+
+    def get_holder(self, obj):
+        submitter = ''
+        if obj.submitter:
+            submitter = obj.submitter.get_full_name()
+        return submitter
+
+    def get_issue_date_str(self, obj):
+        issue_date = ''
+        if obj.issue_date:
+            issue_date = obj.issue_date.strftime('%d/%m/%Y')
+        return issue_date
+
+    def get_expiry_date_str(self, obj):
+        expiry_date = ''
+        if obj.expiry_date:
+            expiry_date = obj.expiry_date.strftime('%d/%m/%Y')
+        return expiry_date
 
 
 class LookupApprovalSerializer(serializers.ModelSerializer):
