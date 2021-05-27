@@ -113,6 +113,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     email = DocumentsUploadForMooringLicenceApplicationEmail()
     # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    print(document_upload_url)
 
     # Configure recipients, contents, etc
     context = {
@@ -140,6 +141,7 @@ def send_endersement_of_authorised_user_application_email(request, proposal):
     email = EndersementOfAuthorisedUserApplicationEmail()
     # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    print(endorse_url)
 
     # Configure recipients, contents, etc
     context = {
