@@ -768,30 +768,32 @@ def proposal_submit(proposal, request):
     # Create a log entry for the proposal
     proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
 
-    ret1 = send_submit_email_notification(request, proposal)
+    # ret1 = send_submit_email_notification(request, proposal)
     #ret2 = send_external_submit_email_notification(request, proposal)
-    ret2 = True
+    # ret2 = True
+    proposal.child_obj.proposal_submit(request)
 
-    if ret1 and ret2:
+    # if ret1 and ret2:
         # Set new status
-        proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-        proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        if proposal.application_type.code == AuthorisedUserApplication.code and proposal.mooring_authorisation_preference.lower() != 'ria':
-            # When this application is AUA, and the mooring authorisation preference is not RIA
-            proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
-            proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
-            ret3 = send_endersement_of_authorised_user_application_email(request, proposal)  # TODO: This email should be merged with the send_external_submit_email_notification above
-        if proposal.application_type.code == MooringLicenceApplication.code:
-            # When this application is MLA,
-            proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-            proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
-            ret3 = send_documents_upload_for_mooring_licence_application_email(request, proposal)    # TODO: This email should be merged with the send_external_submit_email_notification above
+
+        #proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        #proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        #if proposal.application_type.code == AuthorisedUserApplication.code and proposal.mooring_authorisation_preference.lower() != 'ria':
+        #    # When this application is AUA, and the mooring authorisation preference is not RIA
+        #    proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+        #    proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
+        #   ret3 = send_endersement_of_authorised_user_application_email(request, proposal)  # TODO: This email should be merged with the send_external_submit_email_notification above
+        #if proposal.application_type.code == MooringLicenceApplication.code:
+        #    # When this application is MLA,
+        #    proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+        #    proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
+        #   ret3 = send_documents_upload_for_mooring_licence_application_email(request, proposal)    # TODO: This email should be merged with the send_external_submit_email_notification above
 
         #    #proposal.documents.all().update(can_delete=False)
     #    #proposal.required_documents.all().update(can_delete=False)
-        proposal.save()
-    else:
-       raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+    #     proposal.save()
+    # else:
+    #    raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
     proposal.save()
 
     #Create assessor checklist with the current assessor_list type questions
