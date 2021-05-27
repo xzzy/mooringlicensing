@@ -15,7 +15,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 from django.conf import settings
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.payments.invoice.models import Invoice
+# from ledger.payments.invoice.models import Invoice
 
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
@@ -34,13 +34,14 @@ from ledger.payments.invoice.utils import CreateInvoiceBasket
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
-    send_proposal_awaiting_payment_approval_email_notification,
+    # send_proposal_awaiting_payment_approval_email_notification,
     send_amendment_email_notification,
-    send_submit_email_notification, 
-    send_external_submit_email_notification, 
-    send_approver_decline_email_notification, 
-    send_approver_approve_email_notification, 
-    send_proposal_approver_sendback_email_notification, 
+    send_submit_email_notification,
+    # send_external_submit_email_notification,
+    send_approver_decline_email_notification,
+    send_approver_approve_email_notification,
+    send_proposal_approver_sendback_email_notification, send_endersement_of_authorised_user_application_email,
+    send_documents_upload_for_mooring_licence_application_email,
 )
 from mooringlicensing.ordered_model import OrderedModel
 import copy
@@ -572,14 +573,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         ret2 = True
 
         if ret1 and ret2:
-            # Set new status
-            if self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
-                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-                self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-            elif self.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
-            self.save()
+            self.child_obj.set_status_after_payment_success()
+            # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
+            # wobj.set_status_after_payment_success()
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
@@ -2093,6 +2089,13 @@ class WaitingListApplication(Proposal):
             self.lodgement_number = new_lodgment_id
             self.save()
 
+    def set_status_after_payment_success(self):
+        self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Not very sure why we need to specify 'proposal', but this works
+        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        # self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Doesn't update parent.processing_status... why?
+        # self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.save()
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2113,6 +2116,11 @@ class AnnualAdmissionApplication(Proposal):
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+    def set_status_after_payment_success(self):
+        self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.save()
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2137,6 +2145,24 @@ class AuthorisedUserApplication(Proposal):
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+    def set_status_after_payment_success(self):
+        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+        self.save()
+
+    def proposal_submit(self, request):
+        if self.mooring_authorisation_preference.lower() != 'ria':
+            # When this application is AUA, and the mooring authorisation preference is not RIA
+            self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
+            self.save()
+            send_endersement_of_authorised_user_application_email(request, self)
+        else:
+            self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            self.save()
+            send_submit_email_notification(request, self)
 
 
 class MooringLicenceApplication(Proposal):
@@ -2163,9 +2189,25 @@ class MooringLicenceApplication(Proposal):
             self.save()
 
     def post_upload_other_documents(self, request):
+        # self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        # self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+
+        # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+
         self.save()
+
+    def set_status_after_payment_success(self):
+        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+        self.save()
+
+    def proposal_submit(self, request):
+        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
+        self.save()
+        send_documents_upload_for_mooring_licence_application_email(request, self)
 
 
 class ProposalLogDocument(Document):
