@@ -43,7 +43,8 @@ from mooringlicensing.components.proposals.serializers import (
         )
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.email import send_submit_email_notification, \
-    send_external_submit_email_notification, send_endersement_of_authorised_user_application_email
+    send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
+    send_documents_upload_for_mooring_licence_application_email
 #from mooringlicensing.components.main.models import Activity, Park, AccessType, Trail, Section, Zone
 import traceback
 import os
@@ -779,11 +780,12 @@ def proposal_submit(proposal, request):
             # When this application is AUA, and the mooring authorisation preference is not RIA
             proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
-            ret3 = send_endersement_of_authorised_user_application_email(request, proposal)
+            ret3 = send_endersement_of_authorised_user_application_email(request, proposal)  # TODO: This email should be merged with the send_external_submit_email_notification above
         if proposal.application_type.code == MooringLicenceApplication.code:
             # When this application is MLA,
             proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
             proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
+            ret3 = send_documents_upload_for_mooring_licence_application_email(request, proposal)    # TODO: This email should be merged with the send_external_submit_email_notification above
 
         #    #proposal.documents.all().update(can_delete=False)
     #    #proposal.required_documents.all().update(can_delete=False)
