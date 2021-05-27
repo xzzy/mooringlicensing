@@ -574,11 +574,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         if ret1 and ret2:
             self.child_obj.set_status_after_payment_success()
+            # self.refresh_from_db()
             # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
             # wobj.set_status_after_payment_success()
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-        self.save()
+        # self.save()
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
@@ -2090,10 +2091,10 @@ class WaitingListApplication(Proposal):
             self.save()
 
     def set_status_after_payment_success(self):
-        self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Not very sure why we need to specify 'proposal', but this works
-        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        # self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Doesn't update parent.processing_status... why?
-        # self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        # self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Not very sure why we need to specify 'proposal', but this works
+        # self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Doesn't update parent.processing_status... why?
+        self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         self.save()
 
 
@@ -2118,8 +2119,10 @@ class AnnualAdmissionApplication(Proposal):
             self.save()
 
     def set_status_after_payment_success(self):
-        self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        # self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        # self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+        self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         self.save()
 
 
@@ -2151,16 +2154,21 @@ class AuthorisedUserApplication(Proposal):
         self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
         self.save()
 
-    def proposal_submit(self, request):
+    def process_after_submit(self, request):
+        self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
+        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        self.save()
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+
         if self.mooring_authorisation_preference.lower() != 'ria':
             # When this application is AUA, and the mooring authorisation preference is not RIA
-            self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
-            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
             self.save()
             send_endersement_of_authorised_user_application_email(request, self)
         else:
-            self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             self.save()
             send_submit_email_notification(request, self)
 
@@ -2188,24 +2196,23 @@ class MooringLicenceApplication(Proposal):
             self.lodgement_number = new_lodgment_id
             self.save()
 
-    def post_upload_other_documents(self, request):
-        # self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-        # self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-
+    def process_after_uploading_other_documents(self, request):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-
         self.save()
 
     def set_status_after_payment_success(self):
-        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
         self.save()
 
-    def proposal_submit(self, request):
-        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
+    def process_after_submit(self, request):
+        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        self.save()
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
         self.save()
         send_documents_upload_for_mooring_licence_application_email(request, self)
 
