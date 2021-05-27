@@ -1184,6 +1184,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
     start_date = serializers.SerializerMethodField()
     end_date = serializers.SerializerMethodField()
     owner_phone_number = serializers.SerializerMethodField()
+    individual_owner = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselOwnership
@@ -1196,6 +1197,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
                 'owner_full_name',
                 'applicable_percentage',
                 'owner_phone_number',
+                'individual_owner',
                 )
 
     def get_owner_full_name(self, obj):
@@ -1221,6 +1223,12 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
 
     def get_owner_phone_number(self, obj):
         return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
+
+    def get_individual_owner(self, obj):
+        individual_owner = True
+        if obj.company_ownership:
+            individual_owner = False
+        return individual_owner
 
 
 class SaveVesselOwnershipSaleDateSerializer(serializers.ModelSerializer):

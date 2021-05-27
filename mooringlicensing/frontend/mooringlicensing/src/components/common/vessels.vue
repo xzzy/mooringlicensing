@@ -344,6 +344,7 @@ from '@/utils/hooks'
         },
         methods:{
             retrieveIndividualOwner: async function() {
+                console.log("retrieve individual owner")
                 if (this.individualOwner && this.vessel.id) {
                     const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
                     const res = await this.$http.post(url);
@@ -529,6 +530,19 @@ from '@/utils/hooks'
                             console.log("individual")
                             if (this.proposal && this.proposal.id) {
                                 await vm.retrieveIndividualOwner();
+                            } else {
+                                // retrieve list of Vessel Owners
+                                const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
+                                console.log(res);
+                                let individualOwner = false;
+                                for (let vo of res.body) {
+                                    if (vo.individual_owner) {
+                                        individualOwner = true;
+                                    }
+                                }
+                                if (individualOwner) {
+                                    await vm.retrieveIndividualOwner();
+                                }
                             }
                         } else {
                             data = vm.validateRegoNo(data);
