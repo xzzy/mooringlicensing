@@ -2155,10 +2155,10 @@ class AuthorisedUserApplication(Proposal):
         self.save()
 
     def process_after_submit(self, request):
+        self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
-        self.refresh_from_db()
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
         if self.mooring_authorisation_preference.lower() != 'ria':
             # When this application is AUA, and the mooring authorisation preference is not RIA
@@ -2211,7 +2211,6 @@ class MooringLicenceApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
-        self.refresh_from_db()
         self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
         self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
         self.save()
