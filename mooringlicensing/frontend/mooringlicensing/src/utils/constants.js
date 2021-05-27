@@ -14,6 +14,7 @@ module.exports = {
     WITH_APPROVER: 'With Approver',
     AWAITING_PAYMENT: 'Awaiting Payment',
     AWAITING_STICKER: 'Awaiting Sticker',
+    AWAITING_ENDORSEMENT: 'Awaiting Endorsement',
     APPROVED: 'Approved',
     DECLINED: 'Declined',
 };
