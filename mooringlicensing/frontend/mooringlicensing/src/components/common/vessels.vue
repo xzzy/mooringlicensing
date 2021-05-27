@@ -535,13 +535,24 @@ from '@/utils/hooks'
                                 const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
                                 console.log(res);
                                 let individualOwner = false;
+                                let companyOwner = false;
                                 for (let vo of res.body) {
                                     if (vo.individual_owner) {
                                         individualOwner = true;
+                                    } else if (vo.company_ownership) {
+                                        companyOwner = true;
                                     }
                                 }
                                 if (individualOwner) {
-                                    await vm.retrieveIndividualOwner();
+                                    // read individual ownership data
+                                    vm.vessel.vessel_ownership.individual_owner = true;
+                                } else if (companyOwner) {
+                                    // read first company ownership data
+                                    vm.vessel.vessel_ownership.individual_owner = false;
+                                    const vo = res.body[0]
+                                    const companyId = vo.company_ownership.company.id;
+                                    await vm.lookupCompanyOwnership(companyId);
+                                    vm.readCompanyName();
                                 }
                             }
                         } else {
