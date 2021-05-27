@@ -31,7 +31,11 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
-    ApprovalPaymentSerializer, ListApprovalSerializer, DcvOrganisationSerializer, DcvVesselSerializer
+    ApprovalPaymentSerializer, 
+    ListApprovalSerializer, 
+    DcvOrganisationSerializer, 
+    DcvVesselSerializer,
+    ListDcvPermitSerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -680,6 +684,70 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         dcv_permit = serializer.save()
 
         return Response(serializer.data)
+
+
+class DcvPermitFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        #filter_compliance_status = request.GET.get('filter_compliance_status')
+        #if filter_compliance_status and not filter_compliance_status.lower() == 'all':
+         #   queryset = queryset.filter(customer_status=filter_compliance_status)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(DcvPermitFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class DcvPermitRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(DcvPermitRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (DcvPermitFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (DcvPermitRenderer,)
+    queryset = DcvPermit.objects.none()
+    serializer_class = ListDcvPermitSerializer
+    search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        qs = DcvPermit.objects.none()
+
+        if is_internal(self.request):
+            qs = DcvPermit.objects.all()
+        #elif is_customer(self.request):
+         #   qs = e.objects.filter(Q(approval__submitter=request_user))
+
+        return qs
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = ListDcvPermitSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
 
 
 class DcvVesselViewSet(viewsets.ModelViewSet):
