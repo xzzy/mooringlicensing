@@ -532,7 +532,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 if proposal and invoice.payment_status in ('paid', 'over_paid',):
                     self.adjust_db_operations(db_operations)
 
-                    # TODO: implement proposal.post_payment_success()
                     proposal.post_payment_success(request)
                     # proposal_submit(proposal, request)
 
