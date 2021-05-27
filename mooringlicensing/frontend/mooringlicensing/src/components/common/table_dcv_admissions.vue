@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Approval', 'Organisation', 'UIV Vessel Identifier', 'Status', 'Year', 'Action']
+            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation',*/ 'UIV Vessel Identifier',/* 'Status',*/ 'Date', 'Action']
         },
         column_id: function(){
             return {
@@ -130,7 +130,7 @@ export default {
                 name: 'lodgement_number',
             }
         },
-        column_invoice_approval: function(){
+        column_invoice_confirmation: function(){
             return {
                 data: "id",
                 orderable: true,
@@ -141,6 +141,7 @@ export default {
                 }
             }
         },
+        /*
         column_organisation: function(){
             return {
                 data: "id",
@@ -153,6 +154,7 @@ export default {
                 }
             }
         },
+        */
         column_uiv: function(){
             return {
                 data: "id",
@@ -165,6 +167,7 @@ export default {
                 }
             }
         },
+        /*
         column_status: function(){
             return {
                 data: "id",
@@ -176,14 +179,15 @@ export default {
                 }
             }
         },
-        column_year: function(){
+        */
+        column_date: function(){
             return {
                 data: "id",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.fee_season;
+                    return full.lodgement_date;
                 }
             }
         },
@@ -253,11 +257,11 @@ export default {
             let columns = [
                 vm.column_id,
                 vm.column_lodgement_number,
-                vm.column_invoice_approval,
-                vm.column_organisation,
+                vm.column_invoice_confirmation,
+                //vm.column_organisation,
                 vm.column_uiv,
-                vm.column_status,
-                vm.column_year,
+                //vm.column_status,
+                vm.column_date,
                 vm.column_action,
             ]
             let search = true
@@ -271,7 +275,7 @@ export default {
                 serverSide: true,
                 searching: search,
                 ajax: {
-                    "url": api_endpoints.dcvpermits_paginated_list + '?format=datatables',
+                    "url": api_endpoints.dcvadmissions_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -319,7 +323,7 @@ export default {
                         'success'
                     )
                     //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.application_datatable.vmDataTable.draw();
+                    vm.$refs.admissions_datatable.vmDataTable.draw();
                 }, (error) => {
                     console.log(error);
                 });
@@ -356,7 +360,7 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
+            vm.$refs.admissions_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id)

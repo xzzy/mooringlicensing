@@ -501,8 +501,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
 
 class ListDcvAdmissionSerializer(serializers.ModelSerializer):
     dcv_vessel_uiv = serializers.SerializerMethodField()
-    dcv_organisation_name = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
+    #dcv_organisation_name = serializers.SerializerMethodField()
+    #status = serializers.SerializerMethodField()
     lodgement_date = serializers.SerializerMethodField()
     #fee_season = serializers.SerializerMethodField()
 
@@ -514,8 +514,8 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'lodgement_date',            
             #'fee_season',            
             'dcv_vessel_uiv', 
-            'dcv_organisation_name',
-            'status',
+            #'dcv_organisation_name',
+            #'status',
             )
         datatables_always_serialize = (
             'id',
@@ -523,8 +523,8 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'lodgement_date',            
             #'fee_season',            
             'dcv_vessel_uiv', 
-            'dcv_organisation_name',
-            'status',
+            #'dcv_organisation_name',
+            #'status',
             )
 
     def get_dcv_vessel_uiv(self, obj):
@@ -533,17 +533,17 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         else:
             return ''
 
-    def get_dcv_organisation_name(self, obj):
-        if obj.dcv_organisation:
-            return obj.dcv_organisation.name
-        else:
-            return ''
+    #def get_dcv_organisation_name(self, obj):
+    #    if obj.dcv_organisation:
+    #        return obj.dcv_organisation.name
+    #    else:
+    #        return ''
 
-    def get_status(self, obj):
-        status = ''
-        if obj.status:
-            status = obj.status[1]
-        return status
+    #def get_status(self, obj):
+    #    status = ''
+    #    if obj.status:
+    #        status = obj.status[1]
+    #    return status
 
     #def get_fee_season(self, obj):
     #    fee_season = ''
