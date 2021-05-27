@@ -105,15 +105,21 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         # Filter by types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
+        #import ipdb; ipdb.set_trace()
         if filter_approval_type and not filter_approval_type.lower() == 'all':
-            q = None
-            for item in Approval.__subclasses__():
-                if hasattr(item, 'code') and item.code == filter_approval_type:
-                    lookup = "{}__isnull".format(item._meta.model_name)
-                    q = Q(**{lookup: False})
-                    break
-            queryset = queryset.filter(q) if q else queryset
-
+            filter_approval_type_list = filter_approval_type.split(',')
+            #q = None
+            #for item in Approval.__subclasses__():
+            #    #if hasattr(item, 'code') and item.code == filter_approval_type:
+            #    if hasattr(item, 'code') and item.code in filter_approval_type_list:
+            #        #lookup = "{}__isnull".format(item._meta.model_name)
+            #        lookup = "{}__isnull".format(item._meta.model_name)
+            #        q = Q(**{lookup: False})
+            #        #break
+            #queryset = queryset.filter(q) if q else queryset
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
+            queryset = queryset.filter(id__in=filtered_ids)
+        print(queryset)
         # Show/Hide expired and/or surrendered
         show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
