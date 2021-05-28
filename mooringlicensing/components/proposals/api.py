@@ -7,6 +7,7 @@ from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes, parser_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+from datetime import datetime, date
 # from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
 # from rest_framework.pagination import PageNumberPagination
 # from collections import OrderedDict
@@ -1627,22 +1628,39 @@ class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['POST',])
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
         vessel = self.get_object()
+        selected_date_str = request.data.get("selected_date")
+        selected_date = None
+        if selected_date_str:
+            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+        #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         approval_list = []
         vd_set = VesselDetails.objects.filter(vessel=vessel)
-        for vd in vd_set:
-            for prop in vd.proposal_set.all():
-                if (
-                        prop.approval and 
-                        prop.approval.status == 'current'
-                        #and prop.start_date
-                        ):
-                    if prop.approval not in approval_list:
-                        approval_list.append(prop.approval)
+        if selected_date:
+            for vd in vd_set:
+                for prop in vd.proposal_set.all():
+                    if (
+                            prop.approval and 
+                            #prop.approval.status == 'current'
+                            prop.approval.start_date >= selected_date and
+                            selected_date <= prop.approval.expiry_date
+                            ):
+                        if prop.approval not in approval_list:
+                            approval_list.append(prop.approval)
+        else:
+            for vd in vd_set:
+                for prop in vd.proposal_set.all():
+                    if (
+                            prop.approval and 
+                            prop.approval.status == 'current'
+                            #and prop.start_date
+                            ):
+                        if prop.approval not in approval_list:
+                            approval_list.append(prop.approval)
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)
@@ -1849,6 +1867,7 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
         return MooringBay.objects.filter(active=True)
 
 
+
 class MooringFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
@@ -1921,6 +1940,43 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Mooring.objects.filter(active=True)
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_approvals(self, request, *args, **kwargs):
+        mooring_bay = self.get_object()
+        selected_date_str = request.data.get("selected_date")
+        selected_date = None
+        if selected_date_str:
+            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+        #print(selected_date)
+        #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
+        approval_list = []
+        p_set = mooring_bay.proposal_set.filter(processing_status="approved")
+        if selected_date:
+            for p in p_set:
+                if (
+                        prop.approval and 
+                        #prop.approval.status == 'current'
+                        prop.approval.start_date >= selected_date and
+                        selected_date <= prop.approval.expiry_date
+                        ):
+                    if prop.approval not in approval_list:
+                        approval_list.append(prop.approval)
+        else:
+            for p in p_set:
+                if (
+                        prop.approval and 
+                        prop.approval.status == 'current'
+                        #prop.approval.start_date >= selected_date and
+                        #selected_date <= prop.approval.expiry_date
+                        ):
+                    if prop.approval not in approval_list:
+                        approval_list.append(prop.approval)
+
+        serializer = LookupApprovalSerializer(approval_list, many=True)
+        return Response(serializer.data)
+        #return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
