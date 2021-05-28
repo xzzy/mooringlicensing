@@ -2024,6 +2024,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         application_type = ApplicationType.objects.get(code=self.application_type_code)
         return application_type
 
+    # tmp property required to fix dev data
+    @property
+    def no_child_obj(self):
+        no_child_obj = True
+        if hasattr(self, 'waitinglistapplication'):
+            no_child_obj = False
+        elif hasattr(self, 'annualadmissionapplication'):
+            no_child_obj = False
+        elif hasattr(self, 'authoriseduserapplication'):
+            no_child_obj = False
+        elif hasattr(self, 'mooringlicenceapplication'):
+            no_child_obj = False
+        return no_child_obj
+
     @property
     def child_obj(self):
         if hasattr(self, 'waitinglistapplication'):
