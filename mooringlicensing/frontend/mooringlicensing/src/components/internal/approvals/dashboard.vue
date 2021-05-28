@@ -3,6 +3,7 @@
         <FormSection :formCollapse="false" label="Approvals" Index="approvals">
             <ApprovalsTable
                 level="internal"
+                :approvalTypeFilter="approvalTypeFilter"
             />
         </FormSection>
     </div>
@@ -17,7 +18,7 @@ export default {
     data() {
         let vm = this;
         return {
-
+            approvalTypeFilter: ['ml', 'aap', 'aup'],
         }
     },
     components:{

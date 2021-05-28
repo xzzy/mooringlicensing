@@ -233,7 +233,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval_number = serializers.SerializerMethodField()
     requirement = ProposalRequirementSerializer()
-    #approval_type = serializers.SerializerMethodField()
+    approval_type = serializers.SerializerMethodField()
     approval_submitter = serializers.SerializerMethodField()
     assigned_to_name = serializers.SerializerMethodField()
 
@@ -245,7 +245,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             'status',
             'approval_number',
             'requirement',
-            #'approval_type',
+            'approval_type',
             'approval_submitter',
             'assigned_to_name',
             'can_process',
@@ -256,7 +256,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             'status',
             'approval_number',
             'requirement',
-            #'approval_type',
+            'approval_type',
             'approval_submitter',
             'assigned_to_name',
             'can_process',
@@ -268,8 +268,9 @@ class ListComplianceSerializer(serializers.ModelSerializer):
     def get_approval_number(self, obj):
         return obj.approval.lodgement_number
 
-    #def get_approval_type(self, obj):
-     #   return obj.approval.child_obj .. etc
+    def get_approval_type(self, obj):
+        if obj.approval.child_obj:
+            return obj.approval.child_obj.description
 
     def get_approval_submitter(self, obj):
         return obj.approval.submitter.get_full_name()
