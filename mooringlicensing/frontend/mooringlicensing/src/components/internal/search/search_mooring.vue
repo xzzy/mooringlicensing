@@ -25,11 +25,9 @@
 
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
-/*
 var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-*/
 import {
   api_endpoints,
   helpers
@@ -90,7 +88,8 @@ from '@/utils/hooks'
                     vm.selectedMooring = null;
                 }).
                 on("select2:open",function (e) {
-                    const searchField = $(".select2-search__field")
+                    //const searchField = $(".select2-search__field")
+                    const searchField = $('[aria-controls="select2-mooring_lookup-results"]')
                     // move focus to select2 field
                     searchField[0].focus();
                 });

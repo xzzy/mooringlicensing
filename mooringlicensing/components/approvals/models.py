@@ -509,6 +509,20 @@ class Approval(RevisionedMixin):
             except:
                 raise
 
+    # required to clean db of approvals with no child objs
+    @property
+    def no_child_obj(self):
+        no_child_obj = True
+        if hasattr(self, 'waitinglistallocation'):
+            no_child_obj = False
+        elif hasattr(self, 'annualadmissionpermit'):
+            no_child_obj = False
+        elif hasattr(self, 'authoriseduserpermit'):
+            no_child_obj = False
+        elif hasattr(self, 'mooringlicence'):
+            no_child_obj = False
+        return no_child_obj
+
     @property
     def child_obj(self):
         if hasattr(self, 'waitinglistallocation'):
@@ -519,8 +533,8 @@ class Approval(RevisionedMixin):
             return self.authoriseduserpermit
         elif hasattr(self, 'mooringlicence'):
             return self.mooringlicence
-        else:
-            raise ObjectDoesNotExist("Approval must have an associated child object - WLA, AAP, AUP or ML")
+        #else:
+         #   raise ObjectDoesNotExist("Approval must have an associated child object - WLA, AAP, AUP or ML")
 
     @classmethod
     def approval_types_dict(cls, include_codes=[]):

@@ -207,7 +207,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.approval_type;
                         }
                     }
         },
