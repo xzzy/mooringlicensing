@@ -20,7 +20,7 @@ class Command(BaseCommand):
     help = 'Run Mooring Licensing Cron tasks'
 
     def handle(self, *args, **options):
-        print("cron tasks")
+        #print("cron tasks")
         stdout_redirect = ' | tee -a {}'.format(LOGFILE)
         subprocess.call('cat /dev/null > {}'.format(LOGFILE), shell=True)  # empty the log file
 

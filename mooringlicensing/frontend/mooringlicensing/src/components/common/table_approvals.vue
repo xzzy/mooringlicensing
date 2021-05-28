@@ -1,39 +1,16 @@
 <template>
     <div>
         <div class="row">
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="">Type</label>
-                    <select class="form-control" v-model="filterApprovalType">
-                        <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-3" v-if="is_internal">
-                <div class="form-group">
-                    <label for="">Holder</label>
-                    <select class="form-control" v-model="filterApplicant">
-                        <option value="All">All</option>
-                        <option v-for="applicant in applicants" :value="applicant.id">{{ applicant.first_name }} {{ applicant.last_name }}</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="">Status</label>
-                    <select class="form-control" v-model="filterApprovalStatus">
-                        <option value="All">All</option>
-                        <option v-for="status in application_statuses" :value="status.code">{{ status.description }}</option>
-                    </select>
-                </div>
+            <div class="col-lg-12">
+                <input type="checkbox" id="checkbox_show_expired" v-model="show_expired_surrendered">
+                <label for="checkbox_show_expired">Show expired and/or surrendered waiting list allocations</label>
             </div>
         </div>
 
         <div class="row">
             <div class="col-lg-12">
                 <datatable 
-                    ref="approval_datatable" 
+                    ref="waiting_list_datatable" 
                     :id="datatable_id" 
                     :dtOptions="datatable_options" 
                     :dtHeaders="datatable_headers"
@@ -46,11 +23,20 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
-import { api_endpoints, helpers } from '@/utils/hooks'
-
+import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
-    name: 'TableApprovals',
+    name: 'TableWaitingList',
     props: {
+        approvalTypeFilter: {
+            type: Array,
+            required: true,
+            /*
+            validator: function(val) {
+                let options = ['wla', 'ml', 'aap', 'aup'];
+                return options.indexOf(val) != -1 ? true: false;
+            }
+            */
+        },
         level:{
             type: String,
             required: true,
@@ -63,39 +49,19 @@ export default {
     data() {
         let vm = this;
         return {
-            datatable_id: 'applications-datatable-' + vm._uid,
+            datatable_id: 'waiting_lists-datatable-' + vm._uid,
+            //approvalTypesToDisplay: ['wla'],
+            show_expired_surrendered: true,
 
-            // selected values for filtering
-            filterApprovalType: null,
-            filterApprovalStatus: null,
-            filterApplicant: null,
-
-            // filtering options
-            application_types: [],
-            application_statuses: [],
-            applicants: [],
         }
     },
     components:{
         datatable
     },
     watch: {
-        filterApprovalStatus: function() {
-            let vm = this;
-            vm.$refs.approval_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApprovalStatus != 'All') {
-            //    vm.$refs.approval_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.approval_datatable.vmDataTable.column('status:name').search(vm.filterApprovalStatus).draw();
-            //}
-        },
-        filterApprovalType: function() {
-            let vm = this;
-            vm.$refs.approval_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        },
-        filterApplicant: function(){
-            let vm = this;
-            vm.$refs.approval_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        show_expired_surrendered: function(value){
+            console.log(value)
+            this.$refs.waiting_list_datatable.vmDataTable.ajax.reload()
         }
     },
     computed: {
@@ -105,287 +71,235 @@ export default {
         is_internal: function() {
             return this.level == 'internal'
         },
-        datatable_headers: function(){
-            if (this.is_external){
-                return ['id', 'Lodgement Number', 'Type', 'Approval Type', 'Status', 'Lodged on', 'Invoice', 'Action']
-            }
-            if (this.is_internal){
-                return ['id', 'Lodgement Number', 'Type', 'Sticker Number', 'Holder', 'Status', 'Issue Date', 'Reason', 'Approval Letter']
-            }
-        },
-        column_id: function(){
-            return {
-                // 1. ID
-                data: "id",
-                orderable: false,
-                searchable: false,
-                visible: false,
-                'render': function(row, type, full){
-                    return full.id
-                }
-            }
-        },
-        column_lodgement_number: function(){
-            return {
-                // 2. Lodgement Number
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.lodgement_number
-                },
-                name: 'lodgement_number',
+        // Datatable settings
+        datatable_headers: function() {
+            if (this.is_external) {
+                return [
+                    'Id', 
+                    'Number', 
+                    'Bay', 
+                    'Application number in Bay', 
+                    'Status', 
+                    'Vessel Registration', 
+                    'Vessel Name', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Action'
+                ]
+            } else if (this.is_internal) {
+                return [
+                    'Id', 
+                    'Number', 
+                    'Holder',
+                    'Status', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Vessel length',
+                    'Vessel draft',
+                    'Mooring area',
+                    'Action'
+                ]
             }
         },
-        column_type: function(){
+        columnId: function() {
             return {
-                // 3. Type (This corresponds to the 'ApprovalType' at the backend)
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.application_type_dict){
-                        return full.application_type_dict.description
-                    } else {
-                        // Should not reach here
-                        return ''
-                    }
-                }
-            }
-        },
-        column_sticker_number: function(){
-            return {
-                // 1. ID
-                data: "id",
-                orderable: false,
-                searchable: false,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.id
-                }
-            }
-        },
-        column_application_type: function(){
-            return {
-                // 4. Approval Type (This corresponds to the 'ProposalType' at the backend)
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.proposal_type){
-                        return full.proposal_type.description
-                    } else {
-                        // Should not reach here
-                        return ''
-                    }
-                }
-            }
-        },
-        column_status: function(){
-            return {
-                // 5. Status
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    //return full.customer_status
-                    return full.id
-                }
-            }
-        },
-        column_issue_date: function(){
-            return {
-                // 1. ID
-                data: "id",
-                orderable: false,
-                searchable: false,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.id
-                }
-            }
-        },
-        column_reason: function(){
-            return {
-                // 1. ID
-                data: "id",
-                orderable: false,
-                searchable: false,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.id
-                }
-            }
-        },
-        column_approval_letter: function(){
-            return {
-                // 1. ID
-                data: "id",
-                orderable: false,
-                searchable: false,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.id
-                }
-            }
-        },
-        column_lodged_on: function(){
-            return {
-                // 6. Lodged
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.lodgement_date){
-                        return moment(full.lodgement_date).format('DD/MM/YYYY')
-                    }
-                    return ''
-                }
-            }
-        },
-        column_invoice: function(){
-            let vm = this
-            return {
-                // 7. Invoice
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let links = '';
-                    if (full.invoices){
-                        for (let invoice of full.invoices){
-                            links += '<div>'
-                            links +=  `<a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a>`;
-                            if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
-                            }
-                            links += '</div>'
+                        // 1. ID
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            console.log(full)
+                            return full.id
                         }
                     }
-                    return links
-                }
-            }
         },
-        column_action: function(){
-            let vm = this
+        columnLodgementNumber: function() {
             return {
-                // 8. Action
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let links = '';
-                    if (!vm.is_external){
-                        if(full.assessor_process){
-                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                        } else {
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                        // 2. Lodgement Number
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.lodgement_number
                         }
                     }
-                    else{
-                        if (full.can_user_edit) {
-                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                        }
-                        else if (full.can_user_view) {
-                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                        }
-                    }
-                    return links;
-                }
-            }
         },
-        column_applicant: function(){
+        /*
+        columnBay: function() {
             return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.submitter){
-                        return `${full.submitter.first_name} ${full.submitter.last_name}`
-                    }
-                    return ''
-                },
-                name: 'submitter__first_name, submitter__last_name',
-            }
-        },
-        column_assigned_to: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let ret_str = ''
-                    if (full.assigned_officer){
-                        ret_str += full.assigned_officer
-                    }
-                    if (full.assigned_approver){
-                        ret_str += full.assigned_approver
-                    }
-                    return ret_str
-                },
-                name: 'assigned_officer__first_name, assigned_officer__last_name, assigned_approver__first_name, assigned_approver__last_name',
-            }
-        },
-        column_payment_status: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.invoices){
-                        let ret_str = ''
-                        for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
+                        // 3. Bay
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return 'not implemented'
                         }
-                        return ret_str
-                    } else {
-                        return ''
                     }
-                }
-            }
         },
-        datatable_options: function(){
-            let vm = this
+        */
+        columnApplicationNumberInBay: function() {
+            return {
+                        // 4. Application number in Bay
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.current_proposal_number;
+                        }
+                    }
+        },
+        columnStatus: function() {
+            return {
+                        // 5. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.status
+                        }
+                    }
+        },
+        columnVesselRegistration: function() {
+            return {
+                        // 6. Vessel Registration
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_registration;
+                        }
+                    }
+        },
+        columnVesselName: function() {
+            return {
+                        // 7. Vessel Name
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_name;
+                        }
+                    }
+        },
+        columnIssueDate: function() {
+            return {
+                        // 8. Issue Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.issue_date_str;
+                        }
+                    }
+        },
+        columnExpiryDate: function() {
+            return {
+                        // 9. Expiry Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.expiry_date_str;
+                        }
+                    }
+        },
+        columnAction: function() {
+            return {
+                        // 10. Action
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            //return 'View<br />Amend<br />Renew<br />Surrender'
+                            return 'not implemented'
+                        }
+                    }
+        },
+        columnHolder: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.holder;
+                        }
+                    }
+        },
+        columnPreferredMooringBay: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.preferred_mooring_bay;
+                        }
+                    }
+        },
+        columnVesselLength: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_length;
+                        }
+                    }
+        },
+        columnVesselDraft: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_draft;
+                        }
+                    }
+        },
 
-            let columns = []
-            let search = null
-            if(vm.is_external){
-                columns = [
-                    vm.column_id,
-                    vm.column_lodgement_number,
-                    vm.column_type,
-                    vm.column_application_type,
-                    vm.column_status,
-                    vm.column_lodged_on,
-                    vm.column_invoice,
-                    vm.column_action,
+        datatable_options: function() {
+            let vm = this;
+            let selectedColumns = [];
+            if (vm.is_external) {
+                selectedColumns = [
+                    vm.columnId,
+                    vm.columnLodgementNumber,
+                    //vm.columnBay,
+                    vm.columnPreferredMooringBay,
+                    vm.columnApplicationNumberInBay,
+                    vm.columnStatus,
+                    vm.columnVesselRegistration,
+                    vm.columnVesselName,
+                    vm.columnIssueDate,
+                    vm.columnExpiryDate,
+                    vm.columnAction,
                 ]
-                search = false
-            }
-            if(vm.is_internal){
-                columns = [
-                    vm.column_id,
-                    vm.column_lodgement_number,
-                    vm.column_type,
-                    vm.column_sticker_number,
-                    vm.column_applicant,
-                    vm.column_status,
-                    vm.column_issue_date,
-                    vm.column_reason,
-                    vm.column_approval_letter,
+            } else if (vm.is_internal) {
+                selectedColumns = [
+                    vm.columnId,
+                    vm.columnLodgementNumber,
+                    vm.columnHolder,
+                    vm.columnStatus,
+                    vm.columnIssueDate,
+                    vm.columnExpiryDate,
+                    vm.columnVesselLength,
+                    vm.columnVesselDraft,
+                    vm.columnPreferredMooringBay,
+                    vm.columnAction,
                 ]
-                search = true
             }
 
             return {
@@ -395,102 +309,50 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: search,
+                searching: false,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_type = vm.filterApprovalType
-                        d.filter_approval_status = vm.filterApprovalStatus
-                        d.filter_applicant = vm.filterApplicant
+                        //d.filter_approval_type = vm.approvalTypesToDisplay.join(',');
+                        d.filter_approval_type = vm.approvalTypeFilter.join(',');
+                        d.show_expired_surrendered = vm.show_expired_surrendered
                     }
                 },
-                dom: 'lBfrtip',
-                buttons:[ ],
-                columns: columns,
+                dom: 'frt', //'lBfrtip',
+                buttons:[
+                    //{
+                    //    extend: 'excel',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                ],
+                columns: selectedColumns,
                 processing: true,
                 initComplete: function() {
                     console.log('in initComplete')
                 },
             }
         }
+
     },
     methods: {
-        discardProposal: function(proposal_id) {
-            let vm = this;
-            swal({
-                title: "Discard Approval",
-                text: "Are you sure you want to discard this proposal?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Discard Approval',
-                confirmButtonColor:'#dc3545'
-            }).then(() => {
-                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-                .then((response) => {
-                    console.log('response: ')
-                    console.log(response)
-                    swal(
-                        'Discarded',
-                        'Your proposal has been discarded',
-                        'success'
-                    )
-                    //vm.$refs.approval_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.approval_datatable.vmDataTable.draw();
-                }, (error) => {
-                    console.log(error);
-                });
-            },(error) => {
 
-            });
-        },
-        fetchFilterLists: function(){
-            let vm = this;
-
-            // Approval Types
-            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
-                vm.application_types = response.body
-            },(error) => {
-                console.log(error);
-            })
-
-            // Approval Statuses
-            vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                vm.application_statuses = response.body
-            },(error) => {
-                console.log(error);
-            })
-
-            // Applicant
-            if (vm.is_internal){
-                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    console.log(response.body)
-                    vm.applicants = response.body
-                },(error) => {
-                    console.log(error);
-                })
-            }
-        },
-        addEventListeners: function(){
-            let vm = this
-            vm.$refs.approval_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-discard-proposal');
-                vm.discardProposal(id)
-            });
-        },
     },
     created: function(){
-        console.log('table_applications created')
-        this.fetchFilterLists()
+
     },
     mounted: function(){
-        let vm = this;
-        this.$nextTick(() => {
-            vm.addEventListeners();
-        });
+
     }
 }
 </script>
