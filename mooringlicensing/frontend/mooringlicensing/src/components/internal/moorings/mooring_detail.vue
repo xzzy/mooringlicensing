@@ -90,6 +90,12 @@
                     </div>
                     <div class="tab-pane fade" id="pills-bookings-permits" role="tabpanel" aria-labelledby="pills-bookings-permits-tab">
                         <FormSection label="Bookings/Permits" Index="bookings_permits">
+                            <div v-if="entity.id">
+                                <BookingsPermits
+                                :entity="entity"
+                                :key="entity.id"
+                                />
+                            </div>
                         </FormSection>
                     </div>
                 </div>
@@ -101,6 +107,7 @@
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import BookingsPermits from '@common-utils/bookings_permits.vue'
 import {
   api_endpoints,
   helpers
@@ -111,6 +118,7 @@ from '@/utils/hooks'
         components:{
             FormSection,
             CommsLogs,
+            BookingsPermits,
         },
          data:function () {
             return {
@@ -121,6 +129,12 @@ from '@/utils/hooks'
              }
         },
         computed: {
+            entity: function() {
+                return {
+                    type: "mooring",
+                    id: this.mooring.id,
+                }
+            },
         },
         methods:{
             setTabs:function(){
