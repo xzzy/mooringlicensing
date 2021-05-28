@@ -509,6 +509,20 @@ class Approval(RevisionedMixin):
             except:
                 raise
 
+    # required to clean db of approvals with no child objs
+    @property
+    def no_child_obj(self):
+        no_child_obj = True
+        if hasattr(self, 'waitinglistallocation'):
+            no_child_obj = False
+        elif hasattr(self, 'annualadmissionpermit'):
+            no_child_obj = False
+        elif hasattr(self, 'authoriseduserpermit'):
+            no_child_obj = False
+        elif hasattr(self, 'mooringlicence'):
+            no_child_obj = False
+        return no_child_obj
+
     @property
     def child_obj(self):
         if hasattr(self, 'waitinglistallocation'):

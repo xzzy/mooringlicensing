@@ -1,6 +1,5 @@
 <template>
     <div>
-        This is table_dcv_admissions.vue file
         <div class="row">
             <div class="col-md-3">
                 <div class="form-group">
@@ -22,7 +21,7 @@
         <div class="row">
             <div class="col-lg-12">
                 <datatable 
-                    ref="application_datatable" 
+                    ref="admissions_datatable" 
                     :id="datatable_id" 
                     :dtOptions="datatable_options" 
                     :dtHeaders="datatable_headers"
@@ -52,7 +51,7 @@ export default {
     data() {
         let vm = this;
         return {
-            datatable_id: 'applications-datatable-' + vm._uid,
+            datatable_id: 'admissions-datatable-' + vm._uid,
 
             // selected values for filtering
             filterApplicationType: null,
@@ -95,12 +94,15 @@ export default {
             return this.level == 'internal'
         },
         datatable_headers: function(){
+            /*
             if (this.is_external){
                 return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
             }
             if (this.is_internal){
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
+            */
+            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation',*/ 'UIV Vessel Identifier',/* 'Status',*/ 'Date', 'Action']
         },
         column_id: function(){
             return {
@@ -110,6 +112,7 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
+                    console.log(full)
                     return full.id
                 }
             }
@@ -127,67 +130,69 @@ export default {
                 name: 'lodgement_number',
             }
         },
-        column_type: function(){
+        column_invoice_confirmation: function(){
             return {
-                // 3. Type (This corresponds to the 'ApplicationType' at the backend)
                 data: "id",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    if (full.application_type_dict){
-                        return full.application_type_dict.description
-                    } else {
-                        // Should not reach here
-                        return ''
-                    }
+                    return 'not implemented';
                 }
             }
         },
-        column_application_type: function(){
+        /*
+        column_organisation: function(){
             return {
-                // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    if (full.proposal_type){
-                        return full.proposal_type.description
-                    } else {
-                        // Should not reach here
-                        return ''
-                    }
+                    return full.dcv_organisation_name;
+                    //return '';
                 }
             }
         },
+        */
+        column_uiv: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.dcv_vessel_uiv;
+                    //return '';
+                }
+            }
+        },
+        /*
         column_status: function(){
             return {
-                // 5. Status
                 data: "id",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.customer_status
+                    return full.status;
                 }
             }
         },
-        column_lodged_on: function(){
+        */
+        column_date: function(){
             return {
-                // 6. Lodged
                 data: "id",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    if (full.lodgement_date){
-                        return moment(full.lodgement_date).format('DD/MM/YYYY')
-                    }
-                    return ''
+                    return full.lodgement_date;
                 }
             }
         },
+
+        /*
         column_invoice: function(){
             let vm = this
             return {
@@ -212,6 +217,7 @@ export default {
                 }
             }
         },
+        */
         column_action: function(){
             let vm = this
             return {
@@ -221,6 +227,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    /*
                     let links = '';
                     if (!vm.is_external){
                         if(full.assessor_process){
@@ -239,94 +246,25 @@ export default {
                         }
                     }
                     return links;
-                }
-            }
-        },
-        column_applicant: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.submitter){
-                        return `${full.submitter.first_name} ${full.submitter.last_name}`
-                    }
-                    return ''
-                },
-                name: 'submitter__first_name, submitter__last_name',
-            }
-        },
-        column_assigned_to: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let ret_str = ''
-                    if (full.assigned_officer){
-                        ret_str += full.assigned_officer
-                    }
-                    if (full.assigned_approver){
-                        ret_str += full.assigned_approver
-                    }
-                    return ret_str
-                },
-                name: 'assigned_officer__first_name, assigned_officer__last_name, assigned_approver__first_name, assigned_approver__last_name',
-            }
-        },
-        column_payment_status: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.invoices){
-                        let ret_str = ''
-                        for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
-                        }
-                        return ret_str
-                    } else {
-                        return ''
-                    }
+                    */
+                    return 'not implemented';
                 }
             }
         },
         datatable_options: function(){
             let vm = this
 
-            let columns = []
-            let search = null
-            if(vm.is_external){
-                columns = [
-                    vm.column_id,
-                    vm.column_lodgement_number,
-                    vm.column_type,
-                    vm.column_application_type,
-                    vm.column_status,
-                    vm.column_lodged_on,
-                    vm.column_invoice,
-                    vm.column_action,
-                ]
-                search = false
-            }
-            if(vm.is_internal){
-                columns = [
-                    vm.column_id,
-                    vm.column_lodgement_number,
-                    vm.column_type,
-                    vm.column_applicant,
-                    vm.column_status,
-                    vm.column_lodged_on,
-                    vm.column_assigned_to,
-                    vm.column_payment_status,
-                    vm.column_action,
-                ]
-                search = true
-            }
+            let columns = [
+                vm.column_id,
+                vm.column_lodgement_number,
+                vm.column_invoice_confirmation,
+                //vm.column_organisation,
+                vm.column_uiv,
+                //vm.column_status,
+                vm.column_date,
+                vm.column_action,
+            ]
+            let search = true
 
             return {
                 autoWidth: false,
@@ -337,14 +275,16 @@ export default {
                 serverSide: true,
                 searching: search,
                 ajax: {
-                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.dcvadmissions_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
+                        /*
                         d.filter_application_type = vm.filterApplicationType
                         d.filter_application_status = vm.filterApplicationStatus
                         d.filter_applicant = vm.filterApplicant
+                        */
                     }
                 },
                 dom: 'lBfrtip',
@@ -383,7 +323,7 @@ export default {
                         'success'
                     )
                     //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.application_datatable.vmDataTable.draw();
+                    vm.$refs.admissions_datatable.vmDataTable.draw();
                 }, (error) => {
                     console.log(error);
                 });
@@ -420,7 +360,7 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
+            vm.$refs.admissions_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-discard-proposal');
                 vm.discardProposal(id)
