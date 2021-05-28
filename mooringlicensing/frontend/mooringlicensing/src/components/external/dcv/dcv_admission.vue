@@ -176,13 +176,22 @@ export default {
                 this.dcv_admission.dcv_vessel = Object.assign({}, vesselData);
             }
         },
+        validateRegoNo: function(data) {
+            // force uppercase and no whitespace
+            data = data.toUpperCase();
+            data = data.replace(/\s/g,"");
+            data = data.replace(/\W/g,"");
+            return data;
+        },
+
         initialiseSelects: function(){
             let vm = this;
             $(vm.$refs.dcv_vessel_rego_nos).select2({
                 minimumInputLength: 2,
                 "theme": "bootstrap",
                 allowClear: true,
-                placeholder:"Select Vessel Registration",
+                //placeholder:"Select Vessel Registration",
+                placeholder: "",
                 tags: true,
                 createTag: function (tag) {
                     return {
@@ -194,18 +203,22 @@ export default {
                 ajax: {
                     url: api_endpoints.dcv_vessel_rego_nos,
                     dataType: 'json',
-                }
+                },
+                templateSelection: function(data) {
+                    return vm.validateRegoNo(data.text);
+                },
             }).
             on("select2:select",function (e) {
                 console.log('in select')
                 var selected = $(e.currentTarget);
                 //vm.vessel.rego_no = selected.val();
-                const id = selected.val();
+                let id = selected.val();
                 vm.$nextTick(() => {
                     //if (!isNew) {
                     if (e.params.data.isNew) {
                         // fetch the selected vessel from the backend
                         console.log("new");
+                        id = vm.validateRegoNo(id);
                         vm.dcv_admission.dcv_vessel =
                         {
                             id: id,
@@ -240,10 +253,17 @@ export default {
                 //vm.selectedRego = ''
             }).
             on("select2:open",function (e) {
-                console.log('select2:open')
-                //document.getElementsByClassName("select2-search__field")[0].focus();
-                console.log($(".select2-search__field"));
-                $(".select2-search__field")[0].focus();
+                const searchField = $(".select2-search__field")
+                // move focus to select2 field
+                searchField[0].focus();
+                // prevent spacebar from being used
+                searchField.on("keydown",function (e) {
+                    //console.log(e.which);
+                    if ([32,].includes(e.which)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
             });
             // read vessel.rego_no if exists on vessel.vue open
             //vm.readRegoNo();
