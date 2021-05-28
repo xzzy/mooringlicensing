@@ -344,6 +344,7 @@ from '@/utils/hooks'
         },
         methods:{
             retrieveIndividualOwner: async function() {
+                console.log("retrieve individual owner")
                 if (this.individualOwner && this.vessel.id) {
                     const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
                     const res = await this.$http.post(url);
@@ -529,6 +530,30 @@ from '@/utils/hooks'
                             console.log("individual")
                             if (this.proposal && this.proposal.id) {
                                 await vm.retrieveIndividualOwner();
+                            } else {
+                                // retrieve list of Vessel Owners
+                                const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
+                                console.log(res);
+                                let individualOwner = false;
+                                let companyOwner = false;
+                                for (let vo of res.body) {
+                                    if (vo.individual_owner) {
+                                        individualOwner = true;
+                                    } else if (vo.company_ownership) {
+                                        companyOwner = true;
+                                    }
+                                }
+                                if (individualOwner) {
+                                    // read individual ownership data
+                                    vm.vessel.vessel_ownership.individual_owner = true;
+                                } else if (companyOwner) {
+                                    // read first company ownership data
+                                    vm.vessel.vessel_ownership.individual_owner = false;
+                                    const vo = res.body[0]
+                                    const companyId = vo.company_ownership.company.id;
+                                    await vm.lookupCompanyOwnership(companyId);
+                                    vm.readCompanyName();
+                                }
                             }
                         } else {
                             data = vm.validateRegoNo(data);

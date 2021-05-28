@@ -31,7 +31,12 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
-    ApprovalPaymentSerializer, ListApprovalSerializer, DcvOrganisationSerializer, DcvVesselSerializer
+    ApprovalPaymentSerializer, 
+    ListApprovalSerializer, 
+    DcvOrganisationSerializer, 
+    DcvVesselSerializer,
+    ListDcvPermitSerializer,
+    ListDcvAdmissionSerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -100,15 +105,21 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         # Filter by types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
+        #import ipdb; ipdb.set_trace()
         if filter_approval_type and not filter_approval_type.lower() == 'all':
-            q = None
-            for item in Approval.__subclasses__():
-                if hasattr(item, 'code') and item.code == filter_approval_type:
-                    lookup = "{}__isnull".format(item._meta.model_name)
-                    q = Q(**{lookup: False})
-                    break
-            queryset = queryset.filter(q) if q else queryset
-
+            filter_approval_type_list = filter_approval_type.split(',')
+            #q = None
+            #for item in Approval.__subclasses__():
+            #    #if hasattr(item, 'code') and item.code == filter_approval_type:
+            #    if hasattr(item, 'code') and item.code in filter_approval_type_list:
+            #        #lookup = "{}__isnull".format(item._meta.model_name)
+            #        lookup = "{}__isnull".format(item._meta.model_name)
+            #        q = Q(**{lookup: False})
+            #        #break
+            #queryset = queryset.filter(q) if q else queryset
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
+            queryset = queryset.filter(id__in=filtered_ids)
+        print(queryset)
         # Show/Hide expired and/or surrendered
         show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
@@ -645,9 +656,9 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _handle_dcv_vessel(request, org_id=None):
         data = request.data
-        rego_no_requested = request.data.get('rego_no', '')
-        uvi_requested = request.data.get('uvi_vessel_identifier', '')
-        vessel_name_requested = request.data.get('vessel_name', '')
+        rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
+        uvi_requested = request.data.get('dcv_vessel').get('uvi_vessel_identifier', '')
+        vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
         try:
             dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
         except DcvVessel.DoesNotExist:
@@ -682,6 +693,70 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class DcvPermitFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        #filter_compliance_status = request.GET.get('filter_compliance_status')
+        #if filter_compliance_status and not filter_compliance_status.lower() == 'all':
+         #   queryset = queryset.filter(customer_status=filter_compliance_status)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(DcvPermitFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class DcvPermitRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(DcvPermitRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (DcvPermitFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (DcvPermitRenderer,)
+    queryset = DcvPermit.objects.none()
+    serializer_class = ListDcvPermitSerializer
+    search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        qs = DcvPermit.objects.none()
+
+        if is_internal(self.request):
+            qs = DcvPermit.objects.all()
+        #elif is_customer(self.request):
+         #   qs = e.objects.filter(Q(approval__submitter=request_user))
+
+        return qs
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = ListDcvPermitSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
+
+
 class DcvVesselViewSet(viewsets.ModelViewSet):
     queryset = DcvVessel.objects.all().order_by('id')
     serializer_class = DcvVesselSerializer
@@ -698,3 +773,69 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
 
         return add_cache_control(Response(dcv_vessel_data))
+
+
+class DcvAdmissionFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        #filter_compliance_status = request.GET.get('filter_compliance_status')
+        #if filter_compliance_status and not filter_compliance_status.lower() == 'all':
+         #   queryset = queryset.filter(customer_status=filter_compliance_status)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(DcvAdmissionFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class DcvAdmissionRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(DcvAdmissionRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (DcvAdmissionFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (DcvAdmissionRenderer,)
+    queryset = DcvAdmission.objects.none()
+    serializer_class = ListDcvAdmissionSerializer
+    search_fields = ['lodgement_number', ]
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        qs = DcvAdmission.objects.none()
+
+        if is_internal(self.request):
+            qs = DcvAdmission.objects.all()
+        #elif is_customer(self.request):
+         #   qs = e.objects.filter(Q(approval__submitter=request_user))
+
+        return qs
+
+    @list_route(methods=['GET',])
+    def list_external(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = ListDcvAdmissionSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
+
+

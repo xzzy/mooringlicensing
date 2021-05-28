@@ -19,6 +19,7 @@
         >
             <WaitingListTable
                 level="external"
+                :approvalTypeFilter="wlaApprovalTypeFilter"
             />
         </FormSection>
 
@@ -30,6 +31,7 @@
         >
             <LicencesAndPermitsTable
                 level="external"
+                :approvalTypeFilter="allApprovalTypeFilter"
             />
         </FormSection>
 
@@ -61,8 +63,10 @@
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import ApplicationsTable from "@/components/common/table_proposals"
-import WaitingListTable from "@/components/common/table_approval_waiting_list"
-import LicencesAndPermitsTable from "@/components/common/table_approval_licences_and_permits"
+//import WaitingListTable from "@/components/common/table_approval_waiting_list"
+import WaitingListTable from "@/components/common/table_approvals"
+//import LicencesAndPermitsTable from "@/components/common/table_approval_licences_and_permits"
+import LicencesAndPermitsTable from "@/components/common/table_approvals"
 import CompliancesTable from "@/components/common/table_compliances"
 import AuthorisedUserApplicationsTable from "@/components/common/table_approval_to_be_endorsed"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -82,6 +86,8 @@ export default {
             compliances_url: api_endpoints.compliances_paginated_external,
 
             system_name: api_endpoints.system_name,
+            allApprovalTypeFilter: ['ml', 'aap', 'aup'],
+            wlaApprovalTypeFilter: ['wla',],
         }
     },
     components:{
