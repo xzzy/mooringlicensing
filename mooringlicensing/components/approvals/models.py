@@ -533,8 +533,8 @@ class Approval(RevisionedMixin):
             return self.authoriseduserpermit
         elif hasattr(self, 'mooringlicence'):
             return self.mooringlicence
-        #else:
-         #   raise ObjectDoesNotExist("Approval must have an associated child object - WLA, AAP, AUP or ML")
+        else:
+            raise ObjectDoesNotExist("Approval must have an associated child object - WLA, AAP, AUP or ML")
 
     @classmethod
     def approval_types_dict(cls, include_codes=[]):
