@@ -51,6 +51,27 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Bay">Bay</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        TODO: implement
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Bay">Mooring Site ID</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        TODO: implement
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
                                         <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Details</label>
                                         <label v-else class="control-label pull-left"  for="Name">Proposed Details</label>
                                     </div>
