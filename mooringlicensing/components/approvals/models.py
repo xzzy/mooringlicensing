@@ -307,7 +307,8 @@ class Approval(RevisionedMixin):
         if preview:
             from mooringlicensing.doctopdf import create_approval_doc_bytes
             # return create_approval_doc_bytes(self, self.current_proposal, copied_to_permit, user)
-            return create_approval_doc_bytes(self, self.current_proposal, None, user)
+            # return create_approval_doc_bytes(self, self.current_proposal, None, user)
+            return create_approval_doc_bytes(self)
 
         # self.licence_document = create_approval_doc(self, self.current_proposal, copied_to_permit, user)
         self.licence_document = create_approval_doc(self, self.current_proposal, None, user)
