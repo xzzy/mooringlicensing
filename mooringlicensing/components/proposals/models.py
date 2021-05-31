@@ -2182,11 +2182,15 @@ class AuthorisedUserApplication(Proposal):
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
             self.save()
+            # Email to endorser
             send_endersement_of_authorised_user_application_email(request, self)
+            # Email to submitter
+            send_submit_email_notification(request, self)
         else:
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             self.save()
+            # Email to submitter
             send_submit_email_notification(request, self)
 
 
