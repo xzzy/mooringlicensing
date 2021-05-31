@@ -48,7 +48,7 @@
                                 </div>
 
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" v-if="display_bay_field">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="Bay">Bay</label>
@@ -58,10 +58,20 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" v-if="display_mooring_site_id_field">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="Bay">Mooring Site ID</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        TODO: implement
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="display_sticker_number_field">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Bay">Sticker number</label>
                                     </div>
                                     <div class="col-sm-9">
                                         TODO: implement
@@ -132,6 +142,7 @@ export default {
             type: Number,
             required: true
         },
+        proposal: null,
         processing_status: {
             type: String,
             required: true
@@ -181,6 +192,24 @@ export default {
         }
     },
     computed: {
+        display_bay_field: function(){
+            if ([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                return true
+            }
+            return false
+        },
+        display_mooring_site_id_field: function(){
+            if ([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                return true
+            }
+            return false
+        },
+        display_sticker_number_field: function() {
+            if ([constants.WL_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                return false
+            }
+            return true
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
