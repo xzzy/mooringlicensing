@@ -8,6 +8,7 @@ module.exports = {
     insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
     mooring_lookup:"/api/mooring_lookup",
+    mooring_lookup_per_bay:"/api/mooring_lookup_per_bay",
     vessel_lookup:"/api/vessel_lookup",
     company_names:"/api/company_names",
     dcv_vessel_rego_nos:"/api/dcv_vessel_rego_nos",
