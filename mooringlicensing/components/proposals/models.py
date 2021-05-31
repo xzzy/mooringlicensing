@@ -568,11 +568,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
 
-        ret1 = send_submit_email_notification(request, self)
+        # ret1 = send_submit_email_notification(request, self)
         #ret2 = send_external_submit_email_notification(request, self)
-        ret2 = True
+        # ret2 = True
+        ret1 = self.child_obj.send_emails_after_payment_success(request)
 
-        if ret1 and ret2:
+        if ret1:
             self.child_obj.set_status_after_payment_success()
             # self.refresh_from_db()
             # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
@@ -2112,6 +2113,10 @@ class WaitingListApplication(Proposal):
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         self.save()
 
+    def send_emails_after_payment_success(self, request):
+        ret_value = send_submit_email_notification(request, self)
+        return ret_value
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2140,6 +2145,10 @@ class AnnualAdmissionApplication(Proposal):
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         self.save()
+
+    def send_emails_after_payment_success(self, request):
+        ret_value = send_submit_email_notification(request, self)
+        return ret_value
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2170,6 +2179,11 @@ class AuthorisedUserApplication(Proposal):
         self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
         self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
         self.save()
+
+    def send_emails_after_payment_success(self, request):
+        # ret_value = send_submit_email_notification(request, self)
+        # TODO: Send payment success email to the submitter (applicant)
+        return True
 
     def process_after_submit(self, request):
         #self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
@@ -2228,6 +2242,11 @@ class MooringLicenceApplication(Proposal):
         self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
         self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
         self.save()
+
+    def send_emails_after_payment_success(self, request):
+        # ret_value = send_submit_email_notification(request, self)
+        # TODO: Send payment success email to the submitter (applicant)
+        return True
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))

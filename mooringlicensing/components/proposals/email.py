@@ -22,7 +22,7 @@ class ProposalDeclineSendNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_decline_notification.txt'
 
 class ProposalApprovalSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence Approved.'.format(settings.DEP_NAME)
+    subject = '{} - Approved.'.format(settings.DEP_NAME)
     html_template = 'mooringlicensing/emails/proposals/send_approval_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_approval_notification.txt'
 
