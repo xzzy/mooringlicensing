@@ -29,7 +29,7 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     checkout_existing_invoice
 from mooringlicensing.components.proposals.email import send_proposal_approval_email_notification
 from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup, ProposalUserAction, \
-    AuthorisedUserApplication, MooringLicenceApplication
+    AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger('payment_checkout')
@@ -115,7 +115,11 @@ class ConfirmationView(TemplateView):
     def post(self, request, *args, **kwargs):
         proposal = self.get_object()
 
-        self.send_confirmation_mail(proposal, request)
+        if proposal.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code,):
+            self.send_confirmation_mail(proposal, request)
+        else:
+            pass
+            # Confirmation email has been sent in the instance.process_after_submit()
 
         context = {
             'proposal': proposal,
