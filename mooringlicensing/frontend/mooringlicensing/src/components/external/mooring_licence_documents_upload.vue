@@ -120,7 +120,8 @@ export default {
                 confirmButtonText: "Submit",
             }).then(
                 (res)=>{
-                    vm.perform_submit();
+                    let ret = vm.perform_submit();
+                    console.log(ret)
                     this.submitting = false
                 },
                 (res)=>{

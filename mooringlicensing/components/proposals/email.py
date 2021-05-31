@@ -38,7 +38,7 @@ class AmendmentRequestSendNotificationEmail(TemplateEmailBase):
 
 
 class DocumentsUploadForMooringLicenceApplicationEmail(TemplateEmailBase):
-    subject = 'Endorsement of Authorised user application'
+    subject = 'A new Application has been submitted. (Documents required)'
     html_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.html'
     txt_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.txt'
 
@@ -47,6 +47,7 @@ class EndersementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
     subject = 'Endorsement of Authorised user application'
     html_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.html'
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
+
 
 class SubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'A new Application has been submitted.'
