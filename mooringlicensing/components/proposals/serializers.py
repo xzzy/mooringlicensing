@@ -960,7 +960,10 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
         return super(ProposalRequirementSerializer, self).create(validated_data)
 
     def get_read_due_date(self, obj):
-        return obj.due_date.strftime('%d/%m/%Y')
+        due_date_str = ''
+        if obj.due_date:
+            due_date_str = obj.due_date.strftime('%d/%m/%Y')
+        return due_date_str
 
     # def get_can_referral_edit(self,obj):
     #     request = self.context['request']

@@ -1327,11 +1327,13 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = self.get_serializer(instance, data=json.loads(request.data.get('data')))
+            #import ipdb; ipdb.set_trace()
+            #serializer = self.get_serializer(instance, data=json.loads(request.data.get('data')))
+            serializer = self.get_serializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            instance.add_documents(request)
-            return add_cache_control(Response(serializer.data))
+            #instance.add_documents(request)
+            return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1952,9 +1954,9 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         approval_list = []
-        p_set = mooring_bay.proposal_set.filter(processing_status="approved")
+        prop_set = mooring_bay.proposal_set.filter(Q(processing_status="approved") | Q(processing_status="awaiting_sticker"))
         if selected_date:
-            for p in p_set:
+            for prop in prop_set:
                 if (
                         prop.approval and 
                         #prop.approval.status == 'current'
@@ -1964,7 +1966,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
                     if prop.approval not in approval_list:
                         approval_list.append(prop.approval)
         else:
-            for p in p_set:
+            for prop in prop_set:
                 if (
                         prop.approval and 
                         prop.approval.status == 'current'
