@@ -115,7 +115,7 @@ def create_approval_doc_bytes(approval):
     # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     # context = context_obj.data
     # doc.render(context)
-    doc.render({})
+    doc.render(serializer_context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
     try:
