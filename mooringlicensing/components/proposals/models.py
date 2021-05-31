@@ -583,6 +583,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
+        self.child_obj.refresh_from_db()
 
     @property
     def invoice(self):
@@ -1658,12 +1659,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             current_proposal=self,
             defaults={
                 'issue_date': current_datetime,
-                'start_date': current_date.strftime('%Y-%m-%d'),
-                'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_date,
+                'expiry_date': self.end_date,
                 'submitter': self.submitter,
-                # 'org_applicant': self.org_applicant,
-                # 'proxy_applicant': self.proxy_applicant,
-                # 'extracted_fields' = JSONField(blank=True, null=True)
             }
         )
         return approval, created
@@ -2098,11 +2098,12 @@ class WaitingListApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args,**kwargs)
+        super(WaitingListApplication, self).save(*args,**kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+        self.proposal.refresh_from_db()
 
     def set_status_after_payment_success(self):
         # self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR  # Not very sure why we need to specify 'proposal', but this works
@@ -2126,11 +2127,12 @@ class AnnualAdmissionApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args,**kwargs)
+        super(AnnualAdmissionApplication, self).save(*args,**kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+        self.proposal.refresh_from_db()
 
     def set_status_after_payment_success(self):
         # self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
@@ -2157,11 +2159,12 @@ class AuthorisedUserApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args,**kwargs)
+        super(AuthorisedUserApplication, self).save(*args,**kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+        self.proposal.refresh_from_db()
 
     def set_status_after_payment_success(self):
         self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
@@ -2169,7 +2172,7 @@ class AuthorisedUserApplication(Proposal):
         self.save()
 
     def process_after_submit(self, request):
-        self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
+        #self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
@@ -2204,11 +2207,12 @@ class MooringLicenceApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(Proposal, self).save(*args, **kwargs)
+        super(MooringLicenceApplication, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
             self.save()
+        self.proposal.refresh_from_db()
 
     def process_after_uploading_other_documents(self, request):
         # Somehow in this function, followings update parent too as we expected as polymorphism
