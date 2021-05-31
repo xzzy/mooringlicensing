@@ -120,7 +120,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
         'proposal': proposal,
         'documents_upload_url': document_upload_url,
     }
-    to_address = proposal.site_licensee_email
+    to_address = proposal.submitter.email
     cc = []
     bcc = []
 
