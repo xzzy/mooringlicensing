@@ -41,10 +41,10 @@ from mooringlicensing.components.proposals.serializers import (
         VesselOwnershipSerializer,
         VesselDetailsSerializer,
         )
-from mooringlicensing.components.approvals.models import Approval
-from mooringlicensing.components.proposals.email import send_submit_email_notification, \
-    send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
-    send_documents_upload_for_mooring_licence_application_email
+# from mooringlicensing.components.approvals.models import Approval
+# from mooringlicensing.components.proposals.email import send_submit_email_notification, \
+#     send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
+#     send_documents_upload_for_mooring_licence_application_email
 #from mooringlicensing.components.main.models import Activity, Park, AccessType, Trail, Section, Zone
 import traceback
 import os
