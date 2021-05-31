@@ -26,7 +26,7 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
     create_approval_doc
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
-from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
+from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -122,6 +122,8 @@ class Approval(RevisionedMixin):
     expiry_notice_sent = models.BooleanField(default=False)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+    ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
+    ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'mooringlicensing'

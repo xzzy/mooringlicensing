@@ -51,20 +51,35 @@
                             <div class="form-group" v-if="display_bay_field">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        <label class="control-label pull-left" for="Bay">Bay</label>
+                                        <label class="control-label pull-left" for="mooring_bay">Bay</label>
                                     </div>
-                                    <div class="col-sm-9">
-                                        TODO: implement
+                                    <div v-if="siteLicensee" class="col-sm-9" id="mooring_bay">
+                                        <input disabled :value="siteLicenseeMooring.mooring_bay_name" name="mooring_bay" />
+                                    </div>
+                                    <div v-else class="col-sm-6">
+                                        <select class="form-control" v-model="approval.mooring_bay_id">
+                                            <option v-for="bay in mooringBays" v-bind:value="bay.id">
+                                            {{ bay.name }}
+                                            </option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-group" v-if="display_mooring_site_id_field">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        <label class="control-label pull-left" for="Bay">Mooring Site ID</label>
+                                        <label class="control-label pull-left" for="mooring_site_id">Mooring Site ID</label>
                                     </div>
-                                    <div class="col-sm-9">
-                                        TODO: implement
+                                    <div v-if="siteLicensee" class="col-sm-9">
+                                        <input disabled :value="siteLicenseeMooring.name" id="mooring_site_id"/>
+                                    </div>
+                                    <div v-else class="col-sm-6">
+                                        <select 
+                                            id="mooring_lookup"  
+                                            name="mooring_lookup"  
+                                            ref="mooring_lookup" 
+                                            class="form-control" 
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -169,7 +184,10 @@ export default {
         return {
             isModalOpen:false,
             form:null,
-            approval: {},
+            approval: {
+                mooring_id: null,
+                mooring_bay_id: null,
+            },
             state: 'proposed_approval',
             issuingApproval: false,
             validation_form: null,
@@ -189,9 +207,27 @@ export default {
                 allowInputToggle:true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
+            siteLicenseeMooring: {},
+            mooringBays: [],
         }
     },
     computed: {
+        siteLicensee: function() {
+            let licensee = false;
+            if (this.proposal && this.proposal.mooring_authorisation_preference === 'site_licensee') {
+                licensee = true;
+            }
+            return licensee;
+        },
+        /*
+        siteLicenseeMooring: function() {
+            let mooring = null;
+            if (this.proposal) {
+                mooring = this.proposal.mooring_id;
+            }
+            return mooring;
+        },
+        */
         display_bay_field: function(){
             if ([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
                 return true
@@ -286,10 +322,19 @@ export default {
             this.toDateError = false;
             this.startDateError = false;
             $('.has-error').removeClass('has-error');
-            $(this.$refs.due_date).data('DateTimePicker').clear();
-            $(this.$refs.start_date).data('DateTimePicker').clear();
             this.validation_form.resetForm();
         },
+        fetchMooringBays: async function() {
+            const res = await this.$http.get(api_endpoints.mooring_bays);
+            for (let bay of res.body) {
+                this.mooringBays.push(bay)
+            }
+        },
+        fetchSiteLicenseeMooring: async function() {
+            const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.mooring_id}`);
+            this.siteLicenseeMooring = Object.assign({}, res.body);
+        },
+
         fetchContact: function(id){
             let vm = this;
             vm.$http.get(api_endpoints.contact(id)).then((response) => {
@@ -367,57 +412,74 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
-            // Initialise Date Picker
-            $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.due_date).on('dp.change', function(e){
-                if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-                    if ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date()){
-                        vm.toDateError = true;
-                        vm.toDateErrorString = 'Please select Expiry date that is after Start date';
-                        vm.approval.expiry_date = ""
-                    }
-                    else{
-                        vm.toDateError = false;
-                        vm.toDateErrorString = '';
-                        vm.approval.expiry_date =  e.date.format('DD/MM/YYYY');
-                    }
-                    //vm.approval.expiry_date =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.due_date).data('date') === "") {
-                    vm.approval.expiry_date = "";
-                }
-             });
-            $(vm.$refs.start_date).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.start_date).on('dp.change', function(e){
-                if ($(vm.$refs.start_date).data('DateTimePicker').date()) {
+       },
+        initialiseMooringLookup: function(){
+            let vm = this;
+            $(vm.$refs.mooring_lookup).select2({
+                minimumInputLength: 2,
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Mooring",
+                ajax: {
+                    url: api_endpoints.mooring_lookup_per_bay,
+                    //url: api_endpoints.vessel_rego_nos,
+                    dataType: 'json',
+                    data: function(params) {
+                        var query = {
+                            term: params.term,
+                            type: 'public',
+                            mooring_bay_id: vm.approval.mooring_bay_id,
+                        }
+                        return query;
+                    },
+                },
+            }).
+            on("select2:select", function (e) {
+                var selected = $(e.currentTarget);
+                let data = e.params.data.id;
+                vm.approval.mooring_id = data;
+            }).
+            on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.approval.mooring_id = null;
+            }).
+            on("select2:open",function (e) {
+                //const searchField = $(".select2-search__field")
+                const searchField = $('[aria-controls="select2-mooring_lookup-results"]')
+                // move focus to select2 field
+                searchField[0].focus();
+            });
+            vm.readRiaMooring();
+        },
+        readRiaMooring: function() {
+            let vm = this;
+            if (vm.approval.ria_mooring_name) {
+                console.log("read ria mooring")
+                var option = new Option(vm.approval.ria_mooring_name, vm.approval.ria_mooring_name, true, true);
+                $(vm.$refs.mooring_lookup).append(option).trigger('change');
+            }
+        },
 
-                    if (($(vm.$refs.due_date).data('DateTimePicker').date()!= null)&& ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date())){
-                        vm.startDateError = true;
-                        vm.startDateErrorString = 'Please select Start date that is before Expiry date';
-                        vm.approval.start_date = ""
-                    }
-                    else{
-                        vm.startDateError = false;
-                        vm.startDateErrorString = '';
-                        vm.approval.start_date =  e.date.format('DD/MM/YYYY');
-                    }
-
-                    //vm.approval.start_date =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.start_date).data('date') === "") {
-                    vm.approval.start_date = "";
-                }
-             });
-       }
-   },
-   mounted:function () {
+    },
+    mounted:function () {
         let vm =this;
         vm.form = document.forms.approvalForm;
         vm.addFormValidations();
         this.$nextTick(()=>{
-            vm.eventListeners();
+            //vm.eventListeners();
+            this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
+            this.initialiseMooringLookup();
+
         });
-   }
+    },
+    created: function() {
+        this.$nextTick(()=>{
+            this.fetchMooringBays();
+            if (this.siteLicensee) {
+                this.fetchSiteLicenseeMooring();
+            }
+        });
+    },
 }
 </script>
 
