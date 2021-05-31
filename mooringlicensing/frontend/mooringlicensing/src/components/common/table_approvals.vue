@@ -1,7 +1,7 @@
 <template>
     <div>
         <div class="row">
-            <div class="col-lg-12">
+            <div v-if="wlaCheckbox" class="col-lg-12">
                 <input type="checkbox" id="checkbox_show_expired" v-model="show_expired_surrendered">
                 <label for="checkbox_show_expired">Show expired and/or surrendered waiting list allocations</label>
             </div>
@@ -65,6 +65,13 @@ export default {
         }
     },
     computed: {
+        wlaCheckbox: function() {
+            let returnVal = false;
+            if (this.approvalTypeFilter.includes('wla')) {
+                returnVal = true;
+            }
+            return returnVal;
+        },
         is_external: function() {
             return this.level == 'external'
         },
