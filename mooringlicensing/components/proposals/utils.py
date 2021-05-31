@@ -408,7 +408,8 @@ def save_proponent_data_mla(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    instance = serializer.save()
+    #instance = serializer.save()
+    serializer.save()
 
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
@@ -433,11 +434,11 @@ def save_proponent_data_aua(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    instance = serializer.save()
+    #instance = serializer.save()
+    serializer.save()
 
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
-
 
 
 #def save_proponent_data_aaa(instance, request, viewset):
