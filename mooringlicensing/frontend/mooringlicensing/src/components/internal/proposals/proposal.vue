@@ -243,6 +243,8 @@
         </div>
 
         <ProposedApproval 
+            v-if="proposal"
+            :proposal="proposal" 
             ref="proposed_approval" 
             :processing_status="proposal.processing_status" 
             :proposal_id="proposal.id" 
