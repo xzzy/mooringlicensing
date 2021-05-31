@@ -105,6 +105,12 @@
                     </div>
                     <div class="tab-pane fade" id="pills-bookings-permits" role="tabpanel" aria-labelledby="pills-bookings-permits-tab">
                         <FormSection label="Bookings/Permits" Index="bookings_permits">
+                            <div v-if="entity.id">
+                                <BookingsPermits
+                                :entity="entity"
+                                :key="entity.id"
+                                />
+                            </div>
                         </FormSection>
                     </div>
                 </div>
@@ -116,6 +122,7 @@
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import BookingsPermits from '@common-utils/bookings_permits.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
@@ -128,6 +135,7 @@ from '@/utils/hooks'
             FormSection,
             CommsLogs,
             datatable,
+            BookingsPermits,
         },
         data:function () {
             let vm = this;
@@ -145,6 +153,12 @@ from '@/utils/hooks'
              }
         },
         computed: {
+            entity: function() {
+                return {
+                    type: "vessel",
+                    id: this.vessel.id,
+                }
+            },
             ownersUrl: function() {
                 return `${api_endpoints.vessel}${this.vessel.id}/lookup_vessel_ownership?format=datatables`;
             },
