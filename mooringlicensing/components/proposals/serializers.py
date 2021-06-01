@@ -1365,16 +1365,25 @@ class ListMooringSerializer(serializers.ModelSerializer):
 
     def get_authorised_user_permits(self, obj):
         permits = 0
+        ## site licensee
         proposals = obj.proposal_set.all()
-        au_approvals = []
         for proposal in proposals:
-            if proposal.child_obj.code == 'aua' and proposal.approval:
-                if proposal.mooring_authorisation_preference == 'site_licensee':
+            if (
+                    proposal.child_obj.code == 'aua' and 
+                    proposal.approval and 
+                    proposal.approval.status == 'current' and 
+                    proposal.mooring_authorisation_preference == 'site_licensee'
+                    ):
                     permits += 1
-                elif (
-                        proposal.mooring_authorisation_preference == 'ria' and 
-                        proposal.approval.ria_selected_mooring == obj
-                        ):
+        # site selected by ria
+        approvals = obj.approval_set.all()
+        for approval in approvals:
+            if (
+                    approval.child_obj.code == 'aup' and 
+                    approval.status == 'current' and
+                    approval.current_proposal.mooring_authorisation_preference == 'ria' and 
+                    approval.ria_selected_mooring == obj
+                    ):
                     permits += 1
         return permits
 
@@ -1389,7 +1398,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
             # check for Mooring Applications
             for proposal in proposals:
                 if proposal.child_obj.code == 'mla':
-                    status = 'Licenced'
+                    status = 'Licence Application'
         return status
 
 
