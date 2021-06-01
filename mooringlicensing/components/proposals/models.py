@@ -1244,10 +1244,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 current_date = current_datetime.date()
 
+                ria_mooring_name = ''
+                mooring_id = details.get('mooring_id')
+                if mooring_id:
+                    ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
                     # 'start_date': current_date.strftime('%d/%m/%Y'),
                     # 'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+                    ## mooring_bay_id and mooring_id req for AUA
+                    'mooring_bay_id': details.get('mooring_bay_id'),
+                    'mooring_id': mooring_id,
+                    'ria_mooring_name': ria_mooring_name,
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email')
                 }
@@ -1330,8 +1338,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise ValidationError('More than 1 payment records found for the Annual Admission Application: {}'.format(self))
 
                     self.proposed_issuance_approval = {
-                        'start_date': current_date.strftime('%d/%m/%Y'),
-                        'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+                        #'start_date': current_date.strftime('%d/%m/%Y'),
+                        #'expiry_date': self.end_date.strftime('%d/%m/%Y'),
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
@@ -1473,9 +1481,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if not self.applicant_address:
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
+                    ria_mooring_name = ''
+                    mooring_id = details.get('mooring_id')
+                    if mooring_id:
+                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                     self.proposed_issuance_approval = {
                         # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
                         # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'mooring_bay_id': details.get('mooring_bay_id'),
+                        'mooring_id': mooring_id,
+                        'ria_mooring_name': ria_mooring_name,
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
@@ -1654,19 +1669,34 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise
 
         # TODO: default data varies according to the ProposalType, too
-
         current_date = current_datetime.date()
-        approval, created = approval_class.objects.update_or_create(
-            current_proposal=self,
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_date,
-                'expiry_date': self.end_date,
-                'submitter': self.submitter,
-            }
-        )
+        if approval_class == AuthorisedUserPermit:
+            approval, created = approval_class.objects.update_or_create(
+                current_proposal=self,
+                ria_selected_mooring = self.proposed_issuance_approval.get('mooring_id'),
+                ria_selected_mooring_bay = self.proposed_issuance_approval.get('mooring_bay_id'),
+                defaults={
+                    'issue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_date,
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                    }
+                )
+        else:
+            approval, created = approval_class.objects.update_or_create(
+                current_proposal=self,
+                defaults={
+                    'issue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_date,
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                    }
+                )
+
         return approval, created
 
     def final_approval(self, request, details):

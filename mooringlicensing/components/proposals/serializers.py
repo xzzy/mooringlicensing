@@ -708,25 +708,18 @@ class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
 
 class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
-    #org_applicant = OrganisationSerializer()
     processing_status = serializers.SerializerMethodField(read_only=True)
-    # review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
     submitter = EmailUserAppViewSerializer()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
-    # can_edit_activities = serializers.SerializerMethodField()
-    # can_edit_period = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
-    # region = serializers.CharField(source='region.name', read_only=True)
-    # district = serializers.CharField(source='district.name', read_only=True)
-    reversion_ids = serializers.SerializerMethodField()
+    #reversion_ids = serializers.SerializerMethodField()
     assessor_assessment=ProposalAssessmentSerializer(read_only=True)
-    # referral_assessments=ProposalAssessmentSerializer(read_only=True, many=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
 
@@ -737,18 +730,11 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'start_date',
                 'end_date',
                 'application_type',
-                # 'activity',
                 'approval_level',
                 'approval_level_document',
-                # 'region',
-                # 'district',
-                # 'tenure',
                 'title',
-                # 'data',
-                # 'schema',
                 'customer_status',
                 'processing_status',
-                # 'review_status',
                 'applicant',
                 'org_applicant',
                 'proxy_applicant',
@@ -756,7 +742,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'applicant_type',
                 'assigned_officer',
                 'assigned_approver',
-                # 'previous_application',
                 'get_history',
                 'lodgement_date',
                 'modified_date',
@@ -775,25 +760,13 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'proposed_decline_status',
                 'proposaldeclineddetails',
                 'permit',
-                # 'reference',
                 'lodgement_number',
                 'lodgement_sequence',
                 'can_officer_process',
                 'proposal_type',
                 'applicant_details',
-                # 'other_details',
-                # 'activities_land',
-                # 'land_access',
-                # 'land_access',
-                # 'trail_activities',
-                # 'trail_section_activities',
-                # 'activities_marine',
-                # 'training_completed',
-                # 'can_edit_activities',
-                # 'can_edit_period',
-                'reversion_ids',
+                #'reversion_ids',
                 'assessor_assessment',
-                # 'referral_assessments',
                 'fee_invoice_url',
                 'fee_paid',
                 'requirements_completed',
@@ -807,9 +780,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'site_licensee_email',
                 'mooring_id',
                 'mooring_authorisation_preference',
-                #'individual_owner',
-                #'company_ownership_name',
-                #'company_ownership_percentage',
                 )
         read_only_fields = (
             'documents',
@@ -860,8 +830,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_assessor_data(self,obj):
         return obj.assessor_data
 
-    def get_reversion_ids(self,obj):
-        return obj.reversion_ids[:5]
+    #def get_reversion_ids(self,obj):
+     #   return obj.reversion_ids[:5]
 
     def get_fee_invoice_url(self,obj):
         # temp = '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
@@ -987,6 +957,9 @@ class ProposedApprovalSerializer(serializers.Serializer):
     start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True)
+    mooring_id = serializers.IntegerField(required=False)
+    mooring_bay_id = serializers.IntegerField(required=False)
+    ria_mooring_name = serializers.CharField(required=False)
 
 class ProposedDeclineSerializer(serializers.Serializer):
     reason = serializers.CharField()
