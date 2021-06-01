@@ -218,6 +218,7 @@ class Approval(RevisionedMixin):
             self.lodgement_number = 'L{0:06d}'.format(self.next_id)
             #self.save()
         super(Approval, self).save(*args,**kwargs)
+        self.child_obj.refresh_from_db()
 
     def __str__(self):
         return self.lodgement_number
@@ -562,6 +563,10 @@ class WaitingListAllocation(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def save(self, *args, **kwargs):
+        super(WaitingListAllocation, self).save(*args, **kwargs)
+        self.approval.refresh_from_db()
+
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -571,6 +576,10 @@ class AnnualAdmissionPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        super(AnnualAdmissionPermit, self).save(*args, **kwargs)
+        self.approval.refresh_from_db()
 
 
 class AuthorisedUserPermit(Approval):
@@ -584,6 +593,10 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def save(self, *args, **kwargs):
+        super(AuthorisedUserPermit, self).save(*args, **kwargs)
+        self.approval.refresh_from_db()
+
 
 class MooringLicence(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -593,6 +606,10 @@ class MooringLicence(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        super(MooringLicence, self).save(*args, **kwargs)
+        self.approval.refresh_from_db()
 
 
 class PreviewTempApproval(Approval):

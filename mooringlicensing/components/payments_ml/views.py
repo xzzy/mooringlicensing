@@ -2,6 +2,7 @@ import datetime
 import logging
 import pytz
 from ledger.settings_base import TIME_ZONE
+from ledger.payments.pdf import create_invoice_pdf_bytes
 
 import dateutil.parser
 from django.contrib.auth.models import Group
@@ -12,7 +13,6 @@ from django.views import View
 from django.views.generic import TemplateView
 from ledger.basket.models import Basket
 from ledger.payments.invoice.models import Invoice
-from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
