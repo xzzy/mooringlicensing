@@ -2,13 +2,17 @@
     <div>
         <div v-if="displayApprovedMsg" class="col-md-12 alert alert-success">
             <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
-            <p>Expiry date: {{ approvalExpiryDate }}
+            <p>Expiry date: {{ approvalExpiryDate }}</p>
             <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
+        </div>
+        <div v-if="displayAwaitingPaymentMsg" class="col-md-12 alert alert-success">
+            <p>The application has been approved</p>
+            <p>Status: Awaiting Payment</p>
         </div>
         <div v-if="displayApprovedAwaitingStickerMsg" class="col-md-12 alert alert-success">
             <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
-            <p>Status: Awaiting Sticker
-            <p>Expiry date: {{ approvalExpiryDate }}
+            <p>Status: Awaiting Sticker</p>
+            <p>Expiry date: {{ approvalExpiryDate }}</p>
             <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
         </div>
         <div v-if="displayDeclinedMsg" class="col-md-12 alert alert-warning">
@@ -177,6 +181,14 @@ export default {
         //ComponentSiteSelection,
     },
     computed:{
+        displayAwaitingPaymentMsg: function(){
+            let display = false
+            console.log(this.proposal.processing_status)
+            if (this.proposal.processing_status === constants.AWAITING_PAYMENT){
+                display = true
+            }
+            return display
+        },
         displayApprovedMsg: function(){
             let display = false
             if (this.proposal.processing_status === constants.APPROVED){
@@ -185,8 +197,6 @@ export default {
             return display
         },
         displayApprovedAwaitingStickerMsg: function(){
-            console.log('1' + this.proposal.processing_status)
-            console.log('2' + constants.AWAITING_STICKER)
             let display = false
             if (this.proposal.processing_status === constants.AWAITING_STICKER){
                 display = true
