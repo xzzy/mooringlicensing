@@ -5,6 +5,7 @@ import datetime
 import pytz
 import uuid
 from ledger.settings_base import TIME_ZONE
+from ledger.payments.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
@@ -2144,7 +2145,12 @@ class WaitingListApplication(Proposal):
         self.save()
 
     def send_emails_after_payment_success(self, request):
-        ret_value = send_submit_email_notification(request, self)
+        attachments = []
+        if self.invoice:
+            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+            attachments.append(attachment)
+        ret_value = send_submit_email_notification(request, self, attachments)
         return ret_value
 
 
@@ -2177,7 +2183,12 @@ class AnnualAdmissionApplication(Proposal):
         self.save()
 
     def send_emails_after_payment_success(self, request):
-        ret_value = send_submit_email_notification(request, self)
+        attachments = []
+        if self.invoice:
+            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+            attachments.append(attachment)
+        ret_value = send_submit_email_notification(request, self, attachments)
         return ret_value
 
 

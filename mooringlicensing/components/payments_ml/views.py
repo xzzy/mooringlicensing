@@ -12,7 +12,6 @@ from django.views import View
 from django.views.generic import TemplateView
 from ledger.basket.models import Basket
 from ledger.payments.invoice.models import Invoice
-from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
