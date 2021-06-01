@@ -1672,11 +1672,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         # TODO: default data varies according to the ProposalType, too
         current_date = current_datetime.date()
+        mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
+        mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
+        ria_selected_mooring = None
+        ria_selected_mooring_bay = None
+        if mooring_id_pk:
+            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+        if mooring_bay_id_pk:
+            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
         if approval_class == AuthorisedUserPermit:
             approval, created = approval_class.objects.update_or_create(
                 current_proposal=self,
-                ria_selected_mooring = self.proposed_issuance_approval.get('mooring_id'),
-                ria_selected_mooring_bay = self.proposed_issuance_approval.get('mooring_bay_id'),
+                ria_selected_mooring = ria_selected_mooring,
+                ria_selected_mooring_bay = ria_selected_mooring_bay,
                 defaults={
                     'issue_date': current_datetime,
                     #'start_date': current_date.strftime('%Y-%m-%d'),
@@ -1686,6 +1694,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'submitter': self.submitter,
                     }
                 )
+        if approval_class == WaitingListAllocation:
+            approval, created = approval_class.objects.update_or_create(
+                current_proposal=self,
+                defaults={
+                    'issue_date': current_datetime,
+                    'wla_queue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_date,
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                    }
+                )
+
         else:
             approval, created = approval_class.objects.update_or_create(
                 current_proposal=self,

@@ -253,6 +253,7 @@
             :submitter_email="proposal.submitter.email" 
             :applicant_email="applicant_email" 
             @refreshFromResponse="refreshFromResponse"
+            :key="proposedApprovalKey"
         />
         <ProposedDecline 
             ref="proposed_decline" 
@@ -361,6 +362,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/action_log'),
             panelClickersInitialised: false,
             //sendingReferral: false,
+            uuid: 0,
         }
     },
     components: {
@@ -392,6 +394,9 @@ export default {
 
     },
     computed: {
+        proposedApprovalKey: function() {
+            return "proposed_approval_" + this.uuid;
+        },
         computedProposalId: function(){
             if (this.proposal) {
                 return this.proposal.id;
@@ -552,7 +557,10 @@ export default {
             // if(this.proposal.applicant.email){
             //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
             // }
-            this.$refs.proposed_approval.isModalOpen = true;
+            this.uuid++;
+            this.$nextTick(() => {
+                this.$refs.proposed_approval.isModalOpen = true;
+            });
         },
         issueProposal:function(){
             console.log('in issueProposal')

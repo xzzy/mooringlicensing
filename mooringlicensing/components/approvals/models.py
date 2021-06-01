@@ -98,6 +98,7 @@ class Approval(RevisionedMixin):
     renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
     renewal_sent = models.BooleanField(default=False)
     issue_date = models.DateTimeField()
+    wla_queue_date = models.DateTimeField(blank=True, null=True)
     original_issue_date = models.DateField(auto_now_add=True)
     start_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
