@@ -167,7 +167,7 @@ def send_endersement_of_authorised_user_application_email(request, proposal):
     return msg
 
 
-def send_submit_email_notification(request, proposal):
+def send_submit_email_notification(request, proposal, attachments=[]):
     email = SubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     if "-internal" not in url:
@@ -184,7 +184,7 @@ def send_submit_email_notification(request, proposal):
     bcc = []
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_proposal_email(msg, proposal, sender=sender)
