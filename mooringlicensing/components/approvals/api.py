@@ -1,5 +1,6 @@
 import traceback
 import datetime
+from copy import deepcopy
 from rest_framework_datatables.renderers import DatatablesRenderer
 from django.db.models import Q, Min
 from django.db import transaction
@@ -187,7 +188,20 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
-        return add_cache_control(self.paginator.get_paginated_response(serializer.data))
+        serializer_data = deepcopy(serializer.data)
+        wla_order_dict = {}
+        #for approval_dict in serializer_data:
+            
+    #    place = 0
+    #    if type(obj.child_obj) == WaitingListAllocation and obj.wla_queue_date:
+    #        for w in WaitingListAllocation.objects.filter(
+    #                wla_queue_date__isnull=False).values('current_proposal__preferred_bay__id').annotate(Count('id')).order_by('-wla_queue_date'):
+    #            place += 1
+    #            if w == obj.child_obj:
+    #                break
+    #    return place
+
+        return self.paginator.get_paginated_response(serializer_data)
 
     # def get_queryset(self):
     #     request_user = self.request.user

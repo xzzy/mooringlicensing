@@ -93,6 +93,20 @@ export default {
                     'Expiry Date', 
                     'Action'
                 ]
+            } else if (this.is_internal && this.wlaCheckbox) {
+                return [
+                    'Id', 
+                    'Number', 
+                    'Holder',
+                    'Status', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Vessel length',
+                    'Vessel draft',
+                    'Mooring area',
+                    'Allocation number in bay',
+                    'Action'
+                ]
             } else if (this.is_internal) {
                 return [
                     'Id', 
@@ -254,6 +268,18 @@ export default {
                         }
                     }
         },
+        columnAllocationNumberInBay: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.wla_order;
+                        }
+                    }
+        },
+
         columnVesselLength: function() {
             return {
                         data: "id",
@@ -292,6 +318,20 @@ export default {
                     vm.columnVesselName,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
+                    vm.columnAction,
+                ]
+            } else if (vm.is_internal && this.wlaCheckbox) {
+                selectedColumns = [
+                    vm.columnId,
+                    vm.columnLodgementNumber,
+                    vm.columnHolder,
+                    vm.columnStatus,
+                    vm.columnIssueDate,
+                    vm.columnExpiryDate,
+                    vm.columnVesselLength,
+                    vm.columnVesselDraft,
+                    vm.columnPreferredMooringBay,
+                    vm.columnAllocationNumberInBay,
                     vm.columnAction,
                 ]
             } else if (vm.is_internal) {

@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from ledger.accounts.models import EmailUser
+from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
@@ -13,6 +14,7 @@ from mooringlicensing.components.approvals.models import (
     DcvVessel,
     DcvPermit,
     DcvAdmission,
+    WaitingListAllocation,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -373,6 +375,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     current_proposal_number = serializers.SerializerMethodField()
     vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
+    #wla_order = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -391,6 +394,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'vessel_registration',
             'vessel_name',
+            #'wla_order',
+            'wla_queue_date',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -409,7 +414,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'vessel_registration',
             'vessel_name',
+            #'wla_order',
+            'wla_queue_date',
         )
+
+    #def get_wla_order(self, obj):
+    #    place = 0
+    #    if type(obj.child_obj) == WaitingListAllocation and obj.wla_queue_date:
+    #        for w in WaitingListAllocation.objects.filter(
+    #                wla_queue_date__isnull=False).values('current_proposal__preferred_bay__id').annotate(Count('id')).order_by('-wla_queue_date'):
+    #            place += 1
+    #            if w == obj.child_obj:
+    #                break
+    #    return place
 
     def get_current_proposal_number(self, obj):
         number = ''
