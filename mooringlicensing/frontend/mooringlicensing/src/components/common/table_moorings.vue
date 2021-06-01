@@ -211,6 +211,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
+                searching: true,
 
                 ajax: {
                     //"url": `${api_endpoints.mooring}internal_list.json?format=datatables`,

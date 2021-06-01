@@ -316,7 +316,8 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: false,
+                //searching: false,
+                searching: true,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
@@ -328,7 +329,8 @@ export default {
                         d.show_expired_surrendered = vm.show_expired_surrendered
                     }
                 },
-                dom: 'frt', //'lBfrtip',
+                //dom: 'frt', //'lBfrtip',
+                dom: 'lBfrtip',
                 buttons:[
                     //{
                     //    extend: 'excel',
