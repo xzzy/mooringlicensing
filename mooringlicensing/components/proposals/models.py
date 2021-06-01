@@ -1698,6 +1698,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'submitter': self.submitter,
                     }
                 )
+        # approval needs to be associated with proposal
+        self.approval = approval
+        self.save()
 
         return approval, created
 
