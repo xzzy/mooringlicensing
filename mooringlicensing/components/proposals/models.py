@@ -1524,23 +1524,27 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                                 # invoice_period_start_date=invoice_period[0],
                                 # invoice_period_end_date=invoice_period[1],
-                                # lines=line_items,  # TODO: We may add this field to the ApplicationFee model
+                                # lines=line_items,  # We may add this field to the ApplicationFee model
                             )
                             # updates.append(annual_rental_fee.invoice_reference)
+
+                            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                            self.save()
+
+                            # TODO: Send approved-awaiting-payment email to the submitter
+
+                            # Log proposal action
+                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+                            # Log entry for organisation
+                            applicant_field = getattr(self, self.applicant_field)
+                            applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
 
                         except Exception as e:
                             err_msg = 'Failed to create annual site fee confirmation'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
 
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-                self.save()
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
-                # Log entry for organisation
-                applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
 
                 # TODO if it is an ammendment proposal then check appropriately
 #                from mooringlicensing.components.approvals.models import Approval
@@ -2948,6 +2952,7 @@ class ProposalUserAction(UserAction):
     ACTION_ISSUE_APPROVAL_ = "Issue Licence for application {}"
     ACTION_AWAITING_PAYMENT_APPROVAL_ = "Awaiting Payment for application {}"
     ACTION_AWAITING_STICKER = "Awaiting Sticker for application {}"
+    ACTION_APPROVE_APPLICATION = "Approve application {}"
     ACTION_UPDATE_APPROVAL_ = "Update Licence for application {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
