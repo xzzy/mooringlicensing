@@ -401,6 +401,7 @@ export default {
             let ret_val = 
                 this.proposal.processing_status == constants.WITH_APPROVER || 
                 this.proposal.processing_status == constants.AWAITING_STICKER ||
+                this.proposal.processing_status == constants.AWAITING_PAYMENT ||
                 this.isFinalised
             return ret_val
         },
