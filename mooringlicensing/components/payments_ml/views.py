@@ -2,6 +2,7 @@ import datetime
 import logging
 import pytz
 from ledger.settings_base import TIME_ZONE
+from ledger.payments.pdf import create_invoice_pdf_bytes
 
 import dateutil.parser
 from django.contrib.auth.models import Group
