@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import requests
 import json
 import pytz
@@ -214,10 +216,15 @@ def handle_validation_error(e):
         else:
             raise
 
+
 def sticker_export():
     approvals = Approval.objects.filter(status='current')
     base_dir = settings.BASE_DIR
-    file_path = os.path.join(base_dir, "export", "20210525.xlsx")
+    export_folder = os.path.join(base_dir, 'export')
+    Path(export_folder).mkdir(parents=True, exist_ok=True)
+    file_path = os.path.join(export_folder, "20210525.xlsx")
+    logger.info('Exporting sticker details file: {}'.format(file_path))
+    print(file_path)
 
     wb = Workbook()
 
