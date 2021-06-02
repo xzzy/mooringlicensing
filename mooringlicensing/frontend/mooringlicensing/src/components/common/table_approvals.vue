@@ -10,18 +10,26 @@
         <div class="row">
             <div class="col-lg-12">
                 <datatable 
-                    ref="waiting_list_datatable" 
+                    ref="approvals_datatable" 
                     :id="datatable_id" 
                     :dtOptions="datatable_options" 
                     :dtHeaders="datatable_headers"
                 />
             </div>
         </div>
+        <div v-if="wlaCheckbox && selectedWaitingListAllocationId">
+            <OfferMooringLicence
+                ref="offer_mooring_licence" 
+                :key="offerMooringLicenceKey"
+                :wlaId="selectedWaitingListAllocationId"
+            />
+        </div>
     </div>
 </template>
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
+import OfferMooringLicence from '@/components/internal/approvals/offer_mooring_licence.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
@@ -52,16 +60,18 @@ export default {
             datatable_id: 'waiting_lists-datatable-' + vm._uid,
             //approvalTypesToDisplay: ['wla'],
             show_expired_surrendered: true,
-
+            selectedWaitingListAllocationId: null,
+            uuid: 0,
         }
     },
     components:{
-        datatable
+        datatable,
+        OfferMooringLicence,
     },
     watch: {
         show_expired_surrendered: function(value){
             console.log(value)
-            this.$refs.waiting_list_datatable.vmDataTable.ajax.reload()
+            this.$refs.approvals_datatable.vmDataTable.ajax.reload()
         }
     },
     computed: {
@@ -99,13 +109,13 @@ export default {
                     'Number', 
                     'Holder',
                     'Status', 
+                    'Mooring area',
+                    'Allocation number in bay',
+                    'Action',
                     'Issue Date', 
                     'Expiry Date', 
                     'Vessel length',
                     'Vessel draft',
-                    'Mooring area',
-                    'Allocation number in bay',
-                    'Action'
                 ]
             } else if (this.is_internal) {
                 return [
@@ -233,6 +243,7 @@ export default {
                     }
         },
         columnAction: function() {
+            let vm = this;
             return {
                         // 10. Action
                         data: "id",
@@ -240,8 +251,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            //return 'View<br />Amend<br />Renew<br />Surrender'
-                            return 'not implemented'
+                            return full.offer_link;
                         }
                     }
         },
@@ -325,13 +335,13 @@ export default {
                     vm.columnLodgementNumber,
                     vm.columnHolder,
                     vm.columnStatus,
+                    vm.columnPreferredMooringBay,
+                    vm.columnAllocationNumberInBay,
+                    vm.columnAction,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
                     vm.columnVesselLength,
                     vm.columnVesselDraft,
-                    vm.columnPreferredMooringBay,
-                    vm.columnAllocationNumberInBay,
-                    vm.columnAction,
                 ]
             } else if (vm.is_internal) {
                 selectedColumns = [
@@ -390,17 +400,65 @@ export default {
                     console.log('in initComplete')
                 },
             }
-        }
+        },
+        offerMooringLicenceKey: function() {
+            return 'offer_mooring_licence_' + this.selectedWaitingListAllocationId + '_' + this.uuid;
+        },
 
     },
     methods: {
-
+        offerMooringLicence: function(id){
+            console.log('offerMooringLicence')
+            console.log(id)
+            this.selectedWaitingListAllocationId = parseInt(id);
+            this.uuid++;
+            this.$nextTick(() => {
+                this.$refs.offer_mooring_licence.isModalOpen = true;
+            });
+        },
+        refreshFromResponse: async function(){
+            await this.$refs.approvals_datatable.vmDataTable.ajax.reload();
+        },
+        addEventListeners: function(){
+            let vm = this;
+            //Internal Action shortcut listeners
+            let table = vm.$refs.approvals_datatable.vmDataTable
+            table.on('processing.dt', function(e) {
+            })
+            table.on('click', 'a[data-offer]', async function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-offer');
+                await vm.offerMooringLicence(id);
+            }).on('responsive-display.dt', function () {
+                var tablePopover = $(this).find('[data-toggle="popover"]');
+                if (tablePopover.length > 0) {
+                    tablePopover.popover();
+                    // the next line prevents from scrolling up to the top after clicking on the popover.
+                    $(tablePopover).on('click', function (e) {
+                        e.preventDefault();
+                        return true;   
+                    });
+                }
+            }).on('draw.dt', function () {
+                var tablePopover = $(this).find('[data-toggle="popover"]');
+                if (tablePopover.length > 0) {
+                    tablePopover.popover();
+                    // the next line prevents from scrolling up to the top after clicking on the popover.
+                    $(tablePopover).on('click', function (e) {
+                        e.preventDefault();
+                        return true;   
+                    });
+                }
+            });
+        },
     },
     created: function(){
 
     },
     mounted: function(){
-
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
     }
 }
 </script>

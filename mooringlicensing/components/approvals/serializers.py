@@ -375,7 +375,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     current_proposal_number = serializers.SerializerMethodField()
     vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
-    #wla_order = serializers.SerializerMethodField()
+    offer_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -392,10 +392,12 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_draft',
             'preferred_mooring_bay',
             'current_proposal_number',
+            'current_proposal_id',
             'vessel_registration',
             'vessel_name',
             'wla_order',
             'wla_queue_date',
+            'offer_link',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -412,11 +414,30 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_draft',
             'preferred_mooring_bay',
             'current_proposal_number',
+            'current_proposal_id',
             'vessel_registration',
             'vessel_name',
             'wla_order',
             'wla_queue_date',
+            'offer_link',
         )
+
+    def get_offer_link(self, obj):
+        return '<a href="{}" class="offer-link" data-offer="{}">Offer</a><br/>'.format(obj.id, obj.id)
+        #links = ''
+        #if self.get_can_process(obj) and obj.processing_status == 'with_approver':
+        #    if obj.proposed_status == 'issue':
+        #        links +=  '<a href="{}" class="action-{}" data-issue="{}">Issue Fee Waiver</a><br/>'.format(obj.id, obj.id, obj.id)
+        #    if obj.proposed_status == 'concession':
+        #        links +=  '<a href="{}" class="action-{}" data-concession="{}">Issue Concession</a><br/>'.format(obj.id, obj.id, obj.id)
+        #    if obj.proposed_status == 'decline':
+        #        links +=  '<a href="{}" class="action-{}" data-decline="{}">Decline</a><br/>'.format(obj.id, obj.id, obj.id)
+        ## add Process/View
+        #if self.get_can_process(obj):
+        #    links += '<a class="process-view-{}" href=/internal/fee_waiver/{}>Process</a><br/>'.format(obj.id, obj.id);
+        #else:
+        #    links += '<a class="process-view-{}" href=/internal/fee_waiver/{}>View</a><br/>'.format(obj.id, obj.id);
+        #return links
 
     def get_current_proposal_number(self, obj):
         number = ''
