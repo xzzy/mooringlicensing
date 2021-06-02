@@ -1,4 +1,7 @@
 from pathlib import Path
+from django.db.models import Q
+from django.core.files.base import File
+from ledger.settings_base import TIME_ZONE
 
 import requests
 import json
@@ -6,8 +9,7 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal
-from mooringlicensing.components.approvals.models import Approval
+from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickersDocument
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
@@ -224,18 +226,34 @@ def sticker_export():
     # (applicant is notified to pay once RIA staff approve the application)
     export_folder = os.path.join(settings.BASE_DIR, 'export')
     Path(export_folder).mkdir(parents=True, exist_ok=True)
-    file_path = os.path.join(export_folder, "20210525.xlsx")
-    logger.info('Exporting sticker details file: {}'.format(file_path))
+    file_path = os.path.join(export_folder, "temp.xlsx")
 
-    # approvals = Approval.objects.filter(status='current')
+    # It might be better to add the stickers_document field to the Proposal model, not child classes...
     proposals = Proposal.objects.filter(
-        processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER,
-        stickers_document=None
+        Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER),
+        (
+            Q(mooringlicenceapplication__stickers_document__isnull=True) |
+            Q(annualadmissionapplication__stickers_document__isnull=True) |
+            Q(mooringlicenceapplication__stickers_document__isnull=True)
+        )
     )
 
     wb = Workbook()
     ws1 = wb.create_sheet(title="Owners", index=0)
     for proposal in proposals:
-        ws1.append([proposal.id, proposal.lodgement_number, proposal.status])
+        ws1.append([proposal.id, proposal.lodgement_number])
     wb.save(file_path)
 
+    with open(file_path, 'rb') as f:
+        instance = StickersDocument.objects.create()
+        filename = '{}-stickers.xlsx'.format(instance.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
+        instance._file.save(filename, File(f))
+        instance.name = filename
+        instance.save()
+
+    # TODO: delete temp file once it's saved as a field
+
+
+def email_stickers_document():
+    pass
+    # TODO: implement
