@@ -125,11 +125,28 @@ class Approval(RevisionedMixin):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
+    wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    def set_wla_order(self):
+        # set wla order per bay
+        place = 1
+        if type(self.child_obj) == WaitingListAllocation and self.wla_queue_date:
+        #if self.child_obj.code == 'wla' and self.approval.wla_queue_date:
+            for w in WaitingListAllocation.objects.filter(
+                    wla_queue_date__isnull=False, current_proposal__preferred_bay=self.current_proposal.preferred_bay).order_by(
+                            '-wla_queue_date'):
+                w.wla_order = place
+                w.save()
+                place += 1
+                #if w == obj.child_obj:
+                    #break
+        self.refresh_from_db()
+        return self
 
     @property
     def bpay_allowed(self):

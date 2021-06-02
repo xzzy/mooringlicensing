@@ -1724,6 +1724,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.approval = approval
         self.save()
 
+        if approval_class == WaitingListAllocation:
+            #self.set_wla_order()
+            approval = approval.set_wla_order()
+
         return approval, created
 
     def final_approval(self, request, details):
