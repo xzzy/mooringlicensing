@@ -372,6 +372,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     vessel_length = serializers.SerializerMethodField()
     vessel_draft = serializers.SerializerMethodField()
     preferred_mooring_bay = serializers.SerializerMethodField()
+    preferred_mooring_bay_id = serializers.SerializerMethodField()
     current_proposal_number = serializers.SerializerMethodField()
     vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
@@ -391,6 +392,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_length',
             'vessel_draft',
             'preferred_mooring_bay',
+            'preferred_mooring_bay_id',
             'current_proposal_number',
             'current_proposal_id',
             'vessel_registration',
@@ -413,6 +415,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_length',
             'vessel_draft',
             'preferred_mooring_bay',
+            'preferred_mooring_bay_id',
             'current_proposal_number',
             'current_proposal_id',
             'vessel_registration',
@@ -423,7 +426,14 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         )
 
     def get_offer_link(self, obj):
-        return '<a href="{}" class="offer-link" data-offer="{}">Offer</a><br/>'.format(obj.id, obj.id)
+        link = ''
+        if type(obj.child_obj) == WaitingListAllocation:
+            link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
+                    obj.id, 
+                    obj.id,
+                    obj.current_proposal.preferred_bay.id,
+                    )
+        return link
         #links = ''
         #if self.get_can_process(obj) and obj.processing_status == 'with_approver':
         #    if obj.proposed_status == 'issue':
@@ -474,6 +484,12 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         if obj.current_proposal and obj.current_proposal.preferred_bay:
             bay = obj.current_proposal.preferred_bay.name
         return bay
+
+    def get_preferred_mooring_bay_id(self, obj):
+        bay_id = None
+        if obj.current_proposal and obj.current_proposal.preferred_bay:
+            bay_id = obj.current_proposal.preferred_bay.id
+        return bay_id
 
     def get_status(self, obj):
         return obj.get_status_display()

@@ -22,6 +22,8 @@
                 ref="offer_mooring_licence" 
                 :key="offerMooringLicenceKey"
                 :wlaId="selectedWaitingListAllocationId"
+                :mooringBayId="mooringBayId"
+                @refreshFromResponse="refreshFromResponse"
             />
         </div>
     </div>
@@ -62,6 +64,7 @@ export default {
             show_expired_surrendered: true,
             selectedWaitingListAllocationId: null,
             uuid: 0,
+            mooringBayId: null,
         }
     },
     components:{
@@ -417,6 +420,7 @@ export default {
             });
         },
         refreshFromResponse: async function(){
+            console.log("refreshFromResponse");
             await this.$refs.approvals_datatable.vmDataTable.ajax.reload();
         },
         addEventListeners: function(){
@@ -428,6 +432,7 @@ export default {
             table.on('click', 'a[data-offer]', async function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-offer');
+                vm.mooringBayId = parseInt($(this).attr('data-mooring-bay'));
                 await vm.offerMooringLicence(id);
             }).on('responsive-display.dt', function () {
                 var tablePopover = $(this).find('[data-toggle="popover"]');

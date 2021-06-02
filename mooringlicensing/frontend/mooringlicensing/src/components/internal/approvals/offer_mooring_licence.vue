@@ -55,12 +55,24 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group">
+                        <!--div class="form-group">
                             <div class="row">
                                 <div class="col-sm-12">
                                     <label class="control-label pull-left"  for="Name">Document</label>
                                 </div>
 
+                            </div>
+                        </div-->
+                        <div class="row form-group">
+                            <label for="" class="col-sm-3 control-label">Document</label>
+                            <div class="col-sm-9">
+                                <FileField 
+                                    ref="waiting_list_offer_documents"
+                                    name="waiting-list-offer-documents"
+                                    :isRepeatable="true"
+                                    :documentActionUrl="waitingListOfferDocumentUrl"
+                                    :replace_button_by_text="true"
+                                />
                             </div>
                         </div>
                     </div>
@@ -79,6 +91,7 @@
 <script>
 //import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
+import FileField from '@/components/forms/filefield_immediate.vue'
 import alert from '@vue-utils/alert.vue'
 import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
 
@@ -86,10 +99,15 @@ export default {
     name:'OfferMooringLicence',
     components:{
         modal,
-        alert
+        alert,
+        FileField,
     },
     props:{
         wlaId: {
+            type: Number,
+            required: true,
+        },
+        mooringBayId: {
             type: Number,
             required: true,
         },
@@ -100,6 +118,7 @@ export default {
             messageDetails: '',
             ccEmail: '',
             selectedMooringBayId: null,
+            selectedMooringId: null,
             isModalOpen:false,
             state: 'proposed_approval',
             savingOffer: false,
@@ -114,6 +133,22 @@ export default {
         }
     },
     computed: {
+        waitingListOfferSubmitUrl: function() {
+          return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application.json`;
+          //return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application/`;
+          //return this.submit();
+        },
+        waitingListOfferDocumentUrl: function() {
+            let url = '';
+            if (this.wlaId) {
+                url = helpers.add_endpoint_join(
+                    api_endpoints.approvals,
+                    this.wlaId + '/process_waiting_list_offer_document/'
+                )
+            }
+            return url;
+        },
+
         showError: function() {
             var vm = this;
             return vm.errors;
@@ -127,37 +162,18 @@ export default {
         },
     },
     methods:{
-        post_and_redirect: function(url, postData) {
-            /* http.post and ajax do not allow redirect from Django View (post method),
-               this function allows redirect by mimicking a form submit.
-               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-            */
-            var postFormStr = "<form method='POST' target='_blank' name='Preview Licence' action='" + url + "'>";
-            for (var key in postData) {
-                if (postData.hasOwnProperty(key)) {
-                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
-                }
-            }
-            postFormStr += "</form>";
-            var formElement = $(postFormStr);
-            $('body').append(formElement);
-            $(formElement).submit();
-        },
-        ok:function () {
-            let vm =this;
-            if($(vm.form).valid()){
-                vm.sendData();
-                //vm.$router.push({ path: '/internal' });
-            }
+        ok: async function() {
+            await this.sendData();
         },
         cancel:function () {
             this.close()
         },
-        close:function () {
+        close: async function () {
             this.isModalOpen = false;
             this.errors = false;
             $('.has-error').removeClass('has-error');
             //this.validation_form.resetForm();
+            await this.$emit('refreshFromResponse');
         },
         fetchMooringBays: async function() {
             const res = await this.$http.get(api_endpoints.mooring_bays);
@@ -180,73 +196,26 @@ export default {
             } );
         },
         */
-        sendData:function(){
-            let vm = this;
-            vm.errors = false;
-            let approval = JSON.parse(JSON.stringify(vm.approval));
-
-            vm.issuingApproval = true;
-            if (vm.state == 'proposed_approval'){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id + '/proposed_approval'),JSON.stringify(approval),{
-                        emulateJSON:true,
-                    }).then((response)=>{
-                        vm.issuingApproval = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse',response);
-                        vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after Propose issue.
-
-                    },(error)=>{
-                        vm.errors = true;
-                        vm.issuingApproval = false;
-                        vm.errorString = helpers.apiVueResourceError(error);
-                    });
+        sendData: async function(){
+            let payload = {
+                "message_details": this.messageDetails,
+                "cc_email": this.ccEmail,
+                "selected_mooring_bay_id": this.selectedMooringBayId,
+                "selected_mooring_id": this.selectedMooringId,
             }
-            else if (vm.state == 'final_approval'){
-                console.log('final_approval in proposed_issuance.vue')
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id+'/final_approval'),JSON.stringify(approval),{
-                        emulateJSON:true,
-                    }).then((response)=>{
-                        vm.issuingApproval = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse', response);
-                    },(error)=>{
-                        vm.errors = true;
-                        vm.issuingApproval = false;
-                        vm.errorString = helpers.apiVueResourceError(error);
-                    });
+            this.errors = false;
+            this.savingOffer = true;
+            // do a swal with result of res.body.proposal_created
+            try {
+                const res = await this.$http.post(this.waitingListOfferSubmitUrl, payload);
+            } catch(error) {
+                console.error(error);
+                this.errors = true;
+                this.savingOffer = false;
+                this.errorString = helpers.apiVueResourceError(error);
             }
-
+            this.close();
         },
-        addFormValidations: function() {
-            let vm = this;
-            vm.validation_form = $(vm.form).validate({
-                rules: {
-                    //start_date:"required",
-                    //due_date:"required",
-                    approval_details:"required",
-                },
-                messages: {
-                },
-                showErrors: function(errorMap, errorList) {
-                    $.each(this.validElements(), function(index, element) {
-                        var $element = $(element);
-                        $element.attr("data-original-title", "").parents('.form-group').removeClass('has-error');
-                    });
-                    // destroy tooltips on valid elements
-                    $("." + this.settings.validClass).tooltip("destroy");
-                    // add or update tooltips
-                    for (var i = 0; i < errorList.length; i++) {
-                        var error = errorList[i];
-                        $(error.element)
-                            .tooltip({
-                                trigger: "focus"
-                            })
-                            .attr("data-original-title", error.message)
-                            .parents('.form-group').addClass('has-error');
-                    }
-                }
-            });
-       },
        eventListeners:function () {
             let vm = this;
        },
@@ -305,12 +274,7 @@ export default {
 
     },
     mounted:function () {
-        let vm =this;
-        //vm.form = document.forms.approvalForm;
-        vm.addFormValidations();
         this.$nextTick(()=>{
-            //vm.eventListeners();
-            //this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
             this.initialiseMooringLookup();
 
         });
@@ -318,11 +282,7 @@ export default {
     created: function() {
         this.$nextTick(()=>{
             this.fetchMooringBays();
-            /*
-            if (this.siteLicensee) {
-                this.fetchSiteLicenseeMooring();
-            }
-            */
+            this.selectedMooringBayId = this.mooringBayId;
         });
     },
 }
