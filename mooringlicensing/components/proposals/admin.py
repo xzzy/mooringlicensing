@@ -26,6 +26,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 #    ordering = ('name', '-version')
 #    list_filter = ('name',)
     #exclude=("site",)
+from mooringlicensing.components.proposals.models import StickersDocument
+
 
 class ProposalDocumentInline(admin.TabularInline):
     model = models.ProposalDocument
@@ -217,4 +219,9 @@ class QuestionAdmin(admin.ModelAdmin):
             #application_type',
             ]
     ordering = ('question_text',)
+
+
+@admin.register(StickersDocument)
+class StickersDocumentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', '_file', 'uploaded_date', 'emailed_datetime',]
 
