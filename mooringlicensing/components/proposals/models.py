@@ -539,6 +539,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             )
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
     mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
+    ## MLA
+    allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
 
     class Meta:
         app_label = 'mooringlicensing'

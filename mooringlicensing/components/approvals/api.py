@@ -19,11 +19,15 @@ from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
-from mooringlicensing.components.proposals.models import Proposal#, ApplicationType
+from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup
+    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
+    WaitingListAllocation,
 )
+from mooringlicensing.components.main.process_document import (
+        process_generic_document, 
+        )
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
     ApprovalCancellationSerializer,
@@ -278,6 +282,17 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     #         application_types=application_types,
     #     )
     #     return Response(data)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_waiting_list_offer_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='waiting_list_offer_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -839,4 +854,27 @@ class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
         serializer = ListDcvAdmissionSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
+
+class WaitingListAllocationViewSet(viewsets.ModelViewSet):
+    queryset = WaitingListAllocation.objects.all().order_by('id')
+    serializer_class = ApprovalSerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def create_mooring_licence_application(self, request, *args, **kwargs):
+        waiting_list_allocation = self.get_object()
+        print("create_mooring_licence_application")
+        print(request.data)
+        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        proposal_created = False
+        allocated_mooring = request.data.get("selected_mooring_id")
+
+        if allocated_mooring:
+            obj = MooringLicenceApplication.objects.create(
+                    submitter=waiting_list_allocation.submitter,
+                    proposal_type=proposal_type,
+                    allocated_mooring=allocated_mooring
+                    )
+            proposal_created = True
+        return Response({"proposal_created": proposal_created})
 

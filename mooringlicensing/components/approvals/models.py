@@ -44,11 +44,27 @@ from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMEND
 logger = logging.getLogger('log')
 
 
+def update_waiting_list_offer_doc_filename(instance, filename):
+    return '{}/proposals/{}/approvals/{}/waiting_list_offer/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id, instance.id, filename)
+
 def update_approval_doc_filename(instance, filename):
     return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
 
 def update_approval_comms_log_filename(instance, filename):
     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
+
+
+class WaitingListOfferDocument(Document):
+    approval = models.ForeignKey('Approval',related_name='waiting_list_offer_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Waiting List Offer Documents"
 
 
 class ApprovalDocument(Document):
