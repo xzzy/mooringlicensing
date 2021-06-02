@@ -2121,6 +2121,26 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
 
+def update_sticker_doc_filename(instance, filename):
+    return '{}/stickers/{}'.format(settings.MEDIA_APP_DIR, filename)
+
+
+class StickersDocument(Document):
+    _file = models.FileField(upload_to=update_sticker_doc_filename, max_length=512)
+    emailed_datetime = models.DateTimeField(blank=True, null=True)  # Once emailed, this field has a value
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class StickerMixin(models.Model):
+    stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'mooringlicensing'
+
+
 class WaitingListApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'wla'
@@ -2159,7 +2179,7 @@ class WaitingListApplication(Proposal):
         return ret_value
 
 
-class AnnualAdmissionApplication(Proposal):
+class AnnualAdmissionApplication(Proposal, StickerMixin):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
@@ -2197,7 +2217,7 @@ class AnnualAdmissionApplication(Proposal):
         return ret_value
 
 
-class AuthorisedUserApplication(Proposal):
+class AuthorisedUserApplication(Proposal, StickerMixin):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
@@ -2254,7 +2274,7 @@ class AuthorisedUserApplication(Proposal):
             send_submit_email_notification(request, self)
 
 
-class MooringLicenceApplication(Proposal):
+class MooringLicenceApplication(Proposal, StickerMixin):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'

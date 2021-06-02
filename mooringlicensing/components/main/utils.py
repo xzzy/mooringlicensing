@@ -6,7 +6,7 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from mooringlicensing.components.proposals.models import MooringBay, Mooring
+from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal
 from mooringlicensing.components.approvals.models import Approval
 from rest_framework import serializers
 from openpyxl import Workbook
@@ -218,30 +218,24 @@ def handle_validation_error(e):
 
 
 def sticker_export():
-    approvals = Approval.objects.filter(status='current')
-    base_dir = settings.BASE_DIR
-    export_folder = os.path.join(base_dir, 'export')
+    # Note: if the user wants to apply for e.g. three new authorisations,
+    # then the user needs to submit three applications. The system will
+    # combine them onto one sticker if payment is received on one day
+    # (applicant is notified to pay once RIA staff approve the application)
+    export_folder = os.path.join(settings.BASE_DIR, 'export')
     Path(export_folder).mkdir(parents=True, exist_ok=True)
     file_path = os.path.join(export_folder, "20210525.xlsx")
     logger.info('Exporting sticker details file: {}'.format(file_path))
-    print(file_path)
+
+    # approvals = Approval.objects.filter(status='current')
+    proposals = Proposal.objects.filter(
+        processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER,
+        stickers_document=None
+    )
 
     wb = Workbook()
-
     ws1 = wb.create_sheet(title="Owners", index=0)
-    for approval in approvals:
-        ws1.append([approval.id, approval.lodgement_number, approval.status])
-    ws2 = wb.create_sheet(title="Annual Admission", index=1)
-    for approval in approvals:
-        ws2.append([
-            approval.id, 
-            approval.lodgement_number, 
-            approval.status,
-            approval.current_proposal_id,
-            approval.submitter_id,
-            ])
-    ws3 = wb.create_sheet(title="Authorised User", index=2)
-    ws4 = wb.create_sheet(title="Mooring Licence", index=3)
-
+    for proposal in proposals:
+        ws1.append([proposal.id, proposal.lodgement_number, proposal.status])
     wb.save(file_path)
 
