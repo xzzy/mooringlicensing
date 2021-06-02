@@ -168,12 +168,11 @@ export default {
         cancel:function () {
             this.close()
         },
-        close: async function () {
+        close: function () {
             this.isModalOpen = false;
             this.errors = false;
             $('.has-error').removeClass('has-error');
             //this.validation_form.resetForm();
-            await this.$emit('refreshFromResponse');
         },
         fetchMooringBays: async function() {
             const res = await this.$http.get(api_endpoints.mooring_bays);
@@ -205,9 +204,9 @@ export default {
             }
             this.errors = false;
             this.savingOffer = true;
-            // do a swal with result of res.body.proposal_created
             try {
                 const res = await this.$http.post(this.waitingListOfferSubmitUrl, payload);
+                await this.$emit('refreshFromResponse', res.body.proposal_created);
             } catch(error) {
                 console.error(error);
                 this.errors = true;

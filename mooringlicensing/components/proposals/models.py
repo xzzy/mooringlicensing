@@ -541,6 +541,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
+    waiting_list_allocation = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, related_name="ria_generated_proposal")
 
     class Meta:
         app_label = 'mooringlicensing'

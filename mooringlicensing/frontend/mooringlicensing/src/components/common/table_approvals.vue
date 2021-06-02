@@ -419,8 +419,13 @@ export default {
                 this.$refs.offer_mooring_licence.isModalOpen = true;
             });
         },
-        refreshFromResponse: async function(){
+        refreshFromResponse: async function(lodgementNumber){
             console.log("refreshFromResponse");
+            await swal({
+                title: "Saved",
+                text: 'Mooring Licence Application ' + lodgementNumber + ' has been created',
+                type:'success'
+            });
             await this.$refs.approvals_datatable.vmDataTable.ajax.reload();
         },
         addEventListeners: function(){

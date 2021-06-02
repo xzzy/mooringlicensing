@@ -19,7 +19,7 @@ from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
-from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType#, ApplicationType
+from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
@@ -45,6 +45,7 @@ from mooringlicensing.components.approvals.serializers import (
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 #from mooringlicensing.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -862,19 +863,28 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def create_mooring_licence_application(self, request, *args, **kwargs):
-        waiting_list_allocation = self.get_object()
-        print("create_mooring_licence_application")
-        print(request.data)
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-        proposal_created = False
-        allocated_mooring = request.data.get("selected_mooring_id")
+        with transaction.atomic():
+            waiting_list_allocation = self.get_object()
+            #print("create_mooring_licence_application")
+            #print(request.data)
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+            selected_mooring_id = request.data.get("selected_mooring_id")
+            allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
 
-        if allocated_mooring:
-            obj = MooringLicenceApplication.objects.create(
-                    submitter=waiting_list_allocation.submitter,
-                    proposal_type=proposal_type,
-                    allocated_mooring=allocated_mooring
-                    )
-            proposal_created = True
-        return Response({"proposal_created": proposal_created})
+            new_proposal = None
+            if allocated_mooring:
+                new_proposal = MooringLicenceApplication.objects.create(
+                        submitter=waiting_list_allocation.submitter,
+                        proposal_type=proposal_type,
+                        allocated_mooring=allocated_mooring,
+                        waiting_list_allocation=waiting_list_allocation
+                        )
+            if new_proposal:
+                # send email
+                # update waiting_list_allocation
+                waiting_list_allocation.status = 'offered'
+                waiting_list_allocation.wla_queue_date = None
+                waiting_list_allocation.save()
+                waiting_list_allocation.set_wla_order()
+            return Response({"proposal_created": new_proposal.lodgement_number})
 

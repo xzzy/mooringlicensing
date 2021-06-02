@@ -89,6 +89,8 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_SUSPENDED = 'suspended'
     APPROVAL_STATUS_EXTENDED = 'extended'
     APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
+    # waiting list allocation approvals
+    APPROVAL_STATUS_OFFERED = 'offered'
 
     STATUS_CHOICES = (
         (APPROVAL_STATUS_CURRENT, 'Current'),
@@ -98,6 +100,7 @@ class Approval(RevisionedMixin):
         (APPROVAL_STATUS_SUSPENDED, 'Suspended'),
         (APPROVAL_STATUS_EXTENDED, 'Extended'),
         (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (APPROVAL_STATUS_OFFERED, 'Mooring Licence offered'),
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
@@ -149,10 +152,14 @@ class Approval(RevisionedMixin):
         ordering = ['-id',]
 
     def set_wla_order(self):
-        # set wla order per bay
         place = 1
-        if type(self.child_obj) == WaitingListAllocation and self.wla_queue_date:
-        #if self.child_obj.code == 'wla' and self.approval.wla_queue_date:
+        # Waiting List Allocations which have the wla_queue_date removed means that a ML application has been created
+        if not self.wla_queue_date:
+            self.wla_order = None
+            self.save()
+        #if type(self.child_obj) == WaitingListAllocation and self.wla_queue_date:
+        # set wla order per bay
+        if type(self.child_obj) == WaitingListAllocation:
             for w in WaitingListAllocation.objects.filter(
                     wla_queue_date__isnull=False, current_proposal__preferred_bay=self.current_proposal.preferred_bay).order_by(
                             '-wla_queue_date'):
