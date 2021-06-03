@@ -81,6 +81,22 @@ class ApprovalDocument(Document):
         app_label = 'mooringlicensing'
 
 
+class MooringOnApproval(Document):
+    approval = models.ForeignKey('Approval')
+    mooring = models.ForeignKey(Mooring)
+    site_licensee = models.BooleanField()
+
+    def save(self, *args, **kwargs):
+        existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licencee=False).count()
+        if existing_ria_moorings >= 2 and not self.site_licensee:
+            raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
+
+        super(MooringOnApproval, self).save(*args,**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class Approval(RevisionedMixin):
     APPROVAL_STATUS_CURRENT = 'current'
     APPROVAL_STATUS_EXPIRED = 'expired'
@@ -146,8 +162,9 @@ class Approval(RevisionedMixin):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     ## change to "moorings" field with ManyToManyField - can come from site_licencee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
-    ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
-    ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
+    moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
+    #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
+    #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
 
     class Meta:
