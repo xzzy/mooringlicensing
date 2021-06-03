@@ -134,7 +134,8 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented';
+                            //return 'not implemented';
+                            return full.status;
                         }
                     }
         },
@@ -146,7 +147,8 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented';
+                            //return 'not implemented';
+                            return full.authorised_user_permits;
                         }
                     }
         },
@@ -211,6 +213,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
+                searching: true,
 
                 ajax: {
                     //"url": `${api_endpoints.mooring}internal_list.json?format=datatables`,
