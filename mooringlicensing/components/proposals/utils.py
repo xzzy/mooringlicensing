@@ -41,6 +41,7 @@ from mooringlicensing.components.proposals.serializers import (
         VesselOwnershipSerializer,
         VesselDetailsSerializer,
         )
+
 # from mooringlicensing.components.approvals.models import Approval
 # from mooringlicensing.components.proposals.email import send_submit_email_notification, \
 #     send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
@@ -53,9 +54,9 @@ from datetime import datetime
 import time
 from rest_framework import serializers
 
-
 import logging
 logger = logging.getLogger(__name__)
+
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
     data = {}
