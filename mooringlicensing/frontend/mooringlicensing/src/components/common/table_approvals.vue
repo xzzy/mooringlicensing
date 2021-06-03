@@ -32,26 +32,48 @@
                 </div>
             </div>
             <div v-else>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="">Mooring Area:</label>
-                            <select class="form-control" v-model="filterMooringBay">
-                                <option value="All">All</option>
-                                <option v-for="bay in mooringBays" :value="bay.id">{{ bay.name }}</option>
-                            </select>
-                        </div>
-                    </div>
-            </div>
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="">Status:</label>
-                        <select class="form-control" v-model="filterStatus">
+                        <label for="">Mooring Area:</label>
+                        <select class="form-control" v-model="filterMooringBay">
                             <option value="All">All</option>
-                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                            <option v-for="bay in mooringBays" :value="bay.id">{{ bay.name }}</option>
                         </select>
                     </div>
                 </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Status:</label>
+                    <select class="form-control" v-model="filterStatus">
+                        <option value="All">All</option>
+                        <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                    </select>
+                </div>
+            </div>
 
+            <div v-if="wlaDash">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="">Max Vessel length:</label>
+                        <input class="form-control" type="number" v-model="maxVesselLength" id="maxVesselLength"/>
+                        <!--select class="form-control" v-model="filterStatus">
+                            <option value="All">All</option>
+                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                        </select-->
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="">Max Vessel Draft:</label>
+                        <input class="form-control" type="number" v-model="maxVesselDraft" id="maxVesselDraft"/>
+                        <!--select class="form-control" v-model="filterStatus">
+                            <option value="All">All</option>
+                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                        </select-->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row">
@@ -120,6 +142,8 @@ export default {
             mooringBays: [],
             filterHolder: null,
             holderList: [],
+            maxVesselLength: null,
+            maxVesselDraft: null,
         }
     },
     components:{
@@ -450,6 +474,8 @@ export default {
                         d.filter_approval_type2 = vm.filterApprovalType;
                         d.filter_mooring_bay_id = vm.filterMooringBay;
                         d.filter_holder_id = vm.filterHolder;
+                        d.max_vessel_length = vm.maxVesselLength;
+                        d.max_vessel_draft = vm.maxVesselDraft;
                     }
                 },
                 //dom: 'frt', //'lBfrtip',
@@ -531,6 +557,26 @@ export default {
                     });
                 }
             });
+            $('#maxVesselLength').on("blur", async function(e) {
+                vm.$nextTick(() => {
+                    vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    /*
+                    if (vm.maxVesselLength) {
+                        vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    }
+                    */
+                });
+            });
+            $('#maxVesselDraft').on("blur", async function(e) {
+                vm.$nextTick(() => {
+                    vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    /*
+                    if (vm.maxVesselDraft) {
+                        vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    }
+                    */
+                });
+            });
         },
         fetchFilterLists: async function(){
             // Status values
@@ -539,12 +585,7 @@ export default {
                 this.statusValues.push(s);
             }
             // Approval types
-            /*
-            let include_codes = vm.approvalTypesToDisplay.join(',');
-            vm.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + vm.include_codes).then((response) => {
-            */
             const approvalRes = await this.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + this.approvalTypeFilter.join(','));
-            console.log(approvalRes)
             for (let t of approvalRes.body) {
                 if (t.code !== 'wla') {
                     this.approvalTypes.push(t);

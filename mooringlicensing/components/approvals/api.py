@@ -121,6 +121,17 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         filter_holder_id = request.GET.get('filter_holder_id')
         if filter_holder_id and not filter_holder_id.lower() == 'all':
             queryset = queryset.filter(submitter__id=filter_holder_id)
+        # max vessel length
+        max_vessel_length = request.GET.get('max_vessel_length')
+        if max_vessel_length:
+            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
+            queryset = queryset.filter(id__in=filtered_ids)
+        # max vessel draft
+        max_vessel_draft = request.GET.get('max_vessel_draft')
+        if max_vessel_draft:
+            queryset = queryset.filter(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
+            #filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_draft <= max_vessel_draft]
+            #queryset = queryset.filter(id__in=filtered_ids)
 
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
