@@ -42,6 +42,7 @@ from mooringlicensing.components.approvals.serializers import (
     DcvVesselSerializer,
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
+    EmailUserSerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -108,21 +109,24 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
 class ApprovalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
+        # status filter
+        filter_status = request.GET.get('filter_status')
+        if filter_status and not filter_status.lower() == 'all':
+            queryset = queryset.filter(status=filter_status)
+        # mooring bay filter
+        filter_mooring_bay_id = request.GET.get('filter_mooring_bay_id')
+        if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
+            queryset = queryset.filter(current_proposal__preferred_bay__id=filter_mooring_bay_id)
+        # holder id filter
+        filter_holder_id = request.GET.get('filter_holder_id')
+        if filter_holder_id and not filter_holder_id.lower() == 'all':
+            queryset = queryset.filter(submitter__id=filter_holder_id)
 
-        # Filter by types (wla, aap, aup, ml)
+        # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
         #import ipdb; ipdb.set_trace()
         if filter_approval_type and not filter_approval_type.lower() == 'all':
             filter_approval_type_list = filter_approval_type.split(',')
-            #q = None
-            #for item in Approval.__subclasses__():
-            #    #if hasattr(item, 'code') and item.code == filter_approval_type:
-            #    if hasattr(item, 'code') and item.code in filter_approval_type_list:
-            #        #lookup = "{}__isnull".format(item._meta.model_name)
-            #        lookup = "{}__isnull".format(item._meta.model_name)
-            #        q = Q(**{lookup: False})
-            #        #break
-            #queryset = queryset.filter(q) if q else queryset
             filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
             queryset = queryset.filter(id__in=filtered_ids)
         print(queryset)
@@ -130,12 +134,21 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
         if not show_expired_surrendered:
-            queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
+            #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
+            queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_OFFERED))
 
-        # Filter by status
-        filter_approval_status = request.GET.get('filter_approval_status')
-        if filter_approval_status and not filter_approval_status.lower() == 'all':
-            queryset = queryset.filter(status=filter_approval_status)
+        # approval types filter2 - Licences dash only (excludes wla)
+        filter_approval_type2 = request.GET.get('filter_approval_type2')
+        #import ipdb; ipdb.set_trace()
+        if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
+            #filter_approval_type_list = filter_approval_type.split(',')
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
+            queryset = queryset.filter(id__in=filtered_ids)
+
+        ## Filter by status
+        #filter_approval_status = request.GET.get('filter_approval_status')
+        #if filter_approval_status and not filter_approval_status.lower() == 'all':
+        #    queryset = queryset.filter(status=filter_approval_status)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
@@ -269,6 +282,16 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             qs = qs.filter(submitter_id=submitter_id)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @list_route(methods=['GET'])
+    def holder_list(self, request, *args, **kwargs):
+        holder_list = self.get_queryset().values_list('submitter__id', flat=True)
+        print(holder_list)
+        distinct_holder_list = list(dict.fromkeys(holder_list))
+        print(distinct_holder_list)
+        serializer = EmailUserSerializer(EmailUser.objects.filter(id__in=distinct_holder_list), many=True)
+        return Response(serializer.data)
+        #return Response()
 
     # @list_route(methods=['GET',])
     # def filter_list(self, request, *args, **kwargs):
