@@ -44,11 +44,27 @@ from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMEND
 logger = logging.getLogger('log')
 
 
+def update_waiting_list_offer_doc_filename(instance, filename):
+    return '{}/proposals/{}/approvals/{}/waiting_list_offer/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id, instance.id, filename)
+
 def update_approval_doc_filename(instance, filename):
     return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
 
 def update_approval_comms_log_filename(instance, filename):
     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
+
+
+class WaitingListOfferDocument(Document):
+    approval = models.ForeignKey('Approval',related_name='waiting_list_offer_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Waiting List Offer Documents"
 
 
 class ApprovalDocument(Document):
@@ -73,6 +89,8 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_SUSPENDED = 'suspended'
     APPROVAL_STATUS_EXTENDED = 'extended'
     APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
+    # waiting list allocation approvals
+    APPROVAL_STATUS_OFFERED = 'offered'
 
     STATUS_CHOICES = (
         (APPROVAL_STATUS_CURRENT, 'Current'),
@@ -82,6 +100,7 @@ class Approval(RevisionedMixin):
         (APPROVAL_STATUS_SUSPENDED, 'Suspended'),
         (APPROVAL_STATUS_EXTENDED, 'Extended'),
         (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (APPROVAL_STATUS_OFFERED, 'Mooring Licence offered'),
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
@@ -98,6 +117,7 @@ class Approval(RevisionedMixin):
     renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
     renewal_sent = models.BooleanField(default=False)
     issue_date = models.DateTimeField()
+    wla_queue_date = models.DateTimeField(blank=True, null=True)
     original_issue_date = models.DateField(auto_now_add=True)
     start_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
@@ -124,11 +144,32 @@ class Approval(RevisionedMixin):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
+    wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    def set_wla_order(self):
+        place = 1
+        # Waiting List Allocations which have the wla_queue_date removed means that a ML application has been created
+        if not self.wla_queue_date:
+            self.wla_order = None
+            self.save()
+        #if type(self.child_obj) == WaitingListAllocation and self.wla_queue_date:
+        # set wla order per bay
+        if type(self.child_obj) == WaitingListAllocation:
+            for w in WaitingListAllocation.objects.filter(
+                    wla_queue_date__isnull=False, current_proposal__preferred_bay=self.current_proposal.preferred_bay).order_by(
+                            '-wla_queue_date'):
+                w.wla_order = place
+                w.save()
+                place += 1
+                #if w == obj.child_obj:
+                    #break
+        self.refresh_from_db()
+        return self
 
     @property
     def bpay_allowed(self):

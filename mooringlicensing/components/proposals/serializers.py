@@ -1332,6 +1332,8 @@ class MooringBaySerializer(serializers.ModelSerializer):
 
 class ListMooringSerializer(serializers.ModelSerializer):
     mooring_bay_name = serializers.SerializerMethodField()
+    authorised_user_permits = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Mooring
@@ -1342,7 +1344,9 @@ class ListMooringSerializer(serializers.ModelSerializer):
                 'vessel_size_limit',
                 'vessel_draft_limit',
                 'vessel_beam_limit',
-                'vessel_weight_limit'
+                'vessel_weight_limit',
+                'authorised_user_permits',
+                'status',
             )
         datatables_always_serialize = (
                 'id',
@@ -1351,11 +1355,51 @@ class ListMooringSerializer(serializers.ModelSerializer):
                 'vessel_size_limit',
                 'vessel_draft_limit',
                 'vessel_beam_limit',
-                'vessel_weight_limit'
+                'vessel_weight_limit',
+                'authorised_user_permits',
+                'status',
             )
 
     def get_mooring_bay_name(self, obj):
         return obj.mooring_bay.name
+
+    def get_authorised_user_permits(self, obj):
+        permits = 0
+        ## site licensee
+        proposals = obj.proposal_set.all()
+        for proposal in proposals:
+            if (
+                    proposal.child_obj.code == 'aua' and 
+                    proposal.approval and 
+                    proposal.approval.status == 'current' and 
+                    proposal.mooring_authorisation_preference == 'site_licensee'
+                    ):
+                    permits += 1
+        # site selected by ria
+        approvals = obj.approval_set.all()
+        for approval in approvals:
+            if (
+                    approval.child_obj.code == 'aup' and 
+                    approval.status == 'current' and
+                    approval.current_proposal.mooring_authorisation_preference == 'ria' and 
+                    approval.ria_selected_mooring == obj
+                    ):
+                    permits += 1
+        return permits
+
+    def get_status(self, obj):
+        status = ''
+        proposals = obj.proposal_set.all()
+        # check for Mooring Licences
+        for proposal in proposals:
+            if proposal.child_obj.code == 'mla' and proposal.approval:
+                status = 'Licenced'
+        if not status:
+            # check for Mooring Applications
+            for proposal in proposals:
+                if proposal.child_obj.code == 'mla':
+                    status = 'Licence Application'
+        return status
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
