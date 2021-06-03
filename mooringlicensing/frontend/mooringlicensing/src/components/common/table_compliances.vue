@@ -361,6 +361,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
+                searching: true,
 
                 ajax: {
                     "url": api_endpoints.compliances_paginated_external + '?format=datatables',

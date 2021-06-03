@@ -57,7 +57,7 @@
                                         <input disabled :value="siteLicenseeMooring.mooring_bay_name" name="mooring_bay" />
                                     </div>
                                     <div v-else class="col-sm-6">
-                                        <select class="form-control" v-model="approval.mooring_bay_id">
+                                        <select class="form-control" v-model="approval.mooring_bay_id" id="mooring_bay_lookup">
                                             <option v-for="bay in mooringBays" v-bind:value="bay.id">
                                             {{ bay.name }}
                                             </option>
@@ -450,6 +450,10 @@ export default {
                 searchField[0].focus();
             });
             vm.readRiaMooring();
+            // clear mooring lookup on Mooring Bay change
+            $('#mooring_bay_lookup').on('change', function() {
+                $(vm.$refs.mooring_lookup).val(null).trigger('change');
+            });
         },
         readRiaMooring: function() {
             let vm = this;
