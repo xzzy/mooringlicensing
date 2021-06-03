@@ -1,5 +1,6 @@
 import traceback
 import datetime
+from copy import deepcopy
 from rest_framework_datatables.renderers import DatatablesRenderer
 from django.db.models import Q, Min
 from django.db import transaction
@@ -18,11 +19,15 @@ from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
-from mooringlicensing.components.proposals.models import Proposal#, ApplicationType
+from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup
+    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
+    WaitingListAllocation,
 )
+from mooringlicensing.components.main.process_document import (
+        process_generic_document, 
+        )
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
     ApprovalCancellationSerializer,
@@ -40,6 +45,7 @@ from mooringlicensing.components.approvals.serializers import (
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 #from mooringlicensing.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -187,7 +193,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
-        return add_cache_control(self.paginator.get_paginated_response(serializer.data))
+        return self.paginator.get_paginated_response(serializer.data)
 
     # def get_queryset(self):
     #     request_user = self.request.user
@@ -277,6 +283,17 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     #         application_types=application_types,
     #     )
     #     return Response(data)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_waiting_list_offer_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='waiting_list_offer_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -838,4 +855,36 @@ class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
         serializer = ListDcvAdmissionSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
+
+class WaitingListAllocationViewSet(viewsets.ModelViewSet):
+    queryset = WaitingListAllocation.objects.all().order_by('id')
+    serializer_class = ApprovalSerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def create_mooring_licence_application(self, request, *args, **kwargs):
+        with transaction.atomic():
+            waiting_list_allocation = self.get_object()
+            #print("create_mooring_licence_application")
+            #print(request.data)
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+            selected_mooring_id = request.data.get("selected_mooring_id")
+            allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
+
+            new_proposal = None
+            if allocated_mooring:
+                new_proposal = MooringLicenceApplication.objects.create(
+                        submitter=waiting_list_allocation.submitter,
+                        proposal_type=proposal_type,
+                        allocated_mooring=allocated_mooring,
+                        waiting_list_allocation=waiting_list_allocation
+                        )
+            if new_proposal:
+                # send email
+                # update waiting_list_allocation
+                waiting_list_allocation.status = 'offered'
+                waiting_list_allocation.wla_queue_date = None
+                waiting_list_allocation.save()
+                waiting_list_allocation.set_wla_order()
+            return Response({"proposal_created": new_proposal.lodgement_number})
 
