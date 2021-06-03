@@ -28,9 +28,22 @@ logger = logging.getLogger('mooringlicensing')
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
+        fields = (
+                'id',
+                'email',
+                'first_name',
+                'last_name',
+                'title',
+                'organisation',
+                'full_name',
+                )
+
+    def get_full_name(self, obj):
+        return obj.get_full_name()
 
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
@@ -427,7 +440,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation:
+        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current':
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id, 
                     obj.id,
