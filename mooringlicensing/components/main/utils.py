@@ -1,3 +1,4 @@
+from io import BytesIO
 from pathlib import Path
 from django.db.models import Q
 from django.core.files.base import File
@@ -12,6 +13,7 @@ from django.db import connection, transaction
 from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickersDocument
 from rest_framework import serializers
 from openpyxl import Workbook
+from openpyxl.writer.excel import save_virtual_workbook
 from copy import deepcopy
 import os
 import logging
@@ -224,9 +226,6 @@ def sticker_export():
     # then the user needs to submit three applications. The system will
     # combine them onto one sticker if payment is received on one day
     # (applicant is notified to pay once RIA staff approve the application)
-    export_folder = os.path.join(settings.BASE_DIR, 'export')
-    Path(export_folder).mkdir(parents=True, exist_ok=True)
-    file_path = os.path.join(export_folder, "temp.xlsx")
 
     # It might be better to add the stickers_document field to the Proposal model, not child classes...
     proposals = Proposal.objects.filter(
@@ -241,17 +240,17 @@ def sticker_export():
     wb = Workbook()
     ws1 = wb.create_sheet(title="Owners", index=0)
     for proposal in proposals:
+        # TODO: create sticker obj
         ws1.append([proposal.id, proposal.lodgement_number])
-    wb.save(file_path)
+    file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
 
-    with open(file_path, 'rb') as f:
-        instance = StickersDocument.objects.create()
-        filename = '{}-stickers.xlsx'.format(instance.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
-        instance._file.save(filename, File(f))
-        instance.name = filename
-        instance.save()
+    instance = StickersDocument.objects.create()
+    filename = '{}-stickers.xlsx'.format(instance.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
+    instance._file.save(filename, File(file_path))
+    instance.name = filename
+    instance.save()
 
-    # TODO: delete temp file once it's saved as a field
+    # TODO: Update status to 'approved' from 'awaiting_sticker'
 
 
 def email_stickers_document():
