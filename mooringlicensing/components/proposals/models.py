@@ -2137,6 +2137,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
+    def update_or_create_approval(self, current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
+        approval, created = self.approval_class.update_or_create_approval(self, current_datetime)
+        return approval, created
 
     @property
     def application_type_code(self):
@@ -2171,12 +2174,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 
 def update_sticker_doc_filename(instance, filename):
-    return '{}/stickers/{}'.format(settings.MEDIA_APP_DIR, filename)
+    return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)
+
+
+def update_sticker_response_doc_filename(instance, filename):
+    return '{}/stickers/response/{}'.format(settings.MEDIA_APP_DIR, filename)
 
 
 class StickerPrintingBatch(Document):
     _file = models.FileField(upload_to=update_sticker_doc_filename, max_length=512)
     emailed_datetime = models.DateTimeField(blank=True, null=True)  # Once emailed, this field has a value
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class StickerPrintingResponse(Document):
+    _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
+    received_datetime = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'

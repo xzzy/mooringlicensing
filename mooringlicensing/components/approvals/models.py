@@ -27,7 +27,7 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
-    StickerPrintingBatch
+    StickerPrintingBatch, StickerPrintingResponse
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -661,19 +661,17 @@ class AnnualAdmissionPermit(Approval):
         return approval, created
 
     def create_sticker(self):
+        stickers = self.stickers
         # TODO: handle existing stickers correctly
-        sticker = Sticker.objects.create()
-
-
+        sticker = Sticker.objects.create(approval=self)
 
 
 class AuthorisedUserPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
+    endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
-
-    endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -709,6 +707,12 @@ class AuthorisedUserPermit(Approval):
         )
         return approval, created
 
+    def create_sticker(self):
+        stickers = self.stickers
+        # TODO: handle existing stickers correctly
+        # Warn: Max 4 mooring on a sticker
+        sticker = Sticker.objects.create(approval=self)
+
 
 class MooringLicence(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -737,6 +741,12 @@ class MooringLicence(Approval):
             }
         )
         return approval, created
+
+    def create_sticker(self):
+        stickers = self.stickers
+        # TODO: handle existing stickers correctly
+        # Warn: Multiple vessels can be on a ML
+        sticker = Sticker.objects.create(approval=self)
 
 
 class PreviewTempApproval(Approval):
@@ -1006,8 +1016,7 @@ class DcvPermitDocument(Document):
 
 
 class Sticker(models.Model):
-    STICKER_STATUS_AWAITING_EXPORTED = 'awaiting_exported'
-    STICKER_STATUS_AWAITING_PRINTED = 'awaiting_printed'
+    STICKER_STATUS_DEFAULT = '---'
     STICKER_STATUS_CURRENT = 'current'
     STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'  #
     STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'  # awaiting replacement sticker to be printed?
@@ -1015,8 +1024,7 @@ class Sticker(models.Model):
     STICKER_STATUS_STICKER_LOST = 'sticker_lost'
     STICKER_STATUS_EXPIRED = 'expired'
     STATUS_CHOICES = (
-        (STICKER_STATUS_AWAITING_EXPORTED, 'Awaiting Exported'),
-        (STICKER_STATUS_AWAITING_PRINTED, 'Awaiting Printed'),
+        (STICKER_STATUS_DEFAULT, '---'),
         (STICKER_STATUS_CURRENT, 'Current'),
         (STICKER_STATUS_NEW_STICKER_REQUESTED, 'New Sticker Requested'),
         (STICKER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
@@ -1026,9 +1034,11 @@ class Sticker(models.Model):
     )
     number = models.CharField(max_length=9, blank=True, default='', unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # StickerDocument has the emailed_datetime field
+    sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
+    sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True)
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
-    # printed_datetime = models.DateTimeField(blank=True, null=True)
+    printing_date = models.DateField(blank=True, null=True)
+    mailing_date = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
