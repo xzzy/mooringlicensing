@@ -1,9 +1,78 @@
 <template>
     <div>
-        <div class="row">
-            <div v-if="wlaCheckbox" class="col-lg-12">
-                <input type="checkbox" id="checkbox_show_expired" v-model="show_expired_surrendered">
-                <label for="checkbox_show_expired">Show expired and/or surrendered waiting list allocations</label>
+        <div v-if="is_external && wlaDash">
+            <div class="row">
+                <div class="col-lg-12">
+                    <input type="checkbox" id="checkbox_show_expired" v-model="show_expired_surrendered">
+                    <label for="checkbox_show_expired">Show expired and/or surrendered waiting list allocations</label>
+                </div>
+            </div>
+        </div>
+        <div v-else class="row">
+            <div v-if="!wlaDash">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="">Type:</label>
+                            <select class="form-control" v-model="filterApprovalType">
+                                <option value="All">All</option>
+                                <option v-for="type in approvalTypes" :value="type.code">{{ type.description }}</option>
+                            </select>
+                        </div>
+                    </div>
+                <div v-if="is_internal">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="">Holder:</label>
+                            <select class="form-control" v-model="filterHolder">
+                                <option value="All">All</option>
+                                <option v-for="h in holderList" :value="h.id">{{ h.full_name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="">Mooring Area:</label>
+                        <select class="form-control" v-model="filterMooringBay">
+                            <option value="All">All</option>
+                            <option v-for="bay in mooringBays" :value="bay.id">{{ bay.name }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Status:</label>
+                    <select class="form-control" v-model="filterStatus">
+                        <option value="All">All</option>
+                        <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <div v-if="wlaDash">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="">Max Vessel length:</label>
+                        <input class="form-control" type="number" v-model="maxVesselLength" id="maxVesselLength"/>
+                        <!--select class="form-control" v-model="filterStatus">
+                            <option value="All">All</option>
+                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                        </select-->
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="">Max Vessel Draft:</label>
+                        <input class="form-control" type="number" v-model="maxVesselDraft" id="maxVesselDraft"/>
+                        <!--select class="form-control" v-model="filterStatus">
+                            <option value="All">All</option>
+                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
+                        </select-->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -17,7 +86,7 @@
                 />
             </div>
         </div>
-        <div v-if="wlaCheckbox && selectedWaitingListAllocationId">
+        <div v-if="is_internal && wlaDash && selectedWaitingListAllocationId">
             <OfferMooringLicence
                 ref="offer_mooring_licence" 
                 :key="offerMooringLicenceKey"
@@ -35,7 +104,7 @@ import OfferMooringLicence from '@/components/internal/approvals/offer_mooring_l
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
-    name: 'TableWaitingList',
+    name: 'TableApprovals',
     props: {
         approvalTypeFilter: {
             type: Array,
@@ -61,10 +130,20 @@ export default {
         return {
             datatable_id: 'waiting_lists-datatable-' + vm._uid,
             //approvalTypesToDisplay: ['wla'],
-            show_expired_surrendered: true,
+            show_expired_surrendered: false,
             selectedWaitingListAllocationId: null,
             uuid: 0,
             mooringBayId: null,
+            filterStatus: null,
+            statusValues: [],
+            filterApprovalType: null,
+            approvalTypes: [],
+            filterMooringBay: null,
+            mooringBays: [],
+            filterHolder: null,
+            holderList: [],
+            maxVesselLength: null,
+            maxVesselDraft: null,
         }
     },
     components:{
@@ -75,10 +154,22 @@ export default {
         show_expired_surrendered: function(value){
             console.log(value)
             this.$refs.approvals_datatable.vmDataTable.ajax.reload()
-        }
+        },
+        filterStatus: function(){
+            this.$refs.approvals_datatable.vmDataTable.ajax.reload()
+        },
+        filterApprovalType: function(){
+            this.$refs.approvals_datatable.vmDataTable.ajax.reload()
+        },
+        filterMooringBay: function(){
+            this.$refs.approvals_datatable.vmDataTable.ajax.reload()
+        },
+        filterHolder: function(){
+            this.$refs.approvals_datatable.vmDataTable.ajax.reload()
+        },
     },
     computed: {
-        wlaCheckbox: function() {
+        wlaDash: function() {
             let returnVal = false;
             if (this.approvalTypeFilter.includes('wla')) {
                 returnVal = true;
@@ -106,7 +197,7 @@ export default {
                     'Expiry Date', 
                     'Action'
                 ]
-            } else if (this.is_internal && this.wlaCheckbox) {
+            } else if (this.is_internal && this.wlaDash) {
                 return [
                     'Id', 
                     'Number', 
@@ -332,7 +423,7 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnAction,
                 ]
-            } else if (vm.is_internal && this.wlaCheckbox) {
+            } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
                     vm.columnId,
                     vm.columnLodgementNumber,
@@ -378,7 +469,13 @@ export default {
                     "data": function ( d ) {
                         //d.filter_approval_type = vm.approvalTypesToDisplay.join(',');
                         d.filter_approval_type = vm.approvalTypeFilter.join(',');
-                        d.show_expired_surrendered = vm.show_expired_surrendered
+                        d.show_expired_surrendered = vm.show_expired_surrendered;
+                        d.filter_status = vm.filterStatus;
+                        d.filter_approval_type2 = vm.filterApprovalType;
+                        d.filter_mooring_bay_id = vm.filterMooringBay;
+                        d.filter_holder_id = vm.filterHolder;
+                        d.max_vessel_length = vm.maxVesselLength;
+                        d.max_vessel_draft = vm.maxVesselDraft;
                     }
                 },
                 //dom: 'frt', //'lBfrtip',
@@ -460,10 +557,55 @@ export default {
                     });
                 }
             });
+            $('#maxVesselLength').on("blur", async function(e) {
+                vm.$nextTick(() => {
+                    vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    /*
+                    if (vm.maxVesselLength) {
+                        vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    }
+                    */
+                });
+            });
+            $('#maxVesselDraft').on("blur", async function(e) {
+                vm.$nextTick(() => {
+                    vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    /*
+                    if (vm.maxVesselDraft) {
+                        vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+                    }
+                    */
+                });
+            });
         },
-    },
-    created: function(){
+        fetchFilterLists: async function(){
+            // Status values
+            const statusRes = await this.$http.get(api_endpoints.approval_statuses_dict);
+            for (let s of statusRes.body) {
+                this.statusValues.push(s);
+            }
+            // Approval types
+            const approvalRes = await this.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + this.approvalTypeFilter.join(','));
+            for (let t of approvalRes.body) {
+                if (t.code !== 'wla') {
+                    this.approvalTypes.push(t);
+                }
+            }
+            // Mooring bays
+            const mooringBayRes = await this.$http.get(api_endpoints.mooring_bays);
+            for (let b of mooringBayRes.body) {
+                this.mooringBays.push(b);
+            }
+            // Holder list
+            const holderListRes = await this.$http.get(api_endpoints.holder_list);
+            for (let h of holderListRes.body) {
+                this.holderList.push(h);
+            }
+        },
 
+    },
+    created: async function(){
+        await this.fetchFilterLists();
     },
     mounted: function(){
         this.$nextTick(() => {
