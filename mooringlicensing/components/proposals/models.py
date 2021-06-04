@@ -1367,7 +1367,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # TODO if it is an ammendment proposal then check appropriately
                 # approval, created = self.create_approval(current_datetime=current_datetime)
-                approval, created = self.approval_class.update_or_create_approval(self, current_datetime=current_datetime)
+                approval, created = self.update_or_create_approval(current_datetime)
                 checking_proposal = self
                 #if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
                 #    if self.previous_application:
@@ -2137,8 +2137,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
-    def update_or_create_approval(self, current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
-        approval, created = self.approval_class.update_or_create_approval(self, current_datetime)
+    def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
+        approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
         return approval, created
 
     @property
