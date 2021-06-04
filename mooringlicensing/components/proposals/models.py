@@ -2157,7 +2157,7 @@ def update_sticker_doc_filename(instance, filename):
     return '{}/stickers/{}'.format(settings.MEDIA_APP_DIR, filename)
 
 
-class StickersDocument(Document):
+class StickerPrintingBatch(Document):
     _file = models.FileField(upload_to=update_sticker_doc_filename, max_length=512)
     emailed_datetime = models.DateTimeField(blank=True, null=True)  # Once emailed, this field has a value
 

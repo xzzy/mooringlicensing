@@ -10,7 +10,7 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickersDocument
+from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickerPrintingBatch
 from rest_framework import serializers
 from openpyxl import Workbook
 from openpyxl.writer.excel import save_virtual_workbook
@@ -233,9 +233,9 @@ def sticker_export():
     proposals = Proposal.objects.filter(
         Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER),
         (
-            Q(mooringlicenceapplication__stickers_document__isnull=True) |
-            Q(annualadmissionapplication__stickers_document__isnull=True) |
-            Q(mooringlicenceapplication__stickers_document__isnull=True)
+            Q(mooringlicenceapplication__sticker_printing_batch__isnull=True) |
+            Q(annualadmissionapplication__sticker_printing_batch__isnull=True) |
+            Q(mooringlicenceapplication__sticker_printing_batch__isnull=True)
         )
     )
 
@@ -258,7 +258,7 @@ def sticker_export():
 
     file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
 
-    instance = StickersDocument.objects.create()
+    instance = StickerPrintingBatch.objects.create()
     filename = '{}-stickers.xlsx'.format(instance.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
     instance._file.save(filename, File(file_path))
     instance.name = filename
