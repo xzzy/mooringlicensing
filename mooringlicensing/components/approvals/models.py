@@ -27,7 +27,7 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
-    StickersDocument
+    StickerPrintingBatch
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -925,13 +925,17 @@ class DcvPermitDocument(Document):
 
 
 class Sticker(models.Model):
+    STICKER_STATUS_AWAITING_EXPORTED = 'awaiting_exported'
+    STICKER_STATUS_AWAITING_PRINTED = 'awaiting_printed'
     STICKER_STATUS_CURRENT = 'current'
-    STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'
-    STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'  #
+    STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'  # awaiting replacement sticker to be printed?
     STICKER_STATUS_STICKER_RETURNED = 'sticker_returned'
     STICKER_STATUS_STICKER_LOST = 'sticker_lost'
     STICKER_STATUS_EXPIRED = 'expired'
     STATUS_CHOICES = (
+        (STICKER_STATUS_AWAITING_EXPORTED, 'Awaiting Exported'),
+        (STICKER_STATUS_AWAITING_PRINTED, 'Awaiting Printed'),
         (STICKER_STATUS_CURRENT, 'Current'),
         (STICKER_STATUS_NEW_STICKER_REQUESTED, 'New Sticker Requested'),
         (STICKER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
@@ -941,7 +945,7 @@ class Sticker(models.Model):
     )
     number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[2][0])
-    stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)  # StickerDocument has the emailed_datetime field
+    sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # StickerDocument has the emailed_datetime field
     approval = models.ForeignKey(Approval, blank=True, null=True)
     # printed_datetime = models.DateTimeField(blank=True, null=True)
 
