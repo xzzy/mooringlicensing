@@ -1,13 +1,19 @@
+from io import BytesIO
+from pathlib import Path
+from django.db.models import Q
+from django.core.files.base import File
+from ledger.settings_base import TIME_ZONE
+
 import requests
 import json
 import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from mooringlicensing.components.proposals.models import MooringBay, Mooring
-from mooringlicensing.components.approvals.models import Approval
+from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickersDocument
 from rest_framework import serializers
 from openpyxl import Workbook
+from openpyxl.writer.excel import save_virtual_workbook
 from copy import deepcopy
 import os
 import logging
@@ -214,27 +220,53 @@ def handle_validation_error(e):
         else:
             raise
 
+
 def sticker_export():
-    approvals = Approval.objects.filter(status='current')
-    base_dir = settings.BASE_DIR
-    file_path = os.path.join(base_dir, "export", "20210525.xlsx")
+    # Note: if the user wants to apply for e.g. three new authorisations,
+    # then the user needs to submit three applications. The system will
+    # combine them onto one sticker if payment is received on one day
+    # (applicant is notified to pay once RIA staff approve the application)
+
+    # Generate sticker object when
+
+    # It might be better to add the stickers_document field to the Proposal model, not child classes...
+    proposals = Proposal.objects.filter(
+        Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER),
+        (
+            Q(mooringlicenceapplication__stickers_document__isnull=True) |
+            Q(annualadmissionapplication__stickers_document__isnull=True) |
+            Q(mooringlicenceapplication__stickers_document__isnull=True)
+        )
+    )
 
     wb = Workbook()
 
+    # tab1: Owners
     ws1 = wb.create_sheet(title="Owners", index=0)
-    for approval in approvals:
-        ws1.append([approval.id, approval.lodgement_number, approval.status])
+    for proposal in proposals:
+        # TODO: create sticker obj
+        ws1.append([proposal.id, proposal.lodgement_number])
+
+    # tab2: Annual Admission Permit
     ws2 = wb.create_sheet(title="Annual Admission", index=1)
-    for approval in approvals:
-        ws2.append([
-            approval.id, 
-            approval.lodgement_number, 
-            approval.status,
-            approval.current_proposal_id,
-            approval.submitter_id,
-            ])
+
+    # tab3: Authorised User Permit
     ws3 = wb.create_sheet(title="Authorised User", index=2)
+
+    # tab3: Mooring Licence
     ws4 = wb.create_sheet(title="Mooring Licence", index=3)
 
-    wb.save(file_path)
+    file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
 
+    instance = StickersDocument.objects.create()
+    filename = '{}-stickers.xlsx'.format(instance.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
+    instance._file.save(filename, File(file_path))
+    instance.name = filename
+    instance.save()
+
+    # TODO: Update status to 'approved' from 'awaiting_sticker'
+
+
+def email_stickers_document():
+    pass
+    # TODO: implement
