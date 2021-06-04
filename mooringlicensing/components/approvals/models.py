@@ -942,6 +942,7 @@ class Sticker(models.Model):
     number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[2][0])
     stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)  # StickerDocument has the emailed_datetime field
+    approval = models.ForeignKey(Approval, blank=True, null=True)
     # printed_datetime = models.DateTimeField(blank=True, null=True)
 
     class Meta:

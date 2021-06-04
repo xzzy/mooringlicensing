@@ -2165,12 +2165,12 @@ class StickersDocument(Document):
         app_label = 'mooringlicensing'
 
 
-class StickerMixin(models.Model):
-    stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)
-
-    class Meta:
-        abstract = True
-        app_label = 'mooringlicensing'
+# class StickerMixin(models.Model):
+#     stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)
+#
+#     class Meta:
+#         abstract = True
+#         app_label = 'mooringlicensing'
 
 
 class WaitingListApplication(Proposal):
@@ -2211,7 +2211,7 @@ class WaitingListApplication(Proposal):
         return ret_value
 
 
-class AnnualAdmissionApplication(Proposal, StickerMixin):
+class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
@@ -2249,7 +2249,7 @@ class AnnualAdmissionApplication(Proposal, StickerMixin):
         return ret_value
 
 
-class AuthorisedUserApplication(Proposal, StickerMixin):
+class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
@@ -2306,7 +2306,7 @@ class AuthorisedUserApplication(Proposal, StickerMixin):
             send_submit_email_notification(request, self)
 
 
-class MooringLicenceApplication(Proposal, StickerMixin):
+class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
