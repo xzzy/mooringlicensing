@@ -92,6 +92,7 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     # waiting list allocation approvals
     APPROVAL_STATUS_OFFERED = 'offered'
+    APPROVAL_STATUS_APPROVED = 'approved'
 
     STATUS_CHOICES = (
         (APPROVAL_STATUS_CURRENT, 'Current'),
@@ -102,6 +103,7 @@ class Approval(RevisionedMixin):
         (APPROVAL_STATUS_EXTENDED, 'Extended'),
         (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (APPROVAL_STATUS_OFFERED, 'Mooring Licence offered'),
+        (APPROVAL_STATUS_APPROVED, 'Mooring Licence approved'),
     )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
@@ -143,6 +145,8 @@ class Approval(RevisionedMixin):
     expiry_notice_sent = models.BooleanField(default=False)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+    ## change to "moorings" field with ManyToManyField - can come from site_licencee or ria Authorised User Application..
+    ## intermediate table records ria or site_licensee
     ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
