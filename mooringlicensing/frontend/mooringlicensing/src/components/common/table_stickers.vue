@@ -189,7 +189,9 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     console.log(full)
-                    let links = ''
+                    let links = 'Request Sticker Replacement<br />'
+                    links += 'Record Returned Sticker<br />'
+                    links += 'Record Sticker Lost<br />'
                     return links
 
                     if (!vm.is_external){

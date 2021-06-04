@@ -227,6 +227,8 @@ def sticker_export():
     # combine them onto one sticker if payment is received on one day
     # (applicant is notified to pay once RIA staff approve the application)
 
+    # Generate sticker object when
+
     # It might be better to add the stickers_document field to the Proposal model, not child classes...
     proposals = Proposal.objects.filter(
         Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER),
@@ -238,10 +240,22 @@ def sticker_export():
     )
 
     wb = Workbook()
+
+    # tab1: Owners
     ws1 = wb.create_sheet(title="Owners", index=0)
     for proposal in proposals:
         # TODO: create sticker obj
         ws1.append([proposal.id, proposal.lodgement_number])
+
+    # tab2: Annual Admission Permit
+    ws2 = wb.create_sheet(title="Annual Admission", index=1)
+
+    # tab3: Authorised User Permit
+    ws3 = wb.create_sheet(title="Authorised User", index=2)
+
+    # tab3: Mooring Licence
+    ws4 = wb.create_sheet(title="Mooring Licence", index=3)
+
     file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
 
     instance = StickersDocument.objects.create()
