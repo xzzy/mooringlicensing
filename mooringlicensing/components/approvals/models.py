@@ -26,7 +26,8 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
     create_approval_doc
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
-from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring
+from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
+    StickersDocument
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -914,6 +915,30 @@ class DcvPermitDocument(Document):
         if self.can_delete:
             return super(DcvPermitDocument, self).delete(using, keep_parents)
         logger.info('Cannot delete existing document object after Application has been submitted : {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class Sticker(models.Model):
+    STICKER_STATUS_CURRENT = 'current'
+    STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'
+    STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    STICKER_STATUS_STICKER_RETURNED = 'sticker_returned'
+    STICKER_STATUS_STICKER_LOST = 'sticker_lost'
+    STICKER_STATUS_EXPIRED = 'expired'
+    STATUS_CHOICES = (
+        (STICKER_STATUS_CURRENT, 'Current'),
+        (STICKER_STATUS_NEW_STICKER_REQUESTED, 'New Sticker Requested'),
+        (STICKER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+        (STICKER_STATUS_STICKER_RETURNED, 'Sticker Returned'),
+        (STICKER_STATUS_STICKER_LOST, 'Sticker Lost'),
+        (STICKER_STATUS_EXPIRED, 'Expired'),
+    )
+    number = models.CharField(max_length=9, blank=True, default='')
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[2][0])
+    stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)  # StickerDocument has the emailed_datetime field
+    # printed_datetime = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
