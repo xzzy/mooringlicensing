@@ -10,6 +10,9 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
+
+from mooringlicensing.components.approvals.models import Sticker
+from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickerPrintingBatch
 from rest_framework import serializers
 from openpyxl import Workbook
@@ -227,46 +230,27 @@ def sticker_export():
     # combine them onto one sticker if payment is received on one day
     # (applicant is notified to pay once RIA staff approve the application)
 
-    # Generate sticker object when
-
-    # It might be better to add the stickers_document field to the Proposal model, not child classes...
-    proposals = Proposal.objects.filter(
-        Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_STICKER),
-        (
-            Q(mooringlicenceapplication__sticker_printing_batch__isnull=True) |
-            Q(annualadmissionapplication__sticker_printing_batch__isnull=True) |
-            Q(mooringlicenceapplication__sticker_printing_batch__isnull=True)
-        )
-    )
-
     wb = Workbook()
-
-    # tab1: Owners
-    ws1 = wb.create_sheet(title="Owners", index=0)
-    for proposal in proposals:
-        # TODO: create sticker obj
-        ws1.append([proposal.id, proposal.lodgement_number])
-
-    # tab2: Annual Admission Permit
-    ws2 = wb.create_sheet(title="Annual Admission", index=1)
-
-    # tab3: Authorised User Permit
-    ws3 = wb.create_sheet(title="Authorised User", index=2)
-
-    # tab3: Mooring Licence
-    ws4 = wb.create_sheet(title="Mooring Licence", index=3)
-
     file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
+    ws1 = wb.create_sheet(title="Approvals", index=0)
 
-    instance = StickerPrintingBatch.objects.create()
-    filename = '{}-stickers.xlsx'.format(instance.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
-    instance._file.save(filename, File(file_path))
-    instance.name = filename
-    instance.save()
+    stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)
+    for sticker in stickers:
+        ws1.append([sticker.id, sticker.number])
 
-    # TODO: Update status to 'approved' from 'awaiting_sticker'
+    batch_obj = StickerPrintingBatch.objects.create()
+    filename = '{}-stickers.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
+    batch_obj._file.save(filename, File(file_path))
+    batch_obj.name = filename
+    batch_obj.save()
+
+    # Update sticker objects
+    stickers.update(
+        sticker_printing_batch=batch_obj,
+    )
 
 
 def email_stickers_document():
-    pass
-    # TODO: implement
+    batches = StickerPrintingBatch.objects.filter(emailed_datetime__isnull=True)
+    # TODO: Insert datetime into the each batch's emailed_datetime
+    send_sticker_printing_batch_email(batches)
