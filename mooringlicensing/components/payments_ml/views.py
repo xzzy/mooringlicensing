@@ -548,7 +548,8 @@ class ApplicationFeeSuccessView(TemplateView):
                             # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
                             pass
                         else:
-                            approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                            # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                            approval, created = proposal.approval_class.update_or_create_approval(proposal, current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
                         if created:
                             if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:

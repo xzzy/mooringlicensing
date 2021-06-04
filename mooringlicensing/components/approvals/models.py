@@ -613,6 +613,23 @@ class WaitingListAllocation(Approval):
         super(WaitingListAllocation, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,
+            defaults={
+                'issue_date': current_datetime,
+                'wla_queue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        approval = approval.set_wla_order()
+        return approval, created
+
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -626,6 +643,28 @@ class AnnualAdmissionPermit(Approval):
     def save(self, *args, **kwargs):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
+
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,  # filter by this field
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        approval.create_sticker()
+        return approval, created
+
+    def create_sticker(self):
+        # TODO: handle existing stickers correctly
+        sticker = Sticker.objects.create()
+
+
 
 
 class AuthorisedUserPermit(Approval):
@@ -643,6 +682,33 @@ class AuthorisedUserPermit(Approval):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        mooring_id_pk = proposal.proposed_issuance_approval.get('mooring_id')
+        mooring_bay_id_pk = proposal.proposed_issuance_approval.get('mooring_bay_id')
+        ria_selected_mooring = None
+        ria_selected_mooring_bay = None
+        if mooring_id_pk:
+            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+        if mooring_bay_id_pk:
+            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
+
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,
+            # Following two fields should be in the defaults?
+            ria_selected_mooring = ria_selected_mooring,
+            ria_selected_mooring_bay = ria_selected_mooring_bay,
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        return approval, created
+
 
 class MooringLicence(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -656,6 +722,21 @@ class MooringLicence(Approval):
     def save(self, *args, **kwargs):
         super(MooringLicence, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
+
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        return approval, created
 
 
 class PreviewTempApproval(Approval):
@@ -943,14 +1024,26 @@ class Sticker(models.Model):
         (STICKER_STATUS_STICKER_LOST, 'Sticker Lost'),
         (STICKER_STATUS_EXPIRED, 'Expired'),
     )
-    number = models.CharField(max_length=9, blank=True, default='')
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[2][0])
+    number = models.CharField(max_length=9, blank=True, default='', unique=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # StickerDocument has the emailed_datetime field
-    approval = models.ForeignKey(Approval, blank=True, null=True)
+    approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
     # printed_datetime = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def next_number(self):
+        ids = map(int, [i for i in Sticker.objects.all().values_list('number', flat=True) if i])
+        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
+        return max(ids) + 1 if ids else 1
+
+    def save(self, *args, **kwargs):
+        super(Sticker, self).save(*args, **kwargs)
+        if self.number == '':
+            self.number = '{0:07d}'.format(self.next_number)
+            self.save()
 
 
 @receiver(pre_delete, sender=Approval)
