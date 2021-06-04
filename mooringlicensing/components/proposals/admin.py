@@ -26,6 +26,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 #    ordering = ('name', '-version')
 #    list_filter = ('name',)
     #exclude=("site",)
+from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse
+
 
 class ProposalDocumentInline(admin.TabularInline):
     model = models.ProposalDocument
@@ -217,4 +219,14 @@ class QuestionAdmin(admin.ModelAdmin):
             #application_type',
             ]
     ordering = ('question_text',)
+
+
+@admin.register(StickerPrintingBatch)
+class StickersPrintingBatchAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', '_file', 'uploaded_date', 'emailed_datetime',]
+
+
+@admin.register(StickerPrintingResponse)
+class StickersPrintingResponseAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', '_file', 'uploaded_date', 'received_datetime',]
 
