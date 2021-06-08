@@ -6,6 +6,9 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
+from mooringlicensing.components.proposals.email import (
+        _log_user_email as log_proposal_user_email,
+        )
 from ledger.accounts.models import EmailUser
 
 logger = logging.getLogger(__name__)
@@ -40,6 +43,12 @@ class ApprovalRenewalNotificationEmail(TemplateEmailBase):
     subject = '{} - Commercial Operations licence renewal.'.format(settings.DEP_NAME)
     html_template = 'mooringlicensing/emails/approval_renewal_notification.html'
     txt_template = 'mooringlicensing/emails/approval_renewal_notification.txt'
+
+class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
+    subject = '{} - Mooring Licence Application created.'.format(settings.DEP_NAME)
+    html_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.html'
+    txt_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.txt'
+
 
 
 def send_approval_expire_email_notification(approval):
@@ -230,6 +239,51 @@ def send_approval_renewal_email_notification(approval):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
+# waiting list allocation notice
+def send_create_mooring_licence_application_email_notification(request, approval):
+    email = CreateMooringLicenceApplicationEmail()
+    proposal = approval.current_proposal
+    ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
+    #url=settings.SITE_URL if settings.SITE_URL else ''
+    #url += reverse('external')
+
+    url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+        'mla_proposal': ria_generated_proposal,
+        'url': url,
+        'message_details': request.data.get('message_details'),
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    attachments = []
+    if approval.waiting_list_offer_documents.all():
+        for doc in approval.waiting_list_offer_documents.all():
+            #file_name = doc._file.name
+            file_name = doc.name
+            attachment = (file_name, doc._file.file.read())
+            attachments.append(attachment)
+
+    bcc = request.data.get('cc_email')
+    bcc_list = bcc.split(',')
+    msg = email.send(proposal.submitter.email,bcc=bcc_list, attachments=attachments, context=context)
+    #msg = email.send(proposal.submitter.email, attachments=attachments, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    #_log_approval_email(msg, approval, sender=sender_user)
+    log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
+    #_log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+    log_proposal_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user)
+
 
 def send_approval_reinstate_email_notification(approval, request):
     email = ApprovalReinstateNotificationEmail()
@@ -399,4 +453,60 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
     email_entry = EmailUserLogEntry.objects.create(**kwargs)
 
     return email_entry
+
+def log_mla_created_proposal_email(email_message, proposal, sender=None):
+    from mooringlicensing.components.proposals.models import ProposalLogEntry, ProposalLogDocument
+    if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
+        # TODO this will log the plain text body, should we log the html instead
+        text = email_message.body
+        subject = email_message.subject
+        fromm = smart_text(sender) if sender else smart_text(email_message.from_email)
+        # the to email is normally a list
+        if isinstance(email_message.to, list):
+            to = ','.join(email_message.to)
+        else:
+            to = smart_text(email_message.to)
+        # we log the cc and bcc in the same cc field of the log entry as a ',' comma separated string
+        all_ccs = []
+        if email_message.cc:
+            all_ccs += list(email_message.cc)
+        if email_message.bcc:
+            all_ccs += list(email_message.bcc)
+        all_ccs = ','.join(all_ccs)
+
+    else:
+        text = smart_text(email_message)
+        subject = ''
+        to = proposal.submitter.email
+        fromm = smart_text(sender) if sender else SYSTEM_NAME
+        all_ccs = ''
+
+    customer = proposal.submitter
+
+    staff = sender
+
+    kwargs = {
+        'subject': subject,
+        'text': text,
+        'proposal': proposal,
+        'customer': customer,
+        'staff': staff,
+        'to': to,
+        'fromm': fromm,
+        'cc': all_ccs
+    }
+
+    email_entry = ProposalLogEntry.objects.create(**kwargs)
+
+    if proposal.waiting_list_allocation.waiting_list_offer_documents.all():
+        # attach the files to the comms_log also
+        for doc in proposal.waiting_list_allocation.waiting_list_offer_documents.all():
+            ProposalLogDocument.objects.create(
+                    log_entry=email_entry,
+                    _file=doc._file,
+                    name=doc.name
+                    )
+
+    return email_entry
+
 
