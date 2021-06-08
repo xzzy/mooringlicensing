@@ -2138,7 +2138,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
     def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
-        approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
+        #approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
+        approval, created = self.child_obj.update_or_create_approval(target_datetime)
         return approval, created
 
     @property
@@ -2242,6 +2243,24 @@ class WaitingListApplication(Proposal):
         ret_value = send_submit_email_notification(request, self, attachments)
         return ret_value
 
+    #@classmethod
+    def update_or_create_approval(self, current_datetime):
+        approval, created = self.approval_class.objects.update_or_create(
+        #approval, created = cls.objects.update_or_create(
+            current_proposal=self,
+            defaults={
+                'issue_date': current_datetime,
+                'wla_queue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': self.end_date,
+                'submitter': self.submitter,
+            }
+        )
+        approval = approval.set_wla_order()
+        return approval, created
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2279,6 +2298,24 @@ class AnnualAdmissionApplication(Proposal):
             attachments.append(attachment)
         ret_value = send_submit_email_notification(request, self, attachments)
         return ret_value
+
+    #@classmethod
+    def update_or_create_approval(self, current_datetime):
+        approval, created = self.approval_class.objects.update_or_create(
+        #approval, created = cls.objects.update_or_create(
+            current_proposal=self,  # filter by this field
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': self.end_date,
+                'submitter': self.submitter,
+            }
+        )
+        approval.create_sticker()
+        return approval, created
+
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2337,6 +2374,34 @@ class AuthorisedUserApplication(Proposal):
             # Email to submitter
             send_submit_email_notification(request, self)
 
+    #@classmethod
+    def update_or_create_approval(self, current_datetime):
+        mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
+        mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
+        ria_selected_mooring = None
+        ria_selected_mooring_bay = None
+        if mooring_id_pk:
+            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+        if mooring_bay_id_pk:
+            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
+
+        #approval, created = cls.objects.update_or_create(
+        approval, created = self.approval_class.objects.update_or_create(
+            current_proposal=self,
+            # Following two fields should be in the defaults?
+            ria_selected_mooring = ria_selected_mooring,
+            ria_selected_mooring_bay = ria_selected_mooring_bay,
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': self.end_date,
+                'submitter': self.submitter,
+            }
+        )
+        return approval, created
+
 
 class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2386,6 +2451,20 @@ class MooringLicenceApplication(Proposal):
         self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
         self.save()
         send_documents_upload_for_mooring_licence_application_email(request, self)
+
+    def update_or_create_approval(self, current_datetime):
+        approval, created = self.approval_class.objects.update_or_create(
+            current_proposal=self,
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': self.end_date,
+                'submitter': self.submitter,
+            }
+        )
+        return approval, created
 
 
 class ProposalLogDocument(Document):
@@ -2454,6 +2533,8 @@ class Mooring(models.Model):
     mooring_bookings_bay_id = models.IntegerField()
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
+    # Used for WLAllocation create MLApplication check
+    mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
 
     def __str__(self):
         return self.name

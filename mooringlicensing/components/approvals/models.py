@@ -82,6 +82,22 @@ class ApprovalDocument(Document):
         app_label = 'mooringlicensing'
 
 
+class MooringOnApproval(Document):
+    approval = models.ForeignKey('Approval')
+    mooring = models.ForeignKey(Mooring)
+    site_licensee = models.BooleanField()
+
+    def save(self, *args, **kwargs):
+        existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licencee=False).count()
+        if existing_ria_moorings >= 2 and not self.site_licensee:
+            raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
+
+        super(MooringOnApproval, self).save(*args,**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class Approval(RevisionedMixin):
     APPROVAL_STATUS_CURRENT = 'current'
     APPROVAL_STATUS_EXPIRED = 'expired'
@@ -147,8 +163,9 @@ class Approval(RevisionedMixin):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     ## change to "moorings" field with ManyToManyField - can come from site_licencee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
-    ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
-    ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
+    moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
+    #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
+    #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
 
     class Meta:
@@ -613,24 +630,6 @@ class WaitingListAllocation(Approval):
         super(WaitingListAllocation, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    @classmethod
-    def update_or_create_approval(cls, proposal, current_datetime):
-        approval, created = cls.objects.update_or_create(
-            current_proposal=proposal,
-            defaults={
-                'issue_date': current_datetime,
-                'wla_queue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': proposal.end_date,
-                'submitter': proposal.submitter,
-            }
-        )
-        approval = approval.set_wla_order()
-        return approval, created
-
-
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'aap'
@@ -643,22 +642,6 @@ class AnnualAdmissionPermit(Approval):
     def save(self, *args, **kwargs):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
-
-    @classmethod
-    def update_or_create_approval(cls, proposal, current_datetime):
-        approval, created = cls.objects.update_or_create(
-            current_proposal=proposal,  # filter by this field
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': proposal.end_date,
-                'submitter': proposal.submitter,
-            }
-        )
-        approval.create_sticker()
-        return approval, created
 
     def create_sticker(self):
         stickers = self.stickers
@@ -680,33 +663,6 @@ class AuthorisedUserPermit(Approval):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    @classmethod
-    def update_or_create_approval(cls, proposal, current_datetime):
-        mooring_id_pk = proposal.proposed_issuance_approval.get('mooring_id')
-        mooring_bay_id_pk = proposal.proposed_issuance_approval.get('mooring_bay_id')
-        ria_selected_mooring = None
-        ria_selected_mooring_bay = None
-        if mooring_id_pk:
-            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
-        if mooring_bay_id_pk:
-            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
-
-        approval, created = cls.objects.update_or_create(
-            current_proposal=proposal,
-            # Following two fields should be in the defaults?
-            ria_selected_mooring = ria_selected_mooring,
-            ria_selected_mooring_bay = ria_selected_mooring_bay,
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': proposal.end_date,
-                'submitter': proposal.submitter,
-            }
-        )
-        return approval, created
-
     def create_sticker(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
@@ -726,21 +682,6 @@ class MooringLicence(Approval):
     def save(self, *args, **kwargs):
         super(MooringLicence, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
-
-    @classmethod
-    def update_or_create_approval(cls, proposal, current_datetime):
-        approval, created = cls.objects.update_or_create(
-            current_proposal=proposal,
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': proposal.end_date,
-                'submitter': proposal.submitter,
-            }
-        )
-        return approval, created
 
     def create_sticker(self):
         stickers = self.stickers
