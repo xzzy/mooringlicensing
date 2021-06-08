@@ -210,6 +210,7 @@ export default {
                     'Expiry Date', 
                     'Vessel length',
                     'Vessel draft',
+                    'Mooring Licence Applications',
                 ]
             } else if (this.is_internal) {
                 return [
@@ -349,6 +350,19 @@ export default {
                         }
                     }
         },
+        columnRiaGeneratedProposals: function() {
+            let vm = this;
+            return {
+                        // 10. Action
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.ria_generated_proposals;
+                        }
+                    }
+        },
         columnHolder: function() {
             return {
                         data: "id",
@@ -436,6 +450,7 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnVesselLength,
                     vm.columnVesselDraft,
+                    vm.columnRiaGeneratedProposals,
                 ]
             } else if (vm.is_internal) {
                 selectedColumns = [
