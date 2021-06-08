@@ -990,6 +990,9 @@ class Sticker(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def __str__(self):
+        return '{} ({})'.format(self.number, self.status)
+
     @property
     def next_number(self):
         ids = map(int, [i for i in Sticker.objects.all().values_list('number', flat=True) if i])
