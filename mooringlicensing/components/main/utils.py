@@ -234,7 +234,7 @@ def sticker_export():
     file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
     ws1 = wb.create_sheet(title="Approvals", index=0)
 
-    stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)
+    stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)  #
     for sticker in stickers:
         ws1.append([sticker.id, sticker.number])
 

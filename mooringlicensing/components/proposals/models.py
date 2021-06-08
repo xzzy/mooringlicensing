@@ -355,7 +355,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
     CUSTOMER_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     CUSTOMER_STATUS_AWAITING_DOCUMENTS = 'awaiting_documents'
-    CUSTOMER_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    # CUSTOMER_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    CUSTOMER_STATUS_PRINTING_STICKER = 'printing_sticker'
     # CUSTOMER_STATUS_AMENDMENT_REQUIRED = 'amendment_required'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DECLINED = 'declined'
@@ -369,7 +370,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
         (CUSTOMER_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
         (CUSTOMER_STATUS_AWAITING_DOCUMENTS, 'Awaiting Documents'),
-        (CUSTOMER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+        # (CUSTOMER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+        (CUSTOMER_STATUS_PRINTING_STICKER, 'Printing Sticker'),
         # (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
         (CUSTOMER_STATUS_APPROVED, 'Approved'),
         (CUSTOMER_STATUS_DECLINED, 'Declined'),
@@ -393,7 +395,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # 'id_required',
         # 'returns_required',
         CUSTOMER_STATUS_AWAITING_PAYMENT,
-        CUSTOMER_STATUS_AWAITING_STICKER,
+        CUSTOMER_STATUS_PRINTING_STICKER,
         CUSTOMER_STATUS_AWAITING_ENDORSEMENT,
         CUSTOMER_STATUS_AWAITING_DOCUMENTS,
         CUSTOMER_STATUS_APPROVED,
@@ -415,7 +417,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_LICENCE_AMENDMENT = 'licence_amendment'
     PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE = 'awaiting_applicant_respone'
     PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE = 'awaiting_assessor_response'
-    PROCESSING_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    # PROCESSING_STATUS_AWAITING_STICKER = 'awaiting_sticker'
+    PROCESSING_STATUS_PRINTING_STICKER = 'printing_sticker'
     PROCESSING_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     PROCESSING_STATUS_AWAITING_DOCUMENTS = 'awaiting_documents'
     PROCESSING_STATUS_AWAITING_RESPONSES = 'awaiting_responses'
@@ -440,7 +443,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_LICENCE_AMENDMENT, 'Licence Amendment'),
                                  (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
                                  (PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE, 'Awaiting Assessor Response'),
-                                 (PROCESSING_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+                                 # (PROCESSING_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+                                 (PROCESSING_STATUS_PRINTING_STICKER, 'Printing Sticker'),
                                  (PROCESSING_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
                                  (PROCESSING_STATUS_AWAITING_DOCUMENTS, 'Awaiting Documents'),
                                  (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
@@ -899,7 +903,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # if self.processing_status in ['on_hold', 'with_qa_officer', 'with_assessor', 'with_referral', 'with_assessor_requirements']:
         if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS]:
             return self.__assessor_group() in user.proposalassessorgroup_set.all()
-        elif self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_AWAITING_STICKER]:
+        elif self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_PRINTING_STICKER]:
             return self.__approver_group() in user.proposalapprovergroup_set.all()
         else:
             return False
@@ -1354,16 +1358,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
                 elif self.application_type.code == AnnualAdmissionApplication.code:
-                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-                    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
                 else:
                     raise # Should not reach here.  ApplicationType must be either WLA or AAA
 
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
 
                 # TODO if it is an ammendment proposal then check appropriately
                 # approval, created = self.create_approval(current_datetime=current_datetime)
@@ -2313,7 +2317,7 @@ class AnnualAdmissionApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        approval.create_sticker()
+        approval.manage_stickers()
         return approval, created
 
 
@@ -2343,8 +2347,8 @@ class AuthorisedUserApplication(Proposal):
         self.proposal.refresh_from_db()
 
     def set_status_after_payment_success(self):
-        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+        self.proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
 
     def send_emails_after_payment_success(self, request):
@@ -2434,8 +2438,8 @@ class MooringLicenceApplication(Proposal):
         self.save()
 
     def set_status_after_payment_success(self):
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
 
     def send_emails_after_payment_success(self, request):
@@ -3156,7 +3160,7 @@ class ProposalUserAction(UserAction):
     ACTION_CREATE_CONDITION_ = "Create requirement {}"
     ACTION_ISSUE_APPROVAL_ = "Issue Licence for application {}"
     ACTION_AWAITING_PAYMENT_APPROVAL_ = "Awaiting Payment for application {}"
-    ACTION_AWAITING_STICKER = "Awaiting Sticker for application {}"
+    ACTION_PRINTING_STICKER = "Printing Sticker for application {}"
     ACTION_APPROVE_APPLICATION = "Approve application {}"
     ACTION_UPDATE_APPROVAL_ = "Update Licence for application {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
