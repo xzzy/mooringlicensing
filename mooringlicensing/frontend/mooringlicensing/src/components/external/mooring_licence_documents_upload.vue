@@ -122,6 +122,9 @@ export default {
                 (res)=>{
                     let ret = vm.perform_submit();
                     console.log(ret)
+                    ret.then(data=>{
+                        this.$router.push({ name: 'external-dashboard' })
+                    })
                     this.submitting = false
                 },
                 (res)=>{
