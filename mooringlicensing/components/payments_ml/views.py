@@ -481,126 +481,127 @@ class ApplicationFeeSuccessView(TemplateView):
         invoice = None
 
         try:
-            application_fee = get_session_application_invoice(request.session)  # This raises an exception when accessed 2nd time?
+            with transaction.atomic():
+                application_fee = get_session_application_invoice(request.session)  # This raises an exception when accessed 2nd time?
 
-            # Retrieve db processes stored when calculating the fee, and delete the session
-            db_operations = request.session['db_processes']
-            del request.session['db_processes']
+                # Retrieve db processes stored when calculating the fee, and delete the session
+                db_operations = request.session['db_processes']
+                del request.session['db_processes']
 
-            proposal = application_fee.proposal
-            recipient = proposal.applicant_email
-            submitter = proposal.submitter
+                proposal = application_fee.proposal
+                recipient = proposal.applicant_email
+                submitter = proposal.submitter
 
-            if self.request.user.is_authenticated():
-                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
-            else:
-                basket = Basket.objects.filter(status='Submitted', owner=proposal.submitter).order_by('-id')[:1]
+                if self.request.user.is_authenticated():
+                    basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+                else:
+                    basket = Basket.objects.filter(status='Submitted', owner=proposal.submitter).order_by('-id')[:1]
 
-            order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=order.number)
-            invoice_ref = invoice.reference
+                order = Order.objects.get(basket=basket[0])
+                invoice = Invoice.objects.get(order_number=order.number)
+                invoice_ref = invoice.reference
 
-            if 'fee_constructor_id' in db_operations:
-                # This payment is for the WLA or AAA
-                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                application_fee.fee_constructor = fee_constructor
-                application_fee.invoice_reference = invoice_ref
-            if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
-                # This payment is for the AUA or MLA
-                # application_fee object has already been created when approved
-                proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-                proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
-                proposal.save()
+                if 'fee_constructor_id' in db_operations:
+                    # This payment is for the WLA or AAA
+                    fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                    application_fee.fee_constructor = fee_constructor
+                    application_fee.invoice_reference = invoice_ref
+                if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
+                    # This payment is for the AUA or MLA
+                    # application_fee object has already been created when approved
+                    proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
+                    proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+                    proposal.save()
 
-            # Update the application_fee object
-            application_fee.save()
+                # Update the application_fee object
+                application_fee.save()
 
-            if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
-                try:
-                    inv = Invoice.objects.get(reference=invoice_ref)
-                    order = Order.objects.get(number=inv.order_number)
-                    order.user = request.user
-                    order.save()
-                except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user'))
-                    return redirect('external-proposal-detail', args=(proposal.id,))
-                if inv.system not in ['0517']:
-                    logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user',inv.reference))
-                    return redirect('external-proposal-detail', args=(proposal.id,))
+                if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
+                    try:
+                        inv = Invoice.objects.get(reference=invoice_ref)
+                        order = Order.objects.get(number=inv.order_number)
+                        order.user = request.user
+                        order.save()
+                    except Invoice.DoesNotExist:
+                        logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user'))
+                        return redirect('external-proposal-detail', args=(proposal.id,))
+                    if inv.system not in ['0517']:
+                        logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user',inv.reference))
+                        return redirect('external-proposal-detail', args=(proposal.id,))
 
-                # if fee_inv:
-                application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
-                application_fee.expiry_time = None
-                update_payments(invoice_ref)
+                    # if fee_inv:
+                    application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
+                    application_fee.expiry_time = None
+                    update_payments(invoice_ref)
 
-                if proposal and invoice.payment_status in ('paid', 'over_paid',):
-                    self.adjust_db_operations(db_operations)
+                    if proposal and invoice.payment_status in ('paid', 'over_paid',):
+                        self.adjust_db_operations(db_operations)
 
-                    proposal.post_payment_success(request)
-                    # proposal_submit(proposal, request)
+                        proposal.post_payment_success(request)
+                        # proposal_submit(proposal, request)
 
-                    if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-                        # For AUA or MLA, as payment has been done, create approval
-                        if proposal.proposal_type == PROPOSAL_TYPE_RENEWAL:
-                            # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                            pass
-                        elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                            # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                            pass
-                        else:
-                            # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-                            approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-
-                        if created:
-                            if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                        if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
+                            # For AUA or MLA, as payment has been done, create approval
+                            if proposal.proposal_type == PROPOSAL_TYPE_RENEWAL:
                                 # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
                                 pass
-                            # Log creation
-                            # Generate the document
-                            approval.generate_doc(request.user)
-                            proposal.generate_compliances(approval, request)
-                            # send the doc and log in approval and org
-                        else:
-                            # Generate the document
-                            approval.generate_doc(request.user)
+                            elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                                # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                                pass
+                            else:
+                                # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                                approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
-                            # Delete the future compliances if Approval is reissued and generate the compliances again.
-                            approval_compliances = Compliance.objects.filter(approval=approval, proposal=proposal, processing_status='future')
-                            for compliance in approval_compliances:
-                                compliance.delete()
+                            if created:
+                                if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                                    # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                                    pass
+                                # Log creation
+                                # Generate the document
+                                approval.generate_doc(request.user)
+                                proposal.generate_compliances(approval, request)
+                                # send the doc and log in approval and org
+                            else:
+                                # Generate the document
+                                approval.generate_doc(request.user)
 
-                            proposal.generate_compliances(approval, request)
+                                # Delete the future compliances if Approval is reissued and generate the compliances again.
+                                approval_compliances = Compliance.objects.filter(approval=approval, proposal=proposal, processing_status='future')
+                                for compliance in approval_compliances:
+                                    compliance.delete()
 
-                            # Log proposal action
-                            proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
+                                proposal.generate_compliances(approval, request)
 
-                            # Log entry for organisation
-                            applicant_field = getattr(proposal, proposal.applicant_field)
-                            applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
+                                # Log proposal action
+                                proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
 
-                        proposal.approval = approval
+                                # Log entry for organisation
+                                applicant_field = getattr(proposal, proposal.applicant_field)
+                                applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
 
-                        # send Proposal approval email with attachment
-                        send_proposal_approval_email_notification(proposal, request)
-                        proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
-                        proposal.approval.documents.all().update(can_delete=False)
+                            proposal.approval = approval
 
-                else:
-                    logger.error('Invoice payment status is {}'.format(invoice.payment_status))
-                    raise
+                            # send Proposal approval email with attachment
+                            send_proposal_approval_email_notification(proposal, request)
+                            proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
+                            proposal.approval.documents.all().update(can_delete=False)
 
-                application_fee.save()
-                request.session[self.LAST_APPLICATION_FEE_ID] = application_fee.id
-                delete_session_application_invoice(request.session)
+                    else:
+                        logger.error('Invoice payment status is {}'.format(invoice.payment_status))
+                        raise
 
-                # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
-                #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
-                context = {
-                    'proposal': proposal,
-                    'submitter': submitter,
-                    'fee_invoice': application_fee,
-                }
-                return render(request, self.template_name, context)
+                    application_fee.save()
+                    request.session[self.LAST_APPLICATION_FEE_ID] = application_fee.id
+                    delete_session_application_invoice(request.session)
+
+                    # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
+                    #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+                    context = {
+                        'proposal': proposal,
+                        'submitter': submitter,
+                        'fee_invoice': application_fee,
+                    }
+                    return render(request, self.template_name, context)
 
         except Exception as e:
             print('in ApplicationFeeSuccessView.get() Exception')
