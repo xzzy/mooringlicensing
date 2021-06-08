@@ -1321,7 +1321,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                current_date = current_datetime.date()
+                # current_date = current_datetime.date()
                 # target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
                 self.proposed_decline_status = False
@@ -1366,7 +1366,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field.log_user_action(ProposalUserAction.ACTION_AWAITING_STICKER.format(self.id), request)
 
                 # TODO if it is an ammendment proposal then check appropriately
-                approval, created = self.create_approval(current_datetime=current_datetime)
+                # approval, created = self.create_approval(current_datetime=current_datetime)
+                approval, created = self.update_or_create_approval(current_datetime)
                 checking_proposal = self
                 #if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
                 #    if self.previous_application:
@@ -1527,23 +1528,27 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                                 # invoice_period_start_date=invoice_period[0],
                                 # invoice_period_end_date=invoice_period[1],
-                                # lines=line_items,  # TODO: We may add this field to the ApplicationFee model
+                                # lines=line_items,  # We may add this field to the ApplicationFee model
                             )
                             # updates.append(annual_rental_fee.invoice_reference)
+
+                            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                            self.save()
+
+                            # TODO: Send approved-awaiting-payment email to the submitter
+
+                            # Log proposal action
+                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+                            # Log entry for organisation
+                            applicant_field = getattr(self, self.applicant_field)
+                            applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
 
                         except Exception as e:
                             err_msg = 'Failed to create annual site fee confirmation'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
 
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-                self.save()
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
-                # Log entry for organisation
-                applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_ISSUE_APPROVAL_.format(self.id), request)
 
                 # TODO if it is an ammendment proposal then check appropriately
 #                from mooringlicensing.components.approvals.models import Approval
@@ -1647,91 +1652,92 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def create_approval(self, current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
-        """
-        Whenever creating new approval, this function should be called
-        For:
-            WaitingListAllocation
-            AnnualAdmissionPermit
-            AuthorisedUserPermit
-            MooringLicence
-        For:
-            New
-            Renewal
-            Amendment
-        """
+    # def create_approval(self, current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
+        #"""
+        #Whenever creating a new approval, this function should be called
+        #For:
+        #    WaitingListAllocation
+        #    AnnualAdmissionPermit
+        #    AuthorisedUserPermit
+        #    MooringLicence
+        #For:
+        #    New
+        #    Renewal
+        #    Amendment
+        #"""
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence, AnnualAdmissionPermit, WaitingListAllocation
 
-        if self.application_type.code == AuthorisedUserApplication.code:
-            approval_class = AuthorisedUserPermit
-        elif self.application_type.code == MooringLicenceApplication.code:
-            approval_class = MooringLicence
-        elif self.application_type.code == AnnualAdmissionApplication.code:
-            approval_class = AnnualAdmissionPermit
-        elif self.application_type.code == WaitingListApplication.code:
-            approval_class = WaitingListAllocation
-        else:
-            raise
+        #if self.application_type.code == AuthorisedUserApplication.code:
+        #    approval_class = AuthorisedUserPermit
+        #elif self.application_type.code == MooringLicenceApplication.code:
+        #    approval_class = MooringLicence
+        #elif self.application_type.code == AnnualAdmissionApplication.code:
+        #    approval_class = AnnualAdmissionPermit
+        #elif self.application_type.code == WaitingListApplication.code:
+        #    approval_class = WaitingListAllocation
+        #else:
+        #    raise
 
         # TODO: default data varies according to the ProposalType, too
-        current_date = current_datetime.date()
-        mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
-        mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
-        ria_selected_mooring = None
-        ria_selected_mooring_bay = None
-        if mooring_id_pk:
-            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
-        if mooring_bay_id_pk:
-            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
-        if approval_class == AuthorisedUserPermit:
-            approval, created = approval_class.objects.update_or_create(
-                current_proposal=self,
-                ria_selected_mooring = ria_selected_mooring,
-                ria_selected_mooring_bay = ria_selected_mooring_bay,
-                defaults={
-                    'issue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                    'start_date': current_date,
-                    'expiry_date': self.end_date,
-                    'submitter': self.submitter,
-                    }
-                )
-        if approval_class == WaitingListAllocation:
-            approval, created = approval_class.objects.update_or_create(
-                current_proposal=self,
-                defaults={
-                    'issue_date': current_datetime,
-                    'wla_queue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                    'start_date': current_date,
-                    'expiry_date': self.end_date,
-                    'submitter': self.submitter,
-                    }
-                )
+        #current_date = current_datetime.date()
+        # mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
+        # mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
+        # ria_selected_mooring = None
+        # ria_selected_mooring_bay = None
+        # if mooring_id_pk:
+        #     ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+        # if mooring_bay_id_pk:
+        #     ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
+        # if approval_class == AuthorisedUserPermit:
+        #     approval, created = approval_class.objects.update_or_create(
+        #         current_proposal=self,
+        #         ria_selected_mooring = ria_selected_mooring,
+        #         ria_selected_mooring_bay = ria_selected_mooring_bay,
+        #         defaults={
+        #             'issue_date': current_datetime,
+        #             #'start_date': current_date.strftime('%Y-%m-%d'),
+        #             #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+        #             'start_date': current_date,
+        #             'expiry_date': self.end_date,
+        #             'submitter': self.submitter,
+        #             }
+        #         )
+        # elif approval_class == WaitingListAllocation:
+        #     approval, created = approval_class.objects.update_or_create(
+        #         current_proposal=self,
+        #         defaults={
+        #             'issue_date': current_datetime,
+        #             'wla_queue_date': current_datetime,
+        #             #'start_date': current_date.strftime('%Y-%m-%d'),
+        #             #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+        #             'start_date': current_date,
+        #             'expiry_date': self.end_date,
+        #             'submitter': self.submitter,
+        #             }
+        #         )
 
-        else:
-            approval, created = approval_class.objects.update_or_create(
-                current_proposal=self,
-                defaults={
-                    'issue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                    'start_date': current_date,
-                    'expiry_date': self.end_date,
-                    'submitter': self.submitter,
-                    }
-                )
+        # else:
+        #     approval, created = approval_class.objects.update_or_create(
+        #         current_proposal=self,
+        #         defaults={
+        #             'issue_date': current_datetime,
+        #             #'start_date': current_date.strftime('%Y-%m-%d'),
+        #             #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+        #             'start_date': current_date,
+        #             'expiry_date': self.end_date,
+        #             'submitter': self.submitter,
+        #             }
+        #         )
+        #approval, created = approval_class.update_or_create_approval(self, current_datetime)
         # approval needs to be associated with proposal
-        self.approval = approval
-        self.save()
+        #self.approval = approval
+        #self.save()
 
-        if approval_class == WaitingListAllocation:
-            #self.set_wla_order()
-            approval = approval.set_wla_order()
+        #if approval_class == WaitingListAllocation:
+        #    #self.set_wla_order()
+        #    approval = approval.set_wla_order()
 
-        return approval, created
+        #return approval, created
 
     def final_approval(self, request, details):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
@@ -2118,6 +2124,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
     @property
+    def approval_class(self):
+        from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
+        if hasattr(self, 'waitinglistapplication'):
+            return WaitingListAllocation
+        elif hasattr(self, 'annualadmissionapplication'):
+            return AnnualAdmissionPermit
+        elif hasattr(self, 'authoriseduserapplication'):
+            return AuthorisedUserPermit
+        elif hasattr(self, 'mooringlicenceapplication'):
+            return MooringLicence
+        else:
+            raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
+
+    def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
+        approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
+        return approval, created
+
+    @property
     def application_type_code(self):
         return self.child_obj.code
 
@@ -2147,6 +2171,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 })
 
         return type_list
+
+
+def update_sticker_doc_filename(instance, filename):
+    return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)
+
+
+def update_sticker_response_doc_filename(instance, filename):
+    return '{}/stickers/response/{}'.format(settings.MEDIA_APP_DIR, filename)
+
+
+class StickerPrintingBatch(Document):
+    _file = models.FileField(upload_to=update_sticker_doc_filename, max_length=512)
+    emailed_datetime = models.DateTimeField(blank=True, null=True)  # Once emailed, this field has a value
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class StickerPrintingResponse(Document):
+    _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
+    received_datetime = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+# class StickerMixin(models.Model):
+#     stickers_document = models.ForeignKey(StickersDocument, blank=True, null=True)
+#
+#     class Meta:
+#         abstract = True
+#         app_label = 'mooringlicensing'
 
 
 class WaitingListApplication(Proposal):
@@ -2980,6 +3036,7 @@ class ProposalUserAction(UserAction):
     ACTION_ISSUE_APPROVAL_ = "Issue Licence for application {}"
     ACTION_AWAITING_PAYMENT_APPROVAL_ = "Awaiting Payment for application {}"
     ACTION_AWAITING_STICKER = "Awaiting Sticker for application {}"
+    ACTION_APPROVE_APPLICATION = "Approve application {}"
     ACTION_UPDATE_APPROVAL_ = "Update Licence for application {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
