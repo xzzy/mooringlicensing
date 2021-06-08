@@ -14,6 +14,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser, Address
 from datetime import datetime, timedelta, date
 
+from mooringlicensing.components.approvals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
@@ -915,6 +916,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                         )
             if new_proposal:
                 # send email
+                send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
                 # update waiting_list_allocation
                 waiting_list_allocation.status = 'offered'
                 waiting_list_allocation.wla_queue_date = None
