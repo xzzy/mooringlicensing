@@ -1971,7 +1971,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         approval_list = []
-        prop_set = mooring_bay.proposal_set.filter(Q(processing_status="approved") | Q(processing_status="awaiting_sticker"))
+        prop_set = mooring_bay.proposal_set.filter(Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED) | Q(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
         if selected_date:
             for prop in prop_set:
                 if (
