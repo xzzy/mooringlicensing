@@ -45,7 +45,8 @@ class ApprovalRenewalNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/approval_renewal_notification.txt'
 
 class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
-    subject = '{} - Mooring Licence Application created.'.format(settings.DEP_NAME)
+    # subject = '{} - Mooring Licence Application created.'.format(settings.DEP_NAME)
+    subject = 'RIA - Mooring Licence Application created'
     html_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.html'
     txt_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.txt'
 
