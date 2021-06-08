@@ -1016,21 +1016,28 @@ class DcvPermitDocument(Document):
 
 
 class Sticker(models.Model):
-    STICKER_STATUS_DEFAULT = '---'
+    STICKER_STATUS_AWAITING_EXPORTED = 'awaiting_exported'
+    STICKER_STATUS_AWAITING_PRINTED = 'awaiting_printed'
     STICKER_STATUS_CURRENT = 'current'
-    STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'  #
-    STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'  # awaiting replacement sticker to be printed?
-    STICKER_STATUS_STICKER_RETURNED = 'sticker_returned'
-    STICKER_STATUS_STICKER_LOST = 'sticker_lost'
+    STICKER_STATUS_TO_BE_RETURNED = 'to_be_returned'
+    STICKER_STATUS_RETURNED = 'returned'
+    STICKER_STATUS_LOST = 'lost'
     STICKER_STATUS_EXPIRED = 'expired'
     STATUS_CHOICES = (
-        (STICKER_STATUS_DEFAULT, '---'),
+        (STICKER_STATUS_AWAITING_EXPORTED, 'Awaiting Exported'),
+        (STICKER_STATUS_AWAITING_PRINTED, 'Awaiting Printed'),
         (STICKER_STATUS_CURRENT, 'Current'),
-        (STICKER_STATUS_NEW_STICKER_REQUESTED, 'New Sticker Requested'),
-        (STICKER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
-        (STICKER_STATUS_STICKER_RETURNED, 'Sticker Returned'),
-        (STICKER_STATUS_STICKER_LOST, 'Sticker Lost'),
+        (STICKER_STATUS_TO_BE_RETURNED, 'To be Returned'),
+        (STICKER_STATUS_RETURNED, 'Returned'),
+        (STICKER_STATUS_LOST, 'Lost'),
         (STICKER_STATUS_EXPIRED, 'Expired'),
+    )
+    EXPOSED_STATUS = (
+        STICKER_STATUS_CURRENT,
+        STICKER_STATUS_TO_BE_RETURNED,
+        STICKER_STATUS_RETURNED,
+        STICKER_STATUS_LOST,
+        STICKER_STATUS_EXPIRED,
     )
     number = models.CharField(max_length=9, blank=True, default='', unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])

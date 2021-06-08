@@ -508,8 +508,8 @@ class ApplicationFeeSuccessView(TemplateView):
             if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
                 # This payment is for the AUA or MLA
                 # application_fee object has already been created when approved
-                proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER
-                proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER
+                proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                proposal.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
                 proposal.save()
 
             # Update the application_fee object
