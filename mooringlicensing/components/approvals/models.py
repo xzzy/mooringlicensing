@@ -630,6 +630,7 @@ class WaitingListAllocation(Approval):
         super(WaitingListAllocation, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
+
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'aap'
@@ -643,10 +644,10 @@ class AnnualAdmissionPermit(Approval):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    def create_sticker(self):
+    def manage_stickers(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
-        sticker = Sticker.objects.create(approval=self)
+        sticker = Sticker.objects.create(approval=self,)
 
 
 class AuthorisedUserPermit(Approval):
@@ -663,11 +664,11 @@ class AuthorisedUserPermit(Approval):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    def create_sticker(self):
+    def manage_stickers(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         # Warn: Max 4 mooring on a sticker
-        sticker = Sticker.objects.create(approval=self)
+        sticker = Sticker.objects.create(approval=self,)
 
 
 class MooringLicence(Approval):
@@ -683,11 +684,11 @@ class MooringLicence(Approval):
         super(MooringLicence, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    def create_sticker(self):
+    def manage_stickers(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         # Warn: Multiple vessels can be on a ML
-        sticker = Sticker.objects.create(approval=self)
+        sticker = Sticker.objects.create(approval=self,)
 
 
 class PreviewTempApproval(Approval):
@@ -957,21 +958,26 @@ class DcvPermitDocument(Document):
 
 
 class Sticker(models.Model):
-    STICKER_STATUS_DEFAULT = '---'
+    STICKER_STATUS_PRINTING = 'printing'
     STICKER_STATUS_CURRENT = 'current'
-    STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'  #
-    STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'  # awaiting replacement sticker to be printed?
-    STICKER_STATUS_STICKER_RETURNED = 'sticker_returned'
-    STICKER_STATUS_STICKER_LOST = 'sticker_lost'
+    STICKER_STATUS_TO_BE_RETURNED = 'to_be_returned'
+    STICKER_STATUS_RETURNED = 'returned'
+    STICKER_STATUS_LOST = 'lost'
     STICKER_STATUS_EXPIRED = 'expired'
     STATUS_CHOICES = (
-        (STICKER_STATUS_DEFAULT, '---'),
+        (STICKER_STATUS_PRINTING, 'Printing'),
         (STICKER_STATUS_CURRENT, 'Current'),
-        (STICKER_STATUS_NEW_STICKER_REQUESTED, 'New Sticker Requested'),
-        (STICKER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
-        (STICKER_STATUS_STICKER_RETURNED, 'Sticker Returned'),
-        (STICKER_STATUS_STICKER_LOST, 'Sticker Lost'),
+        (STICKER_STATUS_TO_BE_RETURNED, 'To be Returned'),
+        (STICKER_STATUS_RETURNED, 'Returned'),
+        (STICKER_STATUS_LOST, 'Lost'),
         (STICKER_STATUS_EXPIRED, 'Expired'),
+    )
+    EXPOSED_STATUS = (
+        STICKER_STATUS_CURRENT,
+        STICKER_STATUS_TO_BE_RETURNED,
+        STICKER_STATUS_RETURNED,
+        STICKER_STATUS_LOST,
+        STICKER_STATUS_EXPIRED,
     )
     number = models.CharField(max_length=9, blank=True, default='', unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
