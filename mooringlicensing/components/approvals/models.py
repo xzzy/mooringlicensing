@@ -26,7 +26,8 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
     create_approval_doc
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
-from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring
+from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
+    StickerPrintingBatch, StickerPrintingResponse
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -629,6 +630,23 @@ class WaitingListAllocation(Approval):
         super(WaitingListAllocation, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,
+            defaults={
+                'issue_date': current_datetime,
+                'wla_queue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        approval = approval.set_wla_order()
+        return approval, created
+
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -643,14 +661,34 @@ class AnnualAdmissionPermit(Approval):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,  # filter by this field
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        approval.create_sticker()
+        return approval, created
+
+    def create_sticker(self):
+        stickers = self.stickers
+        # TODO: handle existing stickers correctly
+        sticker = Sticker.objects.create(approval=self)
+
 
 class AuthorisedUserPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
+    endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
-
-    endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -658,6 +696,39 @@ class AuthorisedUserPermit(Approval):
     def save(self, *args, **kwargs):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
+
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        mooring_id_pk = proposal.proposed_issuance_approval.get('mooring_id')
+        mooring_bay_id_pk = proposal.proposed_issuance_approval.get('mooring_bay_id')
+        ria_selected_mooring = None
+        ria_selected_mooring_bay = None
+        if mooring_id_pk:
+            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+        if mooring_bay_id_pk:
+            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
+
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,
+            # Following two fields should be in the defaults?
+            ria_selected_mooring = ria_selected_mooring,
+            ria_selected_mooring_bay = ria_selected_mooring_bay,
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        return approval, created
+
+    def create_sticker(self):
+        stickers = self.stickers
+        # TODO: handle existing stickers correctly
+        # Warn: Max 4 mooring on a sticker
+        sticker = Sticker.objects.create(approval=self)
 
 
 class MooringLicence(Approval):
@@ -672,6 +743,27 @@ class MooringLicence(Approval):
     def save(self, *args, **kwargs):
         super(MooringLicence, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
+
+    @classmethod
+    def update_or_create_approval(cls, proposal, current_datetime):
+        approval, created = cls.objects.update_or_create(
+            current_proposal=proposal,
+            defaults={
+                'issue_date': current_datetime,
+                #'start_date': current_date.strftime('%Y-%m-%d'),
+                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                'start_date': current_datetime.date(),
+                'expiry_date': proposal.end_date,
+                'submitter': proposal.submitter,
+            }
+        )
+        return approval, created
+
+    def create_sticker(self):
+        stickers = self.stickers
+        # TODO: handle existing stickers correctly
+        # Warn: Multiple vessels can be on a ML
+        sticker = Sticker.objects.create(approval=self)
 
 
 class PreviewTempApproval(Approval):
@@ -938,6 +1030,47 @@ class DcvPermitDocument(Document):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+class Sticker(models.Model):
+    STICKER_STATUS_DEFAULT = '---'
+    STICKER_STATUS_CURRENT = 'current'
+    STICKER_STATUS_NEW_STICKER_REQUESTED = 'new_sticker_requested'  #
+    STICKER_STATUS_AWAITING_STICKER = 'awaiting_sticker'  # awaiting replacement sticker to be printed?
+    STICKER_STATUS_STICKER_RETURNED = 'sticker_returned'
+    STICKER_STATUS_STICKER_LOST = 'sticker_lost'
+    STICKER_STATUS_EXPIRED = 'expired'
+    STATUS_CHOICES = (
+        (STICKER_STATUS_DEFAULT, '---'),
+        (STICKER_STATUS_CURRENT, 'Current'),
+        (STICKER_STATUS_NEW_STICKER_REQUESTED, 'New Sticker Requested'),
+        (STICKER_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+        (STICKER_STATUS_STICKER_RETURNED, 'Sticker Returned'),
+        (STICKER_STATUS_STICKER_LOST, 'Sticker Lost'),
+        (STICKER_STATUS_EXPIRED, 'Expired'),
+    )
+    number = models.CharField(max_length=9, blank=True, default='', unique=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
+    sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True)
+    approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
+    printing_date = models.DateField(blank=True, null=True)
+    mailing_date = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    @property
+    def next_number(self):
+        ids = map(int, [i for i in Sticker.objects.all().values_list('number', flat=True) if i])
+        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
+        return max(ids) + 1 if ids else 1
+
+    def save(self, *args, **kwargs):
+        super(Sticker, self).save(*args, **kwargs)
+        if self.number == '':
+            self.number = '{0:07d}'.format(self.next_number)
+            self.save()
 
 
 @receiver(pre_delete, sender=Approval)
