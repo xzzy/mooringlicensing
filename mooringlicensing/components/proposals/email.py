@@ -43,6 +43,12 @@ class DocumentsUploadForMooringLicenceApplicationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.txt'
 
 
+class StickerPrintingBatchEmail(TemplateEmailBase):
+    subject = 'Sticker Printing Batch'
+    html_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.html'
+    txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
+
+
 class EndersementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
     subject = 'Endorsement of Authorised user application'
     html_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.html'
@@ -134,6 +140,30 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+    return msg
+
+
+def send_sticker_printing_batch_email(batches):
+    # TODO: Make the recipient configurable
+    email = StickerPrintingBatchEmail()
+
+    context = {
+        'batches': batches,
+    }
+    to_address = 'recipient_for_batch@mail.com'
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = settings.DEFAULT_FROM_EMAIL
+    # _log_proposal_email(msg, proposal, sender=sender)
+    # if proposal.org_applicant:
+    #     _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+    # else:
+    #     _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
     return msg
 
