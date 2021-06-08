@@ -630,6 +630,7 @@ class WaitingListAllocation(Approval):
         super(WaitingListAllocation, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
+
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'aap'
@@ -643,10 +644,10 @@ class AnnualAdmissionPermit(Approval):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    def create_sticker(self):
+    def manage_stickers(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
-        sticker = Sticker.objects.create(approval=self)
+        sticker = Sticker.objects.create(approval=self,)
 
 
 class AuthorisedUserPermit(Approval):
@@ -663,11 +664,11 @@ class AuthorisedUserPermit(Approval):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    def create_sticker(self):
+    def manage_stickers(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         # Warn: Max 4 mooring on a sticker
-        sticker = Sticker.objects.create(approval=self)
+        sticker = Sticker.objects.create(approval=self,)
 
 
 class MooringLicence(Approval):
@@ -683,11 +684,11 @@ class MooringLicence(Approval):
         super(MooringLicence, self).save(*args, **kwargs)
         self.approval.refresh_from_db()
 
-    def create_sticker(self):
+    def manage_stickers(self):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         # Warn: Multiple vessels can be on a ML
-        sticker = Sticker.objects.create(approval=self)
+        sticker = Sticker.objects.create(approval=self,)
 
 
 class PreviewTempApproval(Approval):
@@ -957,16 +958,14 @@ class DcvPermitDocument(Document):
 
 
 class Sticker(models.Model):
-    STICKER_STATUS_AWAITING_EXPORTED = 'awaiting_exported'
-    STICKER_STATUS_AWAITING_PRINTED = 'awaiting_printed'
+    STICKER_STATUS_PRINTING = 'printing'
     STICKER_STATUS_CURRENT = 'current'
     STICKER_STATUS_TO_BE_RETURNED = 'to_be_returned'
     STICKER_STATUS_RETURNED = 'returned'
     STICKER_STATUS_LOST = 'lost'
     STICKER_STATUS_EXPIRED = 'expired'
     STATUS_CHOICES = (
-        (STICKER_STATUS_AWAITING_EXPORTED, 'Awaiting Exported'),
-        (STICKER_STATUS_AWAITING_PRINTED, 'Awaiting Printed'),
+        (STICKER_STATUS_PRINTING, 'Printing'),
         (STICKER_STATUS_CURRENT, 'Current'),
         (STICKER_STATUS_TO_BE_RETURNED, 'To be Returned'),
         (STICKER_STATUS_RETURNED, 'Returned'),

@@ -2317,7 +2317,7 @@ class AnnualAdmissionApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        approval.create_sticker()
+        approval.manage_stickers()
         return approval, created
 
 
