@@ -2398,6 +2398,8 @@ class Mooring(models.Model):
     mooring_bookings_bay_id = models.IntegerField()
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
+    # Used for WLAllocation create MLApplication check
+    mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
 
     def __str__(self):
         return self.name
