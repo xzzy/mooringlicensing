@@ -2464,6 +2464,27 @@ class MooringLicenceApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
+        # associate Mooring with approval
+        existing_mooring_licence = approval.current_proposal.allocated_mooring.mooring_licence
+        allocated_mooring_lodgement_number = approval.current_proposal.allocated_mooring.id
+        approval.current_proposal.allocated_mooring.mooring_licence = approval
+        approval.current_proposal.allocated_mooring.save()
+        # log Mooring action
+        if existing_mooring_licence:
+            approval.current_proposal.allocated_mooring.log_user_action(
+                    ProposalUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
+                        str(existing_mooring_licence),
+                        str(approval),
+                        ),
+                    request
+                    )
+        else:
+            approval.current_proposal.allocated_mooring.log_user_action(
+                    ProposalUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
+                        str(approval),
+                        ),
+                    request
+                    )
         return approval, created
 
 
@@ -2564,6 +2585,25 @@ class MooringLogEntry(CommunicationsLogEntry):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+class MooringUserAction(UserAction):
+    ACTION_ASSIGN_MOORING_LICENCE = "Assign Mooring Licence {}"
+    ACTION_SWITCH_MOORING_LICENCE = "Remove existing Mooring Licence {} and assign {}"
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        ordering = ('-when',)
+
+    @classmethod
+    def log_action(cls, proposal, action, user):
+        return cls.objects.create(
+            mooring=mooring,
+            who=user,
+            what=str(action)
+        )
+
+    mooring = models.ForeignKey(Mooring, related_name='action_logs')
+
 
     #def save(self, **kwargs):
     #    # save the application reference if the reference not provided
