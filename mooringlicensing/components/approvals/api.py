@@ -24,7 +24,7 @@ from mooringlicensing.components.proposals.models import Proposal, MooringLicenc
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
-    WaitingListAllocation,
+    WaitingListAllocation, Sticker,
 )
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -37,13 +37,13 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
-    ApprovalPaymentSerializer, 
-    ListApprovalSerializer, 
-    DcvOrganisationSerializer, 
+    ApprovalPaymentSerializer,
+    ListApprovalSerializer,
+    DcvOrganisationSerializer,
     DcvVesselSerializer,
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
-    EmailUserSerializer,
+    EmailUserSerializer, ListStickerSerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -855,6 +855,50 @@ class DcvAdmissionRenderer(DatatablesRenderer):
         if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
         return super(DcvAdmissionRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class StickerRenderer(DatatablesRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+        return super(StickerRenderer, self).render(data, accepted_media_type, renderer_context)
+
+
+class StickerFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        try:
+            queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class StickerPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (StickerFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (StickerRenderer,)
+    queryset = Sticker.objects.none()
+    serializer_class = ListStickerSerializer
+    search_fields = ['id', ]
+    page_size = 10
+
+    def get_queryset(self):
+        qs = Sticker.objects.none()
+
+        if is_internal(self.request):
+            qs = Sticker.objects.all()
+
+        return qs
 
 
 class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):

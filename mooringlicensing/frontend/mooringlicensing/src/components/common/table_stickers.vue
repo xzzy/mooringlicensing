@@ -102,7 +102,7 @@ export default {
             }
             if (this.is_internal){
                 //return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
-                return ['id', 'Lodgement Number', 'Permit or Licence', 'Printing company (sent / received)', 'Status', 'Year', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Printing company (sent / received)', 'Status', 'Year', 'Action']
             }
         },
         column_id: function(){
@@ -117,28 +117,26 @@ export default {
                 }
             }
         },
-        column_lodgement_number: function(){
+        column_number: function(){
             return {
-                // 2. Lodgement Number
-                data: "id",
+                // 2. Number
+                data: "number",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.lodgement_number
+                    return full.number
                 },
-                name: 'lodgement_number',
             }
         },
         column_permit_or_licence: function(){
             return {
-                // 3. Type (This corresponds to the 'ApplicationType' at the backend)
-                data: "id",
+                data: "approval",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
+                    return full.approval.lodgement_number
                 }
             }
         },
@@ -150,7 +148,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
+                    return '??? (' + full.mailing_date + ', ' + full.printing_date + ')'
                 }
             }
         },
@@ -158,12 +156,12 @@ export default {
             let vm = this
             return {
                 // 5. Status
-                data: "id",
+                data: "status",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
+                    return full.status
                 }
             }
         },
@@ -285,7 +283,7 @@ export default {
             if(vm.is_internal){
                 columns = [
                     vm.column_id,
-                    vm.column_lodgement_number,
+                    vm.column_number,
                     vm.column_permit_or_licence,
                     vm.column_printing_company,
                     vm.column_status,
@@ -304,7 +302,7 @@ export default {
                 serverSide: true,
                 searching: search,
                 ajax: {
-                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.stickers_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering

@@ -9,12 +9,12 @@ from mooringlicensing.components.payments_ml.serializers import DcvPermitSeriali
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
-    ApprovalUserAction, 
-    DcvOrganisation, 
+    ApprovalUserAction,
+    DcvOrganisation,
     DcvVessel,
     DcvPermit,
     DcvAdmission,
-    WaitingListAllocation,
+    WaitingListAllocation, Sticker,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -583,6 +583,43 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
 
     def get_submitter_phone_number(self, obj):
         return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
+
+
+class ApprovalSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Approval
+        fields = (
+            'id',
+            'lodgement_number',
+        )
+
+
+class ListStickerSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    approval = ApprovalSimpleSerializer()
+
+    class Meta:
+        model = Sticker
+        fields = (
+            'id',
+            'number',
+            'status',
+            'approval',
+            'printing_date',
+            'mailing_date',
+        )
+        datatables_always_serialize = (
+            'id',
+            'number',
+            'status',
+            'approval',
+            'printing_date',
+            'mailing_date',
+        )
+
+    def get_status(self, obj):
+        return obj.get_status_display()
 
 
 class ListDcvPermitSerializer(serializers.ModelSerializer):

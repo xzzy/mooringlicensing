@@ -984,8 +984,8 @@ class Sticker(models.Model):
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
     sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True)
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
-    printing_date = models.DateField(blank=True, null=True)
-    mailing_date = models.DateField(blank=True, null=True)
+    printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
+    mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
 
     class Meta:
         app_label = 'mooringlicensing'
