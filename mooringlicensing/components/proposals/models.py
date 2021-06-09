@@ -2141,9 +2141,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
-    def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE))):
+    def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=None):
         #approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
-        approval, created = self.child_obj.update_or_create_approval(target_datetime)
+        approval, created = self.child_obj.update_or_create_approval(target_datetime, request)
         return approval, created
 
     @property
@@ -2248,7 +2248,7 @@ class WaitingListApplication(Proposal):
         return ret_value
 
     #@classmethod
-    def update_or_create_approval(self, current_datetime):
+    def update_or_create_approval(self, current_datetime, request=None):
         approval, created = self.approval_class.objects.update_or_create(
         #approval, created = cls.objects.update_or_create(
             current_proposal=self,
@@ -2304,7 +2304,7 @@ class AnnualAdmissionApplication(Proposal):
         return ret_value
 
     #@classmethod
-    def update_or_create_approval(self, current_datetime):
+    def update_or_create_approval(self, current_datetime, request=None):
         approval, created = self.approval_class.objects.update_or_create(
         #approval, created = cls.objects.update_or_create(
             current_proposal=self,  # filter by this field
@@ -2379,7 +2379,7 @@ class AuthorisedUserApplication(Proposal):
             send_submit_email_notification(request, self)
 
     #@classmethod
-    def update_or_create_approval(self, current_datetime):
+    def update_or_create_approval(self, current_datetime, request=None):
         mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
         mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
         ria_selected_mooring = None
@@ -2456,19 +2456,45 @@ class MooringLicenceApplication(Proposal):
         self.save()
         send_documents_upload_for_mooring_licence_application_email(request, self)
 
-    def update_or_create_approval(self, current_datetime):
-        approval, created = self.approval_class.objects.update_or_create(
-            current_proposal=self,
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': self.end_date,
-                'submitter': self.submitter,
-            }
-        )
-        return approval, created
+    def update_or_create_approval(self, current_datetime, request):
+        try:
+            approval, created = self.approval_class.objects.update_or_create(
+                current_proposal=self,
+                defaults={
+                    'issue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_datetime.date(),
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                }
+            )
+            # associate Mooring with approval
+            existing_mooring_licence = approval.current_proposal.allocated_mooring.mooring_licence
+            #allocated_mooring_lodgement_number = approval.current_proposal.allocated_mooring.id
+            approval.current_proposal.allocated_mooring.mooring_licence = approval
+            approval.current_proposal.allocated_mooring.save()
+            # log Mooring action
+            if existing_mooring_licence:
+                approval.current_proposal.allocated_mooring.log_user_action(
+                        MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
+                            str(existing_mooring_licence),
+                            str(approval),
+                            ),
+                        request
+                        )
+            else:
+                approval.current_proposal.allocated_mooring.log_user_action(
+                        MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
+                            str(approval),
+                            ),
+                        request
+                        )
+            return approval, created
+        except Exception as e:
+            print("error in update_or_create_approval")
+            print(e)
+            raise e
 
 
 class ProposalLogDocument(Document):
@@ -2514,7 +2540,13 @@ class PrivateMooringManager(models.Manager):
     def get_queryset(self):
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
         return super(PrivateMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2)
-        #return self.first()
+
+
+class AvailableMooringManager(models.Manager):
+    def get_queryset(self):
+        #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        lookups = Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current'))
+        return super(AvailableMooringManager, self).get_queryset().filter(lookups)
 
 
 # not for admin - data comes from Mooring Bookings
@@ -2537,6 +2569,7 @@ class Mooring(models.Model):
     mooring_bookings_bay_id = models.IntegerField()
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
+    available_moorings = AvailableMooringManager()
     # Used for WLAllocation create MLApplication check
     mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
 
@@ -2550,6 +2583,9 @@ class Mooring(models.Model):
     @property
     def specification_display(self):
         return self.get_mooring_bookings_mooring_specification_display()
+
+    def log_user_action(self, action, request):
+        return MooringUserAction.log_action(self, action, request.user)
 
 
 class MooringLogDocument(Document):
@@ -2568,6 +2604,25 @@ class MooringLogEntry(CommunicationsLogEntry):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+class MooringUserAction(UserAction):
+    ACTION_ASSIGN_MOORING_LICENCE = "Assign Mooring Licence {}"
+    ACTION_SWITCH_MOORING_LICENCE = "Remove existing Mooring Licence {} and assign {}"
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        ordering = ('-when',)
+
+    @classmethod
+    def log_action(cls, mooring, action, user):
+        return cls.objects.create(
+            mooring=mooring,
+            who=user,
+            what=str(action)
+        )
+
+    mooring = models.ForeignKey(Mooring, related_name='action_logs')
+
 
     #def save(self, **kwargs):
     #    # save the application reference if the reference not provided
