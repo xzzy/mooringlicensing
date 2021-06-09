@@ -187,35 +187,11 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
-                    let links = 'Request Sticker Replacement<br />'
-                    links += 'Record Returned Sticker<br />'
-                    links += 'Record Sticker Lost<br />'
-                    return links
+                    let links =  `<a href='#${full.id}' data-replacement='${full.id}'>Request Sticker Replacement</a><br/>`
+                    links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
+                    links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
 
-                    if (!vm.is_external){
-                        if(full.assessor_process){
-                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`
-                        } else {
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`
-                        }
-                    }
-                    else{
-                        console.log('aho1')
-                        if (full.can_user_edit) {
-                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`
-                        }
-                        else if (full.can_user_view) {
-                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`
-                        }
-                        for (let invoice of full.invoices){
-                            if (invoice.payment_status === 'unpaid'){
-                                links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
-                            }
-                        }
-                    }
-                    return links;
+                    return links
                 }
             }
         },
@@ -319,11 +295,24 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            //vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-            //    e.preventDefault();
-            //    let id = $(this).attr('data-discard-proposal');
-            //    vm.discardProposal(id)
-            //});
+
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-replacement');
+                console.log('replacement: ' + id)
+            });
+                    //links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
+                    //links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-record-returned');
+                console.log('record returned: ' + id)
+            });
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-record-lost');
+                console.log('record lost: ' + id)
+            });
         },
     },
     created: function(){
