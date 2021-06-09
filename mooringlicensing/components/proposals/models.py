@@ -2470,10 +2470,12 @@ class MooringLicenceApplication(Proposal):
                 }
             )
             # associate Mooring with approval
-            existing_mooring_licence = approval.current_proposal.allocated_mooring.mooring_licence
-            #allocated_mooring_lodgement_number = approval.current_proposal.allocated_mooring.id
-            approval.current_proposal.allocated_mooring.mooring_licence = approval
-            approval.current_proposal.allocated_mooring.save()
+            existing_mooring_licence = self.allocated_mooring.mooring_licence
+            self.allocated_mooring.mooring_licence = approval
+            self.allocated_mooring.save()
+            # Move WLA to status approved
+            self.waiting_list_allocation.status = 'approved'
+            self.waiting_list_allocation.save()
             # log Mooring action
             if existing_mooring_licence:
                 approval.current_proposal.allocated_mooring.log_user_action(

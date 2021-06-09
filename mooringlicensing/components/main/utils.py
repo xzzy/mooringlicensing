@@ -14,7 +14,13 @@ from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import Sticker, WaitingListAllocation
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
-from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickerPrintingBatch
+from mooringlicensing.components.proposals.models import (
+        MooringBay, 
+        Mooring, 
+        Proposal, 
+        StickerPrintingBatch, 
+        MooringLicenceApplication
+        )
 from rest_framework import serializers
 from openpyxl import Workbook
 from openpyxl.writer.excel import save_virtual_workbook
@@ -75,6 +81,16 @@ def reset_waiting_list_allocations(wla_list):
                 now = timezone.localtime(timezone.now())
                 waiting_list_allocation.wla_queue_date = now
                 waiting_list_allocation.save()
+                # discard MLA
+                mla_qs = MooringLicenceApplication.objects.filter(
+                        waiting_list_allocation=waiting_list_allocation,
+                        processing_status='draft').order('-lodgement_date')
+                mla = mla_qs[0] if mla_qs else None
+                if mla:
+                    mla.processing_status = 'discarded'
+                    mla.customer_status = 'discarded'
+                    mla.save()
+                    records_updated.append(str(mla))
             # set wla order per bay
             for bay in MooringBay.objects.all():
                 place = 1
