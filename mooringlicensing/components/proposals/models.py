@@ -2143,7 +2143,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=None):
         #approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
-        approval, created = self.child_obj.update_or_create_approval(target_datetime, request=None)
+        approval, created = self.child_obj.update_or_create_approval(target_datetime, request)
         return approval, created
 
     @property
@@ -2456,7 +2456,7 @@ class MooringLicenceApplication(Proposal):
         self.save()
         send_documents_upload_for_mooring_licence_application_email(request, self)
 
-    def update_or_create_approval(self, current_datetime, request=None):
+    def update_or_create_approval(self, current_datetime, request):
         try:
             approval, created = self.approval_class.objects.update_or_create(
                 current_proposal=self,
@@ -2471,7 +2471,7 @@ class MooringLicenceApplication(Proposal):
             )
             # associate Mooring with approval
             existing_mooring_licence = approval.current_proposal.allocated_mooring.mooring_licence
-            allocated_mooring_lodgement_number = approval.current_proposal.allocated_mooring.id
+            #allocated_mooring_lodgement_number = approval.current_proposal.allocated_mooring.id
             approval.current_proposal.allocated_mooring.mooring_licence = approval
             approval.current_proposal.allocated_mooring.save()
             # log Mooring action
@@ -2492,6 +2492,8 @@ class MooringLicenceApplication(Proposal):
                         )
             return approval, created
         except Exception as e:
+            print("error in update_or_create_approval")
+            print(e)
             raise e
 
 
