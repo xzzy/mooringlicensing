@@ -2495,6 +2495,8 @@ class MooringLicenceApplication(Proposal):
             print("error in update_or_create_approval")
             print(e)
             raise e
+            msg = 'Payment taken for Proposal: {}, but approval creation has failed'.format(self.lodgement_number)
+            logger.error(msg)
 
 
 class ProposalLogDocument(Document):
