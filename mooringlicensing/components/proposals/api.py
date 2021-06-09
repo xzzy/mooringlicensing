@@ -209,9 +209,9 @@ class GetMooringPerBay(views.APIView):
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             if mooring_bay_id:
-                data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
             else:
-                data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+                data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             return Response({"results": data_transform})
         return Response()
