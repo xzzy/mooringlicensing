@@ -81,7 +81,7 @@ class ApprovalDocument(Document):
     class Meta:
         app_label = 'mooringlicensing'
 
-
+# currently only required for Authorised User Applications
 class MooringOnApproval(Document):
     approval = models.ForeignKey('Approval')
     mooring = models.ForeignKey(Mooring)
