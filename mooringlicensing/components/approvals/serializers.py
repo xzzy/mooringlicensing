@@ -586,13 +586,21 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
 
 
 class ApprovalSimpleSerializer(serializers.ModelSerializer):
+    approval_type_dict = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
         fields = (
             'id',
             'lodgement_number',
+            'approval_type_dict',
         )
+
+    def get_approval_type_dict(self, obj):
+        return {
+            'code': obj.child_obj.code,
+            'description': obj.child_obj.description,
+        }
 
 
 class ListStickerSerializer(serializers.ModelSerializer):

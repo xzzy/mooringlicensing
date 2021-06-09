@@ -4,9 +4,9 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Permit or licence type</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <select class="form-control" v-model="filterApprovalType">
                         <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
+                        <option v-for="type in approval_types" :value="type.code">{{ type.description }}</option>
                     </select>
                 </div>
             </div>
@@ -60,15 +60,14 @@ export default {
         let vm = this;
         return {
             datatable_id: 'applications-datatable-' + vm._uid,
+            approvalTypesToDisplay: ['aap', 'aup', 'ml'],
 
             // selected values for filtering
-            filterApplicationType: null,
+            filterApprovalType: null,
             filterYear: null,
 
             // filtering options
-            application_types: [],
-            application_statuses: [],
-            applicants: [],
+            approval_types: [],
         }
     },
     components:{
@@ -84,7 +83,7 @@ export default {
             //    vm.$refs.stickers_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
             //}
         },
-        filterApplicationType: function() {
+        filterApprovalType: function() {
             let vm = this;
             vm.$refs.stickers_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
@@ -307,7 +306,7 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_application_type = vm.filterApplicationType
+                        d.filter_approval_type = vm.filterApprovalType
                         d.filter_year = vm.filterYear
                         d.level = vm.level
                     }
@@ -357,9 +356,12 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
+            let include_codes = vm.approvalTypesToDisplay.join(',');
+            //vm.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + include_codes).then((response) => {
+
             // Application Types
-            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
-                vm.application_types = response.body
+            vm.$http.get(api_endpoints.approval_types_dict+'?include_codes=' + include_codes).then((response) => {
+                vm.approval_types = response.body
             },(error) => {
                 console.log(error);
             })

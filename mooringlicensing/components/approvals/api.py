@@ -868,6 +868,14 @@ class StickerFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
+        # Filter by approval types (wla, aap, aup, ml)
+        filter_approval_type = request.GET.get('filter_approval_type')
+        #import ipdb; ipdb.set_trace()
+        if filter_approval_type and not filter_approval_type.lower() == 'all':
+            filter_approval_type_list = filter_approval_type.split(',')
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
+            queryset = queryset.filter(approval__id__in=filtered_ids)
+
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
