@@ -126,16 +126,17 @@ export default {
                 'render': function(row, type, full){
                     return full.number
                 },
+                name: 'number',
             }
         },
         column_permit_or_licence: function(){
             return {
                 data: "approval",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.approval.lodgement_number
+                    return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
                 }
             }
         },
@@ -144,7 +145,7 @@ export default {
                 // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     return '??? (' + full.mailing_date + ', ' + full.printing_date + ')'
@@ -161,7 +162,8 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     return full.status
-                }
+                },
+                name: 'status'
             }
         },
         column_year: function(){
@@ -169,7 +171,7 @@ export default {
                 // 6. Lodged
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     return 'not implemented'
@@ -182,7 +184,7 @@ export default {
                 // 8. Action
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     console.log(full)
@@ -214,59 +216,6 @@ export default {
                         }
                     }
                     return links;
-                }
-            }
-        },
-        column_applicant: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.submitter){
-                        return `${full.submitter.first_name} ${full.submitter.last_name}`
-                    }
-                    return ''
-                },
-                name: 'submitter__first_name, submitter__last_name',
-            }
-        },
-        column_assigned_to: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let ret_str = ''
-                    if (full.assigned_officer){
-                        ret_str += full.assigned_officer
-                    }
-                    if (full.assigned_approver){
-                        ret_str += full.assigned_approver
-                    }
-                    return ret_str
-                },
-                name: 'assigned_officer__first_name, assigned_officer__last_name, assigned_approver__first_name, assigned_approver__last_name',
-            }
-        },
-        column_payment_status: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.invoices){
-                        let ret_str = ''
-                        for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
-                        }
-                        return ret_str
-                    } else {
-                        return ''
-                    }
                 }
             }
         },
