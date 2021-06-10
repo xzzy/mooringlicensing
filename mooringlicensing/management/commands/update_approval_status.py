@@ -1,11 +1,11 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
-from disturbance.components.approvals.models import Approval, ApprovalUserAction
-from disturbance.components.proposals.models import Proposal, ProposalUserAction
+from mooringlicensing.components.approvals.models import Approval, ApprovalUserAction
+from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
 from ledger.accounts.models import EmailUser
 import datetime
-from disturbance.components.approvals.email import (
+from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification, 
     send_approval_cancel_email_notification,
     send_approval_suspend_email_notification,
