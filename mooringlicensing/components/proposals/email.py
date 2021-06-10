@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -146,17 +147,30 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
 def send_sticker_printing_batch_email(batches):
     # TODO: Make the recipient configurable
+    if batches.count() == 0:
+        return
+
     email = StickerPrintingBatchEmail()
+
+    attachments = []
+    for batch in batches:
+        if batch._file is not None:
+            file_name = batch._file.name
+            mime = mimetypes.guess_type(file_name)[0]
+            if mime:
+                attachment = (batch.name, batch._file.read(), mime)
+                attachments.append(attachment)
 
     context = {
         'batches': batches,
     }
-    to_address = 'recipient_for_batch@mail.com'
+    to_address = settings.PRINTING_COMPANY_EMAIL_ADDRESS
     cc = []
     bcc = []
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    # msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
+    msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
 
     sender = settings.DEFAULT_FROM_EMAIL
     # _log_proposal_email(msg, proposal, sender=sender)

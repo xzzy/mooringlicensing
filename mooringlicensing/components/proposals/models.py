@@ -2393,8 +2393,8 @@ class AuthorisedUserApplication(Proposal):
         approval, created = self.approval_class.objects.update_or_create(
             current_proposal=self,
             # Following two fields should be in the defaults?
-            ria_selected_mooring = ria_selected_mooring,
-            ria_selected_mooring_bay = ria_selected_mooring_bay,
+            # ria_selected_mooring = ria_selected_mooring,
+            # ria_selected_mooring_bay = ria_selected_mooring_bay,
             defaults={
                 'issue_date': current_datetime,
                 #'start_date': current_date.strftime('%Y-%m-%d'),
@@ -2404,6 +2404,7 @@ class AuthorisedUserApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
+        approval.manage_stickers()
         return approval, created
 
 
@@ -2492,6 +2493,7 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
+            approval.manage_stickers()
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")

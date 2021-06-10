@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import json
 import datetime
 import logging
+import re
 
 import pytz
 from django.db import models,transaction
@@ -270,18 +271,8 @@ class Approval(RevisionedMixin):
     def title(self):
         return self.current_proposal.title
 
-    @property
-    def next_id(self):
-        #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
-        ids = map(int, [i.split('L')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
-        ids = list(ids)
-        return max(ids) + 1 if len(ids) else 1
-
     def save(self, *args, **kwargs):
-        if self.lodgement_number in ['', None]:
-            self.lodgement_number = 'L{0:06d}'.format(self.next_id)
-            #self.save()
-        super(Approval, self).save(*args,**kwargs)
+        super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
 
     def __str__(self):
@@ -627,8 +618,17 @@ class WaitingListAllocation(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in WaitingListAllocation.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(WaitingListAllocation, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
 
@@ -641,8 +641,17 @@ class AnnualAdmissionPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AnnualAdmissionPermit.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
     def manage_stickers(self):
@@ -661,8 +670,17 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AuthorisedUserPermit.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
     def manage_stickers(self):
@@ -681,8 +699,17 @@ class MooringLicence(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in MooringLicence.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(MooringLicence, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
     def manage_stickers(self):
@@ -985,11 +1012,14 @@ class Sticker(models.Model):
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
     sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True)
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
-    printing_date = models.DateField(blank=True, null=True)
-    mailing_date = models.DateField(blank=True, null=True)
+    printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
+    mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return '{} ({})'.format(self.number, self.status)
 
     @property
     def next_number(self):
@@ -1002,6 +1032,42 @@ class Sticker(models.Model):
         if self.number == '':
             self.number = '{0:07d}'.format(self.next_number)
             self.save()
+
+    @property
+    def first_name(self):
+        if self.approval and self.approval.submitter:
+            return self.approval.submitter.first_name
+        return '---'
+
+    @property
+    def last_name(self):
+        if self.approval and self.approval.submitter:
+            return self.approval.submitter.last_name
+        return '---'
+
+    @property
+    def postal_address_line1(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.line1
+        return '---'
+
+    @property
+    def postal_address_line2(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.line2
+        return '---'
+
+    @property
+    def postal_address_state(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.state
+        return '---'
+
+    @property
+    def postal_address_postcode(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.postcode
+        return '---'
 
 
 @receiver(pre_delete, sender=Approval)

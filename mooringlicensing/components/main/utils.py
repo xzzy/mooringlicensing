@@ -1,7 +1,8 @@
+import datetime
 from io import BytesIO
 from pathlib import Path
 from django.db.models import Q
-from django.core.files.base import File
+from django.core.files.base import File, ContentFile
 from ledger.settings_base import TIME_ZONE
 from django.utils import timezone
 
@@ -278,28 +279,60 @@ def sticker_export():
     # then the user needs to submit three applications. The system will
     # combine them onto one sticker if payment is received on one day
     # (applicant is notified to pay once RIA staff approve the application)
+    stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)  # When sticker_printing_batch==null, status should always be 'printing'
 
-    wb = Workbook()
-    file_path = BytesIO(save_virtual_workbook(wb))  # Save as a temp file
-    ws1 = wb.create_sheet(title="Approvals", index=0)
+    if stickers.count():
+        wb = Workbook()
+        virtual_workbook = BytesIO()
+        ws1 = wb.create_sheet(title="Info", index=0)
 
-    stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)  #
-    for sticker in stickers:
-        ws1.append([sticker.id, sticker.number])
+        ws1.append([
+            'Date',
+            'First Name',
+            'Last Name',
+            'Address Line 1',
+            'Address Line 2',
+            'Suburb',
+            'State',
+            'Postcode',
+            'Sticker Number',
+            'Vessel Registration Number',
+            'Moorings',
+            'Colour',
+        ])
+        for sticker in stickers:
+            ws1.append([
+                'date',
+                sticker.first_name,
+                sticker.last_name,
+                sticker.postal_address_line1,
+                sticker.postal_address_line2,
+                'suburb',
+                sticker.postal_address_state,
+                sticker.postal_address_postcode,
+                sticker.number,
+                'v rego',
+                'moorings',
+                'colour',
+            ])
 
-    batch_obj = StickerPrintingBatch.objects.create()
-    filename = '{}-stickers.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d-%H%M'))
-    batch_obj._file.save(filename, File(file_path))
-    batch_obj.name = filename
-    batch_obj.save()
+        wb.save(virtual_workbook)
 
-    # Update sticker objects
-    stickers.update(
-        sticker_printing_batch=batch_obj,
-    )
+        batch_obj = StickerPrintingBatch.objects.create()
+        filename = 'RIA-{}.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d'))
+        batch_obj._file.save(filename, virtual_workbook)
+        batch_obj.name = filename
+        batch_obj.save()
+
+        # Update sticker objects
+        stickers.update(
+            sticker_printing_batch=batch_obj,  # Keep status 'printing' because we still have to wait for the sticker printed.
+        )
 
 
 def email_stickers_document():
     batches = StickerPrintingBatch.objects.filter(emailed_datetime__isnull=True)
-    # TODO: Insert datetime into the each batch's emailed_datetime
-    send_sticker_printing_batch_email(batches)
+    if batches.count():
+        send_sticker_printing_batch_email(batches)
+        batches.update(emailed_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+
