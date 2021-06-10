@@ -695,7 +695,7 @@ class AuthorisedUserPermit(Approval):
 class MooringLicence(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'ml'
-    prefix = 'ML'
+    prefix = 'MOL'
     description = 'Mooring Licence'
     sticker_colour = 'red'
 
