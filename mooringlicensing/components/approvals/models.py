@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import json
 import datetime
 import logging
+import re
 
 import pytz
 from django.db import models,transaction
@@ -270,18 +271,8 @@ class Approval(RevisionedMixin):
     def title(self):
         return self.current_proposal.title
 
-    @property
-    def next_id(self):
-        #ids = map(int,[(i.lodgement_number.split('A')[1]) for i in Approval.objects.all()])
-        ids = map(int, [i.split('L')[1] for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
-        ids = list(ids)
-        return max(ids) + 1 if len(ids) else 1
-
     def save(self, *args, **kwargs):
-        if self.lodgement_number in ['', None]:
-            self.lodgement_number = 'L{0:06d}'.format(self.next_id)
-            #self.save()
-        super(Approval, self).save(*args,**kwargs)
+        super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
 
     def __str__(self):
@@ -627,8 +618,17 @@ class WaitingListAllocation(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in WaitingListAllocation.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(WaitingListAllocation, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
 
@@ -641,8 +641,17 @@ class AnnualAdmissionPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AnnualAdmissionPermit.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(AnnualAdmissionPermit, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
     def manage_stickers(self):
@@ -661,8 +670,17 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AuthorisedUserPermit.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(AuthorisedUserPermit, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
     def manage_stickers(self):
@@ -681,8 +699,17 @@ class MooringLicence(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in MooringLicence.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
         super(MooringLicence, self).save(*args, **kwargs)
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+            self.save()
         self.approval.refresh_from_db()
 
     def manage_stickers(self):
