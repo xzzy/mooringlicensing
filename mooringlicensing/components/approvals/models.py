@@ -1005,6 +1005,42 @@ class Sticker(models.Model):
             self.number = '{0:07d}'.format(self.next_number)
             self.save()
 
+    @property
+    def first_name(self):
+        if self.approval and self.approval.submitter:
+            return self.approval.submitter.first_name
+        return '---'
+
+    @property
+    def last_name(self):
+        if self.approval and self.approval.submitter:
+            return self.approval.submitter.last_name
+        return '---'
+
+    @property
+    def postal_address_line1(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.line1
+        return '---'
+
+    @property
+    def postal_address_line2(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.line2
+        return '---'
+
+    @property
+    def postal_address_state(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.state
+        return '---'
+
+    @property
+    def postal_address_postcode(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.postcode
+        return '---'
+
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):

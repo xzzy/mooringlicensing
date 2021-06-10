@@ -164,7 +164,7 @@ def send_sticker_printing_batch_email(batches):
     context = {
         'batches': batches,
     }
-    to_address = 'recipient_for_batch@mail.com'
+    to_address = settings.PRINTING_COMPANY_EMAIL_ADDRESS
     cc = []
     bcc = []
 
