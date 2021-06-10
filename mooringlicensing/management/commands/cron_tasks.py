@@ -34,6 +34,7 @@ class Command(BaseCommand):
         #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True) 
         #subprocess.call('python manage_co.py monthly_invoices' + stdout_redirect, shell=True) 
         subprocess.call('python manage_ml.py import_mooring_bookings_data' + stdout_redirect, shell=True) 
+        subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True) 
 
         logger.info('Command {} completed'.format(__name__))
         self.send_email()
