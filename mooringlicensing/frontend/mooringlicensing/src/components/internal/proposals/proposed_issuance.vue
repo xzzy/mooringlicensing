@@ -74,16 +74,16 @@
                                         <input disabled :value="siteLicenseeMooring.name" id="mooring_site_id"/>
                                     </div>
                                     <div v-else class="col-sm-6">
-                                        <select 
-                                            id="mooring_lookup"  
-                                            name="mooring_lookup"  
-                                            ref="mooring_lookup" 
-                                            class="form-control" 
+                                        <select
+                                            id="mooring_lookup"
+                                            name="mooring_lookup"
+                                            ref="mooring_lookup"
+                                            class="form-control"
                                         />
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="display_sticker_number_field">
+                            <!-- div class="form-group" v-if="display_sticker_number_field">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="Bay">Sticker number</label>
@@ -92,7 +92,7 @@
                                         TODO: implement
                                     </div>
                                 </div>
-                            </div>
+                            </div -->
 
                             <div class="form-group">
                                 <div class="row">
