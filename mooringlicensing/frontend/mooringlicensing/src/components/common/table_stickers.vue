@@ -29,10 +29,10 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="stickers_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="datatable_options" 
+                <datatable
+                    ref="stickers_datatable"
+                    :id="datatable_id"
+                    :dtOptions="datatable_options"
                     :dtHeaders="datatable_headers"
                 />
             </div>
@@ -100,8 +100,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                //return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
-                return ['id', 'Number', 'Permit or Licence', 'Printing company (sent / received)', 'Status', 'Year', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Printing company (sent/printing/received)', 'Status', 'Year', 'Action']
             }
         },
         column_id: function(){
@@ -148,7 +147,7 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return '??? (' + full.mailing_date + ', ' + full.printing_date + ')'
+                    return full.sent_date + '<br />' + full.printing_date + '<br />' + full.mailing_date
                 }
             }
         },

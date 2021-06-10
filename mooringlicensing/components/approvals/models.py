@@ -637,6 +637,7 @@ class AnnualAdmissionPermit(Approval):
     code = 'aap'
     prefix = 'AAP'
     description = 'Annual Admission Permit'
+    sticker_colour = 'blue'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -666,6 +667,7 @@ class AuthorisedUserPermit(Approval):
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
+    sticker_colour = 'yellow'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -695,6 +697,7 @@ class MooringLicence(Approval):
     code = 'ml'
     prefix = 'ML'
     description = 'Mooring Licence'
+    sticker_colour = 'red'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1007,6 +1010,13 @@ class Sticker(models.Model):
         STICKER_STATUS_LOST,
         STICKER_STATUS_EXPIRED,
     )
+    colour_default = 'green'
+    colour_matrix = [
+        {'length': 10, 'colour': 'gray'},
+        {'length': 12, 'colour': 'purple'},
+        {'length': 14, 'colour': 'blue'},
+        {'length': 16, 'colour': 'white'},
+    ]
     number = models.CharField(max_length=9, blank=True, default='', unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
@@ -1020,6 +1030,12 @@ class Sticker(models.Model):
 
     def __str__(self):
         return '{} ({})'.format(self.number, self.status)
+
+    def get_sticker_colour(self):
+        colour = self.approval.child_obj.sticker_colour
+        # TODO: account for the vessel size colour
+        colour += '/(length colour for AUP and ML)'
+        return colour
 
     @property
     def next_number(self):
