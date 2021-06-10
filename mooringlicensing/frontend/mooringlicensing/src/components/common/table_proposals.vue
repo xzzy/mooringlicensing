@@ -38,10 +38,10 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="application_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="datatable_options" 
+                <datatable
+                    ref="application_datatable"
+                    :id="datatable_id"
+                    :dtOptions="datatable_options"
                     :dtHeaders="datatable_headers"
                 />
             </div>
@@ -115,7 +115,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
             }
             if (this.is_internal){
-                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
+                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Invoice', 'Assigned To', 'Payment Status', 'Action']
             }
         },
         column_id: function(){
@@ -221,9 +221,9 @@ export default {
                     if (full.invoices){
                         for (let invoice of full.invoices){
                             links += '<div>'
-                            links +=  `<a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a>`;
-                            if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                            if (vm.is_internal){
+                                links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
                             }
                             links += '</div>'
                         }
@@ -241,17 +241,15 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
                     let links = '';
-                    if (!vm.is_external){
+                    if (vm.is_internal){
                         if(full.assessor_process){
                             links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
                         } else {
                             links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
                         }
                     }
-                    else{
-                        console.log('aho1')
+                    if (vm.is_external){
                         if (full.can_user_edit) {
                             links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
                             links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
@@ -348,6 +346,7 @@ export default {
                     vm.column_applicant,
                     vm.column_status,
                     vm.column_lodged_on,
+                    vm.column_invoice,
                     vm.column_assigned_to,
                     vm.column_payment_status,
                     vm.column_action,
