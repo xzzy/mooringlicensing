@@ -14,42 +14,69 @@ from ledger.accounts.models import EmailUser
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
+
+
 class ApprovalExpireNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence expired.'.format(settings.DEP_NAME)
+    subject = 'Approval expired'  # This is default and should be overwitten
     html_template = 'mooringlicensing/emails/approval_expire_notification.html'
     txt_template = 'mooringlicensing/emails/approval_expire_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
 class ApprovalCancelNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence cancelled.'.format(settings.DEP_NAME)
+    subject = 'Approval cancelled'  # This is default and should be overwitten
     html_template = 'mooringlicensing/emails/approval_cancel_notification.html'
     txt_template = 'mooringlicensing/emails/approval_cancel_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} cancelled.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
 class ApprovalSuspendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence suspended.'.format(settings.DEP_NAME)
+    subject = 'Approval suspended'  # This is default and should be overwitten
     html_template = 'mooringlicensing/emails/approval_suspend_notification.html'
     txt_template = 'mooringlicensing/emails/approval_suspend_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} suspended.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
 class ApprovalSurrenderNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence surrendered.'.format(settings.DEP_NAME)
+    subject = 'Approval surrendered'
     html_template = 'mooringlicensing/emails/approval_surrender_notification.html'
     txt_template = 'mooringlicensing/emails/approval_surrender_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} surrendered.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
 class ApprovalReinstateNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence reinstated.'.format(settings.DEP_NAME)
+    subject = 'Approval reinstated'
     html_template = 'mooringlicensing/emails/approval_reinstate_notification.html'
     txt_template = 'mooringlicensing/emails/approval_reinstate_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} reinstated.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
 class ApprovalRenewalNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence renewal.'.format(settings.DEP_NAME)
+    subject = 'Approval renewal'
     html_template = 'mooringlicensing/emails/approval_renewal_notification.html'
     txt_template = 'mooringlicensing/emails/approval_renewal_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} renewal.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
 class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
-    # subject = '{} - Mooring Licence Application created.'.format(settings.DEP_NAME)
-    subject = 'RIA - Mooring Licence Application created'
+    subject = 'Approval created'
     html_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.html'
     txt_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.txt'
 
+    def __init__(self, approval):
+        self.subject = '{} - {} created.'.format(settings.RIA_NAME, approval.child_obj.description)
 
 
 def send_approval_expire_email_notification(approval):
@@ -59,7 +86,7 @@ def send_approval_expire_email_notification(approval):
     #     email = FilmingLicenceApprovalExpireNotificationEmail()
     # else:
     #     email = ApprovalExpireNotificationEmail()
-    email = ApprovalExpireNotificationEmail()
+    email = ApprovalExpireNotificationEmail(approval)
     proposal = approval.current_proposal
 
     url=settings.SITE_URL if settings.SITE_URL else ''
@@ -94,8 +121,9 @@ def send_approval_expire_email_notification(approval):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
+
 def send_approval_cancel_email_notification(approval):
-    email = ApprovalCancelNotificationEmail()
+    email = ApprovalCancelNotificationEmail(approval)
     proposal = approval.current_proposal
 
     context = {
@@ -122,8 +150,9 @@ def send_approval_cancel_email_notification(approval):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
+
 def send_approval_suspend_email_notification(approval, request=None):
-    email = ApprovalSuspendNotificationEmail()
+    email = ApprovalSuspendNotificationEmail(approval)
     proposal = approval.current_proposal
 
     if request and 'test-emails' in request.path_info:
@@ -161,8 +190,9 @@ def send_approval_suspend_email_notification(approval, request=None):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
+
 def send_approval_surrender_email_notification(approval, request=None):
-    email = ApprovalSurrenderNotificationEmail()
+    email = ApprovalSurrenderNotificationEmail(approval)
     proposal = approval.current_proposal
 
     if request and 'test-emails' in request.path_info:
@@ -195,9 +225,10 @@ def send_approval_surrender_email_notification(approval, request=None):
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-#approval renewal notice
+
+
 def send_approval_renewal_email_notification(approval):
-    email = ApprovalRenewalNotificationEmail()
+    email = ApprovalRenewalNotificationEmail(approval)
     proposal = approval.current_proposal
     url=settings.SITE_URL if settings.SITE_URL else ''
     url += reverse('external')
@@ -240,9 +271,10 @@ def send_approval_renewal_email_notification(approval):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
+
 # waiting list allocation notice
 def send_create_mooring_licence_application_email_notification(request, approval):
-    email = CreateMooringLicenceApplicationEmail()
+    email = CreateMooringLicenceApplicationEmail(approval)
     proposal = approval.current_proposal
     ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
     #url=settings.SITE_URL if settings.SITE_URL else ''
@@ -287,7 +319,7 @@ def send_create_mooring_licence_application_email_notification(request, approval
 
 
 def send_approval_reinstate_email_notification(approval, request):
-    email = ApprovalReinstateNotificationEmail()
+    email = ApprovalReinstateNotificationEmail(approval)
     proposal = approval.current_proposal
 
     context = {

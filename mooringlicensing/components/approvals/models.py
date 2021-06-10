@@ -404,12 +404,12 @@ class Approval(RevisionedMixin):
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
 
-    def expire_approval(self,user):
+    def expire_approval(self, user):
         with transaction.atomic():
             try:
                 today = timezone.localtime(timezone.now()).date()
-                if self.status == 'current' and self.expiry_date < today:
-                    self.status = 'expired'
+                if self.status == Approval.APPROVAL_STATUS_CURRENT and self.expiry_date < today:
+                    self.status = Approval.APPROVAL_STATUS_EXPIRED
                     self.save()
                     send_approval_expire_email_notification(self)
                     proposal = self.current_proposal
