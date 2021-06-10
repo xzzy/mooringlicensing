@@ -100,7 +100,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Number', 'Permit or Licence', 'Printing company (sent/printing/received)', 'Status', 'Year', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Date sent / printed / mailed', 'Status', 'Year', 'Action']
             }
         },
         column_id: function(){
