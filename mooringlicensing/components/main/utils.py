@@ -4,6 +4,7 @@ from pathlib import Path
 from django.db.models import Q
 from django.core.files.base import File, ContentFile
 from ledger.settings_base import TIME_ZONE
+from django.utils import timezone
 
 import requests
 import json
@@ -12,9 +13,15 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
 
-from mooringlicensing.components.approvals.models import Sticker
+from mooringlicensing.components.approvals.models import Sticker, WaitingListAllocation
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
-from mooringlicensing.components.proposals.models import MooringBay, Mooring, Proposal, StickerPrintingBatch
+from mooringlicensing.components.proposals.models import (
+        MooringBay, 
+        Mooring, 
+        Proposal, 
+        StickerPrintingBatch, 
+        MooringLicenceApplication
+        )
 from rest_framework import serializers
 from openpyxl import Workbook
 from openpyxl.writer.excel import save_virtual_workbook
@@ -61,6 +68,48 @@ def check_db_connection():
             connection.connect()
     except Exception as e:
         connection.connect()
+
+def reset_waiting_list_allocations(wla_list):
+    try:
+        records_updated = []
+        with transaction.atomic():
+            # send email
+            #send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
+            # update waiting_list_allocation
+            for waiting_list_allocation in wla_list:
+                waiting_list_allocation.status = 'current'
+                #current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                now = timezone.localtime(timezone.now())
+                waiting_list_allocation.wla_queue_date = now
+                waiting_list_allocation.save()
+                # discard MLA
+                mla_qs = MooringLicenceApplication.objects.filter(
+                        waiting_list_allocation=waiting_list_allocation,
+                        processing_status='draft').order('-lodgement_date')
+                mla = mla_qs[0] if mla_qs else None
+                if mla:
+                    mla.processing_status = 'discarded'
+                    mla.customer_status = 'discarded'
+                    mla.save()
+                    records_updated.append(str(mla))
+            # set wla order per bay
+            for bay in MooringBay.objects.all():
+                place = 1
+                for w in WaitingListAllocation.objects.filter(
+                        wla_queue_date__isnull=False, 
+                        current_proposal__preferred_bay=bay,
+                        status='current').order_by(
+                                '-wla_queue_date'):
+                    w.wla_order = place
+                    w.save()
+                    records_updated.append(str(w))
+                    place += 1
+            return [], records_updated
+    except Exception as e:
+        #raise e
+        logger.error('retrieve_mooring_areas() error', exc_info=True)
+        # email only prints len() of error list
+        return ['check log',], records_updated
 
 def import_mooring_bookings_data():
     errors = []

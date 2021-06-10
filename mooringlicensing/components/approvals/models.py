@@ -176,14 +176,15 @@ class Approval(RevisionedMixin):
     def set_wla_order(self):
         place = 1
         # Waiting List Allocations which have the wla_queue_date removed means that a ML application has been created
-        if not self.wla_queue_date:
-            self.wla_order = None
-            self.save()
-        #if type(self.child_obj) == WaitingListAllocation and self.wla_queue_date:
-        # set wla order per bay
+        #if not self.wla_queue_date:
+         #   self.wla_order = None
+          #  self.save()
+        # set wla order per bay for current allocations
         if type(self.child_obj) == WaitingListAllocation:
             for w in WaitingListAllocation.objects.filter(
-                    wla_queue_date__isnull=False, current_proposal__preferred_bay=self.current_proposal.preferred_bay).order_by(
+                    wla_queue_date__isnull=False,
+                    current_proposal__preferred_bay=self.current_proposal.preferred_bay,
+                    status='current').order_by(
                             '-wla_queue_date'):
                 w.wla_order = place
                 w.save()
