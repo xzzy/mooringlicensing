@@ -235,10 +235,37 @@ def sticker_export():
     if stickers.count():
         wb = Workbook()
         virtual_workbook = BytesIO()
-        ws1 = wb.create_sheet(title="Approvals", index=0)
+        ws1 = wb.create_sheet(title="Info", index=0)
 
+        ws1.append([
+            'Date',
+            'First Name',
+            'Last Name',
+            'Address Line 1',
+            'Address Line 2',
+            'Suburb',
+            'State',
+            'Postcode',
+            'Sticker Number',
+            'Vessel Registration Number',
+            'Moorings',
+            'Colour',
+        ])
         for sticker in stickers:
-            ws1.append([sticker.id, sticker.number])
+            ws1.append([
+                'date',
+                sticker.first_name,
+                sticker.last_name,
+                sticker.postal_address_line1,
+                sticker.postal_address_line2,
+                'suburb',
+                sticker.postal_address_state,
+                sticker.postal_address_postcode,
+                sticker.number,
+                'v rego',
+                'moorings',
+                'colour',
+            ])
 
         wb.save(virtual_workbook)
 
