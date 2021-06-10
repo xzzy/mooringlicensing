@@ -831,7 +831,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def can_officer_process(self):
         """ :return: True if the application is in one of the processable status for Assessor role."""
-        officer_view_state = ['draft','approved','declined','temp','discarded', 'with_referral', 'with_qa_officer', 'awaiting_payment', 'partially_approved', 'partially_declined', 'with_district_assessor']
+        officer_view_state = [
+            Proposal.PROCESSING_STATUS_DRAFT,
+            Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_TEMP,
+            Proposal.PROCESSING_STATUS_DISCARDED,
+            # 'with_referral',
+            # 'with_qa_officer',
+            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT,
+            # 'partially_approved',
+            # 'partially_declined',
+            # 'with_district_assessor',
+            Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT,
+            Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+        ]
         return False if self.processing_status in officer_view_state else True
 
     @property
