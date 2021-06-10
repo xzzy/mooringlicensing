@@ -759,7 +759,6 @@ class ApprovalUserAction(UserAction):
     ACTION_RENEW_APPROVAL = "Create renewal Application for licence {}"
     ACTION_AMEND_APPROVAL = "Create amendment Application for licence {}"
 
-
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ('-when',)
