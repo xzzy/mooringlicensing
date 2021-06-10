@@ -4,9 +4,9 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Permit or licence type</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <select class="form-control" v-model="filterApprovalType">
                         <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
+                        <option v-for="type in approval_types" :value="type.code">{{ type.description }}</option>
                     </select>
                 </div>
             </div>
@@ -60,15 +60,14 @@ export default {
         let vm = this;
         return {
             datatable_id: 'applications-datatable-' + vm._uid,
+            approvalTypesToDisplay: ['aap', 'aup', 'ml'],
 
             // selected values for filtering
-            filterApplicationType: null,
+            filterApprovalType: null,
             filterYear: null,
 
             // filtering options
-            application_types: [],
-            application_statuses: [],
-            applicants: [],
+            approval_types: [],
         }
     },
     components:{
@@ -84,7 +83,7 @@ export default {
             //    vm.$refs.stickers_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
             //}
         },
-        filterApplicationType: function() {
+        filterApprovalType: function() {
             let vm = this;
             vm.$refs.stickers_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
@@ -102,7 +101,7 @@ export default {
             }
             if (this.is_internal){
                 //return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
-                return ['id', 'Lodgement Number', 'Permit or Licence', 'Printing company (sent / received)', 'Status', 'Year', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Printing company (sent / received)', 'Status', 'Year', 'Action']
             }
         },
         column_id: function(){
@@ -117,28 +116,27 @@ export default {
                 }
             }
         },
-        column_lodgement_number: function(){
+        column_number: function(){
             return {
-                // 2. Lodgement Number
-                data: "id",
+                // 2. Number
+                data: "number",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.lodgement_number
+                    return full.number
                 },
-                name: 'lodgement_number',
+                name: 'number',
             }
         },
         column_permit_or_licence: function(){
             return {
-                // 3. Type (This corresponds to the 'ApplicationType' at the backend)
-                data: "id",
+                data: "approval",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
+                    return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
                 }
             }
         },
@@ -147,10 +145,10 @@ export default {
                 // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
+                    return '??? (' + full.mailing_date + ', ' + full.printing_date + ')'
                 }
             }
         },
@@ -158,13 +156,14 @@ export default {
             let vm = this
             return {
                 // 5. Status
-                data: "id",
+                data: "status",
                 orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
-                }
+                    return full.status
+                },
+                name: 'status'
             }
         },
         column_year: function(){
@@ -172,7 +171,7 @@ export default {
                 // 6. Lodged
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     return 'not implemented'
@@ -185,91 +184,14 @@ export default {
                 // 8. Action
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
-                    let links = 'Request Sticker Replacement<br />'
-                    links += 'Record Returned Sticker<br />'
-                    links += 'Record Sticker Lost<br />'
-                    return links
+                    let links =  `<a href='#${full.id}' data-replacement='${full.id}'>Request Sticker Replacement</a><br/>`
+                    links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
+                    links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
 
-                    if (!vm.is_external){
-                        if(full.assessor_process){
-                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`
-                        } else {
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`
-                        }
-                    }
-                    else{
-                        console.log('aho1')
-                        if (full.can_user_edit) {
-                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`
-                        }
-                        else if (full.can_user_view) {
-                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`
-                        }
-                        for (let invoice of full.invoices){
-                            if (invoice.payment_status === 'unpaid'){
-                                links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
-                            }
-                        }
-                    }
-                    return links;
-                }
-            }
-        },
-        column_applicant: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.submitter){
-                        return `${full.submitter.first_name} ${full.submitter.last_name}`
-                    }
-                    return ''
-                },
-                name: 'submitter__first_name, submitter__last_name',
-            }
-        },
-        column_assigned_to: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let ret_str = ''
-                    if (full.assigned_officer){
-                        ret_str += full.assigned_officer
-                    }
-                    if (full.assigned_approver){
-                        ret_str += full.assigned_approver
-                    }
-                    return ret_str
-                },
-                name: 'assigned_officer__first_name, assigned_officer__last_name, assigned_approver__first_name, assigned_approver__last_name',
-            }
-        },
-        column_payment_status: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.invoices){
-                        let ret_str = ''
-                        for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
-                        }
-                        return ret_str
-                    } else {
-                        return ''
-                    }
+                    return links
                 }
             }
         },
@@ -285,7 +207,7 @@ export default {
             if(vm.is_internal){
                 columns = [
                     vm.column_id,
-                    vm.column_lodgement_number,
+                    vm.column_number,
                     vm.column_permit_or_licence,
                     vm.column_printing_company,
                     vm.column_status,
@@ -304,12 +226,12 @@ export default {
                 serverSide: true,
                 searching: search,
                 ajax: {
-                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.stickers_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_application_type = vm.filterApplicationType
+                        d.filter_approval_type = vm.filterApprovalType
                         d.filter_year = vm.filterYear
                         d.level = vm.level
                     }
@@ -359,9 +281,12 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
+            let include_codes = vm.approvalTypesToDisplay.join(',');
+            //vm.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + include_codes).then((response) => {
+
             // Application Types
-            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
-                vm.application_types = response.body
+            vm.$http.get(api_endpoints.approval_types_dict+'?include_codes=' + include_codes).then((response) => {
+                vm.approval_types = response.body
             },(error) => {
                 console.log(error);
             })
@@ -370,11 +295,24 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            //vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-            //    e.preventDefault();
-            //    let id = $(this).attr('data-discard-proposal');
-            //    vm.discardProposal(id)
-            //});
+
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-replacement');
+                console.log('replacement: ' + id)
+            });
+                    //links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
+                    //links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-record-returned');
+                console.log('record returned: ' + id)
+            });
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-record-lost');
+                console.log('record lost: ' + id)
+            });
         },
     },
     created: function(){
