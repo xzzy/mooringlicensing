@@ -207,7 +207,8 @@ export default {
                     'Issue Date', 
                     'Expiry Date', 
                     'Vessel',
-                    'Action'
+                    'Action',
+                    'Mooring Licence Vessels',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -235,22 +236,9 @@ export default {
                     'Issue Date', 
                     'Expiry Date', 
                     'Approval letter',
-                    'Action'
+                    'Action',
+                    'Mooring Licence Vessels',
                 ]
-                /*
-                return [
-                    'Id', 
-                    'Number', 
-                    'Holder',
-                    'Status', 
-                    'Issue Date', 
-                    'Expiry Date', 
-                    'Vessel length',
-                    'Vessel draft',
-                    'Mooring area',
-                    'Action'
-                ]
-                */
             }
         },
         columnId: function() {
@@ -490,6 +478,17 @@ export default {
                         }
                     }
         },
+        columnMooringLicenceVessels: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.mooring_licence_vessels;
+                        }
+                    }
+        },
 
         datatable_options: function() {
             let vm = this;
@@ -519,6 +518,7 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnVesselRegistration,
                     vm.columnAction,
+                    vm.columnMooringLicenceVessels,
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -547,6 +547,7 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnApprovalLetter,
                     vm.columnAction,
+                    vm.columnMooringLicenceVessels,
                 ]
             }
 
@@ -574,6 +575,7 @@ export default {
                         d.filter_holder_id = vm.filterHolder;
                         d.max_vessel_length = vm.maxVesselLength;
                         d.max_vessel_draft = vm.maxVesselDraft;
+                        d.is_internal = vm.is_internal;
                     }
                 },
                 //dom: 'frt', //'lBfrtip',
