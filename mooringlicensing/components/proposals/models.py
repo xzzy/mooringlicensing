@@ -534,7 +534,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True, on_delete=models.SET_NULL)
     ## Electoral Roll component field
     silent_elector = models.NullBooleanField() # if False, user is on electoral roll
-    ## Mooring Authorisation fields mooring_suthorisation_preferences, bay_preferences_numbered, site_licencee_email and mooring
+    ## Mooring Authorisation fields mooring_suthorisation_preferences, bay_preferences_numbered, site_licensee_email and mooring
     # AUA
     mooring_authorisation_preference = models.CharField(max_length=20, choices=MOORING_AUTH_PREFERENCES, blank=True)
     bay_preferences_numbered = ArrayField(
@@ -2395,21 +2395,18 @@ class AuthorisedUserApplication(Proposal):
 
     #@classmethod
     def update_or_create_approval(self, current_datetime, request=None):
+        #import ipdb; ipdb.set_trace()
         mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
-        mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
+        #mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
         ria_selected_mooring = None
-        ria_selected_mooring_bay = None
+        #ria_selected_mooring_bay = None
         if mooring_id_pk:
             ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
-        if mooring_bay_id_pk:
-            ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
+        #if mooring_bay_id_pk:
+         #   ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
 
-        #approval, created = cls.objects.update_or_create(
         approval, created = self.approval_class.objects.update_or_create(
             current_proposal=self,
-            # Following two fields should be in the defaults?
-            # ria_selected_mooring = ria_selected_mooring,
-            # ria_selected_mooring_bay = ria_selected_mooring_bay,
             defaults={
                 'issue_date': current_datetime,
                 #'start_date': current_date.strftime('%Y-%m-%d'),
@@ -2419,6 +2416,12 @@ class AuthorisedUserApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
+        # create MooringOnApproval records
+        if ria_selected_mooring:
+            approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
+        else:
+            approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
+        # manage stickers
         approval.manage_stickers()
         return approval, created
 
@@ -2584,10 +2587,11 @@ class Mooring(models.Model):
     vessel_draft_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_weight_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
-    # stored for debugging purposes, not used in ML
+    # stored for debugging purposes, not used in this system
     mooring_bookings_id = models.IntegerField()
     mooring_bookings_mooring_specification = models.IntegerField(choices=MOORING_SPECIFICATION)
     mooring_bookings_bay_id = models.IntegerField()
+    # model managers
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
     available_moorings = AvailableMooringManager()
