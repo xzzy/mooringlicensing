@@ -228,6 +228,19 @@ export default {
                 return [
                     'Id', 
                     'Number', 
+                    'Type',
+                    'Sticker Number',
+                    'Holder',
+                    'Status', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Approval letter',
+                    'Action'
+                ]
+                /*
+                return [
+                    'Id', 
+                    'Number', 
                     'Holder',
                     'Status', 
                     'Issue Date', 
@@ -237,6 +250,7 @@ export default {
                     'Mooring area',
                     'Action'
                 ]
+                */
             }
         },
         columnId: function() {
@@ -446,7 +460,6 @@ export default {
                             //return full.vessel_draft;
                             let approvalType = '';
                             if (full.approval_type_dict) {
-                                console.log(full.approval_type_dict)
                                 approvalType = full.approval_type_dict.description;
                             }
                             return approvalType;
@@ -454,6 +467,18 @@ export default {
                     }
         },
         columnStickerNumber: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            //return full.vessel_draft;
+                            return '';
+                        }
+                    }
+        },
+        columnApprovalLetter: function() {
             return {
                         data: "id",
                         orderable: true,
@@ -514,13 +539,13 @@ export default {
                 selectedColumns = [
                     vm.columnId,
                     vm.columnLodgementNumber,
+                    vm.columnApprovalType,
+                    vm.columnStickerNumber,
                     vm.columnHolder,
                     vm.columnStatus,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
-                    vm.columnVesselLength,
-                    vm.columnVesselDraft,
-                    vm.columnPreferredMooringBay,
+                    vm.columnApprovalLetter,
                     vm.columnAction,
                 ]
             }
