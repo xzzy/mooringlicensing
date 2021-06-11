@@ -301,6 +301,12 @@ def sticker_export():
             'Colour',
         ])
         for sticker in stickers:
+            # column: Moorings
+            bay_moorings = []
+            for mooring in sticker.approval.moorings.all():
+                bay_moorings.append(mooring.mooring_bay.name + ' ' + mooring.name)
+            bay_moorings = ', '.join(bay_moorings)
+
             ws1.append([
                 'date',
                 sticker.first_name,
@@ -312,8 +318,8 @@ def sticker_export():
                 sticker.postal_address_postcode,
                 sticker.number,
                 'v rego',
-                'moorings',
-                'colour',
+                bay_moorings,
+                sticker.get_sticker_colour(),
             ])
 
         wb.save(virtual_workbook)

@@ -412,12 +412,12 @@ class Approval(RevisionedMixin):
     def log_user_action(self, action, request):
        return ApprovalUserAction.log_action(self, action, request.user)
 
-    def expire_approval(self,user):
+    def expire_approval(self, user):
         with transaction.atomic():
             try:
                 today = timezone.localtime(timezone.now()).date()
-                if self.status == 'current' and self.expiry_date < today:
-                    self.status = 'expired'
+                if self.status == Approval.APPROVAL_STATUS_CURRENT and self.expiry_date < today:
+                    self.status = Approval.APPROVAL_STATUS_EXPIRED
                     self.save()
                     send_approval_expire_email_notification(self)
                     proposal = self.current_proposal
@@ -645,6 +645,7 @@ class AnnualAdmissionPermit(Approval):
     code = 'aap'
     prefix = 'AAP'
     description = 'Annual Admission Permit'
+    sticker_colour = 'blue'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -674,6 +675,7 @@ class AuthorisedUserPermit(Approval):
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
+    sticker_colour = 'yellow'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -701,8 +703,9 @@ class AuthorisedUserPermit(Approval):
 class MooringLicence(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'ml'
-    prefix = 'ML'
+    prefix = 'MOL'
     description = 'Mooring Licence'
+    sticker_colour = 'red'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -763,7 +766,6 @@ class ApprovalUserAction(UserAction):
     ACTION_SURRENDER_APPROVAL = "surrender licence {}"
     ACTION_RENEW_APPROVAL = "Create renewal Application for licence {}"
     ACTION_AMEND_APPROVAL = "Create amendment Application for licence {}"
-
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1015,6 +1017,13 @@ class Sticker(models.Model):
         STICKER_STATUS_LOST,
         STICKER_STATUS_EXPIRED,
     )
+    colour_default = 'green'
+    colour_matrix = [
+        {'length': 10, 'colour': 'gray'},
+        {'length': 12, 'colour': 'purple'},
+        {'length': 14, 'colour': 'blue'},
+        {'length': 16, 'colour': 'white'},
+    ]
     number = models.CharField(max_length=9, blank=True, default='', unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
@@ -1028,6 +1037,12 @@ class Sticker(models.Model):
 
     def __str__(self):
         return '{} ({})'.format(self.number, self.status)
+
+    def get_sticker_colour(self):
+        colour = self.approval.child_obj.sticker_colour
+        # TODO: account for the vessel size colour
+        colour += '/(length colour for AUP and ML)'
+        return colour
 
     @property
     def next_number(self):

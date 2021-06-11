@@ -43,7 +43,7 @@ from mooringlicensing.components.approvals.serializers import (
     DcvVesselSerializer,
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
-    EmailUserSerializer, ListStickerSerializer,
+    EmailUserSerializer, StickerSerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -896,7 +896,7 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (StickerRenderer,)
     queryset = Sticker.objects.none()
-    serializer_class = ListStickerSerializer
+    serializer_class = StickerSerializer
     search_fields = ['id', ]
     page_size = 10
 

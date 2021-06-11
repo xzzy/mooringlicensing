@@ -12,6 +12,8 @@ from mooringlicensing.components.emails.emails import TemplateEmailBase
 #from mooringlicensing.components.bookings.awaiting_payment_invoice_pdf import create_awaiting_payment_invoice_pdf_bytes
 from datetime import datetime
 
+from mooringlicensing.settings import PRINTING_COMPANY_EMAIL_ADDRESS
+
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
@@ -164,7 +166,7 @@ def send_sticker_printing_batch_email(batches):
     context = {
         'batches': batches,
     }
-    to_address = settings.PRINTING_COMPANY_EMAIL_ADDRESS
+    to_address = PRINTING_COMPANY_EMAIL_ADDRESS
     cc = []
     bcc = []
 
