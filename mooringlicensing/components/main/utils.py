@@ -85,7 +85,7 @@ def reset_waiting_list_allocations(wla_list):
                 # discard MLA
                 mla_qs = MooringLicenceApplication.objects.filter(
                         waiting_list_allocation=waiting_list_allocation,
-                        processing_status='draft').order('-lodgement_date')
+                        processing_status='draft').order_by('-lodgement_date')
                 mla = mla_qs[0] if mla_qs else None
                 if mla:
                     mla.processing_status = 'discarded'
