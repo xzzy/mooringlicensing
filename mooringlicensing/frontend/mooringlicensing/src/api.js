@@ -43,6 +43,7 @@ module.exports = {
     vessel_external_list: '/api/vessel/list_external',
     waitinglistapplication: '/api/waitinglistapplication/',
     waitinglistallocation: '/api/waitinglistallocation/',
+    existing_mooring_licences: '/api/mooringlicence/existing_mooring_licences',
     annualadmissionapplication: '/api/annualadmissionapplication/',
     authoriseduserapplication: '/api/authoriseduserapplication/',
     mooringlicenceapplication: '/api/mooringlicenceapplication/',

@@ -2412,17 +2412,30 @@ class AuthorisedUserApplication(Proposal):
         #if mooring_bay_id_pk:
          #   ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
 
-        approval, created = self.approval_class.objects.update_or_create(
-            current_proposal=self,
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': self.end_date,
-                'submitter': self.submitter,
-            }
-        )
+        # find any current AUP for this submitter with the same vessel
+        au_list = self.approval_class.objects.filter(
+                processing_status='current', 
+                submitter=self.submitter, 
+                current_proposal__vessel_details__vessel=self.vessel_details.vessel
+                )
+        if au_list:
+            approval = au_list[0]
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.save()
+        else:
+            approval, created = self.approval_class.objects.update_or_create(
+                current_proposal=self,
+                defaults={
+                    'issue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_datetime.date(),
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                }
+            )
         # create MooringOnApproval records
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
@@ -2484,6 +2497,18 @@ class MooringLicenceApplication(Proposal):
 
     def update_or_create_approval(self, current_datetime, request):
         try:
+            existing_mooring_licence_on_mooring = self.allocated_mooring.mooring_licence
+            # find any current ML for this submitter on the same mooring
+            #if (self.allocated_mooring.mooring_licence and 
+            #        self.allocated_mooring.mooring_licence.submitter == self.submitter and 
+            #        self.allocated_mooring.mooring_licence.processing_status == 'current'):
+            #    approval = self.allocated_mooring.mooring_licence
+            #    approval.issue_date = current_datetime
+            #    # change start and expiry dates???
+            #    approval.start_date = current_datetime.date()
+            #    approval.expiry_date = self.end_date
+            #    approval.save()
+            #else:
             approval, created = self.approval_class.objects.update_or_create(
                 current_proposal=self,
                 defaults={
@@ -2496,14 +2521,13 @@ class MooringLicenceApplication(Proposal):
                 }
             )
             # associate Mooring with approval
-            existing_mooring_licence = self.allocated_mooring.mooring_licence
             self.allocated_mooring.mooring_licence = approval
             self.allocated_mooring.save()
             # Move WLA to status approved
             self.waiting_list_allocation.status = 'approved'
             self.waiting_list_allocation.save()
             # log Mooring action
-            if existing_mooring_licence:
+            if existing_mooring_licence_on_mooring and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(
                         MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
                             str(existing_mooring_licence),
