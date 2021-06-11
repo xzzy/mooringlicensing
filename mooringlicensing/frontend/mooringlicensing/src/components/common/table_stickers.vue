@@ -68,6 +68,7 @@ export default {
 
             // filtering options
             approval_types: [],
+            debug: false,
         }
     },
     components:{
@@ -225,7 +226,7 @@ export default {
                 serverSide: true,
                 searching: search,
                 ajax: {
-                    "url": api_endpoints.stickers_paginated_list + '?format=datatables',
+                    "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -296,26 +297,52 @@ export default {
             let vm = this
 
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
+
+                let data = vm.$refs.stickers_datatable.vmDataTable.row(this)
+                console.log(data)
+
                 e.preventDefault();
                 let id = $(this).attr('data-replacement');
-                console.log('replacement: ' + id)
+                vm.$http.post('/api/stickers/' + id + '/request_new/').then(
+                res => {
+                    console.log(res)
+                    vm.$refs.stickers_datatable.vmDataTable.draw()
+                },
+                err => {
+                    console.log(err)
+                })
             });
-                    //links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
-                    //links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-record-returned');
-                console.log('record returned: ' + id)
+                vm.$http.post('/api/stickers/' + id + '/record_returned/').then(
+                res => {
+                    console.log(res)
+                    vm.$refs.stickers_datatable.vmDataTable.draw()
+                },
+                err => {
+                    console.log(err)
+                })
             });
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-record-lost');
-                console.log('record lost: ' + id)
+                vm.$http.post('/api/stickers/' + id + '/record_lost/').then(
+                res => {
+                    console.log(res)
+                    vm.$refs.stickers_datatable.vmDataTable.draw()
+                },
+                err => {
+                    console.log(err)
+                })
             });
         },
     },
     created: function(){
         this.fetchFilterLists()
+        if (this.$route.query && this.$route.query.debug){
+            this.debug = this.$route.query.debug
+        }
     },
     mounted: function(){
         let vm = this;
