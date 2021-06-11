@@ -1,6 +1,6 @@
 <template lang="html">
     <div class="container" >
-        <button type="button" @click="createML">Mooring Licence Application</button>
+        <!--button type="button" @click="createML">Mooring Licence Application</button-->
         <div class="row">
             <div class="col-sm-12">
                 <form class="form-horizontal" name="personal_form" method="post">
@@ -120,6 +120,7 @@ export default {
         },(error) => {
         });
     },
+      /*
     createML: async function() {
         const res = await this.$http.post(api_endpoints.mooringlicenceapplication);
         const proposal = res.body;
@@ -129,17 +130,22 @@ export default {
 		});
         this.creatingProposal = false;
     },
+    */
     createProposal: async function () {
         this.creatingProposal = true;
-        const payload = {
+        let payload = {
         }
         let res = null;
-        if (this.selectApplication && this.selectedApplication.code === 'wla') {
+        if (this.selectedApplication && this.selectedApplication.code === 'wla') {
             res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
-        } else if (this.selectApplication && this.selectedApplication.code === 'aaa') {
+        } else if (this.selectedApplication && this.selectedApplication.code === 'aaa') {
             res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
-        } else if (this.selectApplication && this.selectedApplication.code === 'aua') {
+        } else if (this.selectedApplication && this.selectedApplication.code === 'aua') {
             res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
+        } else if (this.selectedApplication && this.selectedApplication.app_type_code === 'ml') {
+            payload.mooring_id = this.selectedApplication.mooring_id;
+            payload.approval_id = this.selectedApplication.approval_id;
+            res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
         } 
         const proposal = res.body;
 		this.$router.push({
@@ -157,20 +163,30 @@ export default {
         }
         return [];
     },
-    fetchApplicationTypes: function(){
-        this.$http.get(api_endpoints.application_types_dict+'?apply_page=True').then((response) => {
-            for (let app_type of response.body) {
-                this.application_types.push(app_type)
-            }
-		},(error) => {
-			console.log(error);
-		})
-	},
+    fetchApplicationTypes: async function(){
+        const response = await this.$http.get(api_endpoints.application_types_dict+'?apply_page=True');
+        for (let app_type of response.body) {
+            this.application_types.push(app_type)
+        }
+    },
+    fetchExistingMooringLicences: async function(){
+        /*
+        let payload = {
+            'submitter': profile,
+        }
+        */
+        const response = await this.$http.get(api_endpoints.existing_mooring_licences);
+        //console.log(response.body)
+        for (let ml of response.body) {
+            this.application_types.push(ml)
+        }
+    },
 
   },
-  mounted: function() {
+  mounted: async function() {
     //let vm = this;
-    this.fetchApplicationTypes();
+    await this.fetchApplicationTypes();
+    await this.fetchExistingMooringLicences();
     this.form = document.forms.new_proposal;
   },
   beforeRouteEnter: function(to, from, next) {

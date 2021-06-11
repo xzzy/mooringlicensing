@@ -559,14 +559,25 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
         return MooringLicenceApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        mooring_id = request.data.get('mooring_id')
+        mooring=None
+        if mooring_id:
+            mooring = Mooring.objects.get(id=mooring_id)
+        approval_id = request.data.get('approval_id')
+        approval=None
+        if approval_id:
+            approval = Approval.objects.get(id=approval_id)
 
         obj = MooringLicenceApplication.objects.create(
                 submitter=request.user,
-                proposal_type=proposal_type
+                proposal_type=proposal_type,
+                allocated_mooring=mooring,
+                approval=approval
                 )
         serialized_obj = ProposalSerializer(obj)
-        return add_cache_control(Response(serialized_obj.data))
+        return Response(serialized_obj.data)
 
 
 class WaitingListApplicationViewSet(viewsets.ModelViewSet):
@@ -1963,7 +1974,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
-        mooring_bay = self.get_object()
+        mooring = self.get_object()
         selected_date_str = request.data.get("selected_date")
         selected_date = None
         if selected_date_str:
@@ -1971,7 +1982,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         approval_list = []
-        prop_set = mooring_bay.proposal_set.filter(Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED) | Q(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+        prop_set = mooring.proposal_set.filter(Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED) | Q(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
         if selected_date:
             for prop in prop_set:
                 if (
