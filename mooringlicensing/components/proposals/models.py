@@ -1375,16 +1375,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
-
-                from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
-                if self.application_type.code == WaitingListApplication.code:
-                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-                elif self.application_type.code == AnnualAdmissionApplication.code:
-                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                else:
-                    raise # Should not reach here.  ApplicationType must be either WLA or AAA
+                self.save()
+                self.child_obj.process_after_approval(request)
+                self.refresh_from_db()
+                # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
+                # if self.application_type.code == WaitingListApplication.code:
+                #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                #     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                # elif self.application_type.code == AnnualAdmissionApplication.code:
+                #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                # else:
+                #     raise # Should not reach here.  ApplicationType must be either WLA or AAA
 
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
@@ -1527,6 +1529,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
+                    self.save()
 
                 from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                 from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
@@ -1557,13 +1560,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             )
                             # updates.append(annual_rental_fee.invoice_reference)
 
-                            self.child_obj.process_after_approved(request)
+                            self.child_obj.process_after_approval(request)
+                            self.refresh_from_db()  # Required somehow...
+                            # self.save()
 
                             # Log proposal action
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
                             # Log entry for organisation
                             applicant_field = getattr(self, self.applicant_field)
                             applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+
+                            self.save()
 
                         except Exception as e:
                             err_msg = 'Failed to create annual site fee confirmation'
@@ -1764,7 +1771,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
             self.final_approval_for_WLA_AAA(request, details)
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-            self.final_approval_for_AUA_MLA(request, details)
+            return self.final_approval_for_AUA_MLA(request, details)
 
         # from mooringlicensing.components.approvals.models import Approval
         # with transaction.atomic():
@@ -2241,7 +2248,7 @@ class WaitingListApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(WaitingListApplication, self).save(*args,**kwargs)
+        super(WaitingListApplication, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
@@ -2292,6 +2299,11 @@ class WaitingListApplication(Proposal):
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
 
+        self.save()
+
+    def process_after_approval(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
 
@@ -2361,6 +2373,11 @@ class AnnualAdmissionApplication(Proposal):
 
         self.save()
 
+    def process_after_approval(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        self.save()
+
 
 class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2378,8 +2395,7 @@ class AuthorisedUserApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(AuthorisedUserApplication, self).save(*args,**kwargs)
+        super(AuthorisedUserApplication, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
@@ -2449,7 +2465,8 @@ class AuthorisedUserApplication(Proposal):
         approval.manage_stickers()
         return approval, created
 
-    def process_after_approved(self, request):
+    def process_after_approval(self, request):
+        print('process_after_approved() in AuthorisedUserApplication')
         # TODO: Conditional
         # if moorings%4==0:
         self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
@@ -2457,9 +2474,9 @@ class AuthorisedUserApplication(Proposal):
         self.save()
         # TODO: Send email (payment required)
         # else:
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-        self.save()
+        # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+        # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+        # self.save()
         # TODO: Send email (payment required, Sticker to be returned)
 
     def process_after_payment_success(self, request):
@@ -2497,6 +2514,7 @@ class MooringLicenceApplication(Proposal):
             self.lodgement_number = new_lodgment_id
             self.save()
         self.proposal.refresh_from_db()
+        print('refresh_from_db1')
 
     def process_after_uploading_other_documents(self, request):
         # Somehow in this function, followings update parent too as we expected as polymorphism
@@ -2514,10 +2532,13 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approved(self, request):
+    def process_after_approval(self, request):
+        print('in process_after_approved')
         self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
         self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         self.save()
+        # self.proposal.refresh_from_db()
+        # print('refresh_from_db2')
         # TODO: Send email (payment required)
 
     def process_after_payment_success(self, request):
