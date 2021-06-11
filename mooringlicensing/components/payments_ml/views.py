@@ -505,10 +505,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                 application_fee.fee_constructor = fee_constructor
                 application_fee.invoice_reference = invoice_ref
-            #if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
-            #    # This payment is for the AUA or MLA
-            #    # application_fee object has already been created when approved
-            #    proposal.child_obj.process_after_payment_success(request)
 
             # Update the application_fee object
             application_fee.save()
@@ -532,12 +528,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 update_payments(invoice_ref)
 
                 if proposal and invoice.payment_status in ('paid', 'over_paid',):
-                    # if 'payment_for_existing_invoice' in db_operations and db_operations['payment_for_existing_invoice']:
-                        # This payment is for the AUA or MLA
-                        # application_fee object has already been created when approved
-                        # proposal.child_obj.process_after_payment_success(request)
-                    # proposal.post_payment_success(request)
-
                     proposal.child_obj.process_after_payment_success(request)
                     self.adjust_db_operations(db_operations)
 
