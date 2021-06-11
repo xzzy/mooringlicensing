@@ -14,7 +14,9 @@ from mooringlicensing.components.approvals.models import (
     DcvVessel,
     DcvPermit,
     DcvAdmission,
-    WaitingListAllocation, Sticker,
+    WaitingListAllocation, 
+    Sticker,
+    MooringLicence,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -391,6 +393,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
+    mooring_licence_vessels = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -415,6 +418,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
+            'mooring_licence_vessels',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -439,7 +443,23 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
+            'mooring_licence_vessels',
         )
+
+    def get_mooring_licence_vessels(self, obj):
+        #return_list = []
+        links = ''
+        request = self.context['request']
+        if type(obj.child_obj) == MooringLicence:
+            for vessel_details in obj.child_obj.vessel_details_list:
+                if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                    links += '<a href="/internal/vessel/{}">{}</a><br/>'.format(
+                            vessel_details.vessel.id,
+                            vessel_details.vessel.rego_no,
+                            )
+                else:
+                    links += '{}\n'.format(vessel_details.vessel.rego_no)
+        return links
 
     def get_ria_generated_proposals(self, obj):
         links = '<br/>'
@@ -458,7 +478,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current':
+        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id, 
                     obj.id,

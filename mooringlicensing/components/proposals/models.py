@@ -555,6 +555,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    @property
+    def final_status(self):
+        final_status = False
+        if self.processing_status in ([Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]):
+            final_status = True
+        return final_status
+
     def endorse_approved(self, request):
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
