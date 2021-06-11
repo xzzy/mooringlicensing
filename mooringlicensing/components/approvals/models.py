@@ -83,13 +83,13 @@ class ApprovalDocument(Document):
         app_label = 'mooringlicensing'
 
 # currently only required for Authorised User Applications
-class MooringOnApproval(Document):
+class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     mooring = models.ForeignKey(Mooring)
     site_licensee = models.BooleanField()
 
     def save(self, *args, **kwargs):
-        existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licencee=False).count()
+        existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
         if existing_ria_moorings >= 2 and not self.site_licensee:
             raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
 
@@ -162,7 +162,7 @@ class Approval(RevisionedMixin):
     expiry_notice_sent = models.BooleanField(default=False)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
-    ## change to "moorings" field with ManyToManyField - can come from site_licencee or ria Authorised User Application..
+    ## change to "moorings" field with ManyToManyField - can come from site_licensee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
@@ -173,6 +173,14 @@ class Approval(RevisionedMixin):
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    def add_mooring(self, mooring, site_licensee):
+        mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
+                mooring=mooring,
+                approval=self,
+                site_licensee=site_licensee
+                )
+        return mooring_on_approval, created
 
     def set_wla_order(self):
         place = 1

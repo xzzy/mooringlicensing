@@ -184,7 +184,7 @@ export default {
         },
         // Datatable settings
         datatable_headers: function() {
-            if (this.is_external) {
+            if (this.is_external && this.wlaDash) {
                 return [
                     'Id', 
                     'Number', 
@@ -195,6 +195,18 @@ export default {
                     'Vessel Name', 
                     'Issue Date', 
                     'Expiry Date', 
+                    'Action'
+                ]
+            } else if (this.is_external) {
+                return [
+                    'Id', 
+                    'Number',
+                    'Type',
+                    'Sticker number',
+                    'Status', 
+                    'Issue Date', 
+                    'Expiry Date', 
+                    'Vessel',
                     'Action'
                 ]
             } else if (this.is_internal && this.wlaDash) {
@@ -346,7 +358,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.offer_link;
+                            let links = '';
+                            if (vm.is_internal && vm.wlaDash) {
+                                links += full.offer_link;
+                            }
+                            return links;
                         }
                     }
         },
@@ -419,11 +435,41 @@ export default {
                         }
                     }
         },
+        columnApprovalType: function() {
+            //let vm = this;
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            //return full.vessel_draft;
+                            let approvalType = '';
+                            if (full.approval_type_dict) {
+                                console.log(full.approval_type_dict)
+                                approvalType = full.approval_type_dict.description;
+                            }
+                            return approvalType;
+                        }
+                    }
+        },
+        columnStickerNumber: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            //return full.vessel_draft;
+                            return '';
+                        }
+                    }
+        },
 
         datatable_options: function() {
             let vm = this;
             let selectedColumns = [];
-            if (vm.is_external) {
+            if (vm.is_external && this.wlaDash) {
                 selectedColumns = [
                     vm.columnId,
                     vm.columnLodgementNumber,
@@ -435,6 +481,18 @@ export default {
                     vm.columnVesselName,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
+                    vm.columnAction,
+                ]
+            } else if (this.is_external) {
+                selectedColumns = [
+                    vm.columnId,
+                    vm.columnLodgementNumber,
+                    vm.columnApprovalType,
+                    vm.columnStickerNumber,
+                    vm.columnStatus,
+                    vm.columnIssueDate,
+                    vm.columnExpiryDate,
+                    vm.columnVesselRegistration,
                     vm.columnAction,
                 ]
             } else if (vm.is_internal && this.wlaDash) {

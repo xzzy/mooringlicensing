@@ -241,7 +241,6 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
                     let links = '';
                     if (!vm.is_external){
                         if(full.assessor_process){
@@ -251,7 +250,6 @@ export default {
                         }
                     }
                     else{
-                        console.log('aho1')
                         if (full.can_user_edit) {
                             links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
                             links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
