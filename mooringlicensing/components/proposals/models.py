@@ -2442,7 +2442,7 @@ class AuthorisedUserApplication(Proposal):
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
         # manage stickers
-        approval.manage_stickers()
+        approval.child_obj.manage_stickers()
         return approval, created
 
 
@@ -2497,37 +2497,43 @@ class MooringLicenceApplication(Proposal):
 
     def update_or_create_approval(self, current_datetime, request):
         try:
-            existing_mooring_licence_on_mooring = self.allocated_mooring.mooring_licence
+            existing_mooring_licence = self.allocated_mooring.mooring_licence
+            created = None
             # find any current ML for this submitter on the same mooring
             #if (self.allocated_mooring.mooring_licence and 
             #        self.allocated_mooring.mooring_licence.submitter == self.submitter and 
             #        self.allocated_mooring.mooring_licence.processing_status == 'current'):
             #    approval = self.allocated_mooring.mooring_licence
-            #    approval.issue_date = current_datetime
-            #    # change start and expiry dates???
-            #    approval.start_date = current_datetime.date()
-            #    approval.expiry_date = self.end_date
-            #    approval.save()
-            #else:
-            approval, created = self.approval_class.objects.update_or_create(
-                current_proposal=self,
-                defaults={
-                    'issue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                    'start_date': current_datetime.date(),
-                    'expiry_date': self.end_date,
-                    'submitter': self.submitter,
-                }
-            )
-            # associate Mooring with approval
-            self.allocated_mooring.mooring_licence = approval
-            self.allocated_mooring.save()
-            # Move WLA to status approved
-            self.waiting_list_allocation.status = 'approved'
-            self.waiting_list_allocation.save()
+
+            # test if user sets self.approval on proposal creation
+            if self.approval:
+                approval = self.approval
+                approval.issue_date = current_datetime
+                approval.current_proposal = self
+                # change start and expiry dates???
+                approval.start_date = current_datetime.date()
+                approval.expiry_date = self.end_date
+                approval.save()
+            else:
+                approval, created = self.approval_class.objects.update_or_create(
+                    current_proposal=self,
+                    defaults={
+                        'issue_date': current_datetime,
+                        #'start_date': current_date.strftime('%Y-%m-%d'),
+                        #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                        'start_date': current_datetime.date(),
+                        'expiry_date': self.end_date,
+                        'submitter': self.submitter,
+                    }
+                )
+                # associate Mooring with approval
+                self.allocated_mooring.mooring_licence = approval
+                self.allocated_mooring.save()
+                # Move WLA to status approved
+                self.waiting_list_allocation.status = 'approved'
+                self.waiting_list_allocation.save()
             # log Mooring action
-            if existing_mooring_licence_on_mooring and existing_mooring_licence != approval:
+            if existing_mooring_licence and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(
                         MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
                             str(existing_mooring_licence),
@@ -2542,7 +2548,7 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            approval.manage_stickers()
+            approval.child_obj.manage_stickers()
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")
