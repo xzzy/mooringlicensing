@@ -604,9 +604,10 @@ class ApprovalSimpleSerializer(serializers.ModelSerializer):
         }
 
 
-class ListStickerSerializer(serializers.ModelSerializer):
+class StickerSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval = ApprovalSimpleSerializer()
+    sent_date = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -617,6 +618,7 @@ class ListStickerSerializer(serializers.ModelSerializer):
             'approval',
             'printing_date',
             'mailing_date',
+            'sent_date',
         )
         datatables_always_serialize = (
             'id',
@@ -625,10 +627,16 @@ class ListStickerSerializer(serializers.ModelSerializer):
             'approval',
             'printing_date',
             'mailing_date',
+            'sent_date',
         )
 
     def get_status(self, obj):
         return obj.get_status_display()
+
+    def get_sent_date(self, obj):
+        if obj.sticker_printing_batch:
+            return obj.sticker_printing_batch.emailed_datetime.date()
+        return None
 
 
 class ListDcvPermitSerializer(serializers.ModelSerializer):
