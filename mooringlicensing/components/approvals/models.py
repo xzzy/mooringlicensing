@@ -1034,9 +1034,22 @@ class Sticker(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
+        ordering = ['-number']
 
     def __str__(self):
         return '{} ({})'.format(self.number, self.status)
+
+    def record_lost(self):
+        self.status = Sticker.STICKER_STATUS_LOST
+        self.save()
+
+    def record_returned(self):
+        self.status = Sticker.STICKER_STATUS_RETURNED
+        self.save()
+
+    def request_new(self):
+        self.status = Sticker.STICKER_STATUS_LOST
+        self.save()
 
     def get_sticker_colour(self):
         colour = self.approval.child_obj.sticker_colour

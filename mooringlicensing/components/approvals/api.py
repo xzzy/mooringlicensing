@@ -891,6 +891,41 @@ class StickerFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
+class StickerViewSet(viewsets.ModelViewSet):
+    queryset = Sticker.objects.none()
+    serializer_class = StickerSerializer
+
+    def get_queryset(self):
+        qs = Sticker.objects.none()
+        if is_internal(self.request):
+            qs = Sticker.objects.all()
+        return qs
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def record_returned(self, request, *args, **kwargs):
+        sticker = self.get_object()
+        sticker.record_returned()
+        serializer = StickerSerializer(sticker)
+        return Response({'sticker': serializer.data})
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def record_lost(self, request, *args, **kwargs):
+        sticker = self.get_object()
+        sticker.record_lost()
+        serializer = StickerSerializer(sticker)
+        return Response({'sticker': serializer.data})
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def request_new(self, request, *args, **kwargs):
+        sticker = self.get_object()
+        sticker.request_new()
+        serializer = StickerSerializer(sticker)
+        return Response({'sticker': serializer.data})
+
+
 class StickerPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (StickerFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
@@ -901,11 +936,15 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
+        debug = self.request.GET.get('debug', False)
+        debug = debug.lower() in ['true', 't', True]
+
         qs = Sticker.objects.none()
-
         if is_internal(self.request):
-            qs = Sticker.objects.all()
-
+            if debug:
+                qs = Sticker.objects.all()
+            else:
+                qs = Sticker.objects.exclude(status=Sticker.STICKER_STATUS_PRINTING)
         return qs
 
 
