@@ -582,7 +582,8 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_submitter_phone_number(self, obj):
-        return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
+        #return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
+        return obj.submitter.mobile_number if obj.submitter.mobile_number else obj.submitter.phone_number
 
 
 class ApprovalSimpleSerializer(serializers.ModelSerializer):
