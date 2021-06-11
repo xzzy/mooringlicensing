@@ -17,6 +17,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation, 
     Sticker,
     MooringLicence,
+    AuthorisedUserPermit,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -394,6 +395,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
+    authorised_user_moorings = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -419,6 +421,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'offer_link',
             'ria_generated_proposals',
             'mooring_licence_vessels',
+            'authorised_user_moorings',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -444,6 +447,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'offer_link',
             'ria_generated_proposals',
             'mooring_licence_vessels',
+            'authorised_user_moorings',
         )
 
     def get_mooring_licence_vessels(self, obj):
@@ -459,6 +463,21 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                             )
                 else:
                     links += '{}\n'.format(vessel_details.vessel.rego_no)
+        return links
+
+    def get_authorised_user_moorings(self, obj):
+        #return_list = []
+        links = ''
+        request = self.context['request']
+        if type(obj.child_obj) == AuthorisedUserPermit:
+            for mooring in obj.moorings.all():
+                if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                    links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
+                            mooring.id,
+                            str(mooring),
+                            )
+                else:
+                    links += '{}\n'.format(str(mooring))
         return links
 
     def get_ria_generated_proposals(self, obj):
