@@ -209,6 +209,7 @@ export default {
                     'Vessel',
                     'Action',
                     'Mooring Licence Vessels',
+                    'Authorised User Permit Moorings',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -238,6 +239,7 @@ export default {
                     'Approval letter',
                     'Action',
                     'Mooring Licence Vessels',
+                    'Authorised User Permit Moorings',
                 ]
             }
         },
@@ -489,6 +491,17 @@ export default {
                         }
                     }
         },
+        columnAuthorisedUserMoorings: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.authorised_user_moorings;
+                        }
+                    }
+        },
 
         datatable_options: function() {
             let vm = this;
@@ -519,6 +532,7 @@ export default {
                     vm.columnVesselRegistration,
                     vm.columnAction,
                     vm.columnMooringLicenceVessels,
+                    vm.columnAuthorisedUserMoorings,
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -548,6 +562,7 @@ export default {
                     vm.columnApprovalLetter,
                     vm.columnAction,
                     vm.columnMooringLicenceVessels,
+                    vm.columnAuthorisedUserMoorings,
                 ]
             }
 
