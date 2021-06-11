@@ -581,23 +581,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         self.save()
 
-    def post_payment_success(self, request):
-        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
+    #def post_payment_success(self, request):
+    #    self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    #    self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
 
-        # ret1 = send_submit_email_notification(request, self)
-        #ret2 = send_external_submit_email_notification(request, self)
-        # ret2 = True
-        ret1 = self.child_obj.send_emails_after_payment_success(request)
+    #    # ret1 = send_submit_email_notification(request, self)
+    #    #ret2 = send_external_submit_email_notification(request, self)
+    #    # ret2 = True
+    #    ret1 = self.child_obj.send_emails_after_payment_success(request)
 
-        if ret1:
-            self.child_obj.set_status_after_payment_success()
-            # self.refresh_from_db()
-            # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
-            # wobj.set_status_after_payment_success()
-        else:
-            raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-        self.save()
+    #    if ret1:
+    #        self.child_obj.set_status_after_payment_success()
+    #        self.refresh_from_db()
+    #        # self.refresh_from_db()
+    #        # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
+    #        # wobj.set_status_after_payment_success()
+    #    else:
+    #        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+    #    self.save()
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
@@ -1376,8 +1377,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'cc_email': details.get('cc_email')
                     }
                 self.save()
-                self.child_obj.process_after_approval(request)
-                self.refresh_from_db()
+                self.process_after_approval(request)
                 # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
                 # if self.application_type.code == WaitingListApplication.code:
                 #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -1560,8 +1560,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             )
                             # updates.append(annual_rental_fee.invoice_reference)
 
-                            self.child_obj.process_after_approval(request)
-                            self.refresh_from_db()  # Required somehow...
+                            self.process_after_approval(request)
                             # self.save()
 
                             # Log proposal action
@@ -2166,9 +2165,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
     def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=None):
-        #approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
         approval, created = self.child_obj.update_or_create_approval(target_datetime, request)
+        self.refresh_from_db()
         return approval, created
+
+    def process_after_payment_success(self, request):
+        self.child_obj.process_after_payment_success(request)
+        self.refresh_from_db()  # Somehow this is needed...
+
+    def process_after_approval(self, request):
+        self.child_obj.process_after_approval(request)
+        self.refresh_from_db()  # Somehow this is needed...
 
     @property
     def application_type_code(self):
