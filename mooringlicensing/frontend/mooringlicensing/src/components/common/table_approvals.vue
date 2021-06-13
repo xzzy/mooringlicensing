@@ -19,7 +19,7 @@
                             </select>
                         </div>
                     </div>
-                <div v-if="is_internal">
+                <!--div v-if="is_internal">
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="">Holder:</label>
@@ -29,12 +29,12 @@
                             </select>
                         </div>
                     </div>
-                </div>
+                </div-->
             </div>
             <div v-else>
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="">Mooring Area:</label>
+                        <label for="">Bay:</label>
                         <select class="form-control" v-model="filterMooringBay">
                             <option value="All">All</option>
                             <option v-for="bay in mooringBays" :value="bay.id">{{ bay.name }}</option>
@@ -55,7 +55,7 @@
             <div v-if="wlaDash">
                 <div class="col-md-2">
                     <div class="form-group">
-                        <label for="">Max Vessel length:</label>
+                        <label for="">Max Vessel Length:</label>
                         <input class="form-control" type="number" v-model="maxVesselLength" id="maxVesselLength"/>
                         <!--select class="form-control" v-model="filterStatus">
                             <option value="All">All</option>
@@ -189,7 +189,8 @@ export default {
                     'Id', 
                     'Number', 
                     'Bay', 
-                    'Application number in Bay', 
+                    //'Application number in Bay', 
+                    'Allocation number in bay',
                     'Status', 
                     'Vessel Registration', 
                     'Vessel Name', 
@@ -217,7 +218,8 @@ export default {
                     'Number', 
                     'Holder',
                     'Status', 
-                    'Mooring area',
+                    //'Mooring area',
+                    'Bay',
                     'Allocation number in bay',
                     'Action',
                     'Issue Date', 
@@ -512,7 +514,8 @@ export default {
                     vm.columnLodgementNumber,
                     //vm.columnBay,
                     vm.columnPreferredMooringBay,
-                    vm.columnApplicationNumberInBay,
+                    //vm.columnApplicationNumberInBay,
+                    vm.columnAllocationNumberInBay,
                     vm.columnStatus,
                     vm.columnVesselRegistration,
                     vm.columnVesselName,
@@ -697,7 +700,12 @@ export default {
             // Status values
             const statusRes = await this.$http.get(api_endpoints.approval_statuses_dict);
             for (let s of statusRes.body) {
-                this.statusValues.push(s);
+                if (this.wlaDash && !(['extended', 'awaiting_payment', 'approved'].includes(s.code))) {
+                    this.statusValues.push(s);
+                //} else if (!(['extended', 'awaiting_payment', 'offered', 'approved'].includes(s.code))) {
+                } else if (!(['extended', 'awaiting_payment', 'offered', 'approved'].includes(s.code))) {
+                    this.statusValues.push(s);
+                }
             }
             // Approval types
             const approvalRes = await this.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + this.approvalTypeFilter.join(','));
@@ -711,11 +719,13 @@ export default {
             for (let b of mooringBayRes.body) {
                 this.mooringBays.push(b);
             }
+            /*
             // Holder list
             const holderListRes = await this.$http.get(api_endpoints.holder_list);
             for (let h of holderListRes.body) {
                 this.holderList.push(h);
             }
+            */
         },
 
     },

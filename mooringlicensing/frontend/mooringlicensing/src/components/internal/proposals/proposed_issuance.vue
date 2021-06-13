@@ -79,6 +79,7 @@
                                             name="mooring_lookup"
                                             ref="mooring_lookup"
                                             class="form-control"
+                                            style="width:100%"
                                         />
                                     </div>
                                 </div>
