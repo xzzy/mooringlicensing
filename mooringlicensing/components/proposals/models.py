@@ -2414,13 +2414,15 @@ class AuthorisedUserApplication(Proposal):
 
         # find any current AUP for this submitter with the same vessel
         au_list = self.approval_class.objects.filter(
-                processing_status='current', 
+                status='current', 
                 submitter=self.submitter, 
                 current_proposal__vessel_details__vessel=self.vessel_details.vessel
                 )
         if au_list:
             approval = au_list[0]
             approval.issue_date = current_datetime
+            approval.current_proposal = self
+            # change start and expiry dates???
             approval.start_date = current_datetime.date()
             approval.expiry_date = self.end_date
             approval.save()
