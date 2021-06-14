@@ -295,6 +295,12 @@ export default {
 
             // TODO: Fetch Years
         },
+        updateStatusCell: function(id, newText){
+            let elem = $('#status_cell_id_' + id)
+            elem.fadeOut(function(){
+                elem.text(newText).fadeIn()
+            })
+        },
         addEventListeners: function(){
             let vm = this
 
@@ -307,10 +313,7 @@ export default {
                 let id = $(this).attr('data-replacement');
                 vm.$http.post('/api/stickers/' + id + '/request_new/').then(
                 res => {
-                    let elem = $('#status_cell_id_' + id)
-                    elem.fadeOut(function(){
-                      elem.text(res.body.sticker.status).fadeIn()
-                    })
+                    vm.updateStatusCell(id, res.body.sticker.status)
                 },
                 err => {
                     console.log(err)
@@ -321,10 +324,7 @@ export default {
                 let id = $(this).attr('data-record-returned');
                 vm.$http.post('/api/stickers/' + id + '/record_returned/').then(
                 res => {
-                    let elem = $('#status_cell_id_' + id)
-                    elem.fadeOut(function(){
-                      elem.text(res.body.sticker.status).fadeIn()
-                    })
+                    vm.updateStatusCell(id, res.body.sticker.status)
                 },
                 err => {
                     console.log(err)
@@ -335,10 +335,7 @@ export default {
                 let id = $(this).attr('data-record-lost');
                 vm.$http.post('/api/stickers/' + id + '/record_lost/').then(
                 res => {
-                    let elem = $('#status_cell_id_' + id)
-                    elem.fadeOut(function(){
-                      elem.text(res.body.sticker.status).fadeIn()
-                    })
+                    vm.updateStatusCell(id, res.body.sticker.status)
                 },
                 err => {
                     console.log(err)
