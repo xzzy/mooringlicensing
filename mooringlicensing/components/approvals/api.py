@@ -43,7 +43,7 @@ from mooringlicensing.components.approvals.serializers import (
     DcvVesselSerializer,
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
-    EmailUserSerializer, StickerSerializer,
+    EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -905,6 +905,15 @@ class StickerViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def record_returned(self, request, *args, **kwargs):
         sticker = self.get_object()
+
+        # Update Sticker action
+        data = request.data
+        data['sticker'] = sticker.id
+        serializer = StickerActionDetailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        details = serializer.save()
+
+        # Update Sticker
         sticker.record_returned()
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
@@ -919,9 +928,9 @@ class StickerViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
-    def request_new(self, request, *args, **kwargs):
+    def request_replacement(self, request, *args, **kwargs):
         sticker = self.get_object()
-        sticker.request_new()
+        sticker.request_replacement()
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
 

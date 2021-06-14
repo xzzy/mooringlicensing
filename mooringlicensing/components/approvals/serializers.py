@@ -14,10 +14,10 @@ from mooringlicensing.components.approvals.models import (
     DcvVessel,
     DcvPermit,
     DcvAdmission,
-    WaitingListAllocation, 
+    WaitingListAllocation,
     Sticker,
     MooringLicence,
-    AuthorisedUserPermit,
+    AuthorisedUserPermit, StickerActionDetail,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -641,6 +641,16 @@ class ApprovalSimpleSerializer(serializers.ModelSerializer):
             'code': obj.child_obj.code,
             'description': obj.child_obj.description,
         }
+
+
+class StickerActionDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = StickerActionDetail
+        fields = (
+            'sticker',
+            'reason',
+        )
 
 
 class StickerSerializer(serializers.ModelSerializer):
