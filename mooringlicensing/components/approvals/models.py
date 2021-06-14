@@ -729,6 +729,22 @@ class MooringLicence(Approval):
         # Warn: Multiple vessels can be on a ML
         sticker = Sticker.objects.create(approval=self,)
 
+    @property
+    def vessel_details_list(self):
+        vessel_details = []
+        for proposal in self.proposal_set.all():
+            if proposal.final_status and proposal.vessel_details not in vessel_details:
+                vessel_details.append(proposal.vessel_details)
+        return vessel_details
+
+    @property
+    def vessel_ownership_list(self):
+        vessel_ownership = []
+        for proposal in self.proposal_set.all():
+            if proposal.final_status and proposal.vessel_ownership not in vessel_ownership:
+                vessel_ownership.append(proposal.vessel_ownership)
+        return vessel_ownership
+
 
 class PreviewTempApproval(Approval):
     class Meta:
