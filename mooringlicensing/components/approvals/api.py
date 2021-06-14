@@ -24,7 +24,7 @@ from mooringlicensing.components.proposals.models import Proposal, MooringLicenc
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
-    WaitingListAllocation, Sticker,
+    WaitingListAllocation, Sticker, MooringLicence,
 )
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -1016,4 +1016,32 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 waiting_list_allocation.save()
                 waiting_list_allocation.set_wla_order()
             return Response({"proposal_created": new_proposal.lodgement_number})
+
+
+class MooringLicenceViewSet(viewsets.ModelViewSet):
+    queryset = MooringLicence.objects.all().order_by('id')
+    serializer_class = ApprovalSerializer
+
+    @list_route(methods=['GET',])
+    @basic_exception_handler
+    def existing_mooring_licences(self, request, *args, **kwargs):
+        existing_licences = []
+        ml_list = MooringLicence.objects.filter(
+                submitter=request.user,
+                status='current',
+                )
+        for ml in ml_list:
+            if Mooring.objects.filter(mooring_licence=ml):
+                mooring = Mooring.objects.filter(mooring_licence=ml)[0]
+                existing_licences.append({
+                    "approval_id": ml.id,
+                    #"lodgement_number": ml.lodgement_number,
+                    #"mooring": mooring.name,
+                    "mooring_id": mooring.id,
+                    "app_type_code": ml.code,
+                    "code": 'ml_{}'.format(ml.id),
+                    "description": ml.description,
+                    "new_application_text": "to add a vessel to Mooring Licence {} on mooring {}".format(ml.lodgement_number, mooring.name)
+                    })
+        return Response(existing_licences)
 

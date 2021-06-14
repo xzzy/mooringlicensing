@@ -563,6 +563,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    @property
+    def final_status(self):
+        final_status = False
+        if self.processing_status in ([Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]):
+            final_status = True
+        return final_status
+
     def endorse_approved(self, request):
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
@@ -2452,24 +2459,39 @@ class AuthorisedUserApplication(Proposal):
         #if mooring_bay_id_pk:
          #   ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
 
-        approval, created = self.approval_class.objects.update_or_create(
-            current_proposal=self,
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': self.end_date,
-                'submitter': self.submitter,
-            }
-        )
+        # find any current AUP for this submitter with the same vessel
+        au_list = self.approval_class.objects.filter(
+                status='current', 
+                submitter=self.submitter, 
+                current_proposal__vessel_details__vessel=self.vessel_details.vessel
+                )
+        if au_list:
+            approval = au_list[0]
+            approval.issue_date = current_datetime
+            approval.current_proposal = self
+            # change start and expiry dates???
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.save()
+        else:
+            approval, created = self.approval_class.objects.update_or_create(
+                current_proposal=self,
+                defaults={
+                    'issue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_datetime.date(),
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                }
+            )
         # create MooringOnApproval records
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
         # manage stickers
-        approval.manage_stickers()
+        approval.child_obj.manage_stickers()
         return approval, created
 
     def process_after_approval(self, request):
@@ -2564,26 +2586,43 @@ class MooringLicenceApplication(Proposal):
 
     def update_or_create_approval(self, current_datetime, request):
         try:
-            approval, created = self.approval_class.objects.update_or_create(
-                current_proposal=self,
-                defaults={
-                    'issue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                    'start_date': current_datetime.date(),
-                    'expiry_date': self.end_date,
-                    'submitter': self.submitter,
-                }
-            )
-            # associate Mooring with approval
             existing_mooring_licence = self.allocated_mooring.mooring_licence
-            self.allocated_mooring.mooring_licence = approval
-            self.allocated_mooring.save()
-            # Move WLA to status approved
-            self.waiting_list_allocation.status = 'approved'
-            self.waiting_list_allocation.save()
+            created = None
+            # find any current ML for this submitter on the same mooring
+            #if (self.allocated_mooring.mooring_licence and 
+            #        self.allocated_mooring.mooring_licence.submitter == self.submitter and 
+            #        self.allocated_mooring.mooring_licence.processing_status == 'current'):
+            #    approval = self.allocated_mooring.mooring_licence
+
+            # test if user sets self.approval on proposal creation
+            if self.approval:
+                approval = self.approval
+                approval.issue_date = current_datetime
+                approval.current_proposal = self
+                # change start and expiry dates???
+                approval.start_date = current_datetime.date()
+                approval.expiry_date = self.end_date
+                approval.save()
+            else:
+                approval, created = self.approval_class.objects.update_or_create(
+                    current_proposal=self,
+                    defaults={
+                        'issue_date': current_datetime,
+                        #'start_date': current_date.strftime('%Y-%m-%d'),
+                        #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                        'start_date': current_datetime.date(),
+                        'expiry_date': self.end_date,
+                        'submitter': self.submitter,
+                    }
+                )
+                # associate Mooring with approval
+                self.allocated_mooring.mooring_licence = approval
+                self.allocated_mooring.save()
+                # Move WLA to status approved
+                self.waiting_list_allocation.status = 'approved'
+                self.waiting_list_allocation.save()
             # log Mooring action
-            if existing_mooring_licence:
+            if existing_mooring_licence and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(
                         MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
                             str(existing_mooring_licence),
@@ -2598,7 +2637,7 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            approval.manage_stickers()
+            approval.child_obj.manage_stickers()
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")
