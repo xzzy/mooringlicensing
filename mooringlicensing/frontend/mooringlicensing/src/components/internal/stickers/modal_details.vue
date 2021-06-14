@@ -13,7 +13,7 @@
                     <label class="col-sm-3 control-label">Date of Lost</label>
                     <div class="col-sm-3">
                         <div class="input-group date" ref="lostDatePicker">
-                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY"/>
+                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="lost_date_elem"/>
                             <span class="input-group-addon">
                                 <span class="glyphicon glyphicon-calendar"></span>
                             </span>
@@ -24,7 +24,7 @@
                     <label class="col-sm-3 control-label">Date of Returned</label>
                     <div class="col-sm-3">
                         <div class="input-group date" ref="returnedDatePicker">
-                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY"/>
+                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="returned_date_elem"/>
                             <span class="input-group-addon">
                                 <span class="glyphicon glyphicon-calendar"></span>
                             </span>
@@ -61,11 +61,7 @@ export default {
             isModalOpen:false,
             action: '',
             sticker: {},
-            details: {
-                reason: '',
-                date_of_lost_sticker: null,
-                date_of_returned_sticker: null,
-            },
+            details: vm.getDefaultDetails(),
             processing: false,
             action: '',
 
@@ -87,28 +83,15 @@ export default {
         }
     },
     methods:{
+        getDefaultDetails: function(){
+            return {
+                reason: '',
+                date_of_lost_sticker: null,
+                date_of_returned_sticker: null,
+            }
+        },
         ok:function () {
             let vm =this;
-            //if($(vm.form).valid()){
-            //    vm.sendData();
-            //}
-            vm.sendData();
-        },
-        cancel:function () {
-            this.close();
-        },
-        close:function () {
-            this.isModalOpen = false
-            this.details = {}
-            this.errors = false
-            this.processing = false
-            //$('.has-error').removeClass('has-error');
-            //this.validation_form.resetForm();
-        },
-        sendData:function(){
-            console.log('in sendData')
-
-            let vm = this
             vm.errors = false
             vm.processing = true
             vm.$emit("sendData", {
@@ -116,19 +99,19 @@ export default {
                 "sticker": vm.sticker,
                 "action": vm.action,
             })
-            //vm.$http.post(helpers.
-            //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, vm.proposal.id + '/proposed_decline'), JSON.stringify(details), {
-            //        emulateJSON:true,
-            //    }).then((response)=>{
-            //        vm.processing = false;
-            //        vm.close();
-            //        vm.$emit('refreshFromResponse',response);
-            //        vm.$router.push({ path: '/internal' }); //Navigate to dashboard after propose details.
-            //    },(error)=>{
-            //        vm.errors = true;
-            //        vm.processing = false;
-            //        vm.errorString = helpers.apiVueResourceError(error);
-            //    });
+        },
+        cancel:function () {
+            this.close();
+        },
+        close:function () {
+            this.isModalOpen = false
+            this.details = this.getDefaultDetails()
+            $('#returned_date_elem').val('')
+            $('#lost_date_elem').val('')
+            this.errors = false
+            this.processing = false
+            //$('.has-error').removeClass('has-error');
+            //this.validation_form.resetForm();
         },
         addEventListeners: function () {
             let vm = this;

@@ -35,19 +35,18 @@ export default {
     },
     methods: {
         actionClicked: function(param){
+            console.log('actionClicked() in dashboard')
             this.$refs.modal_details.action = param.action
             this.$refs.modal_details.sticker.id = param.id
-            this.$refs.modal_details.key = uuid()
+            this.$refs.modal_details.close()
             this.$refs.modal_details.isModalOpen = true
         },
         sendData: function(params){
-            console.log('sendData')
-            console.log(params.details)
             let vm = this
             let action = params.action
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params.details).then(
                 res => {
-                    vm.updateStatusCell(params.sticker.id, res.body.sticker.status)
+                    vm.updateTableRow(params.sticker.id, res.body)
                     vm.$refs.modal_details.close()
                 },
                 err => {
@@ -56,8 +55,10 @@ export default {
                 }
             )
         },
-        updateStatusCell: function(id, newStatus){
-            console.log('in updateStatusCell')
+        updateTableRow: function(id, newData){
+            console.log('sticker id: ' + id)
+            console.log('body: ')
+            console.log(newData)
         }
     },
 }
