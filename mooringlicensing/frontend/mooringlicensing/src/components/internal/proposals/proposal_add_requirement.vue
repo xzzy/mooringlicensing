@@ -18,8 +18,9 @@
                                         <label class="control-label pull-left"  for="Name">Requirement</label>
                                     </div>
                                     <div class="col-sm-9" v-if="requirement.standard">
-                                        <div style="width:70% !important">
-                                            <select class="form-control" ref="standard_req" name="standard_requirement" v-model="requirement.standard_requirement">
+                                        <!--div style="width:70% !important"-->
+                                        <div>
+                                            <select class="form-control" ref="standard_req" name="standard_requirement" v-model="requirement.standard_requirement" style="width:70%">
                                                 <option v-for="r in requirements" :value="r.id">{{r.code}} {{r.text}}</option>
                                             </select>
                                         </div>
