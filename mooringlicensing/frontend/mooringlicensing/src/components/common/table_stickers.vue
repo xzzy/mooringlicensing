@@ -161,7 +161,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.status
+                    return '<span id="status_cell_id_' + full.id + '">' + full.status + '</span>'
                 },
                 name: 'status'
             }
@@ -225,6 +225,8 @@ export default {
                 responsive: true,
                 serverSide: true,
                 searching: search,
+                ordering: true,
+                order: [[1, 'desc']],
                 ajax: {
                     "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
                     "dataSrc": 'data',
@@ -305,8 +307,10 @@ export default {
                 let id = $(this).attr('data-replacement');
                 vm.$http.post('/api/stickers/' + id + '/request_new/').then(
                 res => {
-                    console.log(res)
-                    vm.$refs.stickers_datatable.vmDataTable.draw()
+                    let elem = $('#status_cell_id_' + id)
+                    elem.fadeOut(function(){
+                      elem.text(res.body.sticker.status).fadeIn()
+                    })
                 },
                 err => {
                     console.log(err)
@@ -317,8 +321,10 @@ export default {
                 let id = $(this).attr('data-record-returned');
                 vm.$http.post('/api/stickers/' + id + '/record_returned/').then(
                 res => {
-                    console.log(res)
-                    vm.$refs.stickers_datatable.vmDataTable.draw()
+                    let elem = $('#status_cell_id_' + id)
+                    elem.fadeOut(function(){
+                      elem.text(res.body.sticker.status).fadeIn()
+                    })
                 },
                 err => {
                     console.log(err)
@@ -329,8 +335,10 @@ export default {
                 let id = $(this).attr('data-record-lost');
                 vm.$http.post('/api/stickers/' + id + '/record_lost/').then(
                 res => {
-                    console.log(res)
-                    vm.$refs.stickers_datatable.vmDataTable.draw()
+                    let elem = $('#status_cell_id_' + id)
+                    elem.fadeOut(function(){
+                      elem.text(res.body.sticker.status).fadeIn()
+                    })
                 },
                 err => {
                     console.log(err)
