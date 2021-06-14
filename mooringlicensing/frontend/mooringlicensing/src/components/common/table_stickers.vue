@@ -226,7 +226,7 @@ export default {
                 serverSide: true,
                 searching: search,
                 ordering: true,
-                order: [[1, 'desc']],
+                order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
                 ajax: {
                     "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
                     "dataSrc": 'data',
@@ -305,41 +305,19 @@ export default {
             let vm = this
 
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
-
-                let data = vm.$refs.stickers_datatable.vmDataTable.row(this)
-                console.log(data)
-
                 e.preventDefault();
                 let id = $(this).attr('data-replacement');
-                vm.$http.post('/api/stickers/' + id + '/request_new/').then(
-                res => {
-                    vm.updateStatusCell(id, res.body.sticker.status)
-                },
-                err => {
-                    console.log(err)
-                })
+                vm.$emit("actionClicked", {"action": "request_replacement", "id": id})
             });
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-record-returned');
-                vm.$http.post('/api/stickers/' + id + '/record_returned/').then(
-                res => {
-                    vm.updateStatusCell(id, res.body.sticker.status)
-                },
-                err => {
-                    console.log(err)
-                })
+                vm.$emit("actionClicked", {"action": "record_returned", "id": id})
             });
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-record-lost');
-                vm.$http.post('/api/stickers/' + id + '/record_lost/').then(
-                res => {
-                    vm.updateStatusCell(id, res.body.sticker.status)
-                },
-                err => {
-                    console.log(err)
-                })
+                vm.$emit("actionClicked", {"action": "record_lost", "id": id})
             });
         },
     },

@@ -1063,7 +1063,7 @@ class Sticker(models.Model):
         self.status = Sticker.STICKER_STATUS_RETURNED
         self.save()
 
-    def request_new(self):
+    def request_replacement(self):
         self.status = Sticker.STICKER_STATUS_LOST
         self.save()
 
@@ -1120,6 +1120,19 @@ class Sticker(models.Model):
         if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
             return self.approval.submitter.postal_address.postcode
         return '---'
+
+
+class StickerActionDetail(models.Model):
+    sticker = models.ForeignKey(Sticker, blank=True, null=True, related_name='sticker_action_details')
+    reason = models.TextField(blank=True)
+    date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+    date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
+    date_of_lost_sticker = models.DateField(blank=True, null=True)
+    date_of_return_sticker = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        ordering = ['-date_created']
 
 
 @receiver(pre_delete, sender=Approval)
