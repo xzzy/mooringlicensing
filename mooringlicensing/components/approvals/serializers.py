@@ -644,12 +644,16 @@ class ApprovalSimpleSerializer(serializers.ModelSerializer):
 
 
 class StickerActionDetailSerializer(serializers.ModelSerializer):
+    date_of_lost_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
+    date_of_returned_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
 
     class Meta:
         model = StickerActionDetail
         fields = (
             'sticker',
             'reason',
+            'date_of_lost_sticker',
+            'date_of_returned_sticker',
         )
 
 
@@ -657,6 +661,7 @@ class StickerSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval = ApprovalSimpleSerializer()
     sent_date = serializers.SerializerMethodField()
+    sticker_action_details = StickerActionDetailSerializer(many=True)
 
     class Meta:
         model = Sticker
@@ -668,6 +673,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'printing_date',
             'mailing_date',
             'sent_date',
+            'sticker_action_details',
         )
         datatables_always_serialize = (
             'id',
@@ -677,6 +683,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'printing_date',
             'mailing_date',
             'sent_date',
+            'sticker_action_details',
         )
 
     def get_status(self, obj):

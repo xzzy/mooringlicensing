@@ -1128,7 +1128,7 @@ class StickerActionDetail(models.Model):
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
     date_of_lost_sticker = models.DateField(blank=True, null=True)
-    date_of_return_sticker = models.DateField(blank=True, null=True)
+    date_of_returned_sticker = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'

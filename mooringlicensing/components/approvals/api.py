@@ -905,9 +905,9 @@ class StickerViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def record_returned(self, request, *args, **kwargs):
         sticker = self.get_object()
+        data = request.data
 
         # Update Sticker action
-        data = request.data
         data['sticker'] = sticker.id
         serializer = StickerActionDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -922,6 +922,15 @@ class StickerViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def record_lost(self, request, *args, **kwargs):
         sticker = self.get_object()
+        data = request.data
+
+        # Update Sticker action
+        data['sticker'] = sticker.id
+        serializer = StickerActionDetailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        details = serializer.save()
+
+        # Update Sticker
         sticker.record_lost()
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
@@ -930,6 +939,15 @@ class StickerViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def request_replacement(self, request, *args, **kwargs):
         sticker = self.get_object()
+        data = request.data
+
+        # Update Sticker action
+        data['sticker'] = sticker.id
+        serializer = StickerActionDetailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        details = serializer.save()
+
+        # Sticker
         sticker.request_replacement()
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
