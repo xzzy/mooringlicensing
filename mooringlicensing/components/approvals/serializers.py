@@ -646,14 +646,21 @@ class ApprovalSimpleSerializer(serializers.ModelSerializer):
 class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_of_lost_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     date_of_returned_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
+    date_created = serializers.DateTimeField(read_only=True)
+    date_updated = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = StickerActionDetail
         fields = (
+            'id',
             'sticker',
             'reason',
+            'date_created',
+            'date_updated',
             'date_of_lost_sticker',
             'date_of_returned_sticker',
+            'action',
+            'user',
         )
 
 

@@ -909,6 +909,8 @@ class StickerViewSet(viewsets.ModelViewSet):
 
         # Update Sticker action
         data['sticker'] = sticker.id
+        data['action'] = 'Record returned'
+        data['user'] = request.user.id
         serializer = StickerActionDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         details = serializer.save()
@@ -926,6 +928,8 @@ class StickerViewSet(viewsets.ModelViewSet):
 
         # Update Sticker action
         data['sticker'] = sticker.id
+        data['action'] = 'Record lost'
+        data['user'] = request.user.id
         serializer = StickerActionDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         details = serializer.save()
@@ -943,6 +947,8 @@ class StickerViewSet(viewsets.ModelViewSet):
 
         # Update Sticker action
         data['sticker'] = sticker.id
+        data['action'] = 'Request replacement'
+        data['user'] = request.user.id
         serializer = StickerActionDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         details = serializer.save()
