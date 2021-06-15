@@ -352,6 +352,7 @@ export default {
             elem.fadeOut(function(){
                 elem.html(contents).fadeIn()
             })
+
         },
         updateStatusCell: function(sticker){
             let elem = $('#status_cell_contents_id_' + sticker.id)
@@ -360,7 +361,18 @@ export default {
             })
         },
         updateDetailsRow: function(sticker){
+            let vm = this
+            let elem = $('#action_cell_contents_id_' + sticker.id)
 
+            // Remove details table if shown
+            let tr = elem.closest('tr')
+            let nextElem = tr.next()
+            if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
+                // Sticker details row is already shown.  Remove it.
+                nextElem.fadeOut(500, function(){
+                    nextElem.remove()
+                })
+            }
         },
         updateRow: function(sticker){
             this.updateStatusCell(sticker)
@@ -373,7 +385,6 @@ export default {
             // Listener for the <a> link for replacement
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
                 e.preventDefault()
-                //e.stopPropagation()
 
                 // Get <a> element as jQuery object
                 let a_link = $(this)
@@ -386,7 +397,6 @@ export default {
             // Listener for the <a> link for recording returned
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
                 e.preventDefault();
-                //e.stopPropagation()
 
                 let a_link = $(this)
                 let id = a_link.attr('data-record-returned');
@@ -396,7 +406,6 @@ export default {
             // Listener for the <a> link for recording lost
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
                 e.preventDefault();
-                //e.stopPropagation()
 
                 let a_link = $(this)
                 let id = a_link.attr('data-record-lost');
