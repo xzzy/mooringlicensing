@@ -1129,6 +1129,8 @@ class StickerActionDetail(models.Model):
     date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
     date_of_lost_sticker = models.DateField(blank=True, null=True)
     date_of_returned_sticker = models.DateField(blank=True, null=True)
+    action = models.CharField(max_length=50, null=True, blank=True)
+    user = models.ForeignKey(EmailUser, null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'

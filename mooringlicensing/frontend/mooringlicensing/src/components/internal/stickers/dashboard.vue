@@ -2,12 +2,13 @@
     <div class="container" id="StickersDash">
         <FormSection :formCollapse="false" label="Stickers" Index="stickers">
             <StickersTable
+                ref="stickers_table"
                 level="internal"
                 @actionClicked="actionClicked"
             />
         </FormSection>
         <ModalDetails
-            ref="modal_details" 
+            ref="modal_details"
             @sendData="sendData"
         />
     </div>
@@ -46,7 +47,7 @@ export default {
             let action = params.action
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params.details).then(
                 res => {
-                    vm.updateTableRow(params.sticker.id, res.body)
+                    vm.updateTableRow(res.body.sticker)
                     vm.$refs.modal_details.close()
                 },
                 err => {
@@ -55,10 +56,8 @@ export default {
                 }
             )
         },
-        updateTableRow: function(id, newData){
-            console.log('sticker id: ' + id)
-            console.log('body: ')
-            console.log(newData)
+        updateTableRow: function(sticker){
+            this.$refs.stickers_table.updateRow(sticker)
         }
     },
 }
