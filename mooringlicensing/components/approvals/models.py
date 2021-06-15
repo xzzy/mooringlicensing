@@ -1050,9 +1050,22 @@ class Sticker(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
+        ordering = ['-number']
 
     def __str__(self):
         return '{} ({})'.format(self.number, self.status)
+
+    def record_lost(self):
+        self.status = Sticker.STICKER_STATUS_LOST
+        self.save()
+
+    def record_returned(self):
+        self.status = Sticker.STICKER_STATUS_RETURNED
+        self.save()
+
+    def request_replacement(self):
+        self.status = Sticker.STICKER_STATUS_LOST
+        self.save()
 
     def get_sticker_colour(self):
         colour = self.approval.child_obj.sticker_colour
@@ -1107,6 +1120,21 @@ class Sticker(models.Model):
         if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
             return self.approval.submitter.postal_address.postcode
         return '---'
+
+
+class StickerActionDetail(models.Model):
+    sticker = models.ForeignKey(Sticker, blank=True, null=True, related_name='sticker_action_details')
+    reason = models.TextField(blank=True)
+    date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+    date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
+    date_of_lost_sticker = models.DateField(blank=True, null=True)
+    date_of_returned_sticker = models.DateField(blank=True, null=True)
+    action = models.CharField(max_length=50, null=True, blank=True)
+    user = models.ForeignKey(EmailUser, null=True, blank=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        ordering = ['-date_created']
 
 
 @receiver(pre_delete, sender=Approval)
