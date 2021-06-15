@@ -49,6 +49,7 @@ module.exports = {
     mooringlicenceapplication: '/api/mooringlicenceapplication/',
     proposal: '/api/proposal/',
     approvals: '/api/approvals/',
+    stickers: '/api/stickers/',
     holder_list: '/api/approvals/holder_list/',
     vessel: '/api/vessel/',
     mooring: '/api/mooring/',
