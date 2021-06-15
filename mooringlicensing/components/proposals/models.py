@@ -364,6 +364,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # CUSTOMER_STATUS_PARTIALLY_APPROVED = 'partially_approved'
     # CUSTOMER_STATUS_PARTIALLY_DECLINED = 'partially_declined'
     CUSTOMER_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
+    CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
+    CUSTOMER_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
     CUSTOMER_STATUS_CHOICES = (
         # (CUSTOMER_STATUS_TEMP, 'Temporary'),
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
@@ -379,6 +381,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # (CUSTOMER_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
         # (CUSTOMER_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
+        (CUSTOMER_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
         )
 
     # List of statuses from above that allow a customer to edit an application.
@@ -421,15 +425,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_PRINTING_STICKER = 'printing_sticker'
     PROCESSING_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     PROCESSING_STATUS_AWAITING_DOCUMENTS = 'awaiting_documents'
-    PROCESSING_STATUS_AWAITING_RESPONSES = 'awaiting_responses'
-    PROCESSING_STATUS_READY_FOR_CONDITIONS = 'ready_for_conditions'
-    PROCESSING_STATUS_READY_TO_ISSUE = 'ready_to_issue'
+    # PROCESSING_STATUS_AWAITING_RESPONSES = 'awaiting_responses'
+    # PROCESSING_STATUS_READY_FOR_CONDITIONS = 'ready_for_conditions'
+    # PROCESSING_STATUS_READY_TO_ISSUE = 'ready_to_issue'
     PROCESSING_STATUS_APPROVED = 'approved'
     PROCESSING_STATUS_DECLINED = 'declined'
     PROCESSING_STATUS_DISCARDED = 'discarded'
-    PROCESSING_STATUS_PARTIALLY_APPROVED = 'partially_approved'
-    PROCESSING_STATUS_PARTIALLY_DECLINED = 'partially_declined'
+    # PROCESSING_STATUS_PARTIALLY_APPROVED = 'partially_approved'
+    # PROCESSING_STATUS_PARTIALLY_DECLINED = 'partially_declined'
     PROCESSING_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
+    PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
+    PROCESSING_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
     PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_TEMP, 'Temporary'),
                                  (PROCESSING_STATUS_DRAFT, 'Draft'),
                                  (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
@@ -447,15 +453,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_PRINTING_STICKER, 'Printing Sticker'),
                                  (PROCESSING_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
                                  (PROCESSING_STATUS_AWAITING_DOCUMENTS, 'Awaiting Documents'),
-                                 (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
-                                 (PROCESSING_STATUS_READY_FOR_CONDITIONS, 'Ready for Conditions'),
-                                 (PROCESSING_STATUS_READY_TO_ISSUE, 'Ready to Issue'),
+                                 # (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
+                                 # (PROCESSING_STATUS_READY_FOR_CONDITIONS, 'Ready for Conditions'),
+                                 # (PROCESSING_STATUS_READY_TO_ISSUE, 'Ready to Issue'),
                                  (PROCESSING_STATUS_APPROVED, 'Approved'),
                                  (PROCESSING_STATUS_DECLINED, 'Declined'),
                                  (PROCESSING_STATUS_DISCARDED, 'Discarded'),
-                                 (PROCESSING_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
-                                 (PROCESSING_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
+                                 # (PROCESSING_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
+                                 # (PROCESSING_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
                                  (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+                                 (PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
+                                 (PROCESSING_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
                                 )
 
     # PROPOSAL_TYPE_CHOICES = (
@@ -580,23 +588,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         self.save()
 
-    def post_payment_success(self, request):
-        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
+    #def post_payment_success(self, request):
+    #    self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    #    self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
 
-        # ret1 = send_submit_email_notification(request, self)
-        #ret2 = send_external_submit_email_notification(request, self)
-        # ret2 = True
-        ret1 = self.child_obj.send_emails_after_payment_success(request)
+    #    # ret1 = send_submit_email_notification(request, self)
+    #    #ret2 = send_external_submit_email_notification(request, self)
+    #    # ret2 = True
+    #    ret1 = self.child_obj.send_emails_after_payment_success(request)
 
-        if ret1:
-            self.child_obj.set_status_after_payment_success()
-            # self.refresh_from_db()
-            # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
-            # wobj.set_status_after_payment_success()
-        else:
-            raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-        # self.save()
+    #    if ret1:
+    #        self.child_obj.set_status_after_payment_success()
+    #        self.refresh_from_db()
+    #        # self.refresh_from_db()
+    #        # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
+    #        # wobj.set_status_after_payment_success()
+    #    else:
+    #        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+    #    self.save()
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
@@ -1374,16 +1383,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
-
-                from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
-                if self.application_type.code == WaitingListApplication.code:
-                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-                elif self.application_type.code == AnnualAdmissionApplication.code:
-                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                else:
-                    raise # Should not reach here.  ApplicationType must be either WLA or AAA
+                self.save()
+                self.process_after_approval(request)
+                # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
+                # if self.application_type.code == WaitingListApplication.code:
+                #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                #     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                # elif self.application_type.code == AnnualAdmissionApplication.code:
+                #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                # else:
+                #     raise # Should not reach here.  ApplicationType must be either WLA or AAA
 
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
@@ -1526,9 +1536,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email')
                     }
+                    self.save()
 
-                from mooringlicensing.components.payments_ml.utils import create_fee_lines
-                from mooringlicensing.components.payments_ml.models import FeeConstructor
+                from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
+                from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
                 line_items, db_operations = create_fee_lines(self)
                 fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
 
@@ -1542,10 +1553,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
                             invoice = Invoice.objects.get(order_number=order.number)
 
-                            from mooringlicensing.components.payments_ml.utils import make_serializable
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
 
-                            from mooringlicensing.components.payments_ml.models import ApplicationFee
                             annual_rental_fee = ApplicationFee.objects.create(
                                 proposal=self,
                                 fee_constructor=fee_constructor,
@@ -1558,17 +1567,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             )
                             # updates.append(annual_rental_fee.invoice_reference)
 
-                            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-                            self.save()
-
-                            # TODO: Send approved-awaiting-payment email to the submitter
+                            self.process_after_approval(request)
+                            # self.save()
 
                             # Log proposal action
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
                             # Log entry for organisation
                             applicant_field = getattr(self, self.applicant_field)
                             applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+
+                            self.save()
 
                         except Exception as e:
                             err_msg = 'Failed to create annual site fee confirmation'
@@ -1769,7 +1777,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
             self.final_approval_for_WLA_AAA(request, details)
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-            self.final_approval_for_AUA_MLA(request, details)
+            return self.final_approval_for_AUA_MLA(request, details)
 
         # from mooringlicensing.components.approvals.models import Approval
         # with transaction.atomic():
@@ -2164,9 +2172,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
     def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=None):
-        #approval, created = self.approval_class.update_or_create_approval(self, target_datetime)
         approval, created = self.child_obj.update_or_create_approval(target_datetime, request)
+        self.refresh_from_db()
         return approval, created
+
+    def process_after_payment_success(self, request):
+        self.child_obj.process_after_payment_success(request)
+        self.refresh_from_db()  # Somehow this is needed...
+
+    def process_after_approval(self, request):
+        self.child_obj.process_after_approval(request)
+        self.refresh_from_db()  # Somehow this is needed...
 
     @property
     def application_type_code(self):
@@ -2246,7 +2262,7 @@ class WaitingListApplication(Proposal):
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(WaitingListApplication, self).save(*args,**kwargs)
+        super(WaitingListApplication, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
@@ -2286,6 +2302,23 @@ class WaitingListApplication(Proposal):
         )
         approval = approval.set_wla_order()
         return approval, created
+
+    def process_after_payment_success(self, request):
+        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+
+        ret1 = self.send_emails_after_payment_success(request)
+        if ret1:
+            self.set_status_after_payment_success()
+        else:
+            raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+
+        self.save()
+
+    def process_after_approval(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        self.save()
 
 
 class AnnualAdmissionApplication(Proposal):
@@ -2342,6 +2375,22 @@ class AnnualAdmissionApplication(Proposal):
         approval.manage_stickers()
         return approval, created
 
+    def process_after_payment_success(self, request):
+        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+
+        ret1 = self.send_emails_after_payment_success(request)
+        if ret1:
+            self.set_status_after_payment_success()
+        else:
+            raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+
+        self.save()
+
+    def process_after_approval(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        self.save()
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2360,8 +2409,7 @@ class AuthorisedUserApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #application_type_acronym = self.application_type.acronym if self.application_type else None
-        super(AuthorisedUserApplication, self).save(*args,**kwargs)
+        super(AuthorisedUserApplication, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
             self.lodgement_number = new_lodgment_id
@@ -2400,7 +2448,6 @@ class AuthorisedUserApplication(Proposal):
             # Email to submitter
             send_submit_email_notification(request, self)
 
-    #@classmethod
     def update_or_create_approval(self, current_datetime, request=None):
         #import ipdb; ipdb.set_trace()
         mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
@@ -2447,6 +2494,31 @@ class AuthorisedUserApplication(Proposal):
         approval.child_obj.manage_stickers()
         return approval, created
 
+    def process_after_approval(self, request):
+        print('process_after_approved() in AuthorisedUserApplication')
+        # TODO: Conditional
+        # if moorings%4==0:
+        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        self.save()
+        # TODO: Send email (payment required)
+        # else:
+        # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+        # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+        # self.save()
+        # TODO: Send email (payment required, Sticker to be returned)
+
+    def process_after_payment_success(self, request):
+        if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+            # User had to make payment
+            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
+            # User had to make payment and also return sticker
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
+        self.save()
+
 
 class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2471,6 +2543,7 @@ class MooringLicenceApplication(Proposal):
             self.lodgement_number = new_lodgment_id
             self.save()
         self.proposal.refresh_from_db()
+        print('refresh_from_db1')
 
     def process_after_uploading_other_documents(self, request):
         # Somehow in this function, followings update parent too as we expected as polymorphism
@@ -2485,8 +2558,22 @@ class MooringLicenceApplication(Proposal):
 
     def send_emails_after_payment_success(self, request):
         # ret_value = send_submit_email_notification(request, self)
-        # TODO: Send payment success email to the submitter (applicant)
+        # TODO: Send email (payment success, granted/printing-sticker)
         return True
+
+    def process_after_approval(self, request):
+        print('in process_after_approved')
+        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        self.save()
+        # self.proposal.refresh_from_db()
+        # print('refresh_from_db2')
+        # TODO: Send email (payment required)
+
+    def process_after_payment_success(self, request):
+        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
