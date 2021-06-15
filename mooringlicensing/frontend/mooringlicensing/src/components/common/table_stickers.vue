@@ -153,7 +153,14 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.sent_date + '<br />' + full.printing_date + '<br />' + full.mailing_date
+                    let lines = `
+                                 <table>
+                                     <tr><td style="text-align:right;">Sent:</td><td> ${full.sent_date ? moment(full.sent_date, 'YYYY-MM-DD').format('DD/MM/YYYY') : '---'}</td></tr>
+                                     <tr><td style="text-align:right;">Printed:</td><td> ${full.printing_date ? moment(full.printing_date, 'YYYY-MM-DD').format('DD/MM/YYYY') : '---'}</td></tr>
+                                     <tr><td style="text-align:right;">Mailed:</td><td> ${full.mailing_date ? moment(full.mailing_date, 'YYYY-MM-DD').format('DD/MM/YYYY') : '---'}</td></tr>
+                                 </table>
+                                 `
+                    return lines
                 }
             }
         },
@@ -280,11 +287,11 @@ export default {
             let tbody = ''
             for (let detail of sticker.sticker_action_details){
                 tbody += `<tr>
-                    <td>${detail.date_updated}</td>
-                    <td>${detail.user}</td>
-                    <td>${detail.action}</td>
-                    <td>${detail.date_of_lost_sticker}</td>
-                    <td>${detail.date_of_returned_sticker}</td>
+                    <td>${moment(detail.date_updated).format('DD/MM/YYYY')}</td>
+                    <td>${detail.user_detail ? detail.user_detail.first_name : ''} ${detail.user_detail ? detail.user_detail.last_name : ''} </td>
+                    <td>${detail.action ? detail.action : ''}</td>
+                    <td>${detail.date_of_lost_sticker ? moment(detail.date_of_lost_sticker, 'YYYY-MM-DD').format('DD/MM/YYYY') : ''}</td>
+                    <td>${detail.date_of_returned_sticker ? moment(detail.date_of_returned_sticker, 'YYYY-MM-DD').format('DD/MM/YYYY') : ''}</td>
                     <td>${detail.reason}</td>
                 </tr>`
             }
