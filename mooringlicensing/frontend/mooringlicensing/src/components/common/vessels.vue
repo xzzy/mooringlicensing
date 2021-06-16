@@ -110,6 +110,14 @@
 
             </div>
             <div class="row form-group">
+                <label for="" class="col-sm-3 control-label">Name as shown on DoT registration papers</label>
+                <!--label for="" class="col-sm-3 control-label">Permanent or usual place</label-->
+                <div class="col-sm-9">
+                    <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="dot_name" placeholder="" v-model="dotName" required=""/>
+                </div>
+            </div>
+
+            <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Permanent or usual place of berthing/mooring of vessel</label>
                 <!--label for="" class="col-sm-3 control-label">Permanent or usual place</label-->
                 <div class="col-sm-9">
@@ -200,6 +208,7 @@ from '@/utils/hooks'
         name:'vessels',
         data:function () {
             return {
+                dotName: '',
                 vessel: {
                     vessel_details: {},
                     vessel_ownership: {
@@ -779,6 +788,9 @@ from '@/utils/hooks'
                 this.initialiseRegoNoSelect();
                 this.initialiseCompanyNameSelect();
                 this.addEventListeners();
+                if (this.proposal.dot_name) {
+                    this.dotName = this.proposal.dot_name;
+                }
             });
         },
         created: function() {
