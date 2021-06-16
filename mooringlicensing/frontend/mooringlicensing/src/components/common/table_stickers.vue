@@ -368,9 +368,12 @@ export default {
             let tr = elem.closest('tr')
             let nextElem = tr.next()
             if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
-                // Sticker details row is already shown.  Remove it.
+                // Sticker details row is already shown.  Replace the contents.
+                let td = nextElem.find("td:eq(0)")
+                let table_inside = vm.getActionDetailTable(sticker)
                 nextElem.fadeOut(500, function(){
-                    nextElem.remove()
+                    td.html(table_inside)
+                    nextElem.fadeIn(1000)
                 })
             }
         },
