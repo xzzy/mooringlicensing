@@ -28,7 +28,8 @@
                         <tr v-for="approval in approvals">
                             <td>{{ approval.approval_type_dict.description }}</td>
                             <td>{{ approval.lodgement_number }}</td>
-                            <td>View</td>
+                            <!--td>View</td-->
+                            <td></td>
                             <td>{{ approval.submitter_phone_number }}</td>
                         </tr>
                     </tbody>
