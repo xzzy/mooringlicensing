@@ -45,7 +45,7 @@ import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
-    name: 'TableApplications',
+    name: 'TableStickers',
     props: {
         level:{
             type: String,
@@ -68,6 +68,9 @@ export default {
 
             // filtering options
             approval_types: [],
+            debug: false,
+
+            sticker_details_tr_class_name: 'sticker_details',
         }
     },
     components:{
@@ -89,6 +92,9 @@ export default {
         },
     },
     computed: {
+        number_of_columns: function() {
+            return this.datatable_headers.length
+        },
         is_external: function() {
             return this.level == 'external'
         },
@@ -147,7 +153,14 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.sent_date + '<br />' + full.printing_date + '<br />' + full.mailing_date
+                    let lines = `
+                                 <table>
+                                     <tr><td style="text-align:right;">Sent:</td><td> ${full.sent_date ? moment(full.sent_date, 'YYYY-MM-DD').format('DD/MM/YYYY') : '---'}</td></tr>
+                                     <tr><td style="text-align:right;">Printed:</td><td> ${full.printing_date ? moment(full.printing_date, 'YYYY-MM-DD').format('DD/MM/YYYY') : '---'}</td></tr>
+                                     <tr><td style="text-align:right;">Mailed:</td><td> ${full.mailing_date ? moment(full.mailing_date, 'YYYY-MM-DD').format('DD/MM/YYYY') : '---'}</td></tr>
+                                 </table>
+                                 `
+                    return lines
                 }
             }
         },
@@ -160,7 +173,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.status
+                    return '<span id="status_cell_contents_id_' + full.id + '">' + full.status + '</span>'
                 },
                 name: 'status'
             }
@@ -186,11 +199,12 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    let links =  `<a href='#${full.id}' data-replacement='${full.id}'>Request Sticker Replacement</a><br/>`
-                    links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
-                    links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
-
-                    return links
+                    return vm.getActionCellContents(full)
+                    //let links =  `<a href='#${full.id}' data-replacement='${full.id}'>Request Sticker Replacement</a><br/>`
+                    //links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
+                    //links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
+                    //links += `<a href='#${full.id}' data-view-details='${full.id}'>Show/Hide Details</a><br/>`
+                    //return '<span id="action_cell_contents_id_' + full.id + '">' + links + '</span>'
                 }
             }
         },
@@ -221,11 +235,17 @@ export default {
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
+                rowCallback: function (row, sticker){
+                    $(row).attr('id', 'sticker_id_' + sticker.id)
+                },
+                autoWidth: false,
                 responsive: true,
                 serverSide: true,
                 searching: search,
+                ordering: true,
+                order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
                 ajax: {
-                    "url": api_endpoints.stickers_paginated_list + '?format=datatables',
+                    "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -246,6 +266,40 @@ export default {
         }
     },
     methods: {
+        getActionCellContents: function(sticker){
+            let links =  `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
+            links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
+            links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+            links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
+            return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
+        },
+        getActionDetailTable: function(sticker){
+            let thead = `<thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">User</th>
+                                <th scope="col">Action</th>
+                                <th scope="col">Date of Lost</th>
+                                <th scope="col">Date of Returned</th>
+                                <th scope="col">Reason</th>
+                            </tr>
+                        <thead>`
+            let tbody = ''
+            for (let detail of sticker.sticker_action_details){
+                tbody += `<tr>
+                    <td>${moment(detail.date_updated).format('DD/MM/YYYY')}</td>
+                    <td>${detail.user_detail ? detail.user_detail.first_name : ''} ${detail.user_detail ? detail.user_detail.last_name : ''} </td>
+                    <td>${detail.action ? detail.action : ''}</td>
+                    <td>${detail.date_of_lost_sticker ? moment(detail.date_of_lost_sticker, 'YYYY-MM-DD').format('DD/MM/YYYY') : ''}</td>
+                    <td>${detail.date_of_returned_sticker ? moment(detail.date_of_returned_sticker, 'YYYY-MM-DD').format('DD/MM/YYYY') : ''}</td>
+                    <td>${detail.reason}</td>
+                </tr>`
+            }
+            tbody = '<tbody>' + tbody + '</tbody>'
+
+            let details = '<table class="table table-striped table-bordered table-sm table-sticker-details" id="table-sticker-details-' + sticker.id + '">' + thead + tbody + '</table>'
+            return details
+        },
         export_to_csv_button_clicked: function(){
             console.log('Export to CSV button clicked')
         },
@@ -292,30 +346,140 @@ export default {
 
             // TODO: Fetch Years
         },
+        updateActionCell: function(sticker){
+            let elem = $('#action_cell_contents_id_' + sticker.id)
+            let contents = this.getActionCellContents(sticker)
+            elem.fadeOut(function(){
+                elem.html(contents).fadeIn()
+            })
+
+        },
+        updateStatusCell: function(sticker){
+            let elem = $('#status_cell_contents_id_' + sticker.id)
+            elem.fadeOut(function(){
+                elem.text(sticker.status).fadeIn()
+            })
+        },
+        updateDetailsRow: function(sticker){
+            let vm = this
+            let elem = $('#action_cell_contents_id_' + sticker.id)
+
+            // Remove details table if shown
+            let tr = elem.closest('tr')
+            let nextElem = tr.next()
+            if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
+                // Sticker details row is already shown.  Remove it.
+                nextElem.fadeOut(500, function(){
+                    nextElem.remove()
+                })
+            }
+        },
+        updateRow: function(sticker){
+            this.updateStatusCell(sticker)
+            this.updateActionCell(sticker)
+            this.updateDetailsRow(sticker)
+        },
         addEventListeners: function(){
             let vm = this
 
+            // Listener for the <a> link for replacement
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-replacement');
-                console.log('replacement: ' + id)
+                e.preventDefault()
+
+                // Get <a> element as jQuery object
+                let a_link = $(this)
+                // Get sticker id from <a> element
+                let id = a_link.attr('data-replacement');
+
+                vm.$emit("actionClicked", {"action": "request_replacement", "id": id})
             });
-                    //links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
-                    //links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
+
+            // Listener for the <a> link for recording returned
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
                 e.preventDefault();
-                let id = $(this).attr('data-record-returned');
-                console.log('record returned: ' + id)
+
+                let a_link = $(this)
+                let id = a_link.attr('data-record-returned');
+                vm.$emit("actionClicked", {"action": "record_returned", "id": id})
             });
+
+            // Listener for the <a> link for recording lost
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
                 e.preventDefault();
-                let id = $(this).attr('data-record-lost');
-                console.log('record lost: ' + id)
+
+                let a_link = $(this)
+                let id = a_link.attr('data-record-lost');
+                vm.$emit("actionClicked", {"action": "record_lost", "id": id})
             });
+
+            // Listener for thr row
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-view-details]', function(e) {
+                e.preventDefault();
+
+                // If a link is clicked, ignore
+                //if($(e.target).is('a') | ($(e.target).is('td') & $(e.target).hasClass('dtr-control'))){
+                //    return;
+                //}
+
+                let a_link = $(this)
+                let sticker_id = a_link.attr('data-view-details');
+
+                // Get <tr> element as jQuery object
+                let tr = a_link.closest('tr')
+
+                let nextElem = tr.next()
+                if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
+                    // Sticker details row is already shown.  Remove it.
+                    nextElem.fadeOut(500, function(){
+                        nextElem.remove()
+                    })
+                } else {
+                    // Display sticker details
+                    vm.$http.get(helpers.add_endpoint_json(api_endpoints.stickers, sticker_id)).then(
+                        res => {
+                            let sticker = res.body
+                            let table_inside = vm.getActionDetailTable(sticker)
+                            let details_elem = $('<tr class="' + vm.sticker_details_tr_class_name + '"><td colspan="' + vm.number_of_columns + '">' + table_inside + '</td></tr>')
+                            details_elem.hide()
+                            details_elem.insertAfter(tr)
+
+                            // Make this sticker action details table Datatable
+                            let my_table = $('#table-sticker-details-' + sticker.id)
+                            my_table.DataTable({
+                                lengthChange: false,
+                                searching: false,
+                                info: false,
+                                paging: false,
+                                order: [[0, 'desc']],
+                            })
+
+                            details_elem.fadeIn(1000)
+                        },
+                        err => {
+
+                        }
+                    )
+                }
+
+                // Get row object as datatable API
+                //var row = vm.$refs.stickers_datatable.vmDataTable.row(tr);
+
+                //if (row.child.isShown()) {
+                //    row.child.hide();
+                //} else {
+                //    row.child('<span>AHO</span>').show()
+                //}
+
+                //console.log(row.data()['number'])
+
+            })
         },
     },
     created: function(){
         this.fetchFilterLists()
+        if (this.$route.query && this.$route.query.debug){
+            this.debug = this.$route.query.debug
+        }
     },
     mounted: function(){
         let vm = this;
@@ -325,3 +489,8 @@ export default {
     }
 }
 </script>
+
+<style>
+.table-sticker-details {
+}
+</style>
