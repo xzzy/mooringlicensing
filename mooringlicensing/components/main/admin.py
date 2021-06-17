@@ -99,7 +99,8 @@ class NumberOfDaysSettingInline(admin.TabularInline):
 
 @admin.register(NumberOfDaysType)
 class NumberOfDaysTypeAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'description',]
+    list_display = ['name', 'description',]
+    list_display_links = ['name',]
     inlines = [NumberOfDaysSettingInline,]
 
     def has_add_permission(self, request):
