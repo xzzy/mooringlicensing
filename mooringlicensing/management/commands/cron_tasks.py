@@ -1,13 +1,7 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from pathlib import Path
-#from commercialoperator.components.approvals.models import Approval
-from ledger.accounts.models import EmailUser
-import datetime
-
-import itertools
 import subprocess
 
 import logging
@@ -34,7 +28,10 @@ class Command(BaseCommand):
         #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True) 
         #subprocess.call('python manage_co.py monthly_invoices' + stdout_redirect, shell=True) 
         subprocess.call('python manage_ml.py import_mooring_bookings_data' + stdout_redirect, shell=True) 
-        subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True) 
+        subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py expire_approvals' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py export_and_email_sticker_data' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py update_approval_status' + stdout_redirect, shell=True)
 
         logger.info('Command {} completed'.format(__name__))
         self.send_email()
