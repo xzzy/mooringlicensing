@@ -1677,7 +1677,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                     if (
                             prop.approval and 
                             #prop.approval.status == 'current'
-                            prop.approval.start_date >= selected_date and
+                            #prop.approval.start_date >= selected_date and
+                            selected_date >= prop.approval.start_date and
                             selected_date <= prop.approval.expiry_date
                             ):
                         if prop.approval not in approval_list:
@@ -1982,32 +1983,51 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
-        approval_list = []
-        prop_set = mooring.proposal_set.filter(Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED) | Q(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
         if selected_date:
-            for prop in prop_set:
-                if (
-                        prop.approval and 
-                        #prop.approval.status == 'current'
-                        prop.approval.start_date >= selected_date and
-                        selected_date <= prop.approval.expiry_date
-                        ):
-                    if prop.approval not in approval_list:
-                        approval_list.append(prop.approval)
+            approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
         else:
-            for prop in prop_set:
-                if (
-                        prop.approval and 
-                        prop.approval.status == 'current'
-                        #prop.approval.start_date >= selected_date and
-                        #selected_date <= prop.approval.expiry_date
-                        ):
-                    if prop.approval not in approval_list:
-                        approval_list.append(prop.approval)
+            approval_list = mooring.approval_set.filter(status='current')
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)
         #return Response()
+
+    #@detail_route(methods=['POST',])
+    #@basic_exception_handler
+    #def find_related_approvals_bak(self, request, *args, **kwargs):
+    #    mooring = self.get_object()
+    #    selected_date_str = request.data.get("selected_date")
+    #    selected_date = None
+    #    if selected_date_str:
+    #        selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+    #    #print(selected_date)
+    #    #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
+    #    approval_list = []
+    #    prop_set = mooring.proposal_set.filter(Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED) | Q(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+    #    if selected_date:
+    #        for prop in prop_set:
+    #            if (
+    #                    prop.approval and 
+    #                    #prop.approval.status == 'current'
+    #                    prop.approval.start_date >= selected_date and
+    #                    selected_date <= prop.approval.expiry_date
+    #                    ):
+    #                if prop.approval not in approval_list:
+    #                    approval_list.append(prop.approval)
+    #    else:
+    #        for prop in prop_set:
+    #            if (
+    #                    prop.approval and 
+    #                    prop.approval.status == 'current'
+    #                    #prop.approval.start_date >= selected_date and
+    #                    #selected_date <= prop.approval.expiry_date
+    #                    ):
+    #                if prop.approval not in approval_list:
+    #                    approval_list.append(prop.approval)
+
+    #    serializer = LookupApprovalSerializer(approval_list, many=True)
+    #    return Response(serializer.data)
+    #    #return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
