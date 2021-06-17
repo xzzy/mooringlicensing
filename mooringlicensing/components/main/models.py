@@ -336,6 +336,8 @@ class NumberOfDaysType(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+        verbose_name = 'Number of days Settings'
+        verbose_name_plural = 'Number of days Settings'
 
 
 class NumberOfDaysSetting(RevisionedMixin):
@@ -348,6 +350,7 @@ class NumberOfDaysSetting(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+        ordering = ['-date_of_enforcement',]
 
 
 #import reversion
