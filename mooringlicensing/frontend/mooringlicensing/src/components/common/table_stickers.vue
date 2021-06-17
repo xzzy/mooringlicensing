@@ -173,7 +173,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return '<span id="status_cell_contents_id_' + full.id + '">' + full.status + '</span>'
+                    return '<span id="status_cell_contents_id_' + full.id + '">' + full.status.display + '</span>'
                 },
                 name: 'status'
             }
@@ -267,9 +267,27 @@ export default {
     },
     methods: {
         getActionCellContents: function(sticker){
-            let links =  `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
-            links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
-            links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+            console.log(sticker.status.code)
+            let links = ''
+            switch(sticker.status.code){
+                case 'printing':
+                    break
+                case 'current':
+                    links += `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
+                    links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+                    break
+                case 'lost':
+                    break
+                case 'to_be_returned':
+                    links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
+                    links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+                    break
+                case 'returned':
+                    break
+                case 'expired':
+                    break
+
+            }
             links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
             return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
         },
@@ -357,7 +375,7 @@ export default {
         updateStatusCell: function(sticker){
             let elem = $('#status_cell_contents_id_' + sticker.id)
             elem.fadeOut(function(){
-                elem.text(sticker.status).fadeIn()
+                elem.text(sticker.status.display).fadeIn()
             })
         },
         updateDetailsRow: function(sticker){
@@ -368,9 +386,20 @@ export default {
             let tr = elem.closest('tr')
             let nextElem = tr.next()
             if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
-                // Sticker details row is already shown.  Remove it.
+                // Sticker details row is already shown.  Replace the contents.
+                let td = nextElem.find("td:eq(0)")
+                let table_inside = vm.getActionDetailTable(sticker)
                 nextElem.fadeOut(500, function(){
-                    nextElem.remove()
+                    td.html(table_inside)
+                    let my_table = $('#table-sticker-details-' + sticker.id)
+                    my_table.DataTable({
+                        lengthChange: false,
+                        searching: false,
+                        info: false,
+                        paging: false,
+                        order: [[0, 'desc']],
+                    })
+                    nextElem.fadeIn(1000)
                 })
             }
         },

@@ -55,7 +55,7 @@ from rest_framework import serializers
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_ID, \
-    PAYMENT_SYSTEM_PREFIX
+    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW
 
 logger = logging.getLogger(__name__)
 
@@ -2374,7 +2374,7 @@ class AnnualAdmissionApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        approval.manage_stickers()
+        approval.manage_stickers(self)
         return approval, created
 
     def process_after_payment_success(self, request):
@@ -2493,15 +2493,35 @@ class AuthorisedUserApplication(Proposal):
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
         # manage stickers
-        approval.child_obj.manage_stickers()
+        approval.child_obj.manage_stickers(self)
         return approval, created
 
     def process_after_approval(self, request):
         print('process_after_approved() in AuthorisedUserApplication')
-        # TODO: Conditional
-        # if moorings%4==0:
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        if self.proposal_type == PROPOSAL_TYPE_NEW:
+            # New proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        elif self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+            # Renewal or Amendment proposal --> Approval exists
+            if self.approval.moorings.all().count() % 4 == 0:
+                # Each existing sticker filled with 4 moorings --> Just creating new sticker.  No need to return.
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            else:
+                # One of the existing stickers should be replaced by a new sticker
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+                # TODO: find the sticker to be replaced and change status of it to 'to_be_returned'
+        elif self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+            # TODO: Change all the existing stickers status to the 'Expired' (too early???)  Create new stickers
+        else:
+            raise  # Should not reach here
+
+            # TODO: update approval (append a mooring, etc)
+
         self.save()
         # TODO: Send email (payment required)
         # else:
@@ -2639,7 +2659,7 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            approval.child_obj.manage_stickers()
+            approval.child_obj.manage_stickers(self)
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")
