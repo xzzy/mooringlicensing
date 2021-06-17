@@ -312,6 +312,7 @@ export default {
         if (this.$refs.waiting_list_application) {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
+                payload.proposal.dot_name = this.$refs.waiting_list_application.$refs.vessels.dotName;
             }
             if (typeof(this.$refs.waiting_list_application.$refs.profile.silentElector) === 'boolean') {
                 payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
@@ -323,6 +324,7 @@ export default {
         } else if (this.$refs.annual_admission_application) {
             if (this.$refs.annual_admission_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+                payload.proposal.dot_name = this.$refs.annual_admission_application.$refs.vessels.dotName;
             }
             if (this.$refs.annual_admission_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
@@ -332,6 +334,7 @@ export default {
         } else if (this.$refs.authorised_user_application) {
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
+                payload.proposal.dot_name = this.$refs.authorised_user_application.$refs.vessels.dotName;
             }
             if (this.$refs.authorised_user_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
@@ -354,6 +357,7 @@ export default {
         } else if (this.$refs.mooring_licence_application) {
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
+                payload.proposal.dot_name = this.$refs.mooring_licence_application.$refs.vessels.dotName;
             }
             if (typeof(this.$refs.mooring_licence_application.$refs.profile.silentElector) === 'boolean') {
             //if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
