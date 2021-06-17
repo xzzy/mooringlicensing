@@ -82,10 +82,12 @@ class ApprovalDocument(Document):
     class Meta:
         app_label = 'mooringlicensing'
 
+
 # currently only required for Authorised User Applications
 class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     mooring = models.ForeignKey(Mooring)
+    sticker = models.ForeignKey('Sticker', blank=True, null=True)
     site_licensee = models.BooleanField()
 
     def save(self, *args, **kwargs):
@@ -663,7 +665,7 @@ class AnnualAdmissionPermit(Approval):
             self.save()
         self.approval.refresh_from_db()
 
-    def manage_stickers(self):
+    def manage_stickers(self, proposal):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         sticker = Sticker.objects.create(approval=self,)
@@ -693,7 +695,7 @@ class AuthorisedUserPermit(Approval):
             self.save()
         self.approval.refresh_from_db()
 
-    def manage_stickers(self):
+    def manage_stickers(self, proposal):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         # Warn: Max 4 mooring on a sticker
@@ -723,7 +725,7 @@ class MooringLicence(Approval):
             self.save()
         self.approval.refresh_from_db()
 
-    def manage_stickers(self):
+    def manage_stickers(self, proposal):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
         # Warn: Multiple vessels can be on a ML
