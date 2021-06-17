@@ -28,7 +28,7 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
-    StickerPrintingBatch, StickerPrintingResponse
+    StickerPrintingBatch, StickerPrintingResponse, Vessel
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -101,6 +101,23 @@ class MooringOnApproval(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+class VesselOnApproval(RevisionedMixin):
+    approval = models.ForeignKey('Approval')
+    vessel = models.ForeignKey(Vessel)
+    sticker = models.ForeignKey('Sticker', blank=True, null=True)
+    #site_licensee = models.BooleanField()
+
+    #def save(self, *args, **kwargs):
+    #    existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
+    #    if existing_ria_moorings >= 2 and not self.site_licensee:
+    #        raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
+
+    #    super(MooringOnApproval, self).save(*args,**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class Approval(RevisionedMixin):
     APPROVAL_STATUS_CURRENT = 'current'
     APPROVAL_STATUS_EXPIRED = 'expired'
@@ -167,6 +184,7 @@ class Approval(RevisionedMixin):
     ## change to "moorings" field with ManyToManyField - can come from site_licensee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
+    vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
