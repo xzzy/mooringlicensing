@@ -696,7 +696,8 @@ class StickerSerializer(serializers.ModelSerializer):
         )
 
     def get_status(self, obj):
-        return obj.get_status_display()
+        choices = dict(Sticker.STATUS_CHOICES)
+        return {'code': obj.status, 'display': choices[obj.status]}
 
     def get_sent_date(self, obj):
         if obj.sticker_printing_batch:
