@@ -327,6 +327,28 @@ class VesselSizeCategory(RevisionedMixin):
         return True
 
 
+class NumberOfDaysType(RevisionedMixin):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, verbose_name='description', help_text='')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class NumberOfDaysSetting(RevisionedMixin):
+    number_of_days = models.PositiveSmallIntegerField(blank=True, null=True)
+    date_of_enforcement = models.DateField(blank=True, null=True)
+    number_of_days_type = models.ForeignKey(NumberOfDaysType, blank=True, null=True)
+
+    def __str__(self):
+        return '{} ({})'.format(self.number_of_days, self.number_of_days_type.name)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
 
 #import reversion
 #reversion.register(UserAction)
