@@ -7,7 +7,7 @@ ENV PRODUCTION_EMAIL=False
 ENV EMAIL_INSTANCE="DEV"
 ENV NON_PROD_EMAIL="brendan.blackford@dbca.wa.gov.au,walter.genuit@dbca.wa.gov.au,aaron.farr@dbca.wa.gov.au,katsufumi.shibata@dbca.wa.gov.au"
 ENV SECRET_KEY="ThisisNotRealKey"
-ENV CRON_NOTIFICATION_EMAIL="brendan.blackford@dbca.wa.gov.au"
+ENV CRON_NOTIFICATION_EMAIL="brendan.blackford@dbca.wa.gov.au,katsufumi.shibata@dbca.wa.gov.au"
 
 RUN apt-get clean
 RUN apt-get update

@@ -14,12 +14,12 @@ import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
 import VesselDetail from '@/components/internal/vessels/vessel_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
 import Compliance from '../compliances/access.vue'
+import Reports from '@/components/reports/reports.vue'
 /*
 import User from '../users/manage.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
 import Referral from '../referrals/referral.vue'
 import PaymentOrder from '@/components/common/tclass/payment_order.vue'
-import Reports from '@/components/reports/reports.vue'
 import ParkEntryFeesDashboard from '../park_entry_fees_dashboard.vue'
 import DistrictProposal from '../district_proposals/district_proposal.vue'
 */
@@ -136,13 +136,13 @@ export default
             component: PaymentOrder,
             name:"payment_order"
         },
+        */
+
         {
             path:'reports',
             name:'reports',
             component:Reports
         },
-        */
-
         {
             path: 'organisations',
             component: {
