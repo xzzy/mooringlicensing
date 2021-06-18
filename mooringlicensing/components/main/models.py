@@ -1,13 +1,12 @@
 from __future__ import unicode_literals
+import pytz
 import os
 
+from ledger.settings_base import TIME_ZONE
 from django.db import models
-from django.dispatch import receiver
-from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from django.contrib.postgres.fields.jsonb import JSONField
 from datetime import datetime
 
 
@@ -351,6 +350,19 @@ class NumberOfDaysSetting(RevisionedMixin):
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['-date_of_enforcement',]
+
+    @staticmethod
+    def get_setting_by_date(number_of_days_type, target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        """
+        Return an setting object which is enabled at the target_date
+        """
+        setting = NumberOfDaysSetting.objects.filter(
+            number_of_days_type=number_of_days_type,
+            date_of_enforcement__lte=target_date,
+        ).order_by('date_of_enforcement').last()
+        return setting
+
+
 
 
 #import reversion

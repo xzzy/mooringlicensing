@@ -212,22 +212,31 @@ CUSTOM_GROUPS = [
 ]
 PRINTING_COMPANY_EMAIL_ADDRESS = env('PRINTING_COMPANY_EMAIL_ADDRESS', '')
 
-NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE = 'Number of days before due date of compliance'
-NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP = 'Number of days before end of six month period in which a new vessel is to be nominated for AAP'
-NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA = 'Number of days before end of six month period in which a new vessel is to be nominated for WLA'
-NUM_OF_DAYS_BEFORE_PERIOD_WLA = 'Number of days before end of period in which the mooring licence application needs to be submitted'
-NUM_OF_DAYS_IN_PERIOD_WLA = 'Number of days in the period in which the mooring licence application needs to be submitted'
-NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'Number of days in the period in which the mooring licence application needs to be submitted'
-NUM_OF_DAYS_FOR_ENDORSER_AUA = 'Number of days after initial submit for the endorser to endorse/decline'
-NUM_OF_DAYS_FOR_RENEWAL = 'Number of days before expiry date of the approvals to email'
+NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE = 'Compliance due date'
+NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP = 'AAP vessel nominate notification for AAP'
+NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA ='AAP vessel nominate notification for WLA'
+NUM_OF_DAYS_BEFORE_PERIOD_WLA = 'WLA application submit notification'
+NUM_OF_DAYS_IN_PERIOD_WLA = 'WLA application submit period'
+NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLA documents submit period'
+NUM_OF_DAYS_FOR_ENDORSER_AUA = 'AUA endorse/decline period'
+NUM_OF_DAYS_FOR_RENEWAL = 'Renewal notification'
+
+NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE_DESC = 'Number of days before due date of compliance'
+NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP_DESC = 'Number of days before end of six month period in which a new vessel is to be nominated for AAP'
+NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA_DESC = 'Number of days before end of six month period in which a new vessel is to be nominated for WLA'
+NUM_OF_DAYS_BEFORE_PERIOD_WLA_DESC = 'Number of days before end of period in which the mooring licence application needs to be submitted'
+NUM_OF_DAYS_IN_PERIOD_WLA_DESC = 'Number of days in the period in which the mooring licence application needs to be submitted'
+NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA_DESC = 'Number of days in the period in which the mooring licence application needs to be submitted'
+NUM_OF_DAYS_FOR_ENDORSER_AUA_DESC = 'Number of days after initial submit for the endorser to endorse/decline'
+NUM_OF_DAYS_FOR_RENEWAL_DESC = 'Number of days before expiry date of the approvals to email'
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
-    {'name': 'Compliance due date', 'description': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE, 'default': 28},
-    {'name': 'AAP vessel nominate notification for AAP', 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP, 'default': 28},
-    {'name': 'AAP vessel nominate notification for WLA', 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA, 'default': 28},
-    {'name': 'WLA application submit notification', 'description': NUM_OF_DAYS_BEFORE_PERIOD_WLA, 'default': 14},
-    {'name': 'WLA application submit period', 'description': NUM_OF_DAYS_IN_PERIOD_WLA, 'default': 28},
-    {'name': 'MLA documents submit period', 'description': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, 'default': 28},
-    {'name': 'AUA endorse/decline period', 'description': NUM_OF_DAYS_FOR_ENDORSER_AUA, 'default': 28},
-    {'name': 'Renewal notification', 'description': NUM_OF_DAYS_FOR_RENEWAL, 'default': 28},
+    {'name': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE, 'description': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE_DESC, 'default': 28},
+    {'name': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP, 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP_DESC, 'default': 28},
+    {'name': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA, 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA_DESC, 'default': 28},
+    {'name': NUM_OF_DAYS_BEFORE_PERIOD_WLA, 'description': NUM_OF_DAYS_BEFORE_PERIOD_WLA_DESC, 'default': 14},
+    {'name': NUM_OF_DAYS_IN_PERIOD_WLA, 'description': NUM_OF_DAYS_IN_PERIOD_WLA_DESC, 'default': 28},
+    {'name': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, 'description': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA_DESC, 'default': 28},
+    {'name': NUM_OF_DAYS_FOR_ENDORSER_AUA, 'description': NUM_OF_DAYS_FOR_ENDORSER_AUA_DESC, 'default': 28},
+    {'name': NUM_OF_DAYS_FOR_RENEWAL, 'description': NUM_OF_DAYS_FOR_RENEWAL_DESC, 'default': 28},
 ]
 
