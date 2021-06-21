@@ -1,6 +1,8 @@
 import logging
 import mimetypes
 
+from ledger.accounts.models import EmailUser
+
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
@@ -52,7 +54,13 @@ class StickerPrintingBatchEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
 
 
-class EndersementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
+class EndorserReminderEmail(TemplateEmailBase):
+    subject = 'Reminder: Endorsement of Authorised user application'
+    html_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html'
+    txt_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt'
+
+
+class EndorsementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
     subject = 'Endorsement of Authorised user application'
     html_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.html'
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
@@ -184,16 +192,52 @@ def send_sticker_printing_batch_email(batches):
     return msg
 
 
-def send_endersement_of_authorised_user_application_email(request, proposal):
-    email = EndersementOfAuthorisedUserApplicationEmail()
-    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
-    print(endorse_url)
+def send_endorser_reminder_email(proposal, request=None):
+    email = EndorserReminderEmail()
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    dashboard_url = url + reverse('external')
 
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
         'endorse_url': endorse_url,
+        'dashboard_url': dashboard_url,
+        'mooring': proposal.mooring,
+    }
+    to_address = proposal.site_licensee_email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+
+    try:
+        sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
+    except:
+        sender_user = EmailUser.objects.create(email=sender, password='')
+
+    _log_proposal_email(msg, proposal, sender=sender_user)
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user)
+
+    return msg
+
+
+def send_endorsement_of_authorised_user_application_email(request, proposal):
+    email = EndorsementOfAuthorisedUserApplicationEmail()
+    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    dashboard_url = request.build_absolute_uri(reverse('external'))
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'endorse_url': endorse_url,
+        'dashboard_url': dashboard_url,
         'mooring': proposal.mooring,
     }
     to_address = proposal.site_licensee_email

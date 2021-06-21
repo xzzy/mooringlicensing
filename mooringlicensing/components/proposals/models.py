@@ -41,7 +41,7 @@ from mooringlicensing.components.proposals.email import (
     # send_external_submit_email_notification,
     send_approver_decline_email_notification,
     send_approver_approve_email_notification,
-    send_proposal_approver_sendback_email_notification, send_endersement_of_authorised_user_application_email,
+    send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
 )
 from mooringlicensing.ordered_model import OrderedModel
@@ -2441,7 +2441,7 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
             self.save()
             # Email to endorser
-            send_endersement_of_authorised_user_application_email(request, self)
+            send_endorsement_of_authorised_user_application_email(request, self)
             # Email to submitter
             send_submit_email_notification(request, self)
         else:
