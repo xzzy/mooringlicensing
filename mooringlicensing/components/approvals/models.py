@@ -188,6 +188,7 @@ class Approval(RevisionedMixin):
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
+    endorser_reminder_sent = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -691,7 +692,6 @@ class AnnualAdmissionPermit(Approval):
 
 class AuthorisedUserPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
-    # endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
