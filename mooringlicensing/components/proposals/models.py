@@ -2306,6 +2306,7 @@ class WaitingListApplication(Proposal):
         approval.add_vessel(
                 vessel=approval.current_proposal.vessel_details.vessel,
                 vessel_ownership=approval.current_proposal.vessel_ownership,
+                dot_name=approval.current_proposal.dot_name,
                 )
         # set wla order
         approval = approval.set_wla_order()
@@ -2384,6 +2385,7 @@ class AnnualAdmissionApplication(Proposal):
         approval.add_vessel(
                 vessel=approval.current_proposal.vessel_details.vessel,
                 vessel_ownership=approval.current_proposal.vessel_ownership,
+                dot_name=approval.current_proposal.dot_name,
                 )
         # manage stickers
         approval.manage_stickers(self)
@@ -2508,6 +2510,7 @@ class AuthorisedUserApplication(Proposal):
         approval.add_vessel(
                 vessel=approval.current_proposal.vessel_details.vessel,
                 vessel_ownership=approval.current_proposal.vessel_ownership,
+                dot_name=approval.current_proposal.dot_name,
                 )
         # manage stickers
         approval.child_obj.manage_stickers(self)
@@ -2680,6 +2683,7 @@ class MooringLicenceApplication(Proposal):
             approval.add_vessel(
                     vessel=approval.current_proposal.vessel_details.vessel,
                     vessel_ownership=approval.current_proposal.vessel_ownership,
+                    dot_name=approval.current_proposal.dot_name,
                     )
             # manage stickers
             approval.child_obj.manage_stickers(self)
