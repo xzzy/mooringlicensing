@@ -27,6 +27,7 @@ from mooringlicensing.components.proposals.models import searchKeyWords, search_
 from mooringlicensing.components.main.utils import (
         check_db_connection, 
         add_cache_control,
+        get_bookings,
         )
 
 from django.urls import reverse
@@ -1658,6 +1659,21 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
 class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_bookings(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        #import ipdb; ipdb.set_trace()
+        booking_date_str = request.data.get("selected_date")
+        booking_date = None
+        if booking_date_str:
+            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+            booking_date = booking_date.strftime('%Y-%m-%d')
+        else:
+            booking_date = datetime.now().strftime('%Y-%m-%d')
+        data = get_bookings(booking_date, vessel.rego_no.upper())
+        return Response(data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler

@@ -28,7 +28,7 @@ from mooringlicensing.components.approvals.pdf import create_dcv_permit_document
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
-    StickerPrintingBatch, StickerPrintingResponse, Vessel
+    StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -104,6 +104,7 @@ class MooringOnApproval(RevisionedMixin):
 class VesselOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     vessel = models.ForeignKey(Vessel)
+    vessel_ownership = models.ForeignKey(VesselOwnership)
     sticker = models.ForeignKey('Sticker', blank=True, null=True)
     #site_licensee = models.BooleanField()
 
@@ -193,6 +194,14 @@ class Approval(RevisionedMixin):
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    def add_vessel(self, vessel, vessel_ownership):
+        vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
+                vessel=vessel,
+                vessel_ownership=vessel_ownership,
+                approval=self,
+                )
+        return vessel_on_approval, created
 
     def add_mooring(self, mooring, site_licensee):
         mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
