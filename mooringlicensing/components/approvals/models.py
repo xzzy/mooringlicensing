@@ -83,7 +83,6 @@ class ApprovalDocument(Document):
         app_label = 'mooringlicensing'
 
 
-# currently only required for Authorised User Applications
 class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     mooring = models.ForeignKey(Mooring)
@@ -106,6 +105,7 @@ class VesselOnApproval(RevisionedMixin):
     vessel = models.ForeignKey(Vessel)
     vessel_ownership = models.ForeignKey(VesselOwnership)
     sticker = models.ForeignKey('Sticker', blank=True, null=True)
+    dot_name = models.CharField(max_length=200, blank=True, null=True)
     #site_licensee = models.BooleanField()
 
     #def save(self, *args, **kwargs):
