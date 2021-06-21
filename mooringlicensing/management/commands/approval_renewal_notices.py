@@ -7,8 +7,6 @@ from ledger.accounts.models import EmailUser
 from datetime import timedelta
 from mooringlicensing.components.approvals.email import ( send_approval_renewal_email_notification,)
 
-import itertools
-
 import logging
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
@@ -24,16 +22,20 @@ class Command(BaseCommand):
         try:
             user = EmailUser.objects.get(email=settings.CRON_EMAIL)
         except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password = '')
+            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
 
         errors = []
         updates = []
 
         today = timezone.localtime(timezone.now()).date()
+
+        # Retrieve the number of days before expiry date of the approvals to email
         days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_RENEWAL)
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
+            # No number of days found
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
+
         expiry_notification_date = today + timedelta(days=days_setting.number_of_days)
         renewal_conditions = {
             'expiry_date__lte': expiry_notification_date,
@@ -45,7 +47,6 @@ class Command(BaseCommand):
         for a in Approval.objects.filter(**renewal_conditions):
             if a.status == Approval.STATUS_CURRENT or a.status == Approval.STATUS_SUSPENDED:
                 try:
-                    #import ipdb; ipdb.set_trace()
                     a.generate_renewal_doc()
                     send_approval_renewal_email_notification(a)
                     a.renewal_sent = True
