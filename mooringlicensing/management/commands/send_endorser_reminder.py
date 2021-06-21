@@ -1,13 +1,17 @@
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from mooringlicensing.components.compliances.models import Compliance
+from django.db.models import Q
 from ledger.accounts.models import EmailUser
 
 import logging
 
+from mooringlicensing.components.proposals.email import send_endorser_reminder_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication
 from mooringlicensing.settings import CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
@@ -32,15 +36,26 @@ class Command(BaseCommand):
         if not days_setting:
             # No number of days found
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
+        boundary_date = today - timedelta(days=days_setting.number_of_days)
 
         logger.info('Running command {}'.format(__name__))
-        for c in Compliance.objects.filter(processing_status=Compliance.PROCESSING_STATUS_DUE):
+
+        # Construct queries
+        queries = Q()
+        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT)
+        queries &= Q(lodgement_date__lte=boundary_date)
+        queries &= Q(endorser_reminder_sent=False)
+        queries = Q(id=267)
+
+        for a in AuthorisedUserApplication.objects.filter(queries):
             try:
-                c.send_reminder(user)
-                c.save()
-                updates.append(c.lodgement_number)
+                send_endorser_reminder_email(a)
+                a.endorser_reminder_sent = True
+                a.save()
+                logger.info('Reminder to endorser sent for Proposal {}'.format(a.lodgement_number))
+                updates.append(a.lodgement_number)
             except Exception as e:
-                err_msg = 'Error sending Reminder Compliance'.format(c.lodgement_number)
+                err_msg = 'Error sending reminder to endorser for Proposal {}'.format(a.lodgement_number)
                 logger.error('{}\n{}'.format(err_msg, str(e)))
                 errors.append(err_msg)
 
