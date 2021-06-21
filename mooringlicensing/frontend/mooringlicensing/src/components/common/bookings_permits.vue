@@ -32,6 +32,13 @@
                             <td></td>
                             <td>{{ approval.submitter_phone_number }}</td>
                         </tr>
+                        <tr v-for="booking in bookings">
+                            <td>Booking</td>
+                            <td>{{ booking.booking_id_pf }}</td>
+                            <td></td>
+                            <td>{{ booking.customer_phone_number }}</td>
+                        </tr>
+
                     </tbody>
                 </table>
             </div>
@@ -108,7 +115,7 @@ from '@/utils/hooks'
             },
             lookupEntities: async function() {
                 this.$nextTick(async () => {
-                    const payload = {
+                    let payload = {
                         "selected_date": this.selectedDate,
                     }
                     // Approvals
@@ -126,6 +133,14 @@ from '@/utils/hooks'
                         }
                     }
                     // Bookings
+                    if (this.entity.type === "vessel") {
+                        const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
+                        this.bookings = [];
+                        for (let booking of res.body) {
+                            this.bookings.push(booking);
+                        }
+                    }
+
                     // DCV
                 });
             },
