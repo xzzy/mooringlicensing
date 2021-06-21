@@ -101,6 +101,8 @@ class NumberOfDaysSettingInline(admin.TabularInline):
 class NumberOfDaysTypeAdmin(admin.ModelAdmin):
     list_display = ['name', 'description', 'number_by_date',]
     list_display_links = ['name',]
+    # readonly_fields = ['name',]
+    fields = ['name', 'description',]
     inlines = [NumberOfDaysSettingInline,]
 
     def has_add_permission(self, request):

@@ -327,6 +327,7 @@ class VesselSizeCategory(RevisionedMixin):
 
 
 class NumberOfDaysType(RevisionedMixin):
+    code = models.CharField(max_length=100, blank=True, null=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, verbose_name='description', help_text='')
 

@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from mooringlicensing.components.approvals.models import Approval
 from ledger.accounts.models import EmailUser
 from datetime import timedelta
@@ -9,6 +10,10 @@ from mooringlicensing.components.approvals.email import ( send_approval_renewal_
 import itertools
 
 import logging
+
+from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.settings import CODE_DAYS_FOR_RENEWAL
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,8 +30,11 @@ class Command(BaseCommand):
         updates = []
 
         today = timezone.localtime(timezone.now()).date()
-        number_of_days_
-        expiry_notification_date = today + timedelta(days=30)
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_RENEWAL)
+        days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+        if not days_setting:
+            raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
+        expiry_notification_date = today + timedelta(days=days_setting.number_of_days)
         renewal_conditions = {
             'expiry_date__lte': expiry_notification_date,
             'renewal_sent': False,
