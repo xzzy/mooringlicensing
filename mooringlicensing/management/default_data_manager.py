@@ -1,10 +1,12 @@
+import datetime
 import logging
 
 from django.contrib.auth.models import Group
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
-from mooringlicensing.components.main.models import ApplicationType, GlobalSettings
+from mooringlicensing.components.main.models import ApplicationType, GlobalSettings, NumberOfDaysType, \
+    NumberOfDaysSetting
 from mooringlicensing.components.main.utils import retrieve_mooring_areas, retrieve_marine_parks
 from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
     ProposalApproverGroup
@@ -113,3 +115,29 @@ class DefaultDataManager(object):
                     logger.info("Created group: {}".format(group_name))
             except Exception as e:
                 logger.error('{}, Group name: {}'.format(e, group_name))
+
+        # Types of configurable number of days
+        for item in settings.TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS:
+            try:
+                type, created = NumberOfDaysType.objects.get_or_create(name=item['name'])
+                if created:
+                    logger.info("Created number of days type: {}".format(type.name))
+                    # Save description
+                    type.description = item['description']
+                    type.save()
+
+                settins = NumberOfDaysSetting.objects.filter(number_of_days_type=type)
+                if not settins:
+                    # No setting for this type. Create one
+                    enforcement_date = datetime.date(year=2021, month=1, day=1)
+                    setting = NumberOfDaysSetting.objects.create(
+                        number_of_days=item['default'],
+                        date_of_enforcement=enforcement_date,
+                        number_of_days_type=type
+                    )
+
+            except Exception as e:
+                logger.error('{}, Number of days type: {}'.format(e, type.name))
+
+
+
