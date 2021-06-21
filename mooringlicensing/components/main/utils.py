@@ -12,6 +12,7 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
+from ledger.accounts.models import EmailUser
 
 from mooringlicensing.components.approvals.models import Sticker, WaitingListAllocation
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
@@ -110,6 +111,33 @@ def reset_waiting_list_allocations(wla_list):
         logger.error('retrieve_mooring_areas() error', exc_info=True)
         # email only prints len() of error list
         return ['check log',], records_updated
+
+def get_bookings(booking_date, rego_no=None, mooring_id=None):
+    url = settings.MOORING_BOOKINGS_API_URL + "bookings/" + settings.MOORING_BOOKINGS_API_KEY + '/' 
+    myobj = {
+            'date': booking_date,
+            }
+    if rego_no:
+        myobj.update({'rego_no': rego_no})
+    if mooring_id:
+        myobj.update({'mooring_id': mooring_id})
+    res = requests.post(url, data=myobj)
+    res.raise_for_status()
+    data = res.json().get('data')
+    updated_data = []
+    # phone number
+    for booking in data:
+        customer_phone_number = ''
+        if booking.get("booking_phone_number"):
+            customer_phone_number = booking.get("booking_phone_number")
+        elif booking.get('booking__customer_id'):
+            qs = EmailUser.objects.filter(id=booking.get("booking__customer_id"))
+            if qs:
+                emailuser = qs[0]
+                customer_phone_number = emailuser.mobile_number if emailuser.mobile_number else emailuser.phone_number
+        booking.update({"customer_phone_number": customer_phone_number})
+        updated_data.append(booking)
+    return updated_data
 
 def import_mooring_bookings_data():
     errors = []
