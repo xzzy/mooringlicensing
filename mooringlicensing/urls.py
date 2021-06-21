@@ -114,8 +114,7 @@ api_patterns = [
 
 
     url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
-
-    #url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
+    url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
 ]
 
 # URL Patterns
