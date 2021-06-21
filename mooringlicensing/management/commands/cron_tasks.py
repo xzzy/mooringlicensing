@@ -23,7 +23,7 @@ class Command(BaseCommand):
         subprocess.call('python manage_co.py send_compliance_reminder' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py update_approval_status' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py expire_approvals' + stdout_redirect, shell=True)
-        #subprocess.call('python manage_co.py approval_renewal_notices' + stdout_redirect, shell=True)
+        subprocess.call('python manage_co.py approval_renewal_notices' + stdout_redirect, shell=True)
         #subprocess.call('python manage_co.py eclass_expiry_notices' + stdout_redirect, shell=True) 
         #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True) 
         #subprocess.call('python manage_co.py monthly_invoices' + stdout_redirect, shell=True) 
