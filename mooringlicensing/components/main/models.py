@@ -338,11 +338,24 @@ class NumberOfDaysType(RevisionedMixin):
         verbose_name = 'Number of days Settings'
         verbose_name_plural = 'Number of days Settings'
 
+    def get_setting_by_date(self, target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        return NumberOfDaysSetting.get_setting_by_date(self, target_date)
+
+    def get_number_of_days_currently_applied(self):
+        setting = self.get_setting_by_date(target_date=datetime.now(pytz.timezone(TIME_ZONE)).date())
+        if setting:
+            return setting.number_of_days
+        else:
+            return '---'
+
+    get_number_of_days_currently_applied.short_description = 'Number currently applied'  # Displayed at the admin page
+    number_by_date = property(get_number_of_days_currently_applied)
+
 
 class NumberOfDaysSetting(RevisionedMixin):
     number_of_days = models.PositiveSmallIntegerField(blank=True, null=True)
     date_of_enforcement = models.DateField(blank=True, null=True)
-    number_of_days_type = models.ForeignKey(NumberOfDaysType, blank=True, null=True)
+    number_of_days_type = models.ForeignKey(NumberOfDaysType, blank=True, null=True, related_name='settings')
 
     def __str__(self):
         return '{} ({})'.format(self.number_of_days, self.number_of_days_type.name)
