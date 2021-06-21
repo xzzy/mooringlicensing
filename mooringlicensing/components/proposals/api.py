@@ -1673,6 +1673,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         else:
             booking_date = datetime.now().strftime('%Y-%m-%d')
         data = get_bookings(booking_date, vessel.rego_no.upper())
+        data = get_bookings(booking_date=booking_date, rego_no=vessel.rego_no.upper(), mooring_id=None)
         return Response(data)
 
     @detail_route(methods=['POST',])
@@ -1988,6 +1989,21 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Mooring.objects.filter(active=True)
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_bookings(self, request, *args, **kwargs):
+        mooring = self.get_object()
+        #import ipdb; ipdb.set_trace()
+        booking_date_str = request.data.get("selected_date")
+        booking_date = None
+        if booking_date_str:
+            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+            booking_date = booking_date.strftime('%Y-%m-%d')
+        else:
+            booking_date = datetime.now().strftime('%Y-%m-%d')
+        data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
+        return Response(data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
