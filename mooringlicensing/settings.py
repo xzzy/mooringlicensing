@@ -219,7 +219,7 @@ NUM_OF_DAYS_BEFORE_PERIOD_WLA = 'WLA application submit notification'
 NUM_OF_DAYS_IN_PERIOD_WLA = 'WLA application submit period'
 NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLA documents submit period'
 NUM_OF_DAYS_FOR_ENDORSER_AUA = 'AUA endorse/decline period'
-NUM_OF_DAYS_FOR_RENEWAL = 'Renewal notification'
+NUM_OF_DAYS_FOR_RENEWAL = 'AAP, AUP and ML Renewal notification'
 
 NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE_DESC = 'Number of days before due date of compliance'
 NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP_DESC = 'Number of days before end of six month period in which a new vessel is to be nominated for AAP'
