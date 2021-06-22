@@ -107,7 +107,7 @@ class ApprovalHistory(RevisionedMixin):
     proposal = models.ForeignKey(Proposal,related_name='approval_history_records')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(blank=True, null=True)
-    sticker = models.ManyToManyField('Sticker')
+    stickers = models.ManyToManyField('Sticker')
     # derive from proposal
     #dot_name = models.CharField(max_length=200, blank=True, null=True)
 
@@ -213,12 +213,22 @@ class Approval(RevisionedMixin):
         ordering = ['-id',]
 
     def write_approval_history(self):
-        new_approval_history_entry = ApprovalHistory.objects.create(
+        stickers = self.stickers.all()
+        if stickers:
+            new_approval_history_entry = ApprovalHistory.objects.create(
                 vessel_ownership=self.current_proposal.vessel_ownership,
                 approval=self,
                 proposal=self.current_proposal,
-                start_date=self.issue_date
+                start_date=self.issue_date,
+                stickers=stickers
                 )
+        else:
+            new_approval_history_entry = ApprovalHistory.objects.create(
+                vessel_ownership=self.current_proposal.vessel_ownership,
+                approval=self,
+                proposal=self.current_proposal,
+                start_date=self.issue_date,
+            )
         approval_history = self.approvalhistory_set.all()
         ## rewrite history
         # current_proposal.previous_application must be set on renewal/amendment
@@ -231,7 +241,7 @@ class Approval(RevisionedMixin):
                 previous_history_entry = self.approvalhistory_set.filter(proposal=previous_application)[0]
                 # check vo sale date
                 if previous_history_entry.history_entry.vessel_ownership.end_date:
-                    end_date = previous.history_entry.vessel_ownership.end_date
+                    end_date = previous_history_entry.history_entry.vessel_ownership.end_date
                 # update previous_history_entry
                 previous_history_entry.end_date = end_date
                 previous_history_entry.save()
