@@ -1,6 +1,8 @@
 import logging
 import mimetypes
 
+from ledger.accounts.models import EmailUser
+
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
@@ -52,7 +54,19 @@ class StickerPrintingBatchEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
 
 
-class EndersementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
+class ExpireMooringLicenceApplicationEmail(TemplateEmailBase):
+    subject = 'Mooring Licence Application has been expired'
+    html_template = 'mooringlicensing/emails/proposals/send_expire_mooring_licence_application.html'
+    txt_template = 'mooringlicensing/emails/proposals/send_expire_mooring_licence_application.txt'
+
+
+class EndorserReminderEmail(TemplateEmailBase):
+    subject = 'Reminder: Endorsement of Authorised user application'
+    html_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html'
+    txt_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt'
+
+
+class EndorsementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
     subject = 'Endorsement of Authorised user application'
     html_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.html'
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
@@ -82,6 +96,19 @@ class ApproverSendBackNotificationEmail(TemplateEmailBase):
     subject = 'An Application has been sent back by approver.'
     html_template = 'mooringlicensing/emails/proposals/send_approver_sendback_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_approver_sendback_notification.txt'
+
+
+def log_proposal_email(msg, proposal, sender):
+    try:
+        sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
+    except:
+        sender_user = EmailUser.objects.create(email=sender, password='')
+
+    _log_proposal_email(msg, proposal, sender=sender_user)
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user)
 
 
 def send_amendment_email_notification(amendment_request, request, proposal):
@@ -173,8 +200,8 @@ def send_sticker_printing_batch_email(batches):
     # Send email
     # msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-
     sender = settings.DEFAULT_FROM_EMAIL
+
     # _log_proposal_email(msg, proposal, sender=sender)
     # if proposal.org_applicant:
     #     _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
@@ -184,16 +211,40 @@ def send_sticker_printing_batch_email(batches):
     return msg
 
 
-def send_endersement_of_authorised_user_application_email(request, proposal):
-    email = EndersementOfAuthorisedUserApplicationEmail()
-    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
-    print(endorse_url)
+def send_expire_mooring_licence_application_email(proposal, request=None):
+    # Expire mooring licence application if additional documents are not submitted within a configurable number of days
+    # from the initial submit of the mooring licence application and email to inform the applicant
+    email = ExpireMooringLicenceApplicationEmail()
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    dashboard_url = url + reverse('external')
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'dashboard_url': dashboard_url,
+    }
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_endorser_reminder_email(proposal, request=None):
+    email = EndorserReminderEmail()
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    dashboard_url = url + reverse('external')
 
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
         'endorse_url': endorse_url,
+        'dashboard_url': dashboard_url,
         'mooring': proposal.mooring,
     }
     to_address = proposal.site_licensee_email
@@ -202,13 +253,32 @@ def send_endersement_of_authorised_user_application_email(request, proposal):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_endorsement_of_authorised_user_application_email(request, proposal):
+    email = EndorsementOfAuthorisedUserApplicationEmail()
+    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    dashboard_url = request.build_absolute_uri(reverse('external'))
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'endorse_url': endorse_url,
+        'dashboard_url': dashboard_url,
+        'mooring': proposal.mooring,
+    }
+    to_address = proposal.site_licensee_email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
 
     return msg
 
@@ -231,15 +301,11 @@ def send_submit_email_notification(request, proposal, attachments=[]):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
 
     return msg
+
 
 def send_external_submit_email_notification(request, proposal):
     email = ExternalSubmitSendNotificationEmail()
@@ -260,16 +326,12 @@ def send_external_submit_email_notification(request, proposal):
         if cc_list:
             all_ccs = [cc_list]
 
-    msg = email.send(proposal.submitter.email,cc=all_ccs, context=context)
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
     return msg
 
-#send email when Proposal is 'proposed to decline' by assessor.
+
 def send_approver_decline_email_notification(reason, request, proposal):
     email = ApproverDeclineSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
@@ -281,11 +343,8 @@ def send_approver_decline_email_notification(reason, request, proposal):
 
     msg = email.send(proposal.approver_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_approver_approve_email_notification(request, proposal):
@@ -301,11 +360,8 @@ def send_approver_approve_email_notification(request, proposal):
 
     msg = email.send(proposal.approver_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_proposal_decline_email_notification(proposal,request,proposal_decline):
@@ -324,11 +380,8 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
 
     msg = email.send(proposal.submitter.email, bcc= all_ccs, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
@@ -349,11 +402,8 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
     msg = email.send(proposal.assessor_recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_proposal_approval_email_notification(proposal, request):
@@ -411,6 +461,7 @@ def send_proposal_approval_email_notification(proposal, request):
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
 
 def send_proposal_awaiting_payment_approval_email_notification(proposal, request):
     """ Send External Email with attached invoice and URL link to pay by credit card """
@@ -499,7 +550,6 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
         email_entry.documents.get_or_create(_file=path_to_file, name=filename)
 
     return email_entry
-
 
 
 def _log_org_email(email_message, organisation, customer ,sender=None):
