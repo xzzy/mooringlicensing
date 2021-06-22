@@ -43,7 +43,7 @@ export default {
             recordSaleId: null,
             uuid: 0,
             // Datatable settings
-            datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Action'],
+            datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Sale date', 'Action'],
             datatable_options: {
                 autoWidth: false,
                 language: {
@@ -81,7 +81,6 @@ export default {
                 ],
                 columns: [
                     {
-                        // 1. ID
                         data: "vessel_details.vessel_name",
                         orderable: false,
                         searchable: false,
@@ -93,7 +92,6 @@ export default {
                         */
                     },
                     {
-                        // 2. Lodgement Number
                         data: "vessel_details.rego_no",
                         orderable: true,
                         searchable: true,
@@ -105,7 +103,6 @@ export default {
                         */
                     },
                     {
-                        // 3. Type (This corresponds to the 'ApplicationType' at the backend)
                         data: "vessel_details.vessel_length",
                         orderable: true,
                         searchable: true,
@@ -117,7 +114,6 @@ export default {
                         */
                     },
                     {
-                        // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                         data: "vessel_details.vessel_draft",
                         orderable: true,
                         searchable: true,
@@ -129,7 +125,6 @@ export default {
                         */
                     },
                     {
-                        // 5. Status
                         data: "vessel_details.vessel_type",
                         orderable: true,
                         searchable: true,
@@ -141,7 +136,17 @@ export default {
                         */
                     },
                     {
-                        // 5. Status
+                        data: "sale_date",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        /*
+                        'render': function(row, type, full){
+                            return full.customer_status
+                        }
+                        */
+                    },
+                    {
                         data: "owner_name",
                         orderable: true,
                         searchable: true,
@@ -153,7 +158,6 @@ export default {
                         */
                     },
                     {
-                        // 8. Action
                         //data: "vessel_details.vessel_id",
                         data: "id",
                         orderable: true,
@@ -161,30 +165,11 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             let links = '';
-                            links += `<a href='/external/vesselownership/${full.id}'>Edit</a><br/>`;
-                            //links += `<a id="record_sale_${full.id}" href=#>Record Sale</a><br/>`;
-                            links += full.record_sale_link;
+                            if (!full.sale_date) {
+                                links += `<a href='/external/vesselownership/${full.id}'>Edit</a><br/>`;
+                                links += full.record_sale_link;
+                            }
                             return links
-                            /*
-                            let links = '';
-                            if (!vm.is_external){
-                                if(full.assessor_process){
-                                    links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                                } else {
-                                    links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            else{
-                                if (full.can_user_edit) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                                    links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                                }
-                                else if (full.can_user_view) {
-                                    links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                                }
-                            }
-                            return links;
-                            */
                         }
                     },
                 ],
