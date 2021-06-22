@@ -99,24 +99,40 @@ class MooringOnApproval(RevisionedMixin):
     class Meta:
         app_label = 'mooringlicensing'
 
-# Should be VesselOwnershipOnApproval ???
-class VesselOnApproval(RevisionedMixin):
+
+class ApprovalHistory(RevisionedMixin):
     approval = models.ForeignKey('Approval')
-    vessel = models.ForeignKey(Vessel)
+    #vessel = models.ForeignKey(Vessel)
     vessel_ownership = models.ForeignKey(VesselOwnership)
-    sticker = models.ForeignKey('Sticker', blank=True, null=True)
-    dot_name = models.CharField(max_length=200, blank=True, null=True)
-    #site_licensee = models.BooleanField()
-
-    #def save(self, *args, **kwargs):
-    #    existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
-    #    if existing_ria_moorings >= 2 and not self.site_licensee:
-    #        raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
-
-    #    super(MooringOnApproval, self).save(*args,**kwargs)
+    proposal = models.ForeignKey(Proposal,related_name='approval_history_records', null=True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField(blank=True, null=True)
+    sticker = models.ManyToManyField('Sticker')
+    # derive from proposal
+    #dot_name = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+## Should be VesselOwnershipOnApproval ???
+#class VesselOnApproval(RevisionedMixin):
+#    approval = models.ForeignKey('Approval')
+#    vessel = models.ForeignKey(Vessel)
+#    vessel_ownership = models.ForeignKey(VesselOwnership)
+#    sticker = models.ForeignKey('Sticker', blank=True, null=True)
+#    dot_name = models.CharField(max_length=200, blank=True, null=True)
+#    #site_licensee = models.BooleanField()
+#
+#    #def save(self, *args, **kwargs):
+#    #    existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
+#    #    if existing_ria_moorings >= 2 and not self.site_licensee:
+#    #        raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
+#
+#    #    super(MooringOnApproval, self).save(*args,**kwargs)
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
 
 
 class Approval(RevisionedMixin):
@@ -186,7 +202,7 @@ class Approval(RevisionedMixin):
     ## intermediate table records ria or site_licensee
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     # should be simple fk to VesselOwnership?
-    vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
+    #vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
