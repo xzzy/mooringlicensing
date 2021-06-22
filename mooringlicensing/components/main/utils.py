@@ -130,11 +130,13 @@ def get_bookings(booking_date, rego_no=None, mooring_id=None):
         customer_phone_number = ''
         if booking.get("booking_phone_number"):
             customer_phone_number = booking.get("booking_phone_number")
-        elif booking.get('booking__customer_id'):
-            qs = EmailUser.objects.filter(id=booking.get("booking__customer_id"))
-            if qs:
-                emailuser = qs[0]
-                customer_phone_number = emailuser.mobile_number if emailuser.mobile_number else emailuser.phone_number
+        elif booking.get("customer_account_phone_number"):
+            customer_phone_number = booking.get("customer_account_phone_number")
+        #elif booking.get('booking__customer_id'):
+        #    qs = EmailUser.objects.filter(id=booking.get("booking__customer_id"))
+        #    if qs:
+        #        emailuser = qs[0]
+        #        customer_phone_number = emailuser.mobile_number if emailuser.mobile_number else emailuser.phone_number
         booking.update({"customer_phone_number": customer_phone_number})
         updated_data.append(booking)
     return updated_data

@@ -139,8 +139,13 @@ from '@/utils/hooks'
                         for (let booking of res.body) {
                             this.bookings.push(booking);
                         }
+                    } else if (this.entity.type === "mooring") {
+                        const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_bookings.json`, payload);
+                        this.bookings = [];
+                        for (let booking of res.body) {
+                            this.bookings.push(booking);
+                        }
                     }
-
                     // DCV
                 });
             },
