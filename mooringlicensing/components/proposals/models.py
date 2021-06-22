@@ -509,6 +509,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     prev_processing_status = models.CharField(max_length=30, blank=True, null=True)
 
     approval = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True)
+    previous_application = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True, related_name="succeeding_proposals")
 
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
@@ -2309,12 +2310,8 @@ class WaitingListApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        # create VesselOnApproval records
-        approval.add_vessel(
-                vessel=approval.current_proposal.vessel_details.vessel,
-                vessel_ownership=approval.current_proposal.vessel_ownership,
-                dot_name=approval.current_proposal.dot_name,
-                )
+        # write approval history
+        approval.write_approval_history()
         # set wla order
         approval = approval.set_wla_order()
         return approval, created
@@ -2388,12 +2385,8 @@ class AnnualAdmissionApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        # create VesselOnApproval records
-        approval.add_vessel(
-                vessel=approval.current_proposal.vessel_details.vessel,
-                vessel_ownership=approval.current_proposal.vessel_ownership,
-                dot_name=approval.current_proposal.dot_name,
-                )
+        # write approval history
+        approval.write_approval_history()
         # manage stickers
         approval.manage_stickers(self)
         return approval, created
@@ -2513,12 +2506,8 @@ class AuthorisedUserApplication(Proposal):
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
-        # create VesselOnApproval records
-        approval.add_vessel(
-                vessel=approval.current_proposal.vessel_details.vessel,
-                vessel_ownership=approval.current_proposal.vessel_ownership,
-                dot_name=approval.current_proposal.dot_name,
-                )
+        # write approval history
+        approval.write_approval_history()
         # manage stickers
         approval.child_obj.manage_stickers(self)
         return approval, created
@@ -2686,12 +2675,8 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            # create VesselOnApproval records
-            approval.add_vessel(
-                    vessel=approval.current_proposal.vessel_details.vessel,
-                    vessel_ownership=approval.current_proposal.vessel_ownership,
-                    dot_name=approval.current_proposal.dot_name,
-                    )
+            # write approval history
+            approval.write_approval_history()
             # manage stickers
             approval.child_obj.manage_stickers(self)
             return approval, created
