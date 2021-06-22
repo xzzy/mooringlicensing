@@ -3009,6 +3009,7 @@ class VesselOwnership(models.Model):
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
+    # date of sale
     end_date = models.DateField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
