@@ -41,7 +41,7 @@ from mooringlicensing.components.proposals.email import (
     # send_external_submit_email_notification,
     send_approver_decline_email_notification,
     send_approver_approve_email_notification,
-    send_proposal_approver_sendback_email_notification, send_endersement_of_authorised_user_application_email,
+    send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
 )
 from mooringlicensing.ordered_model import OrderedModel
@@ -366,6 +366,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
     CUSTOMER_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
+    CUSTOMER_STATUS_EXPIRED = 'expired'
     CUSTOMER_STATUS_CHOICES = (
         # (CUSTOMER_STATUS_TEMP, 'Temporary'),
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
@@ -383,6 +384,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
         (CUSTOMER_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
+        (CUSTOMER_STATUS_EXPIRED, 'Expired'),
         )
 
     # List of statuses from above that allow a customer to edit an application.
@@ -406,6 +408,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         CUSTOMER_STATUS_DECLINED,
         # 'partially_approved',
         # 'partially_declined'
+        CUSTOMER_STATUS_EXPIRED,
     ]
 
     PROCESSING_STATUS_TEMP = 'temp'
@@ -436,6 +439,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
     PROCESSING_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
+    PROCESSING_STATUS_EXPIRED = 'expired'
     PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_TEMP, 'Temporary'),
                                  (PROCESSING_STATUS_DRAFT, 'Draft'),
                                  (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
@@ -464,6 +468,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
                                  (PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
                                  (PROCESSING_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
+                                 (PROCESSING_STATUS_EXPIRED, 'Expired'),
                                 )
 
     # PROPOSAL_TYPE_CHOICES = (
@@ -551,11 +556,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             )
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
     mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
+    endorser_reminder_sent = models.BooleanField(default=False)
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
     waiting_list_allocation = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, related_name="ria_generated_proposal")
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
+    date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2452,7 +2459,7 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
             self.save()
             # Email to endorser
-            send_endersement_of_authorised_user_application_email(request, self)
+            send_endorsement_of_authorised_user_application_email(request, self)
             # Email to submitter
             send_submit_email_notification(request, self)
         else:

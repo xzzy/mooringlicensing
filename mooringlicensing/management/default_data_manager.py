@@ -119,18 +119,22 @@ class DefaultDataManager(object):
         # Types of configurable number of days
         for item in settings.TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS:
             try:
-                type, created = NumberOfDaysType.objects.get_or_create(name=item['name'])
+                types_to_be_deleted = NumberOfDaysType.objects.filter(code__isnull=True)
+                types_to_be_deleted.delete()  # Delete left overs
+
+                type, created = NumberOfDaysType.objects.get_or_create(code=item['code'])
                 if created:
-                    logger.info("Created number of days type: {}".format(type.name))
                     # Save description
                     type.description = item['description']
+                    type.name = item['name']
                     type.save()
+                    logger.info("Created number of days type: {}".format(type.name))
 
-                settins = NumberOfDaysSetting.objects.filter(number_of_days_type=type)
-                if not settins:
+                setting = NumberOfDaysSetting.objects.filter(number_of_days_type=type)
+                if not setting:
                     # No setting for this type. Create one
                     enforcement_date = datetime.date(year=2021, month=1, day=1)
-                    setting = NumberOfDaysSetting.objects.create(
+                    NumberOfDaysSetting.objects.create(
                         number_of_days=item['default'],
                         date_of_enforcement=enforcement_date,
                         number_of_days_type=type
@@ -138,6 +142,3 @@ class DefaultDataManager(object):
 
             except Exception as e:
                 logger.error('{}, Number of days type: {}'.format(e, type.name))
-
-
-
