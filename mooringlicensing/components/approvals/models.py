@@ -83,7 +83,6 @@ class ApprovalDocument(Document):
         app_label = 'mooringlicensing'
 
 
-# currently only required for Authorised User Applications
 class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     mooring = models.ForeignKey(Mooring)
@@ -101,22 +100,39 @@ class MooringOnApproval(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
-class VesselOnApproval(RevisionedMixin):
+class ApprovalHistory(RevisionedMixin):
     approval = models.ForeignKey('Approval')
-    vessel = models.ForeignKey(Vessel)
+    #vessel = models.ForeignKey(Vessel)
     vessel_ownership = models.ForeignKey(VesselOwnership)
-    sticker = models.ForeignKey('Sticker', blank=True, null=True)
-    #site_licensee = models.BooleanField()
-
-    #def save(self, *args, **kwargs):
-    #    existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
-    #    if existing_ria_moorings >= 2 and not self.site_licensee:
-    #        raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
-
-    #    super(MooringOnApproval, self).save(*args,**kwargs)
+    proposal = models.ForeignKey(Proposal,related_name='approval_history_records')
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField(blank=True, null=True)
+    sticker = models.ManyToManyField('Sticker')
+    # derive from proposal
+    #dot_name = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+## Should be VesselOwnershipOnApproval ???
+#class VesselOnApproval(RevisionedMixin):
+#    approval = models.ForeignKey('Approval')
+#    vessel = models.ForeignKey(Vessel)
+#    vessel_ownership = models.ForeignKey(VesselOwnership)
+#    sticker = models.ForeignKey('Sticker', blank=True, null=True)
+#    dot_name = models.CharField(max_length=200, blank=True, null=True)
+#    #site_licensee = models.BooleanField()
+#
+#    #def save(self, *args, **kwargs):
+#    #    existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
+#    #    if existing_ria_moorings >= 2 and not self.site_licensee:
+#    #        raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
+#
+#    #    super(MooringOnApproval, self).save(*args,**kwargs)
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
 
 
 class Approval(RevisionedMixin):
@@ -185,7 +201,8 @@ class Approval(RevisionedMixin):
     ## change to "moorings" field with ManyToManyField - can come from site_licensee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
-    vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
+    # should be simple fk to VesselOwnership?
+    #vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
@@ -195,13 +212,40 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
-    def add_vessel(self, vessel, vessel_ownership):
-        vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
-                vessel=vessel,
-                vessel_ownership=vessel_ownership,
+    def write_approval_history(self):
+        new_approval_history_entry = ApprovalHistory.objects.create(
+                vessel_ownership=self.current_proposal.vessel_ownership,
                 approval=self,
+                proposal=self.current_proposal,
+                start_date=self.issue_date
                 )
-        return vessel_on_approval, created
+        approval_history = self.approvalhistory_set.all()
+        ## rewrite history
+        # current_proposal.previous_application must be set on renewal/amendment
+        if self.current_proposal.previous_application:
+            previous_application = self.current_proposal.previous_application
+            qs = self.approvalhistory_set.filter(proposal=previous_application)
+            if qs:
+                # previous history entry exists
+                end_date = self.issue_date
+                previous_history_entry = self.approvalhistory_set.filter(proposal=previous_application)[0]
+                # check vo sale date
+                if previous_history_entry.history_entry.vessel_ownership.end_date:
+                    end_date = previous.history_entry.vessel_ownership.end_date
+                # update previous_history_entry
+                previous_history_entry.end_date = end_date
+                previous_history_entry.save()
+        # TODO: need to worry about all entries for this approval?
+        return new_approval_history_entry
+
+    #def add_vessel(self, vessel, vessel_ownership, dot_name):
+    #    vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
+    #            vessel=vessel,
+    #            vessel_ownership=vessel_ownership,
+    #            approval=self,
+    #            dot_name=dot_name
+    #            )
+    #    return vessel_on_approval, created
 
     def add_mooring(self, mooring, site_licensee):
         mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
