@@ -212,6 +212,15 @@ CUSTOM_GROUPS = [
 ]
 PRINTING_COMPANY_EMAIL_ADDRESS = env('PRINTING_COMPANY_EMAIL_ADDRESS', '')
 
+CODE_DAYS_BEFORE_DUE_COMPLIANCE = 'ComplianceDueDate'
+CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP = 'AAPVesselNominateNotification'
+CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA ='WLAVesselNominateNotification'
+CODE_DAYS_BEFORE_PERIOD_WLA = 'WLAApplicationSubmitNotification'
+CODE_DAYS_IN_PERIOD_WLA = 'WLAApplicationSubmitPeriod'
+CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLADocumentsSubmitPeriod'
+CODE_DAYS_FOR_ENDORSER_AUA = 'AUAEndorseDeclinePeriod'
+CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'
+
 NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE = 'Compliance due date'
 NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP = 'AAP vessel nominate notification for AAP'
 NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA ='AAP vessel nominate notification for WLA'
@@ -219,7 +228,7 @@ NUM_OF_DAYS_BEFORE_PERIOD_WLA = 'WLA application submit notification'
 NUM_OF_DAYS_IN_PERIOD_WLA = 'WLA application submit period'
 NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLA documents submit period'
 NUM_OF_DAYS_FOR_ENDORSER_AUA = 'AUA endorse/decline period'
-NUM_OF_DAYS_FOR_RENEWAL = 'Renewal notification'
+NUM_OF_DAYS_FOR_RENEWAL = 'AAP, AUP and ML Renewal notification'
 
 NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE_DESC = 'Number of days before due date of compliance'
 NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP_DESC = 'Number of days before end of six month period in which a new vessel is to be nominated for AAP'
@@ -230,13 +239,13 @@ NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA_DESC = 'Number of days in the period in whi
 NUM_OF_DAYS_FOR_ENDORSER_AUA_DESC = 'Number of days after initial submit for the endorser to endorse/decline'
 NUM_OF_DAYS_FOR_RENEWAL_DESC = 'Number of days before expiry date of the approvals to email'
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
-    {'name': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE, 'description': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE_DESC, 'default': 28},
-    {'name': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP, 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP_DESC, 'default': 28},
-    {'name': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA, 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA_DESC, 'default': 28},
-    {'name': NUM_OF_DAYS_BEFORE_PERIOD_WLA, 'description': NUM_OF_DAYS_BEFORE_PERIOD_WLA_DESC, 'default': 14},
-    {'name': NUM_OF_DAYS_IN_PERIOD_WLA, 'description': NUM_OF_DAYS_IN_PERIOD_WLA_DESC, 'default': 28},
-    {'name': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, 'description': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA_DESC, 'default': 28},
-    {'name': NUM_OF_DAYS_FOR_ENDORSER_AUA, 'description': NUM_OF_DAYS_FOR_ENDORSER_AUA_DESC, 'default': 28},
-    {'name': NUM_OF_DAYS_FOR_RENEWAL, 'description': NUM_OF_DAYS_FOR_RENEWAL_DESC, 'default': 28},
+    {'code': CODE_DAYS_BEFORE_DUE_COMPLIANCE, 'name': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE, 'description': NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE_DESC, 'default': 28},
+    {'code': CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP, 'name': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP, 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP_DESC, 'default': 28},
+    {'code': CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA, 'name': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA, 'description': NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA_DESC, 'default': 28},
+    {'code': CODE_DAYS_BEFORE_PERIOD_WLA, 'name': NUM_OF_DAYS_BEFORE_PERIOD_WLA, 'description': NUM_OF_DAYS_BEFORE_PERIOD_WLA_DESC, 'default': 14},
+    {'code': CODE_DAYS_IN_PERIOD_WLA, 'name': NUM_OF_DAYS_IN_PERIOD_WLA, 'description': NUM_OF_DAYS_IN_PERIOD_WLA_DESC, 'default': 28},
+    {'code': CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, 'name': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, 'description': NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA_DESC, 'default': 28},
+    {'code': CODE_DAYS_FOR_ENDORSER_AUA, 'name': NUM_OF_DAYS_FOR_ENDORSER_AUA, 'description': NUM_OF_DAYS_FOR_ENDORSER_AUA_DESC, 'default': 28},
+    {'code': CODE_DAYS_FOR_RENEWAL, 'name': NUM_OF_DAYS_FOR_RENEWAL, 'description': NUM_OF_DAYS_FOR_RENEWAL_DESC, 'default': 28},
 ]
 

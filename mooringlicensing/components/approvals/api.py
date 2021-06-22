@@ -1,18 +1,19 @@
 import traceback
 import datetime
-from copy import deepcopy
+import pytz
 from rest_framework_datatables.renderers import DatatablesRenderer
-from django.db.models import Q, Min
+from django.db.models import Q
 from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from rest_framework import viewsets, serializers, status, generics, views
+from rest_framework import viewsets, serializers, generics, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from ledger.accounts.models import EmailUser, Address
-from datetime import datetime, timedelta, date
+from ledger.accounts.models import EmailUser
+from ledger.settings_base import TIME_ZONE
+from datetime import datetime
 
 from mooringlicensing.components.approvals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
@@ -1030,13 +1031,16 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             selected_mooring_id = request.data.get("selected_mooring_id")
             allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
 
+            current_date = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+
             new_proposal = None
             if allocated_mooring:
                 new_proposal = MooringLicenceApplication.objects.create(
                         submitter=waiting_list_allocation.submitter,
                         proposal_type=proposal_type,
                         allocated_mooring=allocated_mooring,
-                        waiting_list_allocation=waiting_list_allocation
+                        waiting_list_allocation=waiting_list_allocation,
+                        date_invited=current_date,
                         )
             if new_proposal:
                 # send email

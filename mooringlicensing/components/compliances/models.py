@@ -40,7 +40,7 @@ from ledger.payments.invoice.models import Invoice
 
 import logging
 
-from mooringlicensing.settings import NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE
+from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_COMPLIANCE
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +228,7 @@ class Compliance(RevisionedMixin):
     def send_reminder(self,user):
         with transaction.atomic():
             today = timezone.localtime(timezone.now()).date()
-            number_of_days_type = NumberOfDaysType.objects.get(name=NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE)
+            number_of_days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
             number_of_days = NumberOfDaysSetting.get_setting_by_date(number_of_days_type=number_of_days_type, target_date=today)
             try:
                 if self.processing_status == Compliance.PROCESSING_STATUS_DUE:
