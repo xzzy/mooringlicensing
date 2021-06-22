@@ -1031,7 +1031,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             selected_mooring_id = request.data.get("selected_mooring_id")
             allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
 
-            current_date = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+            current_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
 
             new_proposal = None
             if allocated_mooring:
