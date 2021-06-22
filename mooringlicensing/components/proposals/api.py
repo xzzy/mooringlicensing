@@ -1048,7 +1048,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance = instance.amend_approval(request)
             serializer = SaveProposalSerializer(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
@@ -1673,6 +1673,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         else:
             booking_date = datetime.now().strftime('%Y-%m-%d')
         data = get_bookings(booking_date, vessel.rego_no.upper())
+        data = get_bookings(booking_date=booking_date, rego_no=vessel.rego_no.upper(), mooring_id=None)
         return Response(data)
 
     @detail_route(methods=['POST',])
@@ -1885,7 +1886,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                     vd = vo.vessel.latest_vessel_details
                     if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
                         search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                        vd.vessel_type in matching_vessel_type_choices 
+                        vd.vessel_type in matching_vessel_type_choices or
+                        search_text in vo.end_date.strftime('%d/%m/%Y')
                         #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
@@ -1988,6 +1990,21 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Mooring.objects.filter(active=True)
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_bookings(self, request, *args, **kwargs):
+        mooring = self.get_object()
+        #import ipdb; ipdb.set_trace()
+        booking_date_str = request.data.get("selected_date")
+        booking_date = None
+        if booking_date_str:
+            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+            booking_date = booking_date.strftime('%Y-%m-%d')
+        else:
+            booking_date = datetime.now().strftime('%Y-%m-%d')
+        data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
+        return Response(data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
