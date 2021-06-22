@@ -702,7 +702,6 @@ class AnnualAdmissionPermit(Approval):
 
 class AuthorisedUserPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
-    endorsed_by = models.ForeignKey(EmailUser, blank=True, null=True)
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
