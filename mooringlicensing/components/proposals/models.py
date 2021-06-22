@@ -2567,6 +2567,9 @@ class AuthorisedUserApplication(Proposal):
 
 
 class MooringLicenceApplication(Proposal):
+    REASON_FOR_EXPIRY_NOT_SUBMITTED = 'not_submitted'
+    REASON_FOR_EXPIRY_NO_DOCUMENTS = 'no_documents'
+
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
