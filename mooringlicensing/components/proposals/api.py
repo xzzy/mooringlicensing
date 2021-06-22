@@ -1048,7 +1048,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance = instance.amend_approval(request)
             serializer = SaveProposalSerializer(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
