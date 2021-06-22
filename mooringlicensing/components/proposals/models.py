@@ -2387,10 +2387,11 @@ class AnnualAdmissionApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        # write approval history
-        approval.write_approval_history()
         # manage stickers
         approval.manage_stickers(self)
+        # write approval history
+        approval.write_approval_history()
+
         return approval, created
 
     def process_after_payment_success(self, request):
@@ -2508,10 +2509,10 @@ class AuthorisedUserApplication(Proposal):
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
-        # write approval history
-        approval.write_approval_history()
         # manage stickers
         approval.child_obj.manage_stickers(self)
+        # write approval history
+        approval.write_approval_history()
         return approval, created
 
     def process_after_approval(self, request):
@@ -2680,10 +2681,10 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            # write approval history
-            approval.write_approval_history()
             # manage stickers
             approval.child_obj.manage_stickers(self)
+            # write approval history
+            approval.write_approval_history()
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")
