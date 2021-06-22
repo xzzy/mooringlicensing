@@ -104,7 +104,7 @@ class ApprovalHistory(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     #vessel = models.ForeignKey(Vessel)
     vessel_ownership = models.ForeignKey(VesselOwnership)
-    proposal = models.ForeignKey(Proposal,related_name='approval_history_records', null=True)
+    proposal = models.ForeignKey(Proposal,related_name='approval_history_records')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(blank=True, null=True)
     sticker = models.ManyToManyField('Sticker')
@@ -212,14 +212,40 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
-    def add_vessel(self, vessel, vessel_ownership, dot_name):
-        vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
-                vessel=vessel,
-                vessel_ownership=vessel_ownership,
+    def write_approval_history(self):
+        new_approval_history_entry = ApprovalHistory.objects.create(
+                vessel_ownership=self.current_proposal.vessel_ownership,
                 approval=self,
-                dot_name=dot_name
+                proposal=self.current_proposal,
+                start_date=self.issue_date
                 )
-        return vessel_on_approval, created
+        approval_history = self.approvalhistory_set.all()
+        ## rewrite history
+        # current_proposal.previous_application must be set on renewal/amendment
+        if self.current_proposal.previous_application:
+            previous_application = self.current_proposal.previous_application
+            qs = self.approvalhistory_set.filter(proposal=previous_application)
+            if qs:
+                # previous history entry exists
+                end_date = self.issue_date
+                previous_history_entry = self.approvalhistory_set.filter(proposal=previous_application)[0]
+                # check vo sale date
+                if previous_history_entry.history_entry.vessel_ownership.end_date:
+                    end_date = previous.history_entry.vessel_ownership.end_date
+                # update previous_history_entry
+                previous_history_entry.end_date = end_date
+                previous_history_entry.save()
+        # TODO: need to worry about all entries for this approval?
+        return new_approval_history_entry
+
+    #def add_vessel(self, vessel, vessel_ownership, dot_name):
+    #    vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
+    #            vessel=vessel,
+    #            vessel_ownership=vessel_ownership,
+    #            approval=self,
+    #            dot_name=dot_name
+    #            )
+    #    return vessel_on_approval, created
 
     def add_mooring(self, mooring, site_licensee):
         mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
