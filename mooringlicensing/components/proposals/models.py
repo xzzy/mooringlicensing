@@ -366,6 +366,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
     CUSTOMER_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
+    CUSTOMER_STATUS_EXPIRED = 'expired'
     CUSTOMER_STATUS_CHOICES = (
         # (CUSTOMER_STATUS_TEMP, 'Temporary'),
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
@@ -383,6 +384,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
         (CUSTOMER_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
+        (CUSTOMER_STATUS_EXPIRED, 'Expired'),
         )
 
     # List of statuses from above that allow a customer to edit an application.
@@ -406,6 +408,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         CUSTOMER_STATUS_DECLINED,
         # 'partially_approved',
         # 'partially_declined'
+        CUSTOMER_STATUS_EXPIRED,
     ]
 
     PROCESSING_STATUS_TEMP = 'temp'
@@ -436,6 +439,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
     PROCESSING_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
+    PROCESSING_STATUS_EXPIRED = 'expired'
     PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_TEMP, 'Temporary'),
                                  (PROCESSING_STATUS_DRAFT, 'Draft'),
                                  (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
@@ -464,6 +468,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
                                  (PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
                                  (PROCESSING_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
+                                 (PROCESSING_STATUS_EXPIRED, 'Expired'),
                                 )
 
     # PROPOSAL_TYPE_CHOICES = (
