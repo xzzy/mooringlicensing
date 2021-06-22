@@ -563,6 +563,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
+    invitee_reminder_sent = models.BooleanField(default=False)
+
 
     class Meta:
         app_label = 'mooringlicensing'

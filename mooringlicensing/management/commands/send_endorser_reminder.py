@@ -43,7 +43,7 @@ class Command(BaseCommand):
         # Construct queries
         queries = Q()
         queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT)
-        queries &= Q(lodgement_date__lte=boundary_date)
+        queries &= Q(lodgement_date__lt=boundary_date)
         queries &= Q(endorser_reminder_sent=False)
 
         for a in AuthorisedUserApplication.objects.filter(queries):
