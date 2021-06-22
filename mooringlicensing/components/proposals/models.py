@@ -564,6 +564,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
+    invitee_reminder_sent = models.BooleanField(default=False)
+
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2386,10 +2388,11 @@ class AnnualAdmissionApplication(Proposal):
                 'submitter': self.submitter,
             }
         )
-        # write approval history
-        approval.write_approval_history()
         # manage stickers
         approval.manage_stickers(self)
+        # write approval history
+        approval.write_approval_history()
+
         return approval, created
 
     def process_after_payment_success(self, request):
@@ -2507,10 +2510,10 @@ class AuthorisedUserApplication(Proposal):
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
-        # write approval history
-        approval.write_approval_history()
         # manage stickers
         approval.child_obj.manage_stickers(self)
+        # write approval history
+        approval.write_approval_history()
         return approval, created
 
     def process_after_approval(self, request):
@@ -2560,6 +2563,9 @@ class AuthorisedUserApplication(Proposal):
 
 
 class MooringLicenceApplication(Proposal):
+    REASON_FOR_EXPIRY_NOT_SUBMITTED = 'not_submitted'
+    REASON_FOR_EXPIRY_NO_DOCUMENTS = 'no_documents'
+
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
@@ -2676,10 +2682,10 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            # write approval history
-            approval.write_approval_history()
             # manage stickers
             approval.child_obj.manage_stickers(self)
+            # write approval history
+            approval.write_approval_history()
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")

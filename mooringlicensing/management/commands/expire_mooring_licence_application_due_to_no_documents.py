@@ -1,24 +1,24 @@
 from datetime import timedelta
+from ledger.accounts.models import EmailUser
+from django.utils import timezone
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
-from ledger.accounts.models import EmailUser
 
 import logging
 
-from mooringlicensing.components.proposals.email import send_endorser_reminder_email
+from mooringlicensing.components.proposals.email import send_expire_mooring_licence_application_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication
-from mooringlicensing.settings import CODE_DAYS_FOR_ENDORSER_AUA
+from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
+from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Send email to authorised user application endorser if application is not endorsed or declined within configurable number of days'
+    help = 'Expire mooring licence application if additional documents are not submitted within a configurable number of days from the initial submit of the mooring licence application and email to inform the applicant'
 
     def handle(self, *args, **options):
         try:
@@ -31,7 +31,7 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
             # No number of days found
@@ -42,19 +42,19 @@ class Command(BaseCommand):
 
         # Construct queries
         queries = Q()
-        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT)
+        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS)
         queries &= Q(lodgement_date__lt=boundary_date)
-        queries &= Q(endorser_reminder_sent=False)
 
-        for a in AuthorisedUserApplication.objects.filter(queries):
+        for a in MooringLicenceApplication.objects.filter(queries):
             try:
-                send_endorser_reminder_email(a)
-                a.endorser_reminder_sent = True
+                a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
+                a.customer_status = Proposal.CUSTOMER_STATUS_EXPIRED
                 a.save()
-                logger.info('Reminder to endorser sent for Proposal {}'.format(a.lodgement_number))
+                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS)
+                logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:
-                err_msg = 'Error sending reminder to endorser for Proposal {}'.format(a.lodgement_number)
+                err_msg = 'Error sending expired notification for Proposal {}'.format(a.lodgement_number)
                 logger.error('{}\n{}'.format(err_msg, str(e)))
                 errors.append(err_msg)
 
