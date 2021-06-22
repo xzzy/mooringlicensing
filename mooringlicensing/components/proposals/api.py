@@ -1886,7 +1886,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                     vd = vo.vessel.latest_vessel_details
                     if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
                         search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                        vd.vessel_type in matching_vessel_type_choices 
+                        vd.vessel_type in matching_vessel_type_choices or
+                        search_text in vo.end_date.strftime('%d/%m/%Y')
                         #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
