@@ -83,7 +83,6 @@ class ApprovalDocument(Document):
         app_label = 'mooringlicensing'
 
 
-# currently only required for Authorised User Applications
 class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     mooring = models.ForeignKey(Mooring)
@@ -100,12 +99,13 @@ class MooringOnApproval(RevisionedMixin):
     class Meta:
         app_label = 'mooringlicensing'
 
-
+# Should be VesselOwnershipOnApproval ???
 class VesselOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     vessel = models.ForeignKey(Vessel)
     vessel_ownership = models.ForeignKey(VesselOwnership)
     sticker = models.ForeignKey('Sticker', blank=True, null=True)
+    dot_name = models.CharField(max_length=200, blank=True, null=True)
     #site_licensee = models.BooleanField()
 
     #def save(self, *args, **kwargs):
@@ -185,6 +185,7 @@ class Approval(RevisionedMixin):
     ## change to "moorings" field with ManyToManyField - can come from site_licensee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
+    # should be simple fk to VesselOwnership?
     vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
@@ -195,11 +196,12 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
-    def add_vessel(self, vessel, vessel_ownership):
+    def add_vessel(self, vessel, vessel_ownership, dot_name):
         vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
                 vessel=vessel,
                 vessel_ownership=vessel_ownership,
                 approval=self,
+                dot_name=dot_name
                 )
         return vessel_on_approval, created
 
