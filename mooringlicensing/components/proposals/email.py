@@ -11,7 +11,6 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-#from mooringlicensing.components.bookings.awaiting_payment_invoice_pdf import create_awaiting_payment_invoice_pdf_bytes
 from datetime import datetime
 
 from mooringlicensing.settings import PRINTING_COMPANY_EMAIL_ADDRESS
@@ -55,9 +54,22 @@ class StickerPrintingBatchEmail(TemplateEmailBase):
 
 
 class ExpireMooringLicenceApplicationEmail(TemplateEmailBase):
-    subject = 'Mooring Licence Application has been expired'
-    html_template = 'mooringlicensing/emails/proposals/send_expire_mooring_licence_application.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_expire_mooring_licence_application.txt'
+    subject = 'Mooring Licence Application {} has been expired'
+    html_template = 'mooringlicensing/emails/proposals/{}.html'
+    txt_template = 'mooringlicensing/emails/proposals/{}.txt'
+
+    def __init__(self, proposal, reason):
+        from mooringlicensing.components.proposals.models import MooringLicenceApplication
+
+        self.subject = self.subject.format(proposal.lodgement_number)
+        if reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED:
+            self.html_template = self.html_template.format('send_expire_mooring_licence_application_not_submitted')
+            self.txt_template = self.html_template.format('send_expire_mooring_licence_application_not_submitted')
+        elif reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS:
+            self.html_template = self.html_template.format('send_expire_mooring_licence_application_no_documents')
+            self.txt_template = self.html_template.format('send_expire_mooring_licence_application_no_documents')
+        else:
+            raise
 
 
 class EndorserReminderEmail(TemplateEmailBase):
@@ -211,10 +223,10 @@ def send_sticker_printing_batch_email(batches):
     return msg
 
 
-def send_expire_mooring_licence_application_email(proposal, request=None):
+def send_expire_mooring_licence_application_email(proposal, reason, request=None):
     # Expire mooring licence application if additional documents are not submitted within a configurable number of days
     # from the initial submit of the mooring licence application and email to inform the applicant
-    email = ExpireMooringLicenceApplicationEmail()
+    email = ExpireMooringLicenceApplicationEmail(proposal, reason)
     url = settings.SITE_URL if settings.SITE_URL else ''
     dashboard_url = url + reverse('external')
 

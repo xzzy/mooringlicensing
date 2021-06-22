@@ -1,6 +1,4 @@
-import pytz
-from datetime import timedelta, datetime
-from ledger.settings_base import TIME_ZONE
+from datetime import timedelta
 from ledger.accounts.models import EmailUser
 
 from django.core.management.base import BaseCommand
@@ -11,11 +9,10 @@ from django.db.models import Q
 
 import logging
 
-from mooringlicensing.components.proposals.email import send_endorser_reminder_email, \
-    send_expire_mooring_licence_application_email
+from mooringlicensing.components.proposals.email import send_expire_mooring_licence_application_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication
-from mooringlicensing.settings import CODE_DAYS_FOR_ENDORSER_AUA, CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
+from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
+from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +36,21 @@ class Command(BaseCommand):
         if not days_setting:
             # No number of days found
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
-        # boundary_date = today - timedelta(days=days_setting.number_of_days)
-        boundary_date = today - timedelta(days=2)
+        boundary_date = today - timedelta(days=days_setting.number_of_days)
 
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
         queries = Q()
         queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS)
-        queries &= Q(lodgement_date__lte=boundary_date)
+        queries &= Q(lodgement_date__lt=boundary_date)
 
         for a in MooringLicenceApplication.objects.filter(queries):
             try:
-                send_expire_mooring_licence_application_email(a)
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.customer_status = Proposal.CUSTOMER_STATUS_EXPIRED
                 a.save()
+                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:
