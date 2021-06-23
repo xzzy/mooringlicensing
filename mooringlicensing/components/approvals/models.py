@@ -213,22 +213,16 @@ class Approval(RevisionedMixin):
         ordering = ['-id',]
 
     def write_approval_history(self):
+        new_approval_history_entry = ApprovalHistory.objects.create(
+            vessel_ownership=self.current_proposal.vessel_ownership,
+            approval=self,
+            proposal=self.current_proposal,
+            start_date=self.issue_date,
+        )
         stickers = self.stickers.all()
-        if stickers:
-            new_approval_history_entry = ApprovalHistory.objects.create(
-                vessel_ownership=self.current_proposal.vessel_ownership,
-                approval=self,
-                proposal=self.current_proposal,
-                start_date=self.issue_date,
-                stickers=stickers
-                )
-        else:
-            new_approval_history_entry = ApprovalHistory.objects.create(
-                vessel_ownership=self.current_proposal.vessel_ownership,
-                approval=self,
-                proposal=self.current_proposal,
-                start_date=self.issue_date,
-            )
+        for sticker in stickers:
+            new_approval_history_entry.stickers.add(sticker)
+
         approval_history = self.approvalhistory_set.all()
         ## rewrite history
         # current_proposal.previous_application must be set on renewal/amendment
