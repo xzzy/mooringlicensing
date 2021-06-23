@@ -3,7 +3,7 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 
 from mooringlicensing.doctopdf import create_dcv_permit_pdf_tytes, create_dcv_admission_pdf_tytes, \
-    create_approval_doc_bytes
+    create_approval_doc_bytes, create_renewal_doc_bytes
 
 
 def create_dcv_permit_document(dcv_permit):
@@ -46,3 +46,17 @@ def create_approval_doc(approval, proposal, copied_to_permit, user):
     document._file.save(filename, ContentFile(contents_as_bytes), save=True)
 
     return document
+
+
+def create_renewal_doc(approval, proposal):
+    # create bytes
+    contents_as_bytes = create_renewal_doc_bytes(approval)
+
+    filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
+    from mooringlicensing.components.approvals.models import RenewalDocument
+    document = RenewalDocument.objects.create(approval=approval, name=filename,)
+
+    # Save the bytes to the disk
+    document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+    return document
+

@@ -380,6 +380,7 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
 
 class ListApprovalSerializer(serializers.ModelSerializer):
+    renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
     approval_type_dict = serializers.SerializerMethodField()
     holder = serializers.SerializerMethodField()
@@ -396,6 +397,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     ria_generated_proposals = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
+    can_reissue = serializers.SerializerMethodField()
+    can_action = serializers.SerializerMethodField()
+    can_renew = serializers.SerializerMethodField()
+    can_amend = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -422,6 +427,12 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'ria_generated_proposals',
             'mooring_licence_vessels',
             'authorised_user_moorings',
+            'can_reissue',
+            'can_action',
+            'can_renew',
+            'can_amend',
+            'renewal_document',
+            'renewal_sent',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -448,7 +459,30 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'ria_generated_proposals',
             'mooring_licence_vessels',
             'authorised_user_moorings',
+            'can_reissue',
+            'can_action',
+            'can_renew',
+            'can_amend',
+            'renewal_document',
+            'renewal_sent',
         )
+
+    def get_renewal_document(self,obj):
+        if obj.renewal_document and obj.renewal_document._file:
+            return obj.renewal_document._file.url
+        return None
+
+    def get_can_reissue(self,obj):
+        return obj.can_reissue
+
+    def get_can_action(self,obj):
+        return obj.can_action
+
+    def get_can_amend(self,obj):
+        return obj.can_amend
+
+    def get_can_renew(self,obj):
+        return obj.can_renew
 
     def get_mooring_licence_vessels(self, obj):
         #return_list = []
