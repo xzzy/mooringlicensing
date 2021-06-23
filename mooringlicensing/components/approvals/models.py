@@ -24,11 +24,11 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
-    create_approval_doc
+    create_approval_doc, create_renewal_doc
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
-    StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership
+    StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -67,6 +67,20 @@ class WaitingListOfferDocument(Document):
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Waiting List Offer Documents"
+
+
+class RenewalDocument(Document):
+    approval = models.ForeignKey('Approval',related_name='renewal_documents')
+    _file = models.FileField(upload_to=update_approval_doc_filename)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+
+    def delete(self):
+        if self.can_delete:
+            return super(RenewalDocument, self).delete()
+        logger.info('Cannot delete existing document object after Proposal has been submitted (including document submitted before Proposal pushback to status Draft): {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class ApprovalDocument(Document):
@@ -170,7 +184,8 @@ class Approval(RevisionedMixin):
 #    region = models.CharField(max_length=255)
 #    tenure = models.CharField(max_length=255,null=True)
 #    title = models.CharField(max_length=255)
-    renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
+    #renewal_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='renewal_document')
+    renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='renewal_document')
     renewal_sent = models.BooleanField(default=False)
     issue_date = models.DateTimeField()
     wla_queue_date = models.DateTimeField(blank=True, null=True)
@@ -409,9 +424,10 @@ class Approval(RevisionedMixin):
 #                return self.current_proposal.application_type.max_renewals > self.renewal_count
 #                #pass
 #            else:
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
             renew_conditions = {
                 'previous_application': self.current_proposal,
-                'proposal_type': PROPOSAL_TYPE_RENEWAL,
+                'proposal_type': proposal_type,
             }
             proposal=Proposal.objects.get(**renew_conditions)
             if proposal:
@@ -422,24 +438,19 @@ class Approval(RevisionedMixin):
     @property
     def can_amend(self):
         try:
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
             amend_conditions = {
                     'previous_application': self.current_proposal,
-                    'proposal_type': PROPOSAL_TYPE_AMENDMENT,
+                    'proposal_type': proposal_type,
                     }
             proposal=Proposal.objects.get(**amend_conditions)
             if proposal:
                 return False
         except Proposal.DoesNotExist:
-            if self.current_proposal.is_lawful_authority:
-                if self.current_proposal.is_lawful_authority_finalised and self.can_renew:
-                        return True
-                else:
-                        return False
+            if self.can_renew:
+                return True
             else:
-                if self.can_renew:
-                    return True
-                else:
-                    return False
+                return False
         return False
 
     def generate_doc(self, user, preview=False):
@@ -456,15 +467,20 @@ class Approval(RevisionedMixin):
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
+    def generate_renewal_doc(self):
+        self.renewal_document = create_renewal_doc(self, self.current_proposal)
+        self.save(version_comment='Created Renewal PDF: {}'.format(self.renewal_document.name))
+        self.current_proposal.save(version_comment='Created Renewal PDF: {}'.format(self.renewal_document.name))
+
 #    def generate_preview_doc(self, user):
 #        from mooringlicensing.components.approvals.pdf import create_approval_pdf_bytes
 #        copied_to_permit = self.copiedToPermit_fields(self.current_proposal) #Get data related to isCopiedToPermit tag
 
-    def generate_renewal_doc(self):
-        from mooringlicensing.components.approvals.pdf import create_renewal_doc
-        self.renewal_document = create_renewal_doc(self,self.current_proposal)
-        self.save(version_comment='Created Approval PDF: {}'.format(self.renewal_document.name))
-        self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.renewal_document.name))
+    #def generate_renewal_doc(self):
+    #    from mooringlicensing.components.approvals.pdf import create_renewal_doc
+    #    self.renewal_document = create_renewal_doc(self,self.current_proposal)
+    #    self.save(version_comment='Created Approval PDF: {}'.format(self.renewal_document.name))
+    #    self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.renewal_document.name))
 
     #def copiedToPermit_fields(self, proposal):
     #    p=proposal

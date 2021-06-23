@@ -367,6 +367,18 @@ export default {
                             let links = '';
                             if (vm.is_internal && vm.wlaDash) {
                                 links += full.offer_link;
+                            } else if (vm.is_external && full.can_reissue) {
+                                // approval has no view
+                                //links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
+                                if(full.can_action){
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                    if(full.can_amend){
+                                       links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
+                                   }
+                                }
+                                if(full.renewal_document && full.renewal_sent && full.can_renew) {
+                                    links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
+                                }
                             }
                             return links;
                         }
