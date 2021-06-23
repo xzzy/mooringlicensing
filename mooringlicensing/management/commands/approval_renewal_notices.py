@@ -45,7 +45,7 @@ class Command(BaseCommand):
 
         logger.info('Running command {}'.format(__name__))
         for a in Approval.objects.filter(**renewal_conditions):
-            if a.status == Approval.STATUS_CURRENT or a.status == Approval.STATUS_SUSPENDED:
+            if a.status == Approval.APPROVAL_STATUS_CURRENT or a.status == Approval.APPROVAL_STATUS_SUSPENDED:
                 try:
                     a.generate_renewal_doc()
                     send_approval_renewal_email_notification(a)

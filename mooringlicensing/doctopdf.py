@@ -135,3 +135,41 @@ def create_approval_doc_bytes(approval):
     os.remove(new_doc_file)
     os.remove(new_pdf_file)
     return file_contents
+
+# TODO: renewal specific data
+def create_renewal_doc_bytes(approval):
+    licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE)
+
+    if licence_template._file:
+        path_to_template = licence_template._file.path
+    else:
+        raise Exception('DcvAdmission template file not found.')
+
+    doc = DocxTemplate(path_to_template)
+    serializer_context = {
+        'approval': approval,
+    }
+    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
+    # context = context_obj.data
+    # doc.render(context)
+    doc.render(serializer_context)
+
+    temp_directory = settings.BASE_DIR + "/tmp/"
+    try:
+        os.stat(temp_directory)
+    except:
+        os.mkdir(temp_directory)
+
+    f_name = temp_directory + 'approval' + str(approval.id)
+    new_doc_file = f_name + '.docx'
+    new_pdf_file = f_name + '.pdf'
+    doc.save(new_doc_file)
+    os.system("libreoffice --headless --convert-to pdf " + new_doc_file + " --outdir " + temp_directory)
+
+    file_contents = None
+    with open(new_pdf_file, 'rb') as f:
+        file_contents = f.read()
+    os.remove(new_doc_file)
+    os.remove(new_pdf_file)
+    return file_contents
+
