@@ -2065,21 +2065,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return proposal
 
     def amend_approval(self,request):
+        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
                 amend_conditions = {
                 'previous_application': previous_proposal,
-                'proposal_type': PROPOSAL_TYPE_AMENDMENT
-
+                'proposal_type': ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
                 }
-                proposal=Proposal.objects.get(**amend_conditions)
-                if proposal.customer_status=='under_review':
+                existing_proposal=Proposal.objects.get(**amend_conditions)
+                if existing_proposal.customer_status=='under_review':
                     raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
-            except Proposal.DoesNotExist:
+            #except Proposal.DoesNotExist:
                 proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-                proposal.training_completed = True
+                #proposal.training_completed = True
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 req=self.requirements.all().exclude(is_deleted=True)
@@ -2101,7 +2101,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
                 proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
-            return proposal
+                return proposal
+            except Exception as e:
+                raise e
 
     @property
     def application_type(self):
@@ -2265,19 +2267,29 @@ class WaitingListApplication(Proposal):
 
     #@classmethod
     def update_or_create_approval(self, current_datetime, request=None):
-        approval, created = self.approval_class.objects.update_or_create(
-        #approval, created = cls.objects.update_or_create(
-            current_proposal=self,
-            defaults={
-                'issue_date': current_datetime,
-                'wla_queue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': self.end_date,
-                'submitter': self.submitter,
-            }
-        )
+        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+            approval = self.previous_application.approval
+            approval.current_proposal=self
+            approval.wla_queue_date = current_datetime
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.submitter = self.submitter
+            approval.save()
+        else:
+            approval, created = self.approval_class.objects.update_or_create(
+            #approval, created = cls.objects.update_or_create(
+                current_proposal=self,
+                defaults={
+                    'issue_date': current_datetime,
+                    'wla_queue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_datetime.date(),
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                }
+            )
         # write approval history
         approval.write_approval_history()
         # set wla order
@@ -2341,18 +2353,27 @@ class AnnualAdmissionApplication(Proposal):
 
     #@classmethod
     def update_or_create_approval(self, current_datetime, request=None):
-        approval, created = self.approval_class.objects.update_or_create(
-        #approval, created = cls.objects.update_or_create(
-            current_proposal=self,  # filter by this field
-            defaults={
-                'issue_date': current_datetime,
-                #'start_date': current_date.strftime('%Y-%m-%d'),
-                #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
-                'start_date': current_datetime.date(),
-                'expiry_date': self.end_date,
-                'submitter': self.submitter,
-            }
-        )
+        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+            approval = self.previous_application.approval
+            approval.current_proposal=self
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.submitter = self.submitter
+            approval.save()
+        else:
+            approval, created = self.approval_class.objects.update_or_create(
+            #approval, created = cls.objects.update_or_create(
+                current_proposal=self,  # filter by this field
+                defaults={
+                    'issue_date': current_datetime,
+                    #'start_date': current_date.strftime('%Y-%m-%d'),
+                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
+                    'start_date': current_datetime.date(),
+                    'expiry_date': self.end_date,
+                    'submitter': self.submitter,
+                }
+            )
         # manage stickers
         approval.manage_stickers(self)
         # write approval history
@@ -2459,6 +2480,7 @@ class AuthorisedUserApplication(Proposal):
             approval.expiry_date = self.end_date
             approval.save()
         else:
+            # TODO: renewal, amendment
             approval, created = self.approval_class.objects.update_or_create(
                 current_proposal=self,
                 defaults={
@@ -2614,6 +2636,7 @@ class MooringLicenceApplication(Proposal):
                 approval.expiry_date = self.end_date
                 approval.save()
             else:
+                # TODO: renewal, amendment
                 approval, created = self.approval_class.objects.update_or_create(
                     current_proposal=self,
                     defaults={
@@ -3535,11 +3558,17 @@ def clone_proposal_with_status_reset(original_proposal):
             #original_proposal = copy.deepcopy(proposal)
             #proposal.id = None
             proposal = type(original_proposal.child_obj).objects.create()
+            print("type(proposal)")
+            print(type(proposal))
 
             proposal.customer_status = 'draft'
             proposal.processing_status = 'draft'
+            proposal.previous_application = original_proposal
+            proposal.approval = original_proposal.approval
 
             ## Vessel data
+            proposal.rego_no = original_proposal.vessel_details.vessel.rego_no
+            proposal.vessel_id = original_proposal.vessel_details.vessel.id
             if original_proposal.vessel_ownership.company_ownership:
                 proposal.individual_owner = False
                 proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
@@ -3548,7 +3577,8 @@ def clone_proposal_with_status_reset(original_proposal):
                 proposal.individual_owner = True
                 proposal.percentage = original_proposal.vessel_ownership.percentage
 
-            proposal.child_obj.save(no_revision=True)
+            #proposal.child_obj.save(no_revision=True)
+            proposal.save(no_revision=True)
             return proposal
         except:
             raise

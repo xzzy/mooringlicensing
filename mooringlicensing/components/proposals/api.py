@@ -566,16 +566,16 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
         mooring=None
         if mooring_id:
             mooring = Mooring.objects.get(id=mooring_id)
-        approval_id = request.data.get('approval_id')
-        approval=None
-        if approval_id:
-            approval = Approval.objects.get(id=approval_id)
+        #approval_id = request.data.get('approval_id')
+        #approval=None
+        #if approval_id:
+        #    approval = Approval.objects.get(id=approval_id)
 
         obj = MooringLicenceApplication.objects.create(
                 submitter=request.user,
                 proposal_type=proposal_type,
                 allocated_mooring=mooring,
-                approval=approval
+                #approval=approval
                 )
         serialized_obj = ProposalSerializer(obj)
         return Response(serialized_obj.data)

@@ -143,9 +143,12 @@ export default {
         } else if (this.selectedApplication && this.selectedApplication.code === 'aua') {
             res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
         } else if (this.selectedApplication && this.selectedApplication.app_type_code === 'ml') {
+            /*
             payload.mooring_id = this.selectedApplication.mooring_id;
             payload.approval_id = this.selectedApplication.approval_id;
             res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
+            */
+            res = await this.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(this.selectedApplication.current_proposal_id+'/amend_approval')));
         } 
         const proposal = res.body;
 		this.$router.push({
