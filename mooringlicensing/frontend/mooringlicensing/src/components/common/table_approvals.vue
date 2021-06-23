@@ -367,6 +367,18 @@ export default {
                             let links = '';
                             if (vm.is_internal && vm.wlaDash) {
                                 links += full.offer_link;
+                            } else if (vm.is_external && full.can_reissue) {
+                                // approval has no view
+                                //links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
+                                if(full.can_action){
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                    if(full.can_amend){
+                                       links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
+                                   }
+                                }
+                                if(full.renewal_document && full.renewal_sent && full.can_renew) {
+                                    links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
+                                }
                             }
                             return links;
                         }
@@ -695,6 +707,28 @@ export default {
                     */
                 });
             });
+
+            //Internal/ External Surrender listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-surrender-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-surrender-approval');
+                vm.surrenderApproval(id);
+            });
+
+            // External renewal listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-renew-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-renew-approval');
+                vm.renewApproval(id);
+            });
+
+            // External amend listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-amend-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-amend-approval');
+                vm.amendApproval(id);
+            });
+
         },
         fetchFilterLists: async function(){
             // Status values
@@ -727,6 +761,84 @@ export default {
             }
             */
         },
+
+        surrenderApproval: function(approval_id){
+
+            this.$refs.approval_surrender.approval_id = approval_id;
+            this.$refs.approval_surrender.isModalOpen = true;
+        },
+
+        renewApproval:function (proposal_id) {
+            let vm = this;
+            let status= 'with_approver'
+            //let data = {'status': status}
+            swal({
+                title: "Renew Approval",
+                text: "Are you sure you want to renew this approval?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Renew approval',
+                //confirmButtonColor:'#d9534f'
+            }).then(() => {
+                vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_approval')),{
+
+                })
+                .then((response) => {
+                   let proposal = {}
+                   proposal = response.body
+                   vm.$router.push({
+                    name:"draft_proposal",
+                    params:{proposal_id: proposal.id}
+                   });
+
+                }, (error) => {
+                    console.log(error);
+                    swal({
+                    title: "Renew Approval",
+                    text: error.body,
+                    type: "error",
+                    })
+                });
+            },(error) => {
+
+            });
+        },
+
+        amendApproval:function (proposal_id) {
+            let vm = this;
+            swal({
+                title: "Amend Approval",
+                text: "Are you sure you want to amend this approval?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Amend approval',
+                //confirmButtonColor:'#d9534f'
+            }).then(() => {
+                vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/amend_approval')),{
+
+                })
+                .then((response) => {
+                   let proposal = {}
+                   proposal = response.body
+                   vm.$router.push({
+                    name:"draft_proposal",
+                    params:{proposal_id: proposal.id}
+                   });
+
+                }, (error) => {
+                    console.log(error);
+                    swal({
+                    title: "Amend Approval",
+                    text: error.body,
+                    type: "error",
+                    })
+
+                });
+            },(error) => {
+
+            });
+        },
+
 
     },
     created: async function(){
