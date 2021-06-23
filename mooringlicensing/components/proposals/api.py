@@ -1029,30 +1029,41 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.reissue_approval(request,status)
         serializer = InternalProposalSerializer(instance,context={'request':request})
         return add_cache_control(Response(serializer.data))
-
+    
+    # TODO: should be post?
     @detail_route(methods=['GET',])
+    @basic_exception_handler
     def renew_approval(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance = instance.renew_approval(request)
-            serializer = SaveProposalSerializer(instance,context={'request':request})
-            return add_cache_control(Response(serializer.data))
-        except Exception as e:
-            print(traceback.print_exc())
-            if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
+        instance = self.get_object()
+        instance = instance.renew_approval(request)
+        serializer = SaveProposalSerializer(instance,context={'request':request})
+        return Response(serializer.data)
+        #try:
+        #    instance = self.get_object()
+        #    instance = instance.renew_approval(request)
+        #    serializer = SaveProposalSerializer(instance,context={'request':request})
+        #    return Response(serializer.data)
+        #except Exception as e:
+        #    print(traceback.print_exc())
+        #    if hasattr(e,'message'):
+        #            raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['GET',])
+    @basic_exception_handler
     def amend_approval(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance = instance.amend_approval(request)
-            serializer = SaveProposalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
-        except Exception as e:
-            print(traceback.print_exc())
-            if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
+        instance = self.get_object()
+        instance = instance.amend_approval(request)
+        serializer = SaveProposalSerializer(instance,context={'request':request})
+        return Response(serializer.data)
+        #try:
+        #    instance = self.get_object()
+        #    instance = instance.amend_approval(request)
+        #    serializer = SaveProposalSerializer(instance,context={'request':request})
+        #    return Response(serializer.data)
+        #except Exception as e:
+        #    print(traceback.print_exc())
+        #    if hasattr(e,'message'):
+        #            raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
