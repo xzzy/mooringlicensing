@@ -2033,13 +2033,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if proposal.customer_status=='with_assessor':
                     raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
-                previous_proposal = Proposal.objects.get(id=self.id)
-                proposal = clone_proposal_with_status_reset(previous_proposal)
+                #previous_proposal = Proposal.objects.get(id=self.id)
+                #proposal = clone_proposal_with_status_reset(previous_proposal)
+                proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = PROPOSAL_TYPE_RENEWAL
-                proposal.training_completed = False
+                #proposal.training_completed = False
                 #proposal.schema = ProposalType.objects.first().schema
-                ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
-                proposal.schema = ptype.schema
+                #ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
+                #proposal.schema = ptype.schema
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 proposal.proposed_issuance_approval= None
@@ -2059,13 +2060,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         r.district_proposal=None
                         r.save()
                 #copy all the requirement documents from previous proposal
-                for requirement in proposal.requirements.all():
-                    for requirement_document in RequirementDocument.objects.filter(requirement=requirement.copied_from):
-                        requirement_document.requirement = requirement
-                        requirement_document.id = None
-                        requirement_document._file.name = u'{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, requirement_document.name)
-                        requirement_document.can_delete = True
-                        requirement_document.save()
+                #for requirement in proposal.requirements.all():
+                #    for requirement_document in RequirementDocument.objects.filter(requirement=requirement.copied_from):
+                #        requirement_document.requirement = requirement
+                #        requirement_document.id = None
+                #        requirement_document._file.name = u'{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, requirement_document.name)
+                #        requirement_document.can_delete = True
+                #        requirement_document.save()
                         # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id),request)
                 # Create a log entry for the organisation
@@ -2091,20 +2092,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if proposal.customer_status=='under_review':
                     raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
             except Proposal.DoesNotExist:
-                previous_proposal = Proposal.objects.get(id=self.id)
-                proposal = clone_proposal_with_status_reset(previous_proposal)
+                #previous_proposal = Proposal.objects.get(id=self.id)
+                proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = PROPOSAL_TYPE_AMENDMENT
                 proposal.training_completed = True
                 #proposal.schema = ProposalType.objects.first().schema
-                ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
-                proposal.schema = ptype.schema
+                #ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
+                #proposal.schema = ptype.schema
                 proposal.submitter = request.user
                 proposal.previous_application = self
-                if proposal.application_type.name==ApplicationType.TCLASS:
-                    try:
-                        ProposalOtherDetails.objects.get(proposal=proposal)
-                    except ProposalOtherDetails.DoesNotExist:
-                        ProposalOtherDetails.objects.create(proposal=proposal)
+                #if proposal.application_type.name==ApplicationType.TCLASS:
+                #    try:
+                #        ProposalOtherDetails.objects.get(proposal=proposal)
+                #    except ProposalOtherDetails.DoesNotExist:
+                #        ProposalOtherDetails.objects.create(proposal=proposal)
                 #copy all the requirements from the previous proposal
                 #req=self.requirements.all()
                 req=self.requirements.all().exclude(is_deleted=True)
@@ -2118,13 +2119,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         r.district_proposal=None
                         r.save()
                 #copy all the requirement documents from previous proposal
-                for requirement in proposal.requirements.all():
-                    for requirement_document in RequirementDocument.objects.filter(requirement=requirement.copied_from):
-                        requirement_document.requirement = requirement
-                        requirement_document.id = None
-                        requirement_document._file.name = u'{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, requirement_document.name)
-                        requirement_document.can_delete = True
-                        requirement_document.save()
+                #for requirement in proposal.requirements.all():
+                #    for requirement_document in RequirementDocument.objects.filter(requirement=requirement.copied_from):
+                #        requirement_document.requirement = requirement
+                #        requirement_document.id = None
+                #        requirement_document._file.name = u'{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, requirement_document.name)
+                #        requirement_document.can_delete = True
+                #        requirement_document.save()
                             # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 # Create a log entry for the organisation
@@ -3567,42 +3568,40 @@ def clone_proposal_with_status_reset(proposal):
     with transaction.atomic():
         try:
             original_proposal = copy.deepcopy(proposal)
-            #proposal = duplicate_object(proposal) # clone object and related objects
-            if original_proposal.application_type.name==ApplicationType.TCLASS:
-                proposal=duplicate_tclass(proposal)
-            if original_proposal.application_type.name==ApplicationType.FILMING:
-                proposal=duplicate_filming(proposal)
-            if original_proposal.application_type.name==ApplicationType.EVENT:
-                proposal=duplicate_event(proposal)
-            # manually duplicate the comms logs -- hck, not hndled by duplicate object (maybe due to inheritance?)
-            # proposal.comms_logs.create(text='cloning proposal reset (original proposal {}, new proposal {})'.format(original_proposal.id, proposal.id))
-            # for comms_log in proposal.comms_logs.all():
-            #     comms_log.id=None
-            #     comms_log.communicationslogentry_ptr_id=None
-            #     comms_log.proposal_id=original_proposal.id
-            #     comms_log.save()
-
             # reset some properties
             proposal.customer_status = 'draft'
             proposal.processing_status = 'draft'
-            proposal.assessor_data = None
-            proposal.comment_data = None
+            #proposal.assessor_data = None
+            #proposal.comment_data = None
 
             proposal.lodgement_number = ''
-            proposal.lodgement_sequence = 0
+            # why?
+            #proposal.lodgement_sequence = 0
             proposal.lodgement_date = None
 
             proposal.assigned_officer = None
             proposal.assigned_approver = None
 
             proposal.approval = None
-            proposal.approval_level_document = None
-            proposal.migrated=False
+            #proposal.approval_level_document = None
+            #proposal.migrated=False
+
+            ## Vessel data
+            proposal.vessel_details = None
+            proposal.vessel_ownership = None
+            if original_proposal.vessel_ownership.company_ownership:
+                proposal.individual_owner = False
+                proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
+                proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
+            else:
+                proposal.individual_owner = True
+                proposal.percentage = original_proposal.vessel_ownership.percentage
 
             proposal.save(no_revision=True)
 
             #clone_documents(proposal, original_proposal, media_prefix='media')
-            _clone_documents(proposal, original_proposal, media_prefix='media')
+            #_clone_documents(proposal, original_proposal, media_prefix='media')
+
             return proposal
         except:
             raise
