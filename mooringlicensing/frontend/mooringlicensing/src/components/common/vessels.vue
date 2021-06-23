@@ -528,6 +528,7 @@ from '@/utils/hooks'
                     },
                 }).
                 on("select2:select", function (e) {
+                    console.log("select2:select")
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
                     vm.$nextTick(async () => {
@@ -610,7 +611,12 @@ from '@/utils/hooks'
                             return false;
                         }
                     });
-                });
+                }).
+                on("change", function(e) {
+                    console.log("why")
+                    console.log(e)
+                })
+
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
             },
@@ -698,7 +704,26 @@ from '@/utils/hooks'
             },
 
             fetchVessel: async function() {
-                if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new')) {
+                    let vm = this;
+                    console.log("amendment")
+                    this.vessel.rego_no = this.proposal.rego_no;
+                    //this.vessel.vessel_id = this.proposal.vessel_id;
+                    this.vessel.id = this.proposal.vessel_id;
+                    const payload = {
+                        "id": this.proposal.rego_no, 
+                        //data: this.proposal.rego_no, 
+                        "tag": false,
+                    }
+                    console.log(payload);
+                    //$(vm.$refs.vessel_rego_nos).val(payload).trigger("select2:select");
+                    var e = jQuery.Event("select2:select", payload);
+                    $(vm.$refs.vessel_rego_nos).trigger(e);
+
+                    //this.readOwnershipFromProposal();
+                //if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id && this.proposal.proposal_type.code === 'new') {
+                } else if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                    console.log("new")
                     this.vessel.rego_no = this.proposal.rego_no;
                     //this.vessel.vessel_id = this.proposal.vessel_id;
                     this.vessel.id = this.proposal.vessel_id;

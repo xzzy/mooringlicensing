@@ -1072,6 +1072,7 @@ class MooringLicenceViewSet(viewsets.ModelViewSet):
                 mooring = Mooring.objects.filter(mooring_licence=ml)[0]
                 existing_licences.append({
                     "approval_id": ml.id,
+                    "current_proposal_id": ml.current_proposal.id,
                     #"lodgement_number": ml.lodgement_number,
                     #"mooring": mooring.name,
                     "mooring_id": mooring.id,
