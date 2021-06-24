@@ -28,9 +28,9 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice
 from mooringlicensing.components.proposals.email import send_proposal_approval_email_notification
-from mooringlicensing.components.proposals.models import Proposal, ProposalAssessorGroup, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
 
 logger = logging.getLogger('payment_checkout')
 
@@ -254,7 +254,7 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter.get_full_name(), dcv_admission.submitter.id) if dcv_admission.submitter else 'An anonymous user'))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
-                if inv.system not in ['0517']:
+                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
                 # if inv.system != fee_constructor.application_type.oracle_code:
                     logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter.get_full_name(), dcv_admission.submitter.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
@@ -518,7 +518,7 @@ class ApplicationFeeSuccessView(TemplateView):
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
-                if inv.system not in ['0517']:
+                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
                     logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-proposal-detail', args=(proposal.id,))
 
