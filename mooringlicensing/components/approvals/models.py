@@ -221,6 +221,7 @@ class Approval(RevisionedMixin):
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
+    vessel_nomination_reminder_sent = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
