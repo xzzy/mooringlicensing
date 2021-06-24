@@ -137,6 +137,7 @@ def send_vessel_nomination_reminder_main(approval, request=None):
 
     context = {
         'approval': approval,
+        'due_date': approval.current_proposal.vessel_ownership.end_date,
     }
 
     sender = settings.DEFAULT_FROM_EMAIL

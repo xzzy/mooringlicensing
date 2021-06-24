@@ -9,9 +9,10 @@ from ledger.accounts.models import EmailUser
 import logging
 
 from mooringlicensing.components.approvals.email import send_vessel_nomination_reminder_main
-from mooringlicensing.components.approvals.models import AnnualAdmissionPermit, Approval
+from mooringlicensing.components.approvals.models import AnnualAdmissionPermit, Approval, WaitingListAllocation
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.settings import CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP
+from mooringlicensing.settings import CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP, \
+    CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +21,26 @@ class Command(BaseCommand):
     help = 'Send email to annual admission permit holder configurable number of days before end of six month period in which a new vessel is to be nominated'
 
     def handle(self, *args, **options):
-        try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-        except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
-
-        errors = []
-        updates = []
         today = timezone.localtime(timezone.now()).date()
 
+        self.perform(WaitingListAllocation.code, today)  # WaitingListAllocation
+        self.perform(AnnualAdmissionPermit.code, today)  # AnnualAdmissionPermit
+
+    def perform(self, approval_type, today):
+        errors = []
+        updates = []
+
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP)
+        if approval_type == WaitingListAllocation.code:
+            days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA)
+            approval_class = WaitingListAllocation
+        elif approval_type == AnnualAdmissionPermit.code:
+            days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP)
+            approval_class = AnnualAdmissionPermit
+        else:
+            # Do nothing
+            return
+
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
             # No number of days found
@@ -48,7 +58,7 @@ class Command(BaseCommand):
         queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
         queries &= Q(vessel_nomination_reminder_sent=False)
 
-        for a in AnnualAdmissionPermit.objects.filter(queries):
+        for a in approval_class.objects.filter(queries):
             try:
                 send_vessel_nomination_reminder_main(a)
                 a.vessel_nomination_reminder_sent = True
@@ -66,3 +76,4 @@ class Command(BaseCommand):
         msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         logger.info(msg)
         print(msg)  # will redirect to cron_tasks.log file, by the parent script
+

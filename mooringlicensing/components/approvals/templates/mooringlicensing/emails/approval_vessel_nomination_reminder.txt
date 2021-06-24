@@ -6,4 +6,6 @@
 
     Permit : {{ approval.lodgement_number }}
 
+    Due date : {{ due_date }}
+
 {%  endblock %}
