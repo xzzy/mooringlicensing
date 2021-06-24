@@ -38,13 +38,14 @@ class Command(BaseCommand):
         # NOTE: When sending the reminder:
         #       sold_date + 6months - number_of_days < today
         #       sold_date < today - 6months + number_of_days
-        boundary_date = today - relativedelta(months=+6) + days_setting.number_of_days
+        boundary_date = today - relativedelta(months=+6) + relativedelta(days=days_setting.number_of_days)
+        boundary_date = today + relativedelta(months=+1)
 
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
         queries = Q()
-        queries &= Q(processing_status__in=(Approval.APPROVAL_STATUS_APPROVED, Approval.APPROVAL_STATUS_SUSPENDED))
+        queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
         queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
         queries &= Q(vessel_nomination_reminder_sent=False)
 
