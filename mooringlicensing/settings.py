@@ -223,7 +223,7 @@ CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'
 
 NUM_OF_DAYS_BEFORE_DUE_COMPLIANCE = 'Compliance due date'
 NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP = 'AAP vessel nominate notification for AAP'
-NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA ='AAP vessel nominate notification for WLA'
+NUM_OF_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA = 'AAP vessel nominate notification for WLA'
 NUM_OF_DAYS_BEFORE_PERIOD_WLA = 'WLA application submit notification'
 NUM_OF_DAYS_IN_PERIOD_WLA = 'WLA application submit period'
 NUM_OF_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLA documents submit period'
