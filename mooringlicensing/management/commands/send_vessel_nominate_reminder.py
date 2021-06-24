@@ -39,7 +39,6 @@ class Command(BaseCommand):
         #       sold_date + 6months - number_of_days < today
         #       sold_date < today - 6months + number_of_days
         boundary_date = today - relativedelta(months=+6) + relativedelta(days=days_setting.number_of_days)
-        boundary_date = today + relativedelta(months=+1)
 
         logger.info('Running command {}'.format(__name__))
 
