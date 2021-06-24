@@ -44,6 +44,7 @@ module.exports = {
     waitinglistapplication: '/api/waitinglistapplication/',
     waitinglistallocation: '/api/waitinglistallocation/',
     existing_mooring_licences: '/api/mooringlicence/existing_mooring_licences',
+    existing_licences: '/api/approvals/existing_licences',
     annualadmissionapplication: '/api/annualadmissionapplication/',
     authoriseduserapplication: '/api/authoriseduserapplication/',
     mooringlicenceapplication: '/api/mooringlicenceapplication/',

@@ -791,18 +791,20 @@ from '@/utils/hooks'
                 // read in Renewal/Amendment vessel details
                 if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new')) {
                     let vm = this;
-                    this.vessel.rego_no = this.proposal.rego_no;
+                    //this.vessel.rego_no = this.proposal.rego_no;
                     this.vessel.id = this.proposal.vessel_id;
-                    const payload = {
-                        id: this.vessel.id,
-                        tag: false,
-                    }
-                    $(vm.$refs.vessel_rego_nos).trigger({
-                        type: 'select2:select',
-                        params: {
-                            data: payload,
+                    if (this.vessel.id) {
+                        const payload = {
+                            id: this.vessel.id,
+                            tag: false,
                         }
-                    });
+                        $(vm.$refs.vessel_rego_nos).trigger({
+                            type: 'select2:select',
+                            params: {
+                                data: payload,
+                            }
+                        });
+                    }
                 }
                 // read in dot_name
                 if (this.proposal.dot_name) {

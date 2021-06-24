@@ -8,8 +8,74 @@
                         <div>
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
-                                    <label>Do you want to apply</label>
-                                    <div v-for="application_type in application_types">
+                                    <label>Waiting List</label>
+                                    <div v-if="wlaApprovals<=1">
+                                        <div v-for="application_type in wlaChoices">
+                                            <input 
+                                            type="radio" 
+                                            name="applicationType" 
+                                            :id="application_type.code" 
+                                            value="application_type" 
+                                            @change="selectApplication(application_type)"
+                                            />
+                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else>
+                                        <div v-for="application_type in wlaMultiple">
+                                            <input 
+                                            type="radio" 
+                                            name="applicationType" 
+                                            :id="application_type.code" 
+                                            value="application_type" 
+                                            @change="selectApplication(application_type)"
+                                            />
+                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            <span class="col-sm-3" v-if="!application_type.description">
+                                                <select class="form-control" v-model="selectedCurrentProposal">
+                                                    <option v-for="approval in wlaApprovals" :value="approval.current_proposal_id">
+                                                        {{ approval.lodgement_number }}
+                                                    </option>
+                                                </select>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Annual Admission</label>
+                                    <div v-if="aaaApprovals<=1">
+                                        <div v-for="application_type in aaaChoices">
+                                            <input 
+                                            type="radio" 
+                                            value="application_type" 
+                                            @change="selectApplication(application_type)"
+                                            />
+                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else>
+                                        <div v-for="application_type in aaaMultiple">
+                                            <input 
+                                            type="radio" 
+                                            name="applicationType" 
+                                            :id="application_type.code" 
+                                            value="application_type" 
+                                            @change="selectApplication(application_type)"
+                                            />
+                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            <span v-if="!application_type.code">
+                                                <select class="form-control" v-model="selectedCurrentProposal">
+                                                    <option v-for="approval in aaaApprovals" :value="approval.current_proposal_id">
+                                                        {{ approval.lodgement_number }}
+                                                    </option>
+                                                </select>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Authorised User</label>
+                                    <div v-for="application_type in auaChoices">
                                         <input 
                                         type="radio" 
                                         name="applicationType" 
@@ -20,6 +86,21 @@
                                         <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                     </div>
                                 </div>
+                                <div class="form-group">
+                                    <label>Mooring Licence</label>
+                                    <div v-for="application_type in mlChoices">
+                                        <input 
+                                        type="radio" 
+                                        name="applicationType" 
+                                        :id="application_type.code" 
+                                        value="application_type" 
+                                        @change="selectApplication(application_type)"
+                                        />
+                                        <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                    </div>
+                                </div>
+
+
                             </div>
                         </div>
                     </FormSection>
@@ -57,8 +138,21 @@ export default {
         "loading": [],
         form: null,
         selectedApplication: {},
+        selectedCurrentProposal: null,
         //selected_application_name: '',
         application_types: [],
+        wlaChoices: [],
+        aaaChoices: [],
+        auaChoices: [],
+        mlChoices: [],
+        wlaApprovals: [],
+        aaaApprovals: [],
+        auaApprovals: [],
+        mlApprovals: [],
+        wlaMultiple: [],
+        aaaMultiple: [],
+        auaMultiple: [],
+        mlMultiple: [],
         creatingProposal: false,
         //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
     }
@@ -67,6 +161,46 @@ export default {
       FormSection
   },
   computed: {
+      /*
+      wla_applications: function() {
+          let list = []
+          for (let app of this.application_types) {
+              if (app.code === 'wla') {
+                  list.push(app);
+              }
+          }
+          return list;
+      },
+      aaa_applications: function() {
+          let list = []
+          for (let app of this.application_types) {
+              if (['aaa','aap'].includes(app.code)) {
+                  list.push(app);
+              }
+          }
+          return list;
+      },
+      aua_applications: function() {
+          let list = []
+          for (let app of this.application_types) {
+              if (['aua','aup'].includes(app.code)) {
+                  list.push(app);
+              }
+          }
+          return list;
+      },
+      ml_applications: function() {
+          let list = []
+          for (let app of this.application_types) {
+              //if (app.app_type_code === 'ml') {
+              if (app.code === 'ml') {
+                  list.push(app);
+              }
+          }
+          return list;
+      },
+      */
+
     isLoading: function() {
       return this.loading.length > 0
     },
@@ -99,7 +233,111 @@ export default {
 
   },
   methods: {
+      parseWla: function() {
+          // count approvals
+          for (let app of this.application_types) {
+              if (app.code === 'wla') {
+                  if (app.lodgement_number) {
+                      this.wlaApprovals.push({
+                          lodgement_number: app.lodgement_number,
+                          current_proposal_id: app.current_proposal_id,
+                      });
+                  }
+              }
+          }
+          if (this.wlaApprovals.length>1) {
+              // new app
+              for (let app of this.application_types) {
+                  if (app.code === 'wla' && !app.approval_id) {
+                      this.wlaMultiple.push(app)
+                  }
+              }
+              // add generic
+              this.wlaMultiple.push({
+                  new_application_text: "I want to (amend/renew) my current waiting list allocation",
+                  code: "wla_multiple",
+              })
+          } else {
+              // add wla approval to wlaChoices
+              for (let app of this.application_types) {
+                  if (app.code === 'wla') {
+                      this.wlaChoices.push(app);
+                  }
+              }
+          }
+      },
+      parseAaa: function() {
+          // count approvals
+          for (let app of this.application_types) {
+              if (['aaa','aap'].includes(app.code)) {
+                  if (app.lodgement_number) {
+                      this.aaaApprovals.push({
+                          lodgement_number: app.lodgement_number,
+                          current_proposal_id: app.current_proposal_id,
+                      });
+                  }
+              }
+          }
+          if (this.aaaApprovals.length>1) {
+              // new app
+              for (let app of this.application_types) {
+                  if (['aaa','aap'].includes(app.code) && !app.approval_id) {
+                  //if (app.code === 'wla' && !app.approval_id) {
+                      this.aaaMultiple.push(app)
+                  }
+              }
+              // add generic
+              this.aaaMultiple.push({
+                  new_application_text: "I want to (amend/renew) my current annual admission permit",
+                  code: "aaa_multiple",
+              })
+          } else {
+              // add wla approval to wlaChoices
+              for (let app of this.application_types) {
+                  //if (app.code === 'wla') {
+                  if (['aaa','aap'].includes(app.code)) {
+                      this.aaaChoices.push(app);
+                  }
+              }
+          }
+      },
+
+      /*
+      parseAaa: function() {
+          for (let app of this.application_types) {
+              if (['aaa','aap'].includes(app.code)) {
+                  this.aaaChoices.push(app);
+                  if (app.lodgement_number) {
+                      this.aaaApprovals.push(app.lodgement_number);
+                  }
+              }
+          }
+      },
+      */
+      parseAua: function() {
+          for (let app of this.application_types) {
+              if (['aua','aup'].includes(app.code)) {
+                  this.auaChoices.push(app);
+                  if (app.lodgement_number) {
+                      this.auaApprovals.push(app.lodgement_number);
+                  }
+              }
+          }
+      },
+      parseMl: function() {
+          for (let app of this.application_types) {
+              //if (app.app_type_code === 'ml') {
+              if (app.code === 'ml') {
+                  this.mlChoices.push(app);
+                  if (app.lodgement_number) {
+                      this.mlApprovals.push(app.lodgement_number);
+                  }
+              }
+          }
+      },
+
     selectApplication(applicationType) {
+        this.selectedCurrentProposal = null;
         this.selectedApplication = Object.assign({}, applicationType)
     },
     submit: function() {
@@ -132,30 +370,66 @@ export default {
     },
     */
     createProposal: async function () {
-        this.creatingProposal = true;
-        let payload = {
-        }
-        let res = null;
-        if (this.selectedApplication && this.selectedApplication.code === 'wla') {
-            res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
-        } else if (this.selectedApplication && this.selectedApplication.code === 'aaa') {
-            res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
-        } else if (this.selectedApplication && this.selectedApplication.code === 'aua') {
-            res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
-        } else if (this.selectedApplication && this.selectedApplication.app_type_code === 'ml') {
-            /*
-            payload.mooring_id = this.selectedApplication.mooring_id;
-            payload.approval_id = this.selectedApplication.approval_id;
-            res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
-            */
-            res = await this.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(this.selectedApplication.current_proposal_id+'/amend_approval')));
-        } 
-        const proposal = res.body;
-		this.$router.push({
-			name:"draft_proposal",
-			params:{proposal_id:proposal.id}
-		});
-        this.creatingProposal = false;
+        this.$nextTick(async () => {
+            this.creatingProposal = true;
+            let payload = {
+            }
+            let res = null;
+            if (this.selectedApplication && this.selectedApplication.code === 'wla') {
+                if (this.selectedCurrentProposal) {
+                    res = await this.$http.get(
+                        helpers.add_endpoint_json(
+                            api_endpoints.proposal,(
+                                this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
+                        )
+                    );
+                } else {
+                    res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
+                }
+            } else if (this.selectedApplication && this.selectedApplication.code === 'aaa') {
+                if (this.selectedCurrentProposal) {
+                    res = await this.$http.get(
+                        helpers.add_endpoint_json(
+                            api_endpoints.proposal,(
+                                this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
+                        )
+                    );
+                } else {
+                    res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
+                }
+            } else if (this.selectedApplication && this.selectedApplication.code === 'aua') {
+                if (this.selectedCurrentProposal) {
+                    res = await this.$http.get(
+                        helpers.add_endpoint_json(
+                            api_endpoints.proposal,(
+                                this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
+                        )
+                    );
+                } else {
+                    res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
+                }
+            //} else if (this.selectedApplication && this.selectedApplication.app_type_code === 'ml') {
+            } else if (this.selectedApplication && this.selectedApplication.code === 'ml') {
+                /*
+                payload.mooring_id = this.selectedApplication.mooring_id;
+                payload.approval_id = this.selectedApplication.approval_id;
+                res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
+                */
+                //res = await this.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(this.selectedApplication.current_proposal_id+'/amend_approval')));
+                res = await this.$http.get(
+                    helpers.add_endpoint_json(
+                        api_endpoints.proposal,(
+                            this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
+                    )
+                );
+            } 
+            const proposal = res.body;
+            this.$router.push({
+                name:"draft_proposal",
+                params:{proposal_id:proposal.id}
+            });
+            this.creatingProposal = false;
+        });
     },
 	searchList: function(id, search_list){
         /* Searches for dictionary in list */
@@ -172,16 +446,18 @@ export default {
             this.application_types.push(app_type)
         }
     },
+      /*
     fetchExistingMooringLicences: async function(){
-        /*
-        let payload = {
-            'submitter': profile,
-        }
-        */
         const response = await this.$http.get(api_endpoints.existing_mooring_licences);
-        //console.log(response.body)
         for (let ml of response.body) {
             this.application_types.push(ml)
+        }
+    },
+    */
+    fetchExistingLicences: async function(){
+        const response = await this.$http.get(api_endpoints.existing_licences);
+        for (let l of response.body) {
+            this.application_types.push(l)
         }
     },
 
@@ -189,7 +465,12 @@ export default {
   mounted: async function() {
     //let vm = this;
     await this.fetchApplicationTypes();
-    await this.fetchExistingMooringLicences();
+    //await this.fetchExistingMooringLicences();
+    await this.fetchExistingLicences();
+    this.parseWla();
+    this.parseAaa();
+    this.parseAua();
+    this.parseMl();
     this.form = document.forms.new_proposal;
   },
   beforeRouteEnter: function(to, from, next) {

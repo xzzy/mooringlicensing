@@ -206,13 +206,20 @@ class GetMooringPerBay(views.APIView):
 
     def get(self, request, format=None):
         mooring_bay_id = request.GET.get('mooring_bay_id')
+        available_moorings = request.GET.get('available_moorings')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            if mooring_bay_id:
-                data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+            if available_moorings:
+                if mooring_bay_id:
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                else:
+                    data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
-                data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+                if mooring_bay_id:
+                    data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                else:
+                    data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             return Response({"results": data_transform})
         return Response()
@@ -1029,7 +1036,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.reissue_approval(request,status)
         serializer = InternalProposalSerializer(instance,context={'request':request})
         return add_cache_control(Response(serializer.data))
-    
+
+    # TODO: should be post?
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def renew_amend_approval_wrapper(self, request, *args, **kwargs):
+        instance = self.get_object()
+        approval = self.approval
+        if approval and approval.renewal_document and approval.renewal_sent and approval.can_renew:
+            instance = instance.renew_approval(request)
+        else:
+            instance = instance.amend_approval(request)
+        # return new application
+        serializer = SaveProposalSerializer(instance,context={'request':request})
+        return Response(serializer.data)
+
     # TODO: should be post?
     @detail_route(methods=['GET',])
     @basic_exception_handler
