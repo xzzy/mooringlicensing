@@ -135,7 +135,7 @@ from copy import deepcopy
 
 import logging
 
-from mooringlicensing.settings import PROPOSAL_TYPE_NEW
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger(__name__)
 
@@ -206,13 +206,20 @@ class GetMooringPerBay(views.APIView):
 
     def get(self, request, format=None):
         mooring_bay_id = request.GET.get('mooring_bay_id')
+        available_moorings = request.GET.get('available_moorings')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            if mooring_bay_id:
-                data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+            if available_moorings:
+                if mooring_bay_id:
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                else:
+                    data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
-                data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+                if mooring_bay_id:
+                    data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                else:
+                    data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             return Response({"results": data_transform})
         return Response()
@@ -566,16 +573,16 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
         mooring=None
         if mooring_id:
             mooring = Mooring.objects.get(id=mooring_id)
-        approval_id = request.data.get('approval_id')
-        approval=None
-        if approval_id:
-            approval = Approval.objects.get(id=approval_id)
+        #approval_id = request.data.get('approval_id')
+        #approval=None
+        #if approval_id:
+        #    approval = Approval.objects.get(id=approval_id)
 
         obj = MooringLicenceApplication.objects.create(
                 submitter=request.user,
                 proposal_type=proposal_type,
                 allocated_mooring=mooring,
-                approval=approval
+                #approval=approval
                 )
         serialized_obj = ProposalSerializer(obj)
         return Response(serialized_obj.data)
@@ -1029,41 +1036,49 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.reissue_approval(request,status)
         serializer = InternalProposalSerializer(instance,context={'request':request})
         return add_cache_control(Response(serializer.data))
-    
+
     # TODO: should be post?
     @detail_route(methods=['GET',])
     @basic_exception_handler
-    def renew_approval(self, request, *args, **kwargs):
+    def renew_amend_approval_wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance = instance.renew_approval(request)
+        approval = instance.approval
+        ## validation
+        renew_amend_conditions = {
+        'previous_application': instance,
+        #'proposal_type': ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
+        }
+        existing_proposal_qs=Proposal.objects.filter(**renew_amend_conditions)
+        if (existing_proposal_qs and 
+                existing_proposal_qs[0].customer_status in ['under_review', 'with_assessor'] and
+                existing_proposal_qs[0].proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL])
+                ):
+            raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
+        ## create renewal or amendment
+        if approval and approval.renewal_document and approval.renewal_sent and approval.can_renew:
+            instance = instance.renew_approval(request)
+        else:
+            instance = instance.amend_approval(request)
+        ## return new application
         serializer = SaveProposalSerializer(instance,context={'request':request})
         return Response(serializer.data)
-        #try:
-        #    instance = self.get_object()
-        #    instance = instance.renew_approval(request)
-        #    serializer = SaveProposalSerializer(instance,context={'request':request})
-        #    return Response(serializer.data)
-        #except Exception as e:
-        #    print(traceback.print_exc())
-        #    if hasattr(e,'message'):
-        #            raise serializers.ValidationError(e.message)
 
-    @detail_route(methods=['GET',])
-    @basic_exception_handler
-    def amend_approval(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance = instance.amend_approval(request)
-        serializer = SaveProposalSerializer(instance,context={'request':request})
-        return Response(serializer.data)
-        #try:
-        #    instance = self.get_object()
-        #    instance = instance.amend_approval(request)
-        #    serializer = SaveProposalSerializer(instance,context={'request':request})
-        #    return Response(serializer.data)
-        #except Exception as e:
-        #    print(traceback.print_exc())
-        #    if hasattr(e,'message'):
-        #            raise serializers.ValidationError(e.message)
+    ## TODO: should be post?
+    #@detail_route(methods=['GET',])
+    #@basic_exception_handler
+    #def renew_approval(self, request, *args, **kwargs):
+    #    instance = self.get_object()
+    #    instance = instance.renew_approval(request)
+    #    serializer = SaveProposalSerializer(instance,context={'request':request})
+    #    return Response(serializer.data)
+
+    #@detail_route(methods=['GET',])
+    #@basic_exception_handler
+    #def amend_approval(self, request, *args, **kwargs):
+    #    instance = self.get_object()
+    #    instance = instance.amend_approval(request)
+    #    serializer = SaveProposalSerializer(instance,context={'request':request})
+    #    return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
