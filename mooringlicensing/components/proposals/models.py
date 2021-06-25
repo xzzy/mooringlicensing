@@ -23,7 +23,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType,
+    Document, ApplicationType, GlobalSettings,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -2201,6 +2201,26 @@ def update_sticker_doc_filename(instance, filename):
 
 def update_sticker_response_doc_filename(instance, filename):
     return '{}/stickers/response/{}'.format(settings.MEDIA_APP_DIR, filename)
+
+
+class StickerPrintingContact(models.Model):
+    TYPE_EMIAL_TO = 'to'
+    TYPE_EMAIL_CC = 'cc'
+    TYPE_EMAIL_BCC = 'bcc'
+    TYPES = (
+        (TYPE_EMIAL_TO, 'To'),
+        (TYPE_EMAIL_CC, 'Cc'),
+        (TYPE_EMAIL_BCC, 'Bcc'),
+    )
+    email = models.EmailField(blank=True, null=True)
+    type = models.CharField(max_length=255, choices=TYPES, blank=False, null=False,)
+    enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return '{} ({})'.format(self.email, self.type)
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 class StickerPrintingBatch(Document):
