@@ -311,64 +311,95 @@ def sticker_export():
     # (applicant is notified to pay once RIA staff approve the application)
     stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)  # When sticker_printing_batch==null, status should always be 'printing'
 
-    if stickers.count():
-        wb = Workbook()
-        virtual_workbook = BytesIO()
-        ws1 = wb.create_sheet(title="Info", index=0)
+    errors = []
+    updates = []
 
-        ws1.append([
-            'Date',
-            'First Name',
-            'Last Name',
-            'Address Line 1',
-            'Address Line 2',
-            'Suburb',
-            'State',
-            'Postcode',
-            'Sticker Number',
-            'Vessel Registration Number',
-            'Moorings',
-            'Colour',
-        ])
-        for sticker in stickers:
-            # column: Moorings
-            bay_moorings = []
-            for mooring in sticker.approval.moorings.all():
-                bay_moorings.append(mooring.mooring_bay.name + ' ' + mooring.name)
-            bay_moorings = ', '.join(bay_moorings)
+    if stickers.count():
+        try:
+            wb = Workbook()
+            virtual_workbook = BytesIO()
+            ws1 = wb.create_sheet(title="Info", index=0)
 
             ws1.append([
-                'date',
-                sticker.first_name,
-                sticker.last_name,
-                sticker.postal_address_line1,
-                sticker.postal_address_line2,
-                'suburb',
-                sticker.postal_address_state,
-                sticker.postal_address_postcode,
-                sticker.number,
-                'v rego',
-                bay_moorings,
-                sticker.get_sticker_colour(),
+                'Date',
+                'First Name',
+                'Last Name',
+                'Address Line 1',
+                'Address Line 2',
+                'Suburb',
+                'State',
+                'Postcode',
+                'Sticker Number',
+                'Vessel Registration Number',
+                'Moorings',
+                'Colour',
             ])
+            for sticker in stickers:
+                try:
+                    # column: Moorings
+                    bay_moorings = []
+                    for mooring in sticker.approval.moorings.all():
+                        bay_moorings.append(mooring.mooring_bay.name + ' ' + mooring.name)
+                    bay_moorings = ', '.join(bay_moorings)
 
-        wb.save(virtual_workbook)
+                    ws1.append([
+                        'date',
+                        sticker.first_name,
+                        sticker.last_name,
+                        sticker.postal_address_line1,
+                        sticker.postal_address_line2,
+                        'suburb',
+                        sticker.postal_address_state,
+                        sticker.postal_address_postcode,
+                        sticker.number,
+                        'v rego',
+                        bay_moorings,
+                        sticker.get_sticker_colour(),
+                    ])
+                    logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
+                    updates.append(sticker.number)
+                except Exception as e:
+                    err_msg = 'Error adding sticker: {} details to spreadsheet.'.format(sticker.number)
+                    logger.error('{}\n{}'.format(err_msg, str(e)))
+                    errors.append(err_msg)
 
-        batch_obj = StickerPrintingBatch.objects.create()
-        filename = 'RIA-{}.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d'))
-        batch_obj._file.save(filename, virtual_workbook)
-        batch_obj.name = filename
-        batch_obj.save()
+            wb.save(virtual_workbook)
 
-        # Update sticker objects
-        stickers.update(
-            sticker_printing_batch=batch_obj,  # Keep status 'printing' because we still have to wait for the sticker printed.
-        )
+            batch_obj = StickerPrintingBatch.objects.create()
+            filename = 'RIA-{}.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d'))
+            batch_obj._file.save(filename, virtual_workbook)
+            batch_obj.name = filename
+            batch_obj.save()
+            logger.info('Sticker printing batch file {} generated successfully.'.format(batch_obj.name))
+
+            # Update sticker objects
+            stickers.update(
+                sticker_printing_batch=batch_obj,  # Keep status 'printing' because we still have to wait for the sticker printed.
+            )
+        except Exception as e:
+            err_msg = 'Error generating the sticker printing batch spreadsheet file for the stickers: {}'.format(', '.join([sticker.number for sticker in stickers]))
+            logger.error('{}\n{}'.format(err_msg, str(e)))
+            errors.append(err_msg)
+    return updates, errors
 
 
 def email_stickers_document():
-    batches = StickerPrintingBatch.objects.filter(emailed_datetime__isnull=True)
-    if batches.count():
-        send_sticker_printing_batch_email(batches)
-        batches.update(emailed_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+    updates, errors = [], []
+
+    try:
+        batches = StickerPrintingBatch.objects.filter(emailed_datetime__isnull=True)
+        if batches.count():
+            current_datetime = timezone.localtime(timezone.now())
+            send_sticker_printing_batch_email(batches)
+            for batch in batches:
+                batch.emailed_datetime = current_datetime
+                batch.save()
+                updates.append(batch.name)
+
+    except Exception as e:
+        err_msg = 'Error sending the sticker printing batch spreadsheet file(s): {}'.format(', '.join([batch.name for batch in batches]))
+        logger.error('{}\n{}'.format(err_msg, str(e)))
+        errors.append(err_msg)
+
+    return updates, errors
 
