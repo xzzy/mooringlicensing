@@ -29,7 +29,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 #    ordering = ('name', '-version')
 #    list_filter = ('name',)
     #exclude=("site",)
-from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse
+from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse, \
+    StickerPrintingContact
 
 
 class ProposalDocumentInline(admin.TabularInline):
@@ -203,17 +204,26 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
 
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
+    list_display = ['key', 'value', '_file',]
+    ordering = ('key',)
+
     def get_fields(self, request, obj=None):
-        if obj.key in GlobalSettings.keys_for_file:
+        if obj and obj.key in GlobalSettings.keys_for_file:
             return ['key', '_file',]
         else:
-            return ['key', 'value',]
+            return ['key', 'value', 'stickerprintingcontact_set',]
+
+    def has_add_permission(self, request):
+        return False
 
     def get_readonly_fields(self, request, obj=None):
         return ['key',]
 
-    list_display = ['key', 'value', '_file',]
-    ordering = ('key',)
+    def has_delete_permission(self, request, obj=None):
+        if obj:
+            if obj.key in [item[0] for item in GlobalSettings.keys]:
+                return False
+        return True
 
 
 @admin.register(Question)
@@ -222,6 +232,12 @@ class QuestionAdmin(admin.ModelAdmin):
             #application_type',
             ]
     ordering = ('question_text',)
+
+
+@admin.register(StickerPrintingContact)
+class StickersPrintingContactAdmin(admin.ModelAdmin):
+    list_display = ['email', 'type', 'enabled',]
+    ordering = ('type', 'email',)
 
 
 @admin.register(StickerPrintingBatch)
