@@ -1140,6 +1140,7 @@ class Sticker(models.Model):
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
     printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
+    vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
