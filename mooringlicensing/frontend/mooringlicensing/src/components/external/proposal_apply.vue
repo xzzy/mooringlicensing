@@ -33,7 +33,7 @@
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                             </div>
-                                            <span class="pull-left col-sm-2" v-if="!application_type.description">
+                                            <span class="pull-left col-sm-2" v-if="application_type.multiple">
                                                 <select class="form-control" v-model="selectedCurrentProposal">
                                                     <option v-for="approval in wlaApprovals" :value="approval.current_proposal_id">
                                                         {{ approval.lodgement_number }}
@@ -69,7 +69,7 @@
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                             </div>
-                                            <span class="pull-left col-sm-2" v-if="!application_type.description">
+                                            <span class="pull-left col-sm-2" v-if="application_type.multiple">
                                                 <select class="form-control" v-model="selectedCurrentProposal">
                                                     <option v-for="approval in aaaApprovals" :value="approval.current_proposal_id">
                                                         {{ approval.lodgement_number }}
@@ -105,7 +105,7 @@
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                             </div>
-                                            <span class="pull-left col-sm-2" v-if="!application_type.description">
+                                            <span class="pull-left col-sm-2" v-if="application_type.multiple">
                                                 <select class="form-control" v-model="selectedCurrentProposal">
                                                     <option v-for="approval in auaApprovals" :value="approval.current_proposal_id">
                                                         {{ approval.lodgement_number }}
@@ -141,7 +141,7 @@
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                             </div>
-                                            <span class="pull-left col-sm-2" v-if="!application_type.description">
+                                            <span class="pull-left col-sm-2" v-if="application_type.multiple">
                                                 <select class="form-control" v-model="selectedCurrentProposal">
                                                     <option v-for="approval in mlApprovals" :value="approval.current_proposal_id">
                                                         {{ approval.lodgement_number }}
@@ -240,46 +240,6 @@ export default {
       FormSection
   },
   computed: {
-      /*
-      wla_applications: function() {
-          let list = []
-          for (let app of this.application_types) {
-              if (app.code === 'wla') {
-                  list.push(app);
-              }
-          }
-          return list;
-      },
-      aaa_applications: function() {
-          let list = []
-          for (let app of this.application_types) {
-              if (['aaa','aap'].includes(app.code)) {
-                  list.push(app);
-              }
-          }
-          return list;
-      },
-      aua_applications: function() {
-          let list = []
-          for (let app of this.application_types) {
-              if (['aua','aup'].includes(app.code)) {
-                  list.push(app);
-              }
-          }
-          return list;
-      },
-      ml_applications: function() {
-          let list = []
-          for (let app of this.application_types) {
-              //if (app.app_type_code === 'ml') {
-              if (app.code === 'ml') {
-                  list.push(app);
-              }
-          }
-          return list;
-      },
-      */
-
     isLoading: function() {
       return this.loading.length > 0
     },
@@ -312,18 +272,32 @@ export default {
 
   },
   methods: {
-      parseWla: function() {
-          // count approvals
-          for (let app of this.application_types) {
-              if (app.code === 'wla') {
-                  if (app.lodgement_number) {
-                      this.wlaApprovals.push({
-                          lodgement_number: app.lodgement_number,
-                          current_proposal_id: app.current_proposal_id,
-                      });
-                  }
+      parseApprovals: function() {
+          this.application_types.forEach(app => {
+              if (app.code === 'wla' && app.lodgement_number) {
+                  this.wlaApprovals.push({
+                      lodgement_number: app.lodgement_number,
+                      current_proposal_id: app.current_proposal_id,
+                  });
+              } else if (app.code === 'aap' && app.lodgement_number) {
+                  this.aaaApprovals.push({
+                      lodgement_number: app.lodgement_number,
+                      current_proposal_id: app.current_proposal_id,
+                  });
+              } else if (app.code === 'aup' && app.lodgement_number) {
+                  this.auaApprovals.push({
+                      lodgement_number: app.lodgement_number,
+                      current_proposal_id: app.current_proposal_id,
+                  });
+              } else if (app.code === 'ml' && app.lodgement_number) {
+                  this.mlApprovals.push({
+                      lodgement_number: app.lodgement_number,
+                      current_proposal_id: app.current_proposal_id,
+                  });
               }
-          }
+          });
+      },
+      parseWla: function() {
           if (this.wlaApprovals.length>1) {
               // new app
               for (let app of this.application_types) {
@@ -334,7 +308,9 @@ export default {
               // add generic
               this.wlaMultiple.push({
                   new_application_text: "I want to (amend/renew) my current waiting list allocation",
+                  description: "Waiting List Application",
                   code: "wla_multiple",
+                  multiple: true
               })
           } else {
               // add wla approval to wlaChoices
@@ -346,17 +322,6 @@ export default {
           }
       },
       parseAaa: function() {
-          // count approvals
-          for (let app of this.application_types) {
-              if (['aaa','aap'].includes(app.code)) {
-                  if (app.lodgement_number) {
-                      this.aaaApprovals.push({
-                          lodgement_number: app.lodgement_number,
-                          current_proposal_id: app.current_proposal_id,
-                      });
-                  }
-              }
-          }
           if (this.aaaApprovals.length>1) {
               // new app
               for (let app of this.application_types) {
@@ -368,7 +333,9 @@ export default {
               // add generic
               this.aaaMultiple.push({
                   new_application_text: "I want to (amend/renew) my current annual admission permit",
+                  description: "Annual Admission Application",
                   code: "aaa_multiple",
+                  multiple: true
               })
           } else {
               // add wla approval to wlaChoices
@@ -381,17 +348,6 @@ export default {
           }
       },
       parseAua: function() {
-          // count approvals
-          for (let app of this.application_types) {
-              if (['aua','aup'].includes(app.code)) {
-                  if (app.lodgement_number) {
-                      this.auaApprovals.push({
-                          lodgement_number: app.lodgement_number,
-                          current_proposal_id: app.current_proposal_id,
-                      });
-                  }
-              }
-          }
           if (this.auaApprovals.length>1) {
               // new app
               for (let app of this.application_types) {
@@ -403,7 +359,9 @@ export default {
               // add generic
               this.auaMultiple.push({
                   new_application_text: "I want to (amend/renew) my current authorised user permit",
+                  description: "Authorised User Application",
                   code: "aua_multiple",
+                  multiple: true
               })
           } else {
               // add wla approval to wlaChoices
@@ -416,17 +374,6 @@ export default {
           }
       },
       parseMl: function() {
-          // count approvals
-          for (let app of this.application_types) {
-              if (app.code==='ml') {
-                  if (app.lodgement_number) {
-                      this.mlApprovals.push({
-                          lodgement_number: app.lodgement_number,
-                          current_proposal_id: app.current_proposal_id,
-                      });
-                  }
-              }
-          }
           if (this.mlApprovals.length>1) {
               /*
               // new app
@@ -440,7 +387,9 @@ export default {
               // add generic
               this.mlMultiple.push({
                   new_application_text: "I want to (amend/renew) my current mooring licence",
+                  description: "Mooring Licence Application",
                   code: "ml_multiple",
+                  multiple: true
               })
           } else {
               // add wla approval to wlaChoices
@@ -452,41 +401,6 @@ export default {
               }
           }
       },
-
-      /*
-      parseAaa: function() {
-          for (let app of this.application_types) {
-              if (['aaa','aap'].includes(app.code)) {
-                  this.aaaChoices.push(app);
-                  if (app.lodgement_number) {
-                      this.aaaApprovals.push(app.lodgement_number);
-                  }
-              }
-          }
-      },
-      parseAua: function() {
-          for (let app of this.application_types) {
-              if (['aua','aup'].includes(app.code)) {
-                  this.auaChoices.push(app);
-                  if (app.lodgement_number) {
-                      this.auaApprovals.push(app.lodgement_number);
-                  }
-              }
-          }
-      },
-      parseMl: function() {
-          for (let app of this.application_types) {
-              //if (app.app_type_code === 'ml') {
-              if (app.code === 'ml') {
-                  this.mlChoices.push(app);
-                  if (app.lodgement_number) {
-                      this.mlApprovals.push(app.lodgement_number);
-                  }
-              }
-          }
-      },
-      */
-
     selectApplication(applicationType) {
         this.selectedCurrentProposal = null;
         this.selectedApplication = Object.assign({}, applicationType)
@@ -525,64 +439,47 @@ export default {
     */
     createProposal: async function () {
         this.$nextTick(async () => {
-            this.creatingProposal = true;
-            let payload = {
-            }
             let res = null;
-            if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
-                if (this.selectedCurrentProposal) {
-                    res = await this.$http.get(
-                        helpers.add_endpoint_json(
-                            api_endpoints.proposal,(
-                                this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
-                        )
-                    );
-                } else {
-                    res = await this.$http.post(api_endpoints.waitinglistapplication, payload);
-                }
-            } else if (this.selectedApplication && ['aaa','aaa_multiple'].includes(this.selectedApplication.code)) {
-                if (this.selectedCurrentProposal) {
-                    res = await this.$http.get(
-                        helpers.add_endpoint_json(
-                            api_endpoints.proposal,(
-                                this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
-                        )
-                    );
-                } else {
-                    res = await this.$http.post(api_endpoints.annualadmissionapplication, payload);
-                }
-            } else if (this.selectedApplication && ['aua','aua_multiple'].includes(this.selectedApplication.code)) {
-                if (this.selectedCurrentProposal) {
-                    res = await this.$http.get(
-                        helpers.add_endpoint_json(
-                            api_endpoints.proposal,(
-                                this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
-                        )
-                    );
-                } else {
-                    res = await this.$http.post(api_endpoints.authoriseduserapplication, payload);
-                }
-            //} else if (this.selectedApplication && this.selectedApplication.app_type_code === 'ml') {
-            } else if (this.selectedApplication && ['ml','ml_multiple'].includes(this.selectedApplication.code)) {
-                /*
-                payload.mooring_id = this.selectedApplication.mooring_id;
-                payload.approval_id = this.selectedApplication.approval_id;
-                res = await this.$http.post(api_endpoints.mooringlicenceapplication, payload);
-                */
-                //res = await this.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(this.selectedApplication.current_proposal_id+'/amend_approval')));
-                res = await this.$http.get(
-                    helpers.add_endpoint_json(
-                        api_endpoints.proposal,(
-                            this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
-                    )
-                );
-            } 
-            const proposal = res.body;
-            this.$router.push({
-                name:"draft_proposal",
-                params:{proposal_id:proposal.id}
-            });
-            this.creatingProposal = false;
+            try {
+                this.creatingProposal = true;
+                const url = helpers.add_endpoint_json(api_endpoints.proposal,(
+                    this.selectedCurrentProposal+'/renew_amend_approval_wrapper')
+                )
+                if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
+                    if (this.selectedCurrentProposal) {
+                        res = await this.$http.get(url);
+                    } else {
+                        res = await this.$http.post(api_endpoints.waitinglistapplication);
+                    }
+                } else if (this.selectedApplication && ['aaa','aaa_multiple'].includes(this.selectedApplication.code)) {
+                    if (this.selectedCurrentProposal) {
+                        res = await this.$http.get(url);
+                    } else {
+                        res = await this.$http.post(api_endpoints.annualadmissionapplication);
+                    }
+                } else if (this.selectedApplication && ['aua','aua_multiple'].includes(this.selectedApplication.code)) {
+                    if (this.selectedCurrentProposal) {
+                        res = await this.$http.get(url);
+                    } else {
+                        res = await this.$http.post(api_endpoints.authoriseduserapplication);
+                    }
+                } else if (this.selectedApplication && ['ml','ml_multiple'].includes(this.selectedApplication.code)) {
+                    res = await this.$http.get(url);
+                } 
+                const proposal = res.body;
+                this.$router.push({
+                    name:"draft_proposal",
+                    params:{proposal_id:proposal.id}
+                });
+                this.creatingProposal = false;
+            } catch(error) {
+                console.log(error)
+                swal({
+                title: "Renew/Amend Approval",
+                text: error.body,
+                type: "error",
+                });
+            }
         });
     },
 	searchList: function(id, search_list){
@@ -621,6 +518,7 @@ export default {
     await this.fetchApplicationTypes();
     //await this.fetchExistingMooringLicences();
     await this.fetchExistingLicences();
+    this.parseApprovals();
     this.parseWla();
     this.parseAaa();
     this.parseAua();

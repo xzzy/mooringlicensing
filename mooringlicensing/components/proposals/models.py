@@ -2029,10 +2029,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             previous_proposal = self
             try:
-                proposal=Proposal.objects.get(previous_application = previous_proposal)
-                if proposal.customer_status=='with_assessor':
+                # TODO: check this logic
+                proposal_qs = Proposal.objects.filter(previous_application = previous_proposal)
+                if proposal_qs and proposal_qs[0].customer_status=='with_assessor':
                     raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
-            except Proposal.DoesNotExist:
+            #except Proposal.DoesNotExist:
                 proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
                 proposal.submitter = request.user
@@ -2062,19 +2063,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_RENEW_APPROVAL.format(self.approval.id),request)
                 proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
-            return proposal
+                return proposal
+            except Exception as e:
+                raise e
 
     def amend_approval(self,request):
         #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
+                # TODO: check this logic
                 amend_conditions = {
                 'previous_application': previous_proposal,
                 'proposal_type': ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
                 }
-                existing_proposal=Proposal.objects.get(**amend_conditions)
-                if existing_proposal.customer_status=='under_review':
+                existing_proposal_qs=Proposal.objects.filter(**amend_conditions)
+                if existing_proposal_qs and existing_proposal_qs[0].customer_status=='under_review':
                     raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
             #except Proposal.DoesNotExist:
                 proposal = clone_proposal_with_status_reset(self)
