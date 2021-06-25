@@ -533,7 +533,7 @@ from '@/utils/hooks'
                     vm.$nextTick(async () => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
-                            console.log("fetch new vessel");
+                            console.log("fetch existing vessel");
                             // fetch draft/approved vessel
                             await vm.lookupVessel(data);
                             console.log("individual")
@@ -565,6 +565,7 @@ from '@/utils/hooks'
                                 }
                             }
                         } else {
+                            console.log("new vessel");
                             data = vm.validateRegoNo(data);
 
                             vm.vessel = Object.assign({},
@@ -699,6 +700,7 @@ from '@/utils/hooks'
 
             fetchVessel: async function() {
                 if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                    console.log("new")
                     this.vessel.rego_no = this.proposal.rego_no;
                     //this.vessel.vessel_id = this.proposal.vessel_id;
                     this.vessel.id = this.proposal.vessel_id;
@@ -776,7 +778,6 @@ from '@/utils/hooks'
         mounted: function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
-                //await this.fetchVesselRegoNos();
                 if (this.proposal) {
                     await this.fetchVessel();
                 } else if (!this.creatingVessel) {
@@ -784,10 +785,28 @@ from '@/utils/hooks'
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
                 }
-                //this.initialiseSelects();
                 this.initialiseRegoNoSelect();
                 this.initialiseCompanyNameSelect();
                 this.addEventListeners();
+                // read in Renewal/Amendment vessel details
+                if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new')) {
+                    let vm = this;
+                    //this.vessel.rego_no = this.proposal.rego_no;
+                    this.vessel.id = this.proposal.vessel_id;
+                    if (this.vessel.id) {
+                        const payload = {
+                            id: this.vessel.id,
+                            tag: false,
+                        }
+                        $(vm.$refs.vessel_rego_nos).trigger({
+                            type: 'select2:select',
+                            params: {
+                                data: payload,
+                            }
+                        });
+                    }
+                }
+                // read in dot_name
                 if (this.proposal.dot_name) {
                     this.dotName = this.proposal.dot_name;
                 }
