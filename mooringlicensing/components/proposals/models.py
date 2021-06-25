@@ -23,7 +23,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType,
+    Document, ApplicationType, GlobalSettings,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -2209,6 +2209,26 @@ def update_sticker_response_doc_filename(instance, filename):
     return '{}/stickers/response/{}'.format(settings.MEDIA_APP_DIR, filename)
 
 
+class StickerPrintingContact(models.Model):
+    TYPE_EMIAL_TO = 'to'
+    TYPE_EMAIL_CC = 'cc'
+    TYPE_EMAIL_BCC = 'bcc'
+    TYPES = (
+        (TYPE_EMIAL_TO, 'To'),
+        (TYPE_EMAIL_CC, 'Cc'),
+        (TYPE_EMAIL_BCC, 'Bcc'),
+    )
+    email = models.EmailField(blank=True, null=True)
+    type = models.CharField(max_length=255, choices=TYPES, blank=False, null=False,)
+    enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return '{} ({})'.format(self.email, self.type)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class StickerPrintingBatch(Document):
     _file = models.FileField(upload_to=update_sticker_doc_filename, max_length=512)
     emailed_datetime = models.DateTimeField(blank=True, null=True)  # Once emailed, this field has a value
@@ -2237,8 +2257,11 @@ class WaitingListApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'wla'
     prefix = 'WL'
-    oracle_code = '0517'
+
     new_application_text = "I want to be included on the waiting list for a mooring license"
+
+    oracle_code = 'T1 EXEMPT'
+
     apply_page_visibility = True
     description = 'Waiting List Application'
 
@@ -2323,8 +2346,8 @@ class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aaa'
     prefix = 'AA'
-    oracle_code = '0517'
     new_application_text = "I want to apply for an annual admission permit"
+    oracle_code = 'T1 EXEMPT'
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
@@ -2409,8 +2432,8 @@ class AuthorisedUserApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'aua'
     prefix = 'AU'
-    oracle_code = '0517'
     new_application_text = "I want to apply for an an authorised user permit"
+    oracle_code = 'T1 EXEMPT'
     apply_page_visibility = True
     description = 'Authorised User Application'
 
@@ -2572,7 +2595,7 @@ class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
-    oracle_code = '0517'
+    oracle_code = 'T1 EXEMPT'
     new_application_text = ""
     apply_page_visibility = False
     description = 'Mooring Licence Application'
