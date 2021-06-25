@@ -234,6 +234,7 @@ export default {
                         var query = {
                             term: params.term,
                             type: 'public',
+                            available_moorings: true,
                             mooring_bay_id: vm.selectedMooringBayId,
                         }
                         return query;
