@@ -758,12 +758,21 @@ class AnnualAdmissionPermit(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
-        stickers = self.stickers
-        # TODO: handle existing stickers correctly
-        sticker = Sticker.objects.create(
-            approval=self,
-            vessel_details=proposal.vessel_details,
-        )
+        stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+        if stickers_current.count() == 0:
+            sticker = Sticker.objects.create(
+                approval=self,
+                vessel_details=proposal.vessel_details,
+            )
+        elif stickers_current.count() == 1:
+            if stickers_current.first().vessel_details != proposal.vessel_details:
+                stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
+                # TODO: email to the permission holder to notify the existing sticker to be returned
+            else:
+                pass
+                # There is a sticker present already with the same vessel.  We don't have to do anything with stickers..???
+        else:
+            raise  # AnnualAdmissionPermit should not have multiple current stickers
 
 
 class AuthorisedUserPermit(Approval):
