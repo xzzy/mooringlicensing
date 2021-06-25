@@ -760,7 +760,10 @@ class AnnualAdmissionPermit(Approval):
     def manage_stickers(self, proposal):
         stickers = self.stickers
         # TODO: handle existing stickers correctly
-        sticker = Sticker.objects.create(approval=self,)
+        sticker = Sticker.objects.create(
+            approval=self,
+            vessel_details=proposal.vessel_details,
+        )
 
 
 class AuthorisedUserPermit(Approval):

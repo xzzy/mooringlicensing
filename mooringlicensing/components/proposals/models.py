@@ -2537,7 +2537,7 @@ class AuthorisedUserApplication(Proposal):
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
         # manage stickers
-        approval.child_obj.manage_stickers(self)
+        approval.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
         return approval, created
@@ -2720,7 +2720,7 @@ class MooringLicenceApplication(Proposal):
                         request
                         )
             # manage stickers
-            approval.child_obj.manage_stickers(self)
+            approval.manage_stickers(self)
             # write approval history
             approval.write_approval_history()
             return approval, created
