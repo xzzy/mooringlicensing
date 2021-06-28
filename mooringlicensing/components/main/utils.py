@@ -309,7 +309,10 @@ def sticker_export():
     # then the user needs to submit three applications. The system will
     # combine them onto one sticker if payment is received on one day
     # (applicant is notified to pay once RIA staff approve the application)
-    stickers = Sticker.objects.filter(sticker_printing_batch__isnull=True)  # When sticker_printing_batch==null, status should always be 'printing'
+    stickers = Sticker.objects.filter(
+        sticker_printing_batch__isnull=True,
+        status=Sticker.STICKER_STATUS_PRINTING
+    )
 
     errors = []
     updates = []
