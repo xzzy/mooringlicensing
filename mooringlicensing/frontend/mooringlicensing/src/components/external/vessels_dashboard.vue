@@ -136,17 +136,6 @@ export default {
                         */
                     },
                     {
-                        data: "sale_date",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.customer_status
-                        }
-                        */
-                    },
-                    {
                         data: "owner_name",
                         orderable: true,
                         searchable: true,
@@ -157,6 +146,18 @@ export default {
                         }
                         */
                     },
+                    {
+                        data: "sale_date",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        /*
+                        'render': function(row, type, full){
+                            return full.customer_status
+                        }
+                        */
+                    },
+
                     {
                         //data: "vessel_details.vessel_id",
                         data: "id",
