@@ -1013,14 +1013,14 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         debug = self.request.GET.get('debug', False)
-        debug = debug.lower() in ['true', 't', True]
+        debug = debug.lower() in ['true', 't', 'yes', 'y', True]
 
         qs = Sticker.objects.none()
         if is_internal(self.request):
             if debug:
                 qs = Sticker.objects.all()
             else:
-                qs = Sticker.objects.exclude(status=Sticker.STICKER_STATUS_PRINTING)
+                qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS)
         return qs
 
 

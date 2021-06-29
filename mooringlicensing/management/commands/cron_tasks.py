@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 #LOGFILE = 'logs/cron_tasks.log'
 LOGFILE = 'logs/run_cron_tasks.log'
 
+
 class Command(BaseCommand):
     help = 'Run Mooring Licensing Cron tasks'
 
