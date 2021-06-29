@@ -755,6 +755,7 @@ class AnnualAdmissionPermit(Approval):
             sticker = Sticker.objects.create(
                 approval=self,
                 vessel_details=proposal.vessel_details,
+                fee_constructor=proposal.fee_constructor,
             )
         elif stickers_current.count() == 1:
             if stickers_current.first().vessel_details != proposal.vessel_details:
@@ -797,6 +798,7 @@ class AuthorisedUserPermit(Approval):
             sticker = Sticker.objects.create(
                 approval=self,
                 vessel_details=proposal.vessel_details,
+                fee_constructor=proposal.fee_constructor,
             )
         else:
             # Last sticker should be returned and a new sticker will be printed
@@ -854,6 +856,7 @@ class MooringLicence(Approval):
                     approval=self,
                     status=Sticker.STICKER_STATUS_PRINTING,
                     vessel_details=vessel_details,
+                    fee_constructor=proposal.fee_constructor,
                 )
             stickers_required.append(sticker)
 

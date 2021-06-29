@@ -625,6 +625,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.refresh_from_db()
 
     @property
+    def fee_constructor(self):
+        if self.application_fees.count() < 1:
+            return None
+        elif self.application_fees.count() == 1:
+            application_fee = self.application_fees.first()
+            return application_fee.fee_constructor
+        else:
+            msg = 'Proposal: {} has {} ApplicationFees.  There should be 0 or 1.'.format(self, self.application_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
+    @property
     def invoice(self):
         if self.application_fees.count() < 1:
             return None
