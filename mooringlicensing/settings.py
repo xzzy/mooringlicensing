@@ -159,7 +159,7 @@ if CONSOLE_EMAIL_BACKEND:
 PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
 OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
 PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
-PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0')) # '0517'
+PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0'))
 
 MOORING_BOOKINGS_API_KEY=env('MOORING_BOOKINGS_API_KEY')
 MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
@@ -179,12 +179,12 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',
     'description': 'DCV Permit',
-    'oracle_code': '0517',
+    'oracle_code': 'T1 EXEMPT',
 }
 APPLICATION_TYPE_DCV_ADMISSION = {
     'code': 'dcv',
     'description': 'DCV Admission',
-    'oracle_code': '0517',
+    'oracle_code': 'T1 EXEMPT',
 }
 LOGGING['loggers']['mooringlicensing'] = {
     'handlers': ['file'],
@@ -210,7 +210,6 @@ CUSTOM_GROUPS = [
     GROUP_DCV_APPROVER_MOORING_LICENCE,
     GROUP_DCV_PERMIT_ADMIN,
 ]
-PRINTING_COMPANY_EMAIL_ADDRESS = env('PRINTING_COMPANY_EMAIL_ADDRESS', '')
 
 CODE_DAYS_BEFORE_DUE_COMPLIANCE = 'ComplianceDueDate'
 CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AAP = 'AAPVesselNominateNotification'
