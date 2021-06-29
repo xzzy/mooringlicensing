@@ -186,7 +186,13 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented'
+                    console.log(full)
+                    if (full.fee_constructor){
+                        if (full.fee_constructor.fee_season){
+                            return full.fee_constructor.fee_season.name
+                        }
+                    }
+                    return ''
                 }
             }
         },

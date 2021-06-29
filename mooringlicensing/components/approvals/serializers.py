@@ -5,7 +5,7 @@ from ledger.accounts.models import EmailUser
 from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer
+from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -705,6 +705,7 @@ class StickerSerializer(serializers.ModelSerializer):
     approval = ApprovalSimpleSerializer()
     sent_date = serializers.SerializerMethodField()
     sticker_action_details = StickerActionDetailSerializer(many=True)
+    fee_constructor = FeeConstructorSerializer()
 
     class Meta:
         model = Sticker
@@ -717,6 +718,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'mailing_date',
             'sent_date',
             'sticker_action_details',
+            'fee_constructor',
         )
         datatables_always_serialize = (
             'id',
@@ -727,6 +729,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'mailing_date',
             'sent_date',
             'sticker_action_details',
+            'fee_constructor',
         )
 
     def get_status(self, obj):
