@@ -9,7 +9,8 @@ from mooringlicensing.components.main.models import ApplicationType, GlobalSetti
     NumberOfDaysSetting
 from mooringlicensing.components.main.utils import retrieve_mooring_areas, retrieve_marine_parks
 from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
-    ProposalApproverGroup
+    ProposalApproverGroup, StickerPrintingContact
+from mooringlicensing.settings import DEFAULT_FROM_EMAIL
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,16 @@ class DefaultDataManager(object):
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
                 logger.error('{}, Key: {}'.format(e, item[0]))
+
+        # Printing company email
+        try:
+            tos = StickerPrintingContact.objects.filter(type=StickerPrintingContact.TYPE_EMIAL_TO, enabled=True)
+            if not tos:
+                contact, created = StickerPrintingContact.objects.create(type=StickerPrintingContact.TYPE_EMIAL_TO, email='printing_company@mail.com')
+                if created:
+                    logger.info("Created {}".format(contact))
+        except Exception as e:
+            logger.error('{}'.format(e))
 
         # AgeGroup for the DcvAdmission fees
         for item in AgeGroup.NAME_CHOICES:
