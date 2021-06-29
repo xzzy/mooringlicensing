@@ -30,6 +30,12 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
 
+        # For debug
+        # params = options.get('params')
+        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
+        # approval_id = int(params.get('update_approval_status_id', 0))
+        # approval = Approval.objects.filter(id=approval_id)
+
         for a in Approval.objects.filter(status=Approval.APPROVAL_STATUS_CURRENT):
             if a.suspension_details and a.set_to_suspend:
                 from_date = datetime.datetime.strptime(a.suspension_details['from_date'], '%d/%m/%Y')

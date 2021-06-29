@@ -1012,8 +1012,13 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        debug = self.request.GET.get('debug', False)
-        debug = debug.lower() in ['true', 't', 'yes', 'y', True]
+        # debug = self.request.GET.get('debug', False)
+        # debug = debug.lower() in ['true', 't', 'yes', 'y', True]
+        debug = self.request.GET.get('debug', 'f')
+        if debug.lower() in ['true', 't', 'yes', 'y']:
+            debug = True
+        else:
+            debug = False
 
         qs = Sticker.objects.none()
         if is_internal(self.request):
