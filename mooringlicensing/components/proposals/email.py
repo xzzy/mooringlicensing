@@ -15,7 +15,6 @@ from django.core.files.base import ContentFile
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
 
-from mooringlicensing.settings import PRINTING_COMPANY_EMAIL_ADDRESS
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +197,6 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
 
 def send_sticker_printing_batch_email(batches):
-    # TODO: Make the recipient configurable
     if batches.count() == 0:
         return
 
@@ -216,9 +214,15 @@ def send_sticker_printing_batch_email(batches):
     context = {
         'batches': batches,
     }
-    to_address = PRINTING_COMPANY_EMAIL_ADDRESS
-    cc = []
-    bcc = []
+
+    from mooringlicensing.components.proposals.models import StickerPrintingContact
+    tos = StickerPrintingContact.objects.filter(type=StickerPrintingContact.TYPE_EMIAL_TO, enabled=True)
+    ccs = StickerPrintingContact.objects.filter(type=StickerPrintingContact.TYPE_EMAIL_CC, enabled=True)
+    bccs = StickerPrintingContact.objects.filter(type=StickerPrintingContact.TYPE_EMAIL_BCC, enabled=True)
+
+    to_address = [contact.email for contact in tos]
+    cc = [contact.email for contact in ccs]
+    bcc = [contact.email for contact in bccs]
 
     # Send email
     # msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
