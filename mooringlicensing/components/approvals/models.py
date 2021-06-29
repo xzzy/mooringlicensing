@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import json
 import datetime
 import logging
 import re
@@ -9,24 +8,17 @@ import pytz
 from django.db import models,transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
-from django.utils.encoding import python_2_unicode_compatible
+from django.db.models import Count
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
-from django.contrib.sites.models import Site
 from django.conf import settings
 from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
-from taggit.managers import TaggableManager
-from taggit.models import TaggedItemBase
-from ledger.accounts.models import Organisation as ledger_organisation
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.licence.models import  Licence
-from mooringlicensing import exceptions
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.organisations.models import Organisation
-from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
     StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
@@ -758,9 +750,21 @@ class AnnualAdmissionPermit(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
-        stickers = self.stickers
-        # TODO: handle existing stickers correctly
-        sticker = Sticker.objects.create(approval=self,)
+        stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+        if stickers_current.count() == 0:
+            sticker = Sticker.objects.create(
+                approval=self,
+                vessel_details=proposal.vessel_details,
+            )
+        elif stickers_current.count() == 1:
+            if stickers_current.first().vessel_details != proposal.vessel_details:
+                stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
+                # TODO: email to the permission holder to notify the existing sticker to be returned
+            else:
+                pass
+                # There is a sticker present already with the same vessel.  We don't have to do anything with stickers..???
+        else:
+            raise ValueError('AAP: {} has more than one stickers with current status'.format(self.lodgement_number))
 
 
 class AuthorisedUserPermit(Approval):
@@ -787,10 +791,25 @@ class AuthorisedUserPermit(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
-        stickers = self.stickers
-        # TODO: handle existing stickers correctly
-        # Warn: Max 4 mooring on a sticker
-        sticker = Sticker.objects.create(approval=self,)
+        stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+        if stickers_current.count() % 4 == 0:
+            # Nothing wrong with the stickers already printed.  Just print a new sticker
+            sticker = Sticker.objects.create(
+                approval=self,
+                vessel_details=proposal.vessel_details,
+            )
+        else:
+            # Last sticker should be returned and a new sticker will be printed
+            stickers = Sticker.objects.annotate(num_of_moorings=Count('mooringonapproval')).filter(num_of_moorings__lt=4)
+            if stickers.count() == 1:
+                # Found one sticker which doesn't have 4 moorings on it.
+                sticker = stickers.first()
+                sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker.save()
+                # TODO: email to the permission holder to notify the existing sticker to be returned
+            else:
+                # There are more than one stickers with less than 4 moorings
+                raise ValueError('AUP: {} has more than one stickers with less than 4 moorings'.format(self.lodgement_number))
 
 
 class MooringLicence(Approval):
@@ -817,10 +836,46 @@ class MooringLicence(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
-        stickers = self.stickers
-        # TODO: handle existing stickers correctly
-        # Warn: Multiple vessels can be on a ML
-        sticker = Sticker.objects.create(approval=self,)
+        # stickers_present = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+        # stickers_present = self.stickers.filter()
+        stickers_present = list(self.stickers)
+
+        stickers_required = []
+        for vessel_details in self.vessel_details_list:
+            sticker = self.stickers.filter(
+                status__in=(
+                    Sticker.STICKER_STATUS_CURRENT,
+                    Sticker.STICKER_STATUS_PRINTING,
+                    Sticker.STICKER_STATUS_TO_BE_RETURNED,),
+                vessel_details=vessel_details
+            )
+            if sticker:
+                stickers_required.append(sticker)
+            else:
+                sticker = Sticker.objects.create(
+                    approval=self,
+                    status=Sticker.STICKER_STATUS_PRINTING,
+                    vessel_details=vessel_details,
+                )
+            stickers_required.append(sticker)
+
+        stickers_to_be_removed = [sticker for sticker in stickers_present if sticker not in stickers_required]
+
+        for sticker in stickers_to_be_removed:
+            if sticker.status == Sticker.STICKER_STATUS_CURRENT:
+                sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker.save()
+                # TODO: email to the permission holder to notify the existing sticker to be returned
+            elif sticker.status == Sticker.STICKER_STATUS_TO_BE_RETURNED:
+                # Do nothing
+                pass
+            elif sticker.status == Sticker.STICKER_STATUS_PRINTING:
+                sticker.status = Sticker.STICKER_STATUS_CANCELLED
+                sticker.save()
+            else:
+                # Do nothing
+                pass
+
 
     @property
     def vessel_details_list(self):
@@ -1111,6 +1166,7 @@ class Sticker(models.Model):
     STICKER_STATUS_RETURNED = 'returned'
     STICKER_STATUS_LOST = 'lost'
     STICKER_STATUS_EXPIRED = 'expired'
+    STICKER_STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = (
         (STICKER_STATUS_PRINTING, 'Printing'),
         (STICKER_STATUS_CURRENT, 'Current'),
@@ -1118,6 +1174,7 @@ class Sticker(models.Model):
         (STICKER_STATUS_RETURNED, 'Returned'),
         (STICKER_STATUS_LOST, 'Lost'),
         (STICKER_STATUS_EXPIRED, 'Expired'),
+        (STICKER_STATUS_CANCELLED, 'Cancelled')
     )
     EXPOSED_STATUS = (
         STICKER_STATUS_CURRENT,
@@ -1140,6 +1197,7 @@ class Sticker(models.Model):
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
     printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
+    vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
