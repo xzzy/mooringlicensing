@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.conf import settings
+from django.db.models import Q
 from mooringlicensing.components.approvals.models import Approval
 from ledger.accounts.models import EmailUser
 
@@ -25,8 +27,17 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
 
-        approvals = Approval.objects.filter(status=Approval.APPROVAL_STATUS_CURRENT, replaced_by__isnull=True)
-        # approvals = Approval.objects.filter(id=95)
+        queries = Q()
+        queries &= (Q(status=Approval.APPROVAL_STATUS_CURRENT) & Q(replaced_by__isnull=True))
+
+        # For debug
+        params = options.get('params')
+        debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
+        approval_id = int(params.get('expire_approvals_id', 0))
+        if debug:
+            queries |= Q(id=approval_id)
+
+        approvals = Approval.objects.filter(queries)
 
         for approval in approvals:
             if approval.expiry_date < today:
@@ -39,6 +50,16 @@ class Command(BaseCommand):
                     err_msg = 'Error updating Approval {} status'.format(approval.lodgement_number)
                     logger.error('{}\n{}'.format(err_msg, str(e)))
                     errors.append(err_msg)
+            elif approval.id == approval_id:
+                yesterday = today - timedelta(days=1)
+                approval.status = Approval.APPROVAL_STATUS_CURRENT
+                approval.expiry_date = yesterday
+                approval.save()
+
+                approval.expire_approval(user)
+                # a.save()  # Saved in the above function...?
+                logger.info('Updated Approval {} status to {}'.format(approval.id, approval.status))
+                updates.append(approval.lodgement_number)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
         err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
