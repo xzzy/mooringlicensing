@@ -2318,6 +2318,9 @@ class WaitingListApplication(Proposal):
                     'submitter': self.submitter,
                 }
             )
+            if created:
+                self.approval = approval
+                self.save()
         # write approval history
         approval.write_approval_history()
         # set wla order
@@ -2403,6 +2406,9 @@ class AnnualAdmissionApplication(Proposal):
                     'submitter': self.submitter,
                 }
             )
+            if created:
+                self.approval = approval
+                self.save()
         # manage stickers
         approval.manage_stickers(self)
         # write approval history
@@ -2531,6 +2537,9 @@ class AuthorisedUserApplication(Proposal):
                     'submitter': self.submitter,
                 }
             )
+            if created:
+                self.approval = approval
+                self.save()
         # create MooringOnApproval records
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
@@ -2696,6 +2705,9 @@ class MooringLicenceApplication(Proposal):
                         'submitter': self.submitter,
                     }
                 )
+                if created:
+                    self.approval = approval
+                    self.save()
                 ## TODO: renewal, amendment affected???
                 # associate Mooring with approval
                 self.allocated_mooring.mooring_licence = approval
