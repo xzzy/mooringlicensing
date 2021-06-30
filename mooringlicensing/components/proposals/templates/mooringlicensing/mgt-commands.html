@@ -129,7 +129,15 @@
             </div>
 
             <div class="row">
-                <button type="submit" name="script" value="send_waiting_list_application_submit_due_reminder" {% if send_waiting_list_application_submit_due_reminder == 'true' %}style="color:green" {% endif %} title="Send Waiting List Application Submit Due Reminder">Run Script 'send_waiting_list_application_submit_due_reminder'</button>
+                <button type="submit" name="script" value="send_mooring_licence_application_submit_due_reminder" {% if send_mooring_licence_application_submit_due_reminder == 'true' %}style="color:green" {% endif %} title="Send Mooring Licence Application Submit Due Reminder">Run Script 'send_mooring_licence_application_submit_due_reminder'</button>
+                {% if debug %}
+                <div class="debug-box">
+                    <div><span>Enter the lodgement number and click the button above</span></div>
+                    <div>
+                        ML lodgement number to send notice: <input type="text" name="send_mooring_licence_application_submit_due_reminder_lodgement_number" />
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </form>
         <br>
