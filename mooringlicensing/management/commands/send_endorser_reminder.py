@@ -40,11 +40,18 @@ class Command(BaseCommand):
 
         logger.info('Running command {}'.format(__name__))
 
+        # For debug
+        params = options.get('params')
+        debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
+        proposal_id = int(params.get('send_endorser_reminder_id', 0))
+
         # Construct queries
         queries = Q()
         queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT)
         queries &= Q(lodgement_date__lt=boundary_date)
         queries &= Q(endorser_reminder_sent=False)
+        if debug:
+            queries = queries | Q(id=proposal_id)
 
         for a in AuthorisedUserApplication.objects.filter(queries):
             try:

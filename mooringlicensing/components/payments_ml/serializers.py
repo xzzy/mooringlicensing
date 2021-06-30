@@ -251,9 +251,11 @@ class FeeConstructorSerializer(serializers.ModelSerializer):
 
     def get_fee_items(self, fee_constructor):
         fee_configurations = {}
+
         for age_group in AgeGroup.NAME_CHOICES:
             fee_configurations[age_group[0]] = {}
-
         for fee_item in fee_constructor.feeitem_set.all():
-            fee_configurations[fee_item.age_group.code].update({ fee_item.admission_type.code: fee_item.amount })
+            if fee_item.admission_type:
+                fee_configurations[fee_item.age_group.code].update({fee_item.admission_type.code: fee_item.amount})
+
         return fee_configurations

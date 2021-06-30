@@ -755,6 +755,7 @@ class AnnualAdmissionPermit(Approval):
             sticker = Sticker.objects.create(
                 approval=self,
                 vessel_details=proposal.vessel_details,
+                fee_constructor=proposal.fee_constructor,
             )
         elif stickers_current.count() == 1:
             if stickers_current.first().vessel_details != proposal.vessel_details:
@@ -797,6 +798,7 @@ class AuthorisedUserPermit(Approval):
             sticker = Sticker.objects.create(
                 approval=self,
                 vessel_details=proposal.vessel_details,
+                fee_constructor=proposal.fee_constructor,
             )
         else:
             # Last sticker should be returned and a new sticker will be printed
@@ -836,9 +838,7 @@ class MooringLicence(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
-        # stickers_present = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
-        # stickers_present = self.stickers.filter()
-        stickers_present = list(self.stickers)
+        stickers_present = list(self.stickers.all())
 
         stickers_required = []
         for vessel_details in self.vessel_details_list:
@@ -856,6 +856,7 @@ class MooringLicence(Approval):
                     approval=self,
                     status=Sticker.STICKER_STATUS_PRINTING,
                     vessel_details=vessel_details,
+                    fee_constructor=proposal.fee_constructor,
                 )
             stickers_required.append(sticker)
 
@@ -1198,6 +1199,7 @@ class Sticker(models.Model):
     printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
     vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
+    fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
