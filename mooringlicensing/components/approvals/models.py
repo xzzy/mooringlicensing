@@ -854,7 +854,7 @@ class MooringLicence(Approval):
             else:
                 sticker = Sticker.objects.create(
                     approval=self,
-                    status=Sticker.STICKER_STATUS_PRINTING,
+                    status=Sticker.STICKER_STATUS_READY,
                     vessel_details=vessel_details,
                     fee_constructor=proposal.fee_constructor,
                 )
@@ -870,7 +870,7 @@ class MooringLicence(Approval):
             elif sticker.status == Sticker.STICKER_STATUS_TO_BE_RETURNED:
                 # Do nothing
                 pass
-            elif sticker.status == Sticker.STICKER_STATUS_PRINTING:
+            elif sticker.status in (Sticker.STICKER_STATUS_PRINTING, Sticker.STICKER_STATUS_READY):
                 sticker.status = Sticker.STICKER_STATUS_CANCELLED
                 sticker.save()
             else:
