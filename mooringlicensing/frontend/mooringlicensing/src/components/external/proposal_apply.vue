@@ -115,9 +115,9 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group">
+                                <div v-if="mlApprovals.length" class="form-group">
                                     <label>Mooring Licence</label>
-                                    <div v-if="mlApprovals<=1">
+                                    <div v-if="mlApprovals.length<=1">
                                         <div v-for="application_type in mlChoices">
                                             <input 
                                             type="radio" 
