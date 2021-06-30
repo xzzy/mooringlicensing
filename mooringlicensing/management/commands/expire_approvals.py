@@ -33,9 +33,9 @@ class Command(BaseCommand):
         # For debug
         params = options.get('params')
         debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        approval_id = int(params.get('expire_approvals_id', 0))
+        approval_lodgement_number = params.get('expire_approvals_lodgement_number', 0)
         if debug:
-            queries |= Q(id=approval_id)
+            queries |= Q(lodgement_number__iexact=approval_lodgement_number)
 
         approvals = Approval.objects.filter(queries)
 
@@ -50,7 +50,7 @@ class Command(BaseCommand):
                     err_msg = 'Error updating Approval {} status'.format(approval.lodgement_number)
                     logger.error('{}\n{}'.format(err_msg, str(e)))
                     errors.append(err_msg)
-            elif approval.id == approval_id:
+            elif approval.lodgement_number.lower() == approval_lodgement_number.lower():
                 yesterday = today - timedelta(days=1)
                 approval.status = Approval.APPROVAL_STATUS_CURRENT
                 approval.expiry_date = yesterday
