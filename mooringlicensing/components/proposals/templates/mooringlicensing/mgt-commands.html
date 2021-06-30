@@ -118,6 +118,14 @@
 
             <div class="row">
                 <button type="submit" name="script" value="approval_renewal_notices" {% if approval_renewal_notices == 'true' %}style="color:green" {% endif %} title="Send Approval Renewal Notices">Run Script 'approval_renewal_notices'</button>
+                {% if debug %}
+                <div class="debug-box">
+                    <div><span>Enter the lodgement number and click the button above</span></div>
+                    <div>
+                        Approval lodgement number to send notice: <input type="text" name="approval_renewal_notices_lodgement_number" />
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <div class="row">
