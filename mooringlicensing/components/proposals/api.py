@@ -105,7 +105,8 @@ from mooringlicensing.components.proposals.serializers import (
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
-from mooringlicensing.components.approvals.models import Approval, DcvVessel
+from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation
+from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main
 from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 
         LookupApprovalSerializer,
@@ -1574,15 +1575,38 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def record_sale(self, request, *args, **kwargs):
-        instance = self.get_object()
-        sale_date = request.data.get('sale_date')
-        if sale_date:
-            serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-        else:
-            raise serializers.ValidationError("Missing information: You must specify a sale date")
-        return Response()
+        with transaction.atomic():
+            instance = self.get_object()
+            sale_date = request.data.get('sale_date')
+            if sale_date:
+                ## setting the end_date "removes" the vessel from current Approval records
+                serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                ## collect impacted Approvals
+                approval_list = []
+                for prop in instance.proposal_set.all():
+                    if (
+                            prop.approval and 
+                            prop.approval.status == 'current'
+                            ):
+                        if prop.approval not in approval_list:
+                            approval_list.append(prop.approval)
+                ## change Sticker status
+                stickers = []
+                for approval in approval_list:
+                    ## send notification email
+                    send_vessel_nomination_notification_main(approval)
+                    # add to stickers list
+                    #stickers.append(approval.stickers.filter(status='current'))
+                    for a_sticker in approval.stickers.filter(status='current'):
+                        stickers.append(a_sticker)
+                for sticker in stickers:
+                    sticker.status = 'to_be_returned'
+                    sticker.save()
+            else:
+                raise serializers.ValidationError("Missing information: You must specify a sale date")
+            return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -1710,8 +1734,6 @@ class VesselViewSet(viewsets.ModelViewSet):
         selected_date = None
         if selected_date_str:
             selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        #print(selected_date)
-        #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         approval_list = []
         vd_set = VesselDetails.objects.filter(vessel=vessel)
         if selected_date:
@@ -1719,10 +1741,10 @@ class VesselViewSet(viewsets.ModelViewSet):
                 for prop in vd.proposal_set.all():
                     if (
                             prop.approval and 
-                            #prop.approval.status == 'current'
-                            #prop.approval.start_date >= selected_date and
                             selected_date >= prop.approval.start_date and
-                            selected_date <= prop.approval.expiry_date
+                            selected_date <= prop.approval.expiry_date and
+                            # ensure vessel has not been sold
+                            prop.vessel_ownership and not prop.vessel_ownership.end_date
                             ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
@@ -1731,8 +1753,9 @@ class VesselViewSet(viewsets.ModelViewSet):
                 for prop in vd.proposal_set.all():
                     if (
                             prop.approval and 
-                            prop.approval.status == 'current'
-                            #and prop.start_date
+                            prop.approval.status == 'current' and
+                            # ensure vessel has not been sold
+                            prop.vessel_ownership and not prop.vessel_ownership.end_date
                             ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
