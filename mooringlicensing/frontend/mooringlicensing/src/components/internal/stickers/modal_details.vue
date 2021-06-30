@@ -9,7 +9,7 @@
                         <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
                     </div>
                 </div>
-                <div class="row form-group">
+                <div v-show="showDateOfLost" class="row form-group">
                     <label class="col-sm-3 control-label">Date of Lost</label>
                     <div class="col-sm-3">
                         <div class="input-group date" ref="lostDatePicker">
@@ -20,7 +20,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row form-group">
+                <div v-show="showDateOfReturned" class="row form-group">
                     <label class="col-sm-3 control-label">Date of Returned</label>
                     <div class="col-sm-3">
                         <div class="input-group date" ref="returnedDatePicker">
@@ -63,7 +63,6 @@ export default {
             sticker: {},
             details: vm.getDefaultDetails(),
             processing: false,
-            action: '',
 
             //form:null,
             errors: false,
@@ -80,7 +79,19 @@ export default {
         },
         title: function() {
             return this.action
-        }
+        },
+        showDateOfLost: function(){
+            if (this.action === 'record_lost'){
+                return true
+            }
+            return false
+        },
+        showDateOfReturned: function(){
+            if (this.action === 'record_returned'){
+                return true
+            }
+            return false
+        },
     },
     methods:{
         getDefaultDetails: function(){
