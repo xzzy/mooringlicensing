@@ -276,6 +276,8 @@ export default {
             console.log(sticker.status.code)
             let links = ''
             switch(sticker.status.code){
+                case 'ready':
+                    break
                 case 'printing':
                     break
                 case 'current':
@@ -294,6 +296,7 @@ export default {
                     break
 
             }
+
             links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
             return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
         },
