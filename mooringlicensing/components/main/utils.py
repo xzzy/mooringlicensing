@@ -311,7 +311,7 @@ def sticker_export():
     # (applicant is notified to pay once RIA staff approve the application)
     stickers = Sticker.objects.filter(
         sticker_printing_batch__isnull=True,
-        status=Sticker.STICKER_STATUS_PRINTING
+        status=Sticker.STICKER_STATUS_READY,
     )
 
     errors = []
