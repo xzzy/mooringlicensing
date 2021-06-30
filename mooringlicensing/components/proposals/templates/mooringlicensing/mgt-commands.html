@@ -94,10 +94,26 @@
 
             <div class="row">
                 <button type="submit" name="script" value="expire_mooring_licence_application_due_to_no_documents" {% if expire_mooring_licence_application_due_to_no_documents == 'true' %}style="color:green" {% endif %} title="Expire Mooring Licence Application if documents not submitted">Run Script 'expire_mooring_licence_application_due_to_no_documents'</button>
+                {% if debug %}
+                <div class="debug-box">
+                    <div><span>Enter the lodgement number and click the button above</span></div>
+                    <div>
+                        MLApplication lodgement number to expire: <input type="text" name="expire_mooring_licence_application_due_to_no_documents_lodgement_number" />
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <div class="row">
                 <button type="submit" name="script" value="expire_mooring_licence_application_due_to_no_submit" {% if expire_mooring_licence_application_due_to_no_submit == 'true' %}style="color:green" {% endif %} title="Expire Mooring Licence Application if documents not submitted">Run Script 'expire_mooring_licence_application_due_to_no_submit'</button>
+                {% if debug %}
+                <div class="debug-box">
+                    <div><span>Enter the lodgement number and click the button above</span></div>
+                    <div>
+                        MLApplication lodgement number to expire: <input type="text" name="expire_mooring_licence_application_due_to_no_submit_lodgement_number" />
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <div class="row">
