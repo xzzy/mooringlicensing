@@ -23,10 +23,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()
 
-        self.perform(WaitingListAllocation.code, today)  # WaitingListAllocation
-        self.perform(AnnualAdmissionPermit.code, today)  # AnnualAdmissionPermit
+        self.perform(WaitingListAllocation.code, today, **options)  # WaitingListAllocation
+        self.perform(AnnualAdmissionPermit.code, today, **options)  # AnnualAdmissionPermit
 
-    def perform(self, approval_type, today):
+    def perform(self, approval_type, today, **options):
         errors = []
         updates = []
 
@@ -52,11 +52,18 @@ class Command(BaseCommand):
 
         logger.info('Running command {}'.format(__name__))
 
+        # For debug
+        params = options.get('params')
+        debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
+        approval_lodgement_number = params.get('send_vessel_nominate_reminder_lodgement_number', 'no-number')
+
         # Construct queries
         queries = Q()
         queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
         queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
         queries &= Q(vessel_nomination_reminder_sent=False)
+        if debug:
+            queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
 
         for a in approval_class.objects.filter(queries):
             try:
