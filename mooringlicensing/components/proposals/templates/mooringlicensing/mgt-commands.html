@@ -82,6 +82,14 @@
 
             <div class="row">
                 <button type="submit" name="script" value="send_vessel_nominate_reminder" {% if send_vessel_nominate_reminder == 'true' %}style="color:green" {% endif %} title="Send Endorsement Reminder">Run Script 'send_vessel_nominate_reminder'</button>
+                {% if debug %}
+                <div class="debug-box">
+                    <div><span>Enter the lodgement number and click the button above</span></div>
+                    <div>
+                        Approval lodgement number to send reminder: <input type="text" name="send_vessel_nominate_reminder_lodgement_number" />
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <div class="row">
