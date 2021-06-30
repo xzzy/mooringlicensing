@@ -399,6 +399,10 @@ def email_stickers_document():
                 batch.save()
                 updates.append(batch.name)
 
+                # Update sticker status
+                stickers = Sticker.objects.filter(sticker_printing_batch=batch)
+                stickers.update(status=Sticker.STICKER_STATUS_PRINTING)
+
     except Exception as e:
         err_msg = 'Error sending the sticker printing batch spreadsheet file(s): {}'.format(', '.join([batch.name for batch in batches]))
         logger.error('{}\n{}'.format(err_msg, str(e)))
