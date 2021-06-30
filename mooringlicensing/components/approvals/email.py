@@ -4,6 +4,7 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from datetime import date, timedelta
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from mooringlicensing.components.proposals.email import (
@@ -23,6 +24,15 @@ class ApprovalExpireNotificationEmail(TemplateEmailBase):
 
     def __init__(self, approval):
         self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
+class ApprovalVesselNominationNotificationEmail(TemplateEmailBase):
+    subject = 'Nominate vessel for Permit {}'
+    html_template = 'mooringlicensing/emails/approval_vessel_nomination_reminder.html'
+    txt_template = 'mooringlicensing/emails/approval_vessel_nomination_reminder.txt'
+
+    def __init__(self, approval):
+        self.subject = self.subject.format(approval.lodgement_number)
 
 
 class ApprovalVesselNominationReminderEmail(TemplateEmailBase):
@@ -129,6 +139,47 @@ def send_approval_expire_email_notification(approval):
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+
+def send_vessel_nomination_notification_main(approval, request=None):
+    from mooringlicensing.components.approvals.models import WaitingListAllocation, MooringLicence#, AnnualAdmissionPermit, AuthorisedUserPermit
+    email = ApprovalVesselNominationNotificationEmail(approval)
+    proposal = approval.current_proposal
+
+    due_date = approval.expiry_date
+    sale_date = approval.current_proposal.vessel_ownership.end_date
+    six_months = timedelta(weeks=26)
+    if type(approval.child_obj) in (WaitingListAllocation, MooringLicence):
+        due_date = sale_date if (sale_date + six_months) < approval.expiry_date else approval.expiry_date
+
+    context = {
+        'approval': approval,
+        'due_date': due_date,
+    }
+
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    to_address = approval.submitter.email
+    all_ccs = []
+    bcc = []
+    # if proposal.org_applicant and proposal.org_applicant.email:
+    #     cc_list = proposal.org_applicant.email
+    #     if cc_list:
+    #         all_ccs = [cc_list]
+    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
+
+    _log_approval_email(msg, approval, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+    return msg
 
 
 def send_vessel_nomination_reminder_main(approval, request=None):
