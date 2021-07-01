@@ -465,6 +465,10 @@ export default {
 
                 let td_link = $(this)
 
+                if (!(td_link.hasClass(vm.td_expand_class_name) || td_link.hasClass(vm.td_collapse_class_name))){
+                    return
+                }
+
                 // Get <tr> element as jQuery object
                 let tr = td_link.closest('tr')
 
