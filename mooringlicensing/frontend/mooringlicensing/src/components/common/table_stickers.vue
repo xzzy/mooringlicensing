@@ -65,6 +65,9 @@ export default {
             //debug: false,
 
             sticker_details_tr_class_name: 'sticker_details',
+
+            td_expand_class_name: 'expand-icon',
+            td_collapse_class_name: 'collapse-icon',
         }
     },
     components:{
@@ -186,7 +189,6 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
                     if (full.fee_constructor){
                         if (full.fee_constructor.fee_season){
                             return full.fee_constructor.fee_season.name
@@ -237,14 +239,17 @@ export default {
             }
 
             return {
-                autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 rowCallback: function (row, sticker){
-                    $(row).attr('id', 'sticker_id_' + sticker.id)
+                    let row_jq = $(row)
+                    row_jq.attr('id', 'sticker_id_' + sticker.id)
+                    row_jq.children().first().addClass(vm.td_expand_class_name)
+
                 },
-                autoWidth: false,
+                autoWidth: true,
+                //responsive: true,
                 responsive: true,
                 serverSide: true,
                 searching: search,
@@ -278,7 +283,7 @@ export default {
                 links += `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
                 links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
                 links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
-                links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
+                //links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
                 return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
             }
 
@@ -304,7 +309,7 @@ export default {
 
             }
 
-            links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
+            //links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
             return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
         },
         getActionDetailTable: function(sticker){
@@ -455,28 +460,21 @@ export default {
             });
 
             // Listener for thr row
-            vm.$refs.stickers_datatable.vmDataTable.on('click', 'a[data-view-details]', function(e) {
+            vm.$refs.stickers_datatable.vmDataTable.on('click', 'td', function(e) {
                 e.preventDefault();
 
-                // If a link is clicked, ignore
-                //if($(e.target).is('a') | ($(e.target).is('td') & $(e.target).hasClass('dtr-control'))){
-                //    return;
-                //}
-
-                let a_link = $(this)
-                let sticker_id = a_link.attr('data-view-details');
+                let td_link = $(this)
 
                 // Get <tr> element as jQuery object
-                let tr = a_link.closest('tr')
+                let tr = td_link.closest('tr')
 
-                let nextElem = tr.next()
-                if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
-                    // Sticker details row is already shown.  Remove it.
-                    nextElem.fadeOut(500, function(){
-                        nextElem.remove()
-                    })
-                } else {
-                    // Display sticker details
+                // Retrieve sticker id from the id of the <tr>
+                let tr_id = tr.attr('id')
+                let sticker_id = tr_id.replace('sticker_id_', '')
+
+                let first_td = tr.children().first()
+                if(first_td.hasClass(vm.td_expand_class_name)){
+                    // Expand
                     vm.$http.get(helpers.add_endpoint_json(api_endpoints.stickers, sticker_id)).then(
                         res => {
                             let sticker = res.body
@@ -501,7 +499,62 @@ export default {
 
                         }
                     )
+                    // Change icon class name to vm.td_collapse_class_name
+                    first_td.removeClass(vm.td_expand_class_name).addClass(vm.td_collapse_class_name)
+                } else {
+                    let nextElem = tr.next()
+                    // Collapse
+                    if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
+                        // Sticker details row is already shown.  Remove it.
+                        nextElem.fadeOut(500, function(){
+                            nextElem.remove()
+                        })
+                    }
+                    // Change icon class name to vm.td_expand_class_name
+                    // Change icon class name to vm.td_collapse_class_name
+                    first_td.removeClass(vm.td_collapse_class_name).addClass(vm.td_expand_class_name)
                 }
+                //////
+
+         //       let nextElem = tr.next()
+         //       if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
+         //           // Sticker details row is already shown.  Remove it.
+         //           nextElem.fadeOut(500, function(){
+         //               nextElem.remove()
+         //           })
+         //       } else {
+         //           // Display sticker details
+
+         //           // Convert jquery <tr> element to the Datatable row object
+         //           //let row = vm.$refs.stickers_datatable.vmDataTable.row(tr)
+         //           //row.child('<span>AHO</span>').show()
+         //           //return
+
+         //           vm.$http.get(helpers.add_endpoint_json(api_endpoints.stickers, sticker_id)).then(
+         //               res => {
+         //                   let sticker = res.body
+         //                   let table_inside = vm.getActionDetailTable(sticker)
+         //                   let details_elem = $('<tr class="' + vm.sticker_details_tr_class_name + '"><td colspan="' + vm.number_of_columns + '">' + table_inside + '</td></tr>')
+         //                   details_elem.hide()
+         //                   details_elem.insertAfter(tr)
+
+         //                   // Make this sticker action details table Datatable
+         //                   let my_table = $('#table-sticker-details-' + sticker.id)
+         //                   my_table.DataTable({
+         //                       lengthChange: false,
+         //                       searching: false,
+         //                       info: false,
+         //                       paging: false,
+         //                       order: [[0, 'desc']],
+         //                   })
+
+         //                   details_elem.fadeIn(1000)
+         //               },
+         //               err => {
+
+         //               }
+         //           )
+         //       }
 
                 // Get row object as datatable API
                 //var row = vm.$refs.stickers_datatable.vmDataTable.row(tr);
@@ -534,5 +587,51 @@ export default {
 
 <style>
 .table-sticker-details {
+}
+.collapse-icon {
+    cursor: pointer;
+}
+.collapse-icon::before {
+    top: 5px;
+    left: 4px;
+    height: 14px;
+    width: 14px;
+    border-radius: 14px;
+    line-height: 14px;
+    border: 2px solid white;
+    line-height: 14px;
+    content: '-';
+    color: white;
+    background-color: #d33333;
+    display: inline-block;
+    box-shadow: 0px 0px 3px #444;
+    box-sizing: content-box;
+    text-align: center;
+    text-indent: 0 !important;
+    font-family: 'Courier New', Courier monospace;
+    margin: 5px;
+}
+.expand-icon {
+    cursor: pointer;
+}
+.expand-icon::before {
+    top: 5px;
+    left: 4px;
+    height: 14px;
+    width: 14px;
+    border-radius: 14px;
+    line-height: 14px;
+    border: 2px solid white;
+    line-height: 14px;
+    content: '+';
+    color: white;
+    background-color: #337ab7;
+    display: inline-block;
+    box-shadow: 0px 0px 3px #444;
+    box-sizing: content-box;
+    text-align: center;
+    text-indent: 0 !important;
+    font-family: 'Courier New', Courier monospace;
+    margin: 5px;
 }
 </style>
