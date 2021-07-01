@@ -845,7 +845,7 @@ class MooringLicence(Approval):
             sticker = self.stickers.filter(
                 status__in=(
                     Sticker.STICKER_STATUS_CURRENT,
-                    Sticker.STICKER_STATUS_PRINTING,
+                    Sticker.STICKER_STATUS_AWAITING_PRINTING,
                     Sticker.STICKER_STATUS_TO_BE_RETURNED,),
                 vessel_details=vessel_details
             )
@@ -870,7 +870,7 @@ class MooringLicence(Approval):
             elif sticker.status == Sticker.STICKER_STATUS_TO_BE_RETURNED:
                 # Do nothing
                 pass
-            elif sticker.status in (Sticker.STICKER_STATUS_PRINTING, Sticker.STICKER_STATUS_READY):
+            elif sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
                 sticker.status = Sticker.STICKER_STATUS_CANCELLED
                 sticker.save()
             else:
@@ -1162,7 +1162,7 @@ class DcvPermitDocument(Document):
 
 class Sticker(models.Model):
     STICKER_STATUS_READY = 'ready'
-    STICKER_STATUS_PRINTING = 'printing'
+    STICKER_STATUS_AWAITING_PRINTING = 'awaiting_printing'
     STICKER_STATUS_CURRENT = 'current'
     STICKER_STATUS_TO_BE_RETURNED = 'to_be_returned'
     STICKER_STATUS_RETURNED = 'returned'
@@ -1171,7 +1171,7 @@ class Sticker(models.Model):
     STICKER_STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = (
         (STICKER_STATUS_READY, 'Ready'),
-        (STICKER_STATUS_PRINTING, 'Printing'),
+        (STICKER_STATUS_AWAITING_PRINTING, 'Awaiting Printing'),
         (STICKER_STATUS_CURRENT, 'Current'),
         (STICKER_STATUS_TO_BE_RETURNED, 'To be Returned'),
         (STICKER_STATUS_RETURNED, 'Returned'),
@@ -1180,7 +1180,7 @@ class Sticker(models.Model):
         (STICKER_STATUS_CANCELLED, 'Cancelled')
     )
     EXPOSED_STATUS = (
-        STICKER_STATUS_PRINTING,
+        STICKER_STATUS_AWAITING_PRINTING,
         STICKER_STATUS_CURRENT,
         STICKER_STATUS_TO_BE_RETURNED,
         STICKER_STATUS_RETURNED,
