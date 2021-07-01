@@ -68,7 +68,7 @@ export default {
 
             // filtering options
             approval_types: [],
-            debug: false,
+            //debug: false,
 
             sticker_details_tr_class_name: 'sticker_details',
         }
@@ -92,6 +92,12 @@ export default {
         },
     },
     computed: {
+        debug: function(){
+            if (this.$route.query.debug){
+                return ['true', 't', 'yes', 'y'].includes(this.$route.query.debug.toLowerCase())
+            }
+            return false
+        },
         number_of_columns: function() {
             return this.datatable_headers.length
         },
@@ -115,7 +121,7 @@ export default {
                 data: "id",
                 orderable: false,
                 searchable: false,
-                visible: false,
+                visible: this.debug,
                 'render': function(row, type, full){
                     return full.id
                 }
@@ -273,8 +279,15 @@ export default {
     },
     methods: {
         getActionCellContents: function(sticker){
-            console.log(sticker.status.code)
             let links = ''
+            if (this.debug){
+                links += `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
+                links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+                links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
+                links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
+                return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
+            }
+
             switch(sticker.status.code){
                 case 'ready':
                     break
@@ -515,9 +528,9 @@ export default {
     },
     created: function(){
         this.fetchFilterLists()
-        if (this.$route.query && this.$route.query.debug){
-            this.debug = this.$route.query.debug
-        }
+        //if (this.$route.query && this.$route.query.debug){
+        //    this.debug = this.$route.query.debug
+        //}
     },
     mounted: function(){
         let vm = this;
