@@ -41,8 +41,11 @@ class ProposalDocumentInline(admin.TabularInline):
 class AmendmentReasonAdmin(admin.ModelAdmin):
     list_display = ['reason']
 
+
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
+    list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'submitter', 'approval',]
+    list_display_links = ['id', 'lodgement_number', ]
     inlines =[ProposalDocumentInline,]
 
 
