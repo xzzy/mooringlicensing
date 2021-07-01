@@ -22,12 +22,6 @@
         </div>
 
         <div class="row">
-            <div class="col-md-12">
-                <button type="button" class="btn btn-primary pull-right" @click="export_to_csv_button_clicked">Export to CSV</button>
-            </div>
-        </div>
-
-        <div class="row">
             <div class="col-lg-12">
                 <datatable
                     ref="stickers_datatable"
@@ -268,7 +262,7 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[ ],
+                buttons:['csv'],
                 columns: columns,
                 processing: true,
                 initComplete: function() {
@@ -339,9 +333,6 @@ export default {
 
             let details = '<table class="table table-striped table-bordered table-sm table-sticker-details" id="table-sticker-details-' + sticker.id + '">' + thead + tbody + '</table>'
             return details
-        },
-        export_to_csv_button_clicked: function(){
-            console.log('Export to CSV button clicked')
         },
         //discardProposal: function(proposal_id) {
         //    let vm = this;
