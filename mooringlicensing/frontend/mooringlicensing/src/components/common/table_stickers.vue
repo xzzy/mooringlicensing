@@ -22,12 +22,6 @@
         </div>
 
         <div class="row">
-            <div class="col-md-12">
-                <button type="button" class="btn btn-primary pull-right" @click="export_to_csv_button_clicked">Export to CSV</button>
-            </div>
-        </div>
-
-        <div class="row">
             <div class="col-lg-12">
                 <datatable
                     ref="stickers_datatable"
@@ -68,7 +62,7 @@ export default {
 
             // filtering options
             approval_types: [],
-            debug: false,
+            //debug: false,
 
             sticker_details_tr_class_name: 'sticker_details',
         }
@@ -92,6 +86,12 @@ export default {
         },
     },
     computed: {
+        debug: function(){
+            if (this.$route.query.debug){
+                return ['true', 't', 'yes', 'y'].includes(this.$route.query.debug.toLowerCase())
+            }
+            return false
+        },
         number_of_columns: function() {
             return this.datatable_headers.length
         },
@@ -115,7 +115,7 @@ export default {
                 data: "id",
                 orderable: false,
                 searchable: false,
-                visible: false,
+                visible: this.debug,
                 'render': function(row, type, full){
                     return full.id
                 }
@@ -262,7 +262,7 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[ ],
+                buttons:['csv'],
                 columns: columns,
                 processing: true,
                 initComplete: function() {
@@ -273,8 +273,15 @@ export default {
     },
     methods: {
         getActionCellContents: function(sticker){
-            console.log(sticker.status.code)
             let links = ''
+            if (this.debug){
+                links += `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
+                links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+                links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
+                links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
+                return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
+            }
+
             switch(sticker.status.code){
                 case 'ready':
                     break
@@ -326,9 +333,6 @@ export default {
 
             let details = '<table class="table table-striped table-bordered table-sm table-sticker-details" id="table-sticker-details-' + sticker.id + '">' + thead + tbody + '</table>'
             return details
-        },
-        export_to_csv_button_clicked: function(){
-            console.log('Export to CSV button clicked')
         },
         //discardProposal: function(proposal_id) {
         //    let vm = this;
@@ -515,9 +519,9 @@ export default {
     },
     created: function(){
         this.fetchFilterLists()
-        if (this.$route.query && this.$route.query.debug){
-            this.debug = this.$route.query.debug
-        }
+        //if (this.$route.query && this.$route.query.debug){
+        //    this.debug = this.$route.query.debug
+        //}
     },
     mounted: function(){
         let vm = this;
