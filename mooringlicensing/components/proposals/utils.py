@@ -487,6 +487,20 @@ def submit_vessel_data(instance, request, vessel_data):
     # associate vessel_details with proposal
     instance.vessel_details = vessel_details
     instance.save()
+    ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
+    if type(instance.child_obj) in [AnnualAdmissionApplication, AuthorisedUserApplication]:
+        if instance.vessel_details.vessel_applicable_length < 3.75:
+            raise serializers.ValidationError("Vessel must be at least 3.75m in length")
+    elif type(instance.child_obj) == WaitingListApplication:
+        if instance.vessel_details.vessel_applicable_length < 6.4:
+            raise serializers.ValidationError("Vessel must be at least 6.4m in length")
+    else:
+        ## Mooring Licence Application
+        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < 3.75:
+            raise serializers.ValidationError("Vessel must be at least 3.75m in length")
+        elif instance.vessel_details.vessel_applicable_length < 6.4:
+            raise serializers.ValidationError("Vessel must be at least 6.4m in length")
+
     # record ownership data
     #submit_vessel_ownership(instance, request)
     vessel_ownership = store_vessel_ownership(request, vessel, instance)
