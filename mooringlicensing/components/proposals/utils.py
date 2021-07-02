@@ -49,6 +49,7 @@ from mooringlicensing.components.approvals.models import (
         WaitingListAllocation, 
         AuthorisedUserPermit
         )
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 # from mooringlicensing.components.proposals.email import send_submit_email_notification, \
 #     send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
 #     send_documents_upload_for_mooring_licence_application_email
@@ -487,6 +488,12 @@ def save_vessel_data(instance, request, vessel_data):
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
+    #import ipdb; ipdb.set_trace()
+    if (not vessel_data.get('rego_no') and instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and
+            type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication]):
+        return
+    #else:
+     #   raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
     ## save vessel data into proposal first
     save_vessel_data(instance, request, vessel_data)
     vessel, vessel_details = store_vessel_data(request, vessel_data)
