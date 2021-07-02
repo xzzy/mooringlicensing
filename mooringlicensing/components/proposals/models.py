@@ -2043,9 +2043,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             previous_proposal = self
             try:
                 # TODO: check this logic
-                proposal_qs = Proposal.objects.filter(previous_application = previous_proposal)
-                if proposal_qs and proposal_qs[0].customer_status=='with_assessor':
-                    raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
+                #proposal_qs = Proposal.objects.filter(previous_application = previous_proposal)
+                #if proposal_qs and proposal_qs[0].customer_status=='with_assessor':
+                #    raise ValidationError('A renewal for this licence has already been lodged and is awaiting review.')
             #except Proposal.DoesNotExist:
                 proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
@@ -2086,13 +2086,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             previous_proposal = self
             try:
                 # TODO: check this logic
-                amend_conditions = {
-                'previous_application': previous_proposal,
-                'proposal_type': ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-                }
-                existing_proposal_qs=Proposal.objects.filter(**amend_conditions)
-                if existing_proposal_qs and existing_proposal_qs[0].customer_status=='under_review':
-                    raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
+                #amend_conditions = {
+                #'previous_application': previous_proposal,
+                #'proposal_type': ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
+                #}
+                #existing_proposal_qs=Proposal.objects.filter(**amend_conditions)
+                #if existing_proposal_qs and existing_proposal_qs[0].customer_status=='under_review':
+                #    raise ValidationError('An amendment for this licence has already been lodged and is awaiting review.')
             #except Proposal.DoesNotExist:
                 proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
@@ -2307,6 +2307,7 @@ class WaitingListApplication(Proposal):
 
     #@classmethod
     def update_or_create_approval(self, current_datetime, request=None):
+        created = None
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             approval = self.approval
             approval.current_proposal=self
@@ -2397,6 +2398,7 @@ class AnnualAdmissionApplication(Proposal):
     #@classmethod
     def update_or_create_approval(self, current_datetime, request=None):
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+        created = None
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             approval = self.approval
             approval.current_proposal=self
@@ -2422,7 +2424,7 @@ class AnnualAdmissionApplication(Proposal):
                 self.approval = approval
                 self.save()
         # manage stickers
-        approval.manage_stickers(self)
+        approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
 
@@ -2503,6 +2505,7 @@ class AuthorisedUserApplication(Proposal):
 
     def update_or_create_approval(self, current_datetime, request=None):
         #import ipdb; ipdb.set_trace()
+        created = None
         mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
         #mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
         ria_selected_mooring = None
@@ -2558,7 +2561,7 @@ class AuthorisedUserApplication(Proposal):
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
         # manage stickers
-        approval.manage_stickers(self)
+        approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
         return approval, created
@@ -2744,7 +2747,7 @@ class MooringLicenceApplication(Proposal):
                         request
                         )
             # manage stickers
-            approval.manage_stickers(self)
+            approval.child_obj.manage_stickers(self)
             # write approval history
             approval.write_approval_history()
             return approval, created

@@ -242,8 +242,8 @@ class Approval(RevisionedMixin):
                 end_date = self.issue_date
                 previous_history_entry = self.approvalhistory_set.filter(proposal=previous_application)[0]
                 # check vo sale date
-                if previous_history_entry.history_entry.vessel_ownership.end_date:
-                    end_date = previous_history_entry.history_entry.vessel_ownership.end_date
+                if previous_history_entry.vessel_ownership.end_date:
+                    end_date = previous_history_entry.vessel_ownership.end_date
                 # update previous_history_entry
                 previous_history_entry.end_date = end_date
                 previous_history_entry.save()
@@ -412,11 +412,6 @@ class Approval(RevisionedMixin):
     @property
     def can_renew(self):
         try:
-#            if self.current_proposal.application_type.name == 'E Class':
-#                #return (self.current_proposal.application_type.max_renewals is not None and self.current_proposal.application_type.max_renewals > self.renewal_count)
-#                return self.current_proposal.application_type.max_renewals > self.renewal_count
-#                #pass
-#            else:
             proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
             renew_conditions = {
                 'previous_application': self.current_proposal,
@@ -445,6 +440,25 @@ class Approval(RevisionedMixin):
             else:
                 return False
         return False
+
+    @property
+    def amend_or_renew(self):
+        #import ipdb; ipdb.set_trace()
+        try:
+            amend_renew = 'amend'
+            ## test whether any renewal or amendment applications have been created
+            #existing_proposal_qs=Proposal.objects.filter(customer_status__in=['under_review', 'with_assessor', 'draft'],
+            existing_proposal_qs=self.proposal_set.filter(customer_status__in=['under_review', 'with_assessor', 'draft'],
+                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL]))
+            ## cannot amend or renew
+            if existing_proposal_qs:
+                amend_renew = None
+            ## If Approval has been set for renewal, this takes priority
+            elif self.renewal_document and self.renewal_sent:
+                amend_renew = 'renew'
+            return amend_renew
+        except Exception as e:
+            raise e
 
     def generate_doc(self, user, preview=False):
         # copied_to_permit = self.copiedToPermit_fields(self.current_proposal)  #Get data related to isCopiedToPermit tag

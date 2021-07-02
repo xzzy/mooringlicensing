@@ -636,8 +636,8 @@ def ownership_percentage_validation(vessel_ownership):
         raise serializers.ValidationError({
             "Ownership Percentage": "You must specify a percentage"
             })
-        individual_ownership_id = vessel_ownership.id
     else:
+        individual_ownership_id = vessel_ownership.id
         if vessel_ownership.percentage < 25:
             min_percent_fail = True
         else:
@@ -646,6 +646,7 @@ def ownership_percentage_validation(vessel_ownership):
         raise serializers.ValidationError({
             "Ownership Percentage": "Minimum of 25 percent"
             })
+    #import ipdb; ipdb.set_trace()
     ## Calc total existing
     total_percent = vessel_ownership_percentage
     vessel = vessel_ownership.vessel
