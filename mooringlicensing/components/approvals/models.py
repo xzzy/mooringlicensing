@@ -1203,6 +1203,7 @@ class Sticker(models.Model):
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
     vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
     fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
+    vessel = models.ForeignKey('Vessel', blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
