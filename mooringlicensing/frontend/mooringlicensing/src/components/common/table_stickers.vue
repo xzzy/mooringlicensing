@@ -15,7 +15,7 @@
                     <label for="">Year</label>
                     <select class="form-control" v-model="filterYear">
                         <option value="All">All</option>
-
+                        <option v-for="season in fee_seasons" :value="season.id">{{ season.name }}</option>
                     </select>
                 </div>
             </div>
@@ -62,7 +62,7 @@ export default {
 
             // filtering options
             approval_types: [],
-            //debug: false,
+            fee_seasons: [],
 
             sticker_details_tr_class_name: 'sticker_details',
 
@@ -380,7 +380,13 @@ export default {
                 console.log(error);
             })
 
-            // TODO: Fetch Years
+            // Years (FeeSeason)
+            vm.$http.get(api_endpoints.fee_seasons_dict+'?include_codes=' + include_codes).then((response) => {
+                vm.fee_seasons = response.body
+            },(error) => {
+                console.log(error);
+            })
+
         },
         updateActionCell: function(sticker){
             let elem = $('#action_cell_contents_id_' + sticker.id)
@@ -413,6 +419,7 @@ export default {
                     my_table.DataTable({
                         lengthChange: false,
                         searching: false,
+                        autoWidth: true,
                         info: false,
                         paging: false,
                         order: [[0, 'desc']],
