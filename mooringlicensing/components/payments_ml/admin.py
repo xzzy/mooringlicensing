@@ -230,6 +230,7 @@ class FeeConstructorForm(forms.ModelForm):
 
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
+    list_display = ['name', 'start_date', 'end_date',]
     inlines = [FeePeriodInline,]
     form = FeeSeasonForm
 
