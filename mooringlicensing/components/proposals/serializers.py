@@ -550,7 +550,8 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
+            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
+                    not self.instance.vessel_registration_documents.all()):
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -611,7 +612,8 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
             #if not self.instance.vessel_registration_documents.all():
-            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
+            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
+                    not self.instance.vessel_registration_documents.all()):
                 custom_errors["Vessel Registration Papers"] = "Please attach"
             #if not self.instance.hull_identification_number_documents.all():
              #   custom_errors["Hull Identification Number Documents"] = "Please attach"
