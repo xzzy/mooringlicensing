@@ -19,6 +19,7 @@ from mooringlicensing.components.approvals.email import send_create_mooring_lice
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
+from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring#, ApplicationType
@@ -50,9 +51,16 @@ from mooringlicensing.components.organisations.models import Organisation, Organ
 from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-#from mooringlicensing.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework import filters
+
+
+class GetFeeSeasonsDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.all()]
+        return Response(data)
 
 
 class GetApprovalTypeDict(views.APIView):
@@ -918,6 +926,12 @@ class StickerFilterBackend(DatatablesFilterBackend):
             filter_approval_type_list = filter_approval_type.split(',')
             filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
             queryset = queryset.filter(approval__id__in=filtered_ids)
+
+        # Filter Year (FeeSeason)
+        filter_fee_season_id = request.GET.get('filter_year')
+        if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
+            fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
+            queryset = queryset.filter(fee_constructor__fee_season=fee_season)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
