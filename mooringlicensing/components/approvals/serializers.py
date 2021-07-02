@@ -212,7 +212,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='current_proposal.title')
     application_type = serializers.SerializerMethodField(read_only=True)
     linked_applications = serializers.SerializerMethodField(read_only=True)
-    can_renew = serializers.SerializerMethodField()
+    #can_renew = serializers.SerializerMethodField()
+    amend_or_renew = serializers.SerializerMethodField()
     can_extend = serializers.SerializerMethodField()
     is_assessor = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
@@ -249,9 +250,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'set_to_cancel',
             'set_to_surrender',
             'set_to_suspend',
-            'can_renew',
+            #'can_renew',
             'can_extend',
-            'can_amend',
+            #'can_amend',
+            'amend_or_renew',
             'can_reinstate',
             'application_type',
             'migrated',
@@ -277,8 +279,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_reissue',
             'can_action',
             'can_reinstate',
-            'can_amend',
-            'can_renew',
+            #'can_amend',
+            #'can_renew',
+            'amend_or_renew',
             'can_extend',
             'set_to_cancel',
             'set_to_suspend',
@@ -328,8 +331,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
         except:
             return None
 
-    def get_can_renew(self,obj):
-        return obj.can_renew
+    #def get_can_renew(self,obj):
+     #   return obj.can_renew
+    def get_amend_or_renew(self,obj):
+        return obj.amend_or_renew
 
     def get_can_extend(self,obj):
         return obj.can_extend
@@ -399,8 +404,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     authorised_user_moorings = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
-    can_renew = serializers.SerializerMethodField()
-    can_amend = serializers.SerializerMethodField()
+    #can_renew = serializers.SerializerMethodField()
+    #can_amend = serializers.SerializerMethodField()
+    amend_or_renew = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -429,8 +435,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'authorised_user_moorings',
             'can_reissue',
             'can_action',
-            'can_renew',
-            'can_amend',
+            #'can_renew',
+            #'can_amend',
+            'amend_or_renew',
             'renewal_document',
             'renewal_sent',
         )
@@ -461,8 +468,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'authorised_user_moorings',
             'can_reissue',
             'can_action',
-            'can_renew',
-            'can_amend',
+            #'can_renew',
+            #'can_amend',
+            'amend_or_renew',
             'renewal_document',
             'renewal_sent',
         )
@@ -478,11 +486,14 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_can_action(self,obj):
         return obj.can_action
 
-    def get_can_amend(self,obj):
-        return obj.can_amend
+    def get_amend_or_renew(self,obj):
+        return obj.amend_or_renew
 
-    def get_can_renew(self,obj):
-        return obj.can_renew
+    #def get_can_amend(self,obj):
+    #    return obj.can_amend
+
+    #def get_can_renew(self,obj):
+    #    return obj.can_renew
 
     def get_mooring_licence_vessels(self, obj):
         #return_list = []
