@@ -754,11 +754,11 @@ class AnnualAdmissionPermit(Approval):
         if stickers_current.count() == 0:
             sticker = Sticker.objects.create(
                 approval=self,
-                vessel_details=proposal.vessel_details,
                 fee_constructor=proposal.fee_constructor,
+                vessel=proposal.vessel_details.vessel,
             )
         elif stickers_current.count() == 1:
-            if stickers_current.first().vessel_details != proposal.vessel_details:
+            if stickers_current.first().vessel != proposal.vessel_details.vessel:
                 stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
                 # TODO: email to the permission holder to notify the existing sticker to be returned
             else:
@@ -797,7 +797,7 @@ class AuthorisedUserPermit(Approval):
             # Nothing wrong with the stickers already printed.  Just print a new sticker
             sticker = Sticker.objects.create(
                 approval=self,
-                vessel_details=proposal.vessel_details,
+                vessel=proposal.vessel_details.vessel,
                 fee_constructor=proposal.fee_constructor,
             )
         else:
@@ -841,13 +841,15 @@ class MooringLicence(Approval):
         stickers_present = list(self.stickers.all())
 
         stickers_required = []
-        for vessel_details in self.vessel_details_list:
+        # for vessel_details in self.vessel_details_list:
+        for vessel in self.vessel_list:
             sticker = self.stickers.filter(
                 status__in=(
                     Sticker.STICKER_STATUS_CURRENT,
                     Sticker.STICKER_STATUS_AWAITING_PRINTING,
                     Sticker.STICKER_STATUS_TO_BE_RETURNED,),
-                vessel_details=vessel_details
+                # vessel_details=vessel_details,
+                vessel=vessel,
             )
             if sticker:
                 stickers_required.append(sticker)
@@ -855,7 +857,8 @@ class MooringLicence(Approval):
                 sticker = Sticker.objects.create(
                     approval=self,
                     status=Sticker.STICKER_STATUS_READY,
-                    vessel_details=vessel_details,
+                    # vessel_details=vessel_details,
+                    vessel=vessel,
                     fee_constructor=proposal.fee_constructor,
                 )
             stickers_required.append(sticker)
@@ -877,6 +880,13 @@ class MooringLicence(Approval):
                 # Do nothing
                 pass
 
+    @property
+    def vessel_list(self):
+        vessels = []
+        for proposal in self.proposal_set.all():
+            if proposal.final_status and proposal.vessel_details and proposal.vessel_details.vessel not in vessels:
+                vessels.append(proposal.vessel_details.vessel)
+        return vessels
 
     @property
     def vessel_details_list(self):
@@ -1201,8 +1211,9 @@ class Sticker(models.Model):
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
     printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
-    vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
+    # vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
     fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
+    vessel = models.ForeignKey('Vessel', blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
