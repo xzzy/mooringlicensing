@@ -307,7 +307,7 @@ export default {
               }
               // add generic
               this.wlaMultiple.push({
-                  new_application_text: "I want to (amend/renew) my current waiting list allocation",
+                  new_application_text: "I want to amend or renew my current waiting list allocation",
                   description: "Waiting List Application",
                   code: "wla_multiple",
                   multiple: true
@@ -332,7 +332,7 @@ export default {
               }
               // add generic
               this.aaaMultiple.push({
-                  new_application_text: "I want to (amend/renew) my current annual admission permit",
+                  new_application_text: "I want to amend or renew my current annual admission permit",
                   description: "Annual Admission Application",
                   code: "aaa_multiple",
                   multiple: true
@@ -358,7 +358,7 @@ export default {
               }
               // add generic
               this.auaMultiple.push({
-                  new_application_text: "I want to (amend/renew) my current authorised user permit",
+                  new_application_text: "I want to amend or renew my current authorised user permit",
                   description: "Authorised User Application",
                   code: "aua_multiple",
                   multiple: true
@@ -386,7 +386,7 @@ export default {
               */
               // add generic
               this.mlMultiple.push({
-                  new_application_text: "I want to (amend/renew) my current mooring licence",
+                  new_application_text: "I want to amend or renew my current mooring licence",
                   description: "Mooring Licence Application",
                   code: "ml_multiple",
                   multiple: true
@@ -451,13 +451,13 @@ export default {
                     } else {
                         res = await this.$http.post(api_endpoints.waitinglistapplication);
                     }
-                } else if (this.selectedApplication && ['aaa','aaa_multiple'].includes(this.selectedApplication.code)) {
+                } else if (this.selectedApplication && ['aaa','aap','aaa_multiple'].includes(this.selectedApplication.code)) {
                     if (this.selectedCurrentProposal) {
                         res = await this.$http.get(url);
                     } else {
                         res = await this.$http.post(api_endpoints.annualadmissionapplication);
                     }
-                } else if (this.selectedApplication && ['aua','aua_multiple'].includes(this.selectedApplication.code)) {
+                } else if (this.selectedApplication && ['aua','aup','aua_multiple'].includes(this.selectedApplication.code)) {
                     if (this.selectedCurrentProposal) {
                         res = await this.$http.get(url);
                     } else {

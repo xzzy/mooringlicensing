@@ -1051,10 +1051,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         }
         existing_proposal_qs=Proposal.objects.filter(**renew_amend_conditions)
         if (existing_proposal_qs and 
-                existing_proposal_qs[0].customer_status in ['under_review', 'with_assessor'] and
+                existing_proposal_qs[0].customer_status in ['under_review', 'with_assessor', 'draft'] and
                 existing_proposal_qs[0].proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL])
                 ):
-            raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
+            #raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
+            raise ValidationError('A renewal/amendment for this licence has already been lodged.')
         ## create renewal or amendment
         if approval and approval.renewal_document and approval.renewal_sent and approval.can_renew:
             instance = instance.renew_approval(request)
