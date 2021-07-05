@@ -1,20 +1,12 @@
 from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
-from ledger.accounts.models import EmailUser
 
 import logging
 
-from mooringlicensing.components.approvals.email import send_vessel_nomination_reminder_mail, \
-    send_approval_expired_due_to_no_vessels_nominated_mail
-from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, \
-    MooringLicence
-from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.settings import CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML, \
-    CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA
+from mooringlicensing.components.approvals.email import send_approval_cancelled_due_to_no_vessels_nominated_mail
+from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +49,7 @@ class Command(BaseCommand):
         # For debug
         params = options.get('params')
         debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        approval_lodgement_number = params.get('expire_approvals_due_to_no_vessels_nominated_lodgement_number', 'no-number')
+        approval_lodgement_number = params.get('cancel_approvals_due_to_no_vessels_nominated_lodgement_number', 'no-number')
 
         # Construct queries
         queries = Q()
@@ -69,14 +61,14 @@ class Command(BaseCommand):
 
         for a in approval_class.objects.filter(queries):
             try:
-                send_approval_expired_due_to_no_vessels_nominated_mail(a)
+                send_approval_cancelled_due_to_no_vessels_nominated_mail(a)
                 # a.vessel_nomination_reminder_sent = True
-                a.status = Approval.APPROVAL_STATUS_EXPIRED
+                a.status = Approval.APPROVAL_STATUS_CANCELLED
                 a.save()
-                logger.info('Expired notification to permission holder sent for Approval {}'.format(a.lodgement_number))
+                logger.info('Cancel notification to permission holder sent for Approval {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:
-                err_msg = 'Error sending expired notification to permission holder for Approval {}'.format(a.lodgement_number)
+                err_msg = 'Error sending cancel notification to permission holder for Approval {}'.format(a.lodgement_number)
                 logger.error('{}\n{}'.format(err_msg, str(e)))
                 errors.append(err_msg)
 

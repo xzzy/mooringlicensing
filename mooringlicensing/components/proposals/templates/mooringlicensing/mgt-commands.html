@@ -93,12 +93,12 @@
             </div>
 
             <div class="row">
-                <button type="submit" name="script" value="expire_approvals_due_to_no_vessels_nominated" {% if expire_approvals_due_to_no_vessels_nominated == 'true' %}style="color:green" {% endif %} title="Expire Approvals and Send Notifications">Run Script 'expire_approvals_due_to_no_vessels_nominated'</button>
+                <button type="submit" name="script" value="cancel_approvals_due_to_no_vessels_nominated" {% if cancel_approvals_due_to_no_vessels_nominated == 'true' %}style="color:green" {% endif %} title="Expire Approvals and Send Notifications">Run Script 'cancel_approvals_due_to_no_vessels_nominated'</button>
                 {% if debug %}
                 <div class="debug-box">
                     <div><span>Enter the lodgement number and click the button above</span></div>
                     <div>
-                        Approval lodgement number to expire: <input type="text" name="expire_approvals_due_to_no_vessels_nominated_lodgement_number" />
+                        Approval lodgement number to cancel: <input type="text" name="cancel_approvals_due_to_no_vessels_nominated_lodgement_number" />
                     </div>
                 </div>
                 {% endif %}
