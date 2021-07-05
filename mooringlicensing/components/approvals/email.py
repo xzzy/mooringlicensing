@@ -182,7 +182,12 @@ def send_vessel_nomination_notification_main(approval, request=None):
     return msg
 
 
-def send_vessel_nomination_reminder_main(approval, request=None):
+def send_approval_expired_due_to_no_vessels_nominated_mail(approval, request=None):
+    # TODO: implement, mail is sent to holder and officer
+    pass
+
+
+def send_vessel_nomination_reminder_mail(approval, request=None):
     email = ApprovalVesselNominationReminderEmail(approval)
     proposal = approval.current_proposal
 
