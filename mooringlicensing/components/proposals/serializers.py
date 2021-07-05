@@ -233,6 +233,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     #company_ownership = CompanyOwnershipSerializer() 
     start_date = serializers.ReadOnlyField()
     end_date = serializers.ReadOnlyField()
+    previous_application_vessel_details_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -306,8 +307,16 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'company_ownership_name',
                 'company_ownership_percentage',
                 'dot_name',
+                'previous_application_id',
+                'previous_application_vessel_details_id',
                 )
         read_only_fields=('documents',)
+
+    def get_previous_application_vessel_details_id(self, obj):
+        vessel_details_id = None
+        if obj.previous_application and obj.previous_application.vessel_details:
+            vessel_details_id = obj.previous_application.vessel_details.id
+        return vessel_details_id
 
     def get_editable_vessel_details(self, obj):
         return obj.editable_vessel_details
@@ -731,6 +740,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     assessor_assessment=ProposalAssessmentSerializer(read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
+    previous_application_vessel_details_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -789,11 +799,19 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'site_licensee_email',
                 'mooring_id',
                 'mooring_authorisation_preference',
+                'previous_application_id',
+                'previous_application_vessel_details_id',
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_previous_application_vessel_details_id(self, obj):
+        vessel_details_id = None
+        if obj.previous_application and obj.previous_application.vessel_details:
+            vessel_details_id = obj.previous_application.vessel_details.id
+        return vessel_details_id
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:

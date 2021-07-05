@@ -543,6 +543,8 @@ from '@/utils/hooks'
                                 // retrieve list of Vessel Owners
                                 const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
                                 console.log(res);
+                                vm.parseVesselOwnershipList(res);
+                                /*
                                 let individualOwner = false;
                                 let companyOwner = false;
                                 for (let vo of res.body) {
@@ -563,6 +565,7 @@ from '@/utils/hooks'
                                     await vm.lookupCompanyOwnership(companyId);
                                     vm.readCompanyName();
                                 }
+                                */
                             }
                         } else {
                             console.log("new vessel");
@@ -614,6 +617,29 @@ from '@/utils/hooks'
                 });
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
+            },
+            parseVesselOwnershipList: async function(res) {
+                let vm = this;
+                let individualOwner = false;
+                let companyOwner = false;
+                for (let vo of res.body) {
+                    if (vo.individual_owner) {
+                        individualOwner = true;
+                    } else if (vo.company_ownership) {
+                        companyOwner = true;
+                    }
+                }
+                if (individualOwner) {
+                    // read individual ownership data
+                    vm.vessel.vessel_ownership.individual_owner = true;
+                } else if (companyOwner) {
+                    // read first company ownership data
+                    vm.vessel.vessel_ownership.individual_owner = false;
+                    const vo = res.body[0]
+                    const companyId = vo.company_ownership.company.id;
+                    await vm.lookupCompanyOwnership(companyId);
+                    vm.readCompanyName();
+                }
             },
             addEventListeners: function() {
                 let vm = this;
@@ -778,9 +804,9 @@ from '@/utils/hooks'
         mounted: function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
-                if (this.proposal) {
+                if (this.proposal && this.proposal.proposal_type.code==='new') {
                     await this.fetchVessel();
-                } else if (!this.creatingVessel) {
+                } else if (!this.proposal && !this.creatingVessel) {
                     // route.params.vessel_id in this case is a vesselownership id
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
@@ -791,9 +817,17 @@ from '@/utils/hooks'
                 // read in Renewal/Amendment vessel details
                 if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new')) {
                     let vm = this;
-                    //this.vessel.rego_no = this.proposal.rego_no;
-                    this.vessel.id = this.proposal.vessel_id;
-                    if (this.vessel.id) {
+                    let res = null;
+                    // check vessel ownership on the previous application
+                    if (this.proposal.previous_application_vessel_details_id) {
+                        const url = helpers.add_endpoint_join(
+                            api_endpoints.proposal,
+                            this.proposal.previous_application_id + '/fetch_vessel/'
+                        );
+                        res = await this.$http.get(url);
+                    }
+                    if (this.proposal.vessel_id && res.body && !res.body.vessel_ownership.end_date) {
+                        this.vessel = Object.assign({}, res.body);
                         const payload = {
                             id: this.vessel.id,
                             tag: false,
