@@ -17,6 +17,7 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCo
 
 #test
 from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger('payment_checkout')
 
@@ -144,10 +145,20 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
+    valid_null_vessel_application = False
 
     if isinstance(instance, Proposal):
         application_type = instance.application_type
-        vessel_length = instance.vessel_details.vessel_applicable_length
+        if instance.vessel_details:
+            vessel_length = instance.vessel_details.vessel_applicable_length
+        else:
+            # No vessel specified in the application
+            if instance.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+                # For the amendment application or the renewal application, vessel field can be blank when submit.
+                vessel_length = -1
+                valid_null_vessel_application = True
+            else:
+                raise Exception('No vessel specified for the application {}'.format(instance.lodgement_number))
         proposal_type = instance.proposal_type
     elif isinstance(instance, DcvPermit):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
@@ -178,6 +189,12 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+    if valid_null_vessel_application:
+        # We don't charge for this application but when new replacement vessel details are provided,
+        # TODO: We have to calculate fee and charge for it
+        fee_item_amount = 0
+    else:
+        fee_item_amount = fee_item.amount
 
     line_items = [
         {
@@ -189,8 +206,10 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
                 target_datetime_str,
             ),
             'oracle_code': application_type.oracle_code,
-            'price_incl_tax':  fee_item.amount,
-            'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            # 'price_incl_tax':  fee_item.amount,
+            # 'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            'price_incl_tax':  fee_item_amount,
+            'price_excl_tax':  calculate_excl_gst(fee_item_amount) if fee_constructor.incur_gst else fee_item_amount,
             'quantity': 1,
         },
     ]
