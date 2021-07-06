@@ -3631,8 +3631,6 @@ def clone_proposal_with_status_reset(original_proposal):
     """
     with transaction.atomic():
         try:
-            #original_proposal = copy.deepcopy(proposal)
-            #proposal.id = None
             proposal = type(original_proposal.child_obj).objects.create()
             print("type(proposal)")
             print(type(proposal))
@@ -3643,17 +3641,16 @@ def clone_proposal_with_status_reset(original_proposal):
             proposal.approval = original_proposal.approval
 
             ## Vessel data
-            proposal.rego_no = original_proposal.vessel_details.vessel.rego_no
-            proposal.vessel_id = original_proposal.vessel_details.vessel.id
-            if original_proposal.vessel_ownership.company_ownership:
-                proposal.individual_owner = False
-                proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
-                proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
-            else:
-                proposal.individual_owner = True
-                proposal.percentage = original_proposal.vessel_ownership.percentage
+            #proposal.rego_no = original_proposal.vessel_details.vessel.rego_no
+            #proposal.vessel_id = original_proposal.vessel_details.vessel.id
+            #if original_proposal.vessel_ownership.company_ownership:
+            #    proposal.individual_owner = False
+            #    proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
+            #    proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
+            #else:
+            #    proposal.individual_owner = True
+            #    proposal.percentage = original_proposal.vessel_ownership.percentage
 
-            #proposal.child_obj.save(no_revision=True)
             proposal.save(no_revision=True)
             return proposal
         except:
