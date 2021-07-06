@@ -24,6 +24,7 @@ class Command(BaseCommand):
         subprocess.call('python manage_co.py send_compliance_reminder' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py send_endorser_reminder' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py send_vessel_nominate_reminder' + stdout_redirect, shell=True)
+        subprocess.call('python manage_co.py cancel_approvals_due_to_no_vessels_nominated' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py send_waiting_list_application_submit_due_reminder' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py expire_mooring_licence_application_due_to_no_documents' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py expire_mooring_licence_application_due_to_no_submit' + stdout_redirect, shell=True)
