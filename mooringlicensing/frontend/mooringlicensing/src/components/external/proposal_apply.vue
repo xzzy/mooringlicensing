@@ -474,11 +474,12 @@ export default {
                 this.creatingProposal = false;
             } catch(error) {
                 console.log(error)
-                swal({
+                await swal({
                 title: "Renew/Amend Approval",
                 text: error.body,
                 type: "error",
                 });
+                this.$router.go();
             }
         });
     },
