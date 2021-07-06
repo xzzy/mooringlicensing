@@ -1,4 +1,5 @@
 import logging
+from dateutil.relativedelta import relativedelta
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -11,6 +12,8 @@ from mooringlicensing.components.proposals.email import (
         _log_user_email as log_proposal_user_email,
         )
 from ledger.accounts.models import EmailUser
+
+from mooringlicensing.components.proposals.models import ProposalApproverGroup
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,15 @@ class ApprovalVesselNominationNotificationEmail(TemplateEmailBase):
     subject = 'Nominate vessel for Permit {}'
     html_template = 'mooringlicensing/emails/approval_vessel_nomination_reminder.html'
     txt_template = 'mooringlicensing/emails/approval_vessel_nomination_reminder.txt'
+
+    def __init__(self, approval):
+        self.subject = self.subject.format(approval.lodgement_number)
+
+
+class ApprovalCancelledDueToNoVesselsNominatedEmail(TemplateEmailBase):
+    subject = 'Notification: Approval {} cancelled'
+    html_template = 'mooringlicensing/emails/approval_cancelled_due_to_no_vessels_nominated.html'
+    txt_template = 'mooringlicensing/emails/approval_cancelled_due_to_no_vessels_nominated.txt'
 
     def __init__(self, approval):
         self.subject = self.subject.format(approval.lodgement_number)
@@ -182,13 +194,49 @@ def send_vessel_nomination_notification_main(approval, request=None):
     return msg
 
 
-def send_vessel_nomination_reminder_main(approval, request=None):
+def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=None):
+    email = ApprovalCancelledDueToNoVesselsNominatedEmail(approval)
+    proposal = approval.current_proposal
+
+    context = {
+        'approval': approval,
+        'due_date': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
+    }
+
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+
+    approver_group = ProposalApproverGroup.objects.all().first()
+    to_address = approval.submitter.email
+    all_ccs = []
+    bcc = approver_group.members_email
+    # if proposal.org_applicant and proposal.org_applicant.email:
+    #     cc_list = proposal.org_applicant.email
+    #     if cc_list:
+    #         all_ccs = [cc_list]
+    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
+
+    _log_approval_email(msg, approval, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+    return msg
+
+
+def send_vessel_nomination_reminder_mail(approval, request=None):
     email = ApprovalVesselNominationReminderEmail(approval)
     proposal = approval.current_proposal
 
     context = {
         'approval': approval,
-        'due_date': approval.current_proposal.vessel_ownership.end_date,
+        'due_date': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
     }
 
     sender = settings.DEFAULT_FROM_EMAIL
