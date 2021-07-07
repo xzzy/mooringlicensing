@@ -918,6 +918,24 @@ class MooringLicence(Approval):
                 vessel_ownership.append(proposal.vessel_ownership)
         return vessel_ownership
 
+    @property
+    def current_vessels(self):
+        vessels = []
+        for proposal in self.proposal_set.all():
+            if (
+                    proposal.final_status and 
+                    proposal.vessel_ownership and 
+                    proposal.vessel_ownership not in vessels and 
+                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    ):
+                vessels.append({
+                    "submitted_vessel_details": proposal.vessel_details, 
+                    "submitted_vessel_ownership": proposal.vessel_ownership,
+                    "rego_no": proposal.vessel_details.vessel.rego_no,
+                    "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
+                    })
+        return vessels
+
 
 class PreviewTempApproval(Approval):
     class Meta:
