@@ -1,6 +1,13 @@
 <template lang="html">
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
+            <div v-if="mooringLicenceCurrentVesselDisplayText" class="row form-group">
+                <div class="col-sm-9">
+                    {{ mooringLicenceCurrentVesselDisplayText }}
+                    <s>Below you can enter the details of a new vessel to be added to the mooring licence if required, otherwise leave the vessel details blank.</s>
+                    <strong>BB note: As discussed, for all renewal/amendments I am currently prefilling the vessel (unless sold) from the last application in the chain of applications linked to an approval.</strong>
+                </div>
+            </div>
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
@@ -257,6 +264,14 @@ from '@/utils/hooks'
             },
         },
         computed: {
+            mooringLicenceCurrentVesselDisplayText: function() {
+                let displayText = '';
+                if (this.proposal.mooring_licence_vessels.length) {
+                    displayText += `Your mooring licence ${this.proposal.approval_lodgement_number} 
+                    currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}.`;
+                }
+                return displayText;
+            },
             showDotRegistrationPapers: function() {
                 let retVal = false;
                 if (this.proposal && this.proposal.id && this.companyOwner) {
