@@ -517,9 +517,11 @@ def submit_vessel_data(instance, request, vessel_data):
     # record ownership data
     #submit_vessel_ownership(instance, request)
     vessel_ownership = store_vessel_ownership(request, vessel, instance)
+
     # associate vessel_ownership with proposal
     instance.vessel_ownership = vessel_ownership
     instance.save()
+
     ## vessel association with other applications
     association_fail = False
     proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=vessel)]

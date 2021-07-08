@@ -2363,6 +2363,26 @@ class WaitingListApplication(Proposal):
             return True
         return False
 
+    def get_fee_amount_adjusted(self, fee_item):
+        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            if fee_item:
+                # Adjust
+                for f_item in self.approval.fee_items:
+                    print(f_item)
+
+                fee_item_amount = fee_item.amount
+            else:
+                if self.does_accept_null_vessel:
+                    # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+                    fee_item_amount = 0
+                else:
+                    raise Exception('FeeItem not found.')
+        else:
+            # This is New Application type
+            fee_item_amount = fee_item.amount
+
+        return fee_item_amount
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2456,6 +2476,9 @@ class AnnualAdmissionApplication(Proposal):
     @property
     def does_accept_null_vessel(self):
         return False
+
+    def get_fee_amount_adjusted(self, fee_item):
+        raise NotImplementedError
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2625,6 +2648,9 @@ class AuthorisedUserApplication(Proposal):
     def does_accept_null_vessel(self):
         return False
 
+    def get_fee_amount_adjusted(self, fee_item):
+        raise NotImplementedError
+
 
 class MooringLicenceApplication(Proposal):
     REASON_FOR_EXPIRY_NOT_SUBMITTED = 'not_submitted'
@@ -2777,6 +2803,9 @@ class MooringLicenceApplication(Proposal):
         if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
             return True
         return False
+
+    def get_fee_amount_adjusted(self, fee_item):
+        raise NotImplementedError
 
 
 class ProposalLogDocument(Document):
