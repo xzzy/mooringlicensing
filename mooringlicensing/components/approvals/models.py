@@ -721,7 +721,11 @@ class Approval(RevisionedMixin):
         fee_items = []
         for proposal in self.proposal_set.all():
             for application_fee in proposal.application_fees.all():
-                fee_items.append(application_fee.fee_item)
+                if application_fee.fee_item:
+                    fee_items.append(application_fee.fee_item)
+                else:
+                    # Should not be here (This does not apply to the data generated at the early stages of development)
+                    pass
         return fee_items
 
 
