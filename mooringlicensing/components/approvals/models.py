@@ -716,6 +716,14 @@ class Approval(RevisionedMixin):
 
         return type_list
 
+    @property
+    def fee_items(self):
+        fee_items = []
+        for proposal in self.proposal_set.all():
+            for application_fee in proposal.application_fees.all():
+                fee_items.append(application_fee.fee_item)
+        return fee_items
+
 
 class WaitingListAllocation(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
