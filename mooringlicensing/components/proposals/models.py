@@ -578,7 +578,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def does_have_valid_associations(self):
         # Check if this application has valid associations with other applications and approvals
-        return self.chilc_obj.does_have_valid_associations()
+        return self.child_obj.does_have_valid_associations()
 
     @property
     def final_status(self):
@@ -2367,37 +2367,46 @@ class WaitingListApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item):
-        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
-            if fee_item:
-                # Adjust
-                for f_item in self.approval.fee_items:
-                    print(f_item)
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
 
-                fee_item_amount = fee_item.amount
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
+            # This is Amendment application.  We have to adjust the fee
+            if fee_item_being_applied:
+                fee_amount_adjusted = fee_item_being_applied.amount
+
+                # Adjust the fee
+                for f_item in self.approval.fee_items:
+                    fee_amount_adjusted -= f_item.amount  # TODO: Correct the logic.  This is not always correct.  Take into account the fee_season, fee_period, etc
             else:
                 if self.does_accept_null_vessel:
                     # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
-                    fee_item_amount = 0
+                    fee_amount_adjusted = 0
                 else:
                     raise Exception('FeeItem not found.')
         else:
-            # This is New Application type
-            fee_item_amount = fee_item.amount
+            # This is New/Renewal Application type
+            fee_amount_adjusted = fee_item_being_applied.amount
 
-        return fee_item_amount
+        return fee_amount_adjusted
 
     def does_have_valid_associations(self):
         """
         Check if this application has valid associations with other applications and approvals
         """
-        # TODO: implement logic
+        # TODO: correct the logic.  just partially implemented
+        valid = True
+
+        proposals = WaitingListApplication.objects.filter(vessel_details__vessel=self.vessel_details.vessel).exclude(
+            Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DISCARDED)))
+        if proposals:
+            # The vessel in this application is already part of another application
+            valid = False
+
         # from mooringlicensing.components.approvals.models import ApprovalHistory
-        # proposals = WaitingListApplication.objects.filter(vessel_details__vessel=self.vessel_details.vessel).exclude(
-        #     Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED)))
         # approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_details.vessel)]
         # approvals = list(dict.fromkeys(approvals))  # remove duplicates
-        return True
+
+        return valid
 
 
 class AnnualAdmissionApplication(Proposal):
@@ -2493,7 +2502,7 @@ class AnnualAdmissionApplication(Proposal):
     def does_accept_null_vessel(self):
         return False
 
-    def get_fee_amount_adjusted(self, fee_item):
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
         raise NotImplementedError
 
     def does_have_valid_associations(self):
@@ -2671,7 +2680,7 @@ class AuthorisedUserApplication(Proposal):
     def does_accept_null_vessel(self):
         return False
 
-    def get_fee_amount_adjusted(self, fee_item):
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
         raise NotImplementedError
 
     def does_have_valid_associations(self):
@@ -2834,7 +2843,7 @@ class MooringLicenceApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item):
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
         raise NotImplementedError
 
     def does_have_valid_associations(self):
