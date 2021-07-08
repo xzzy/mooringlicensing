@@ -149,14 +149,16 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     if isinstance(instance, Proposal):
         application_type = instance.application_type
+        this_is_null_vessel_app = False
+
         if instance.vessel_details:
             vessel_length = instance.vessel_details.vessel_applicable_length
         else:
             # No vessel specified in the application
-            if instance.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            if instance.does_accept_null_vessel:
                 # For the amendment application or the renewal application, vessel field can be blank when submit.
                 vessel_length = -1
-                valid_null_vessel_application = True
+                this_is_null_vessel_app = True
             else:
                 raise Exception('No vessel specified for the application {}'.format(instance.lodgement_number))
         proposal_type = instance.proposal_type
@@ -189,12 +191,14 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
-    if valid_null_vessel_application:
-        # We don't charge for this application but when new replacement vessel details are provided,
-        # TODO: We have to calculate fee and charge for it
-        fee_item_amount = 0
-    else:
+    if fee_item:
         fee_item_amount = fee_item.amount
+    else:
+        if this_is_null_vessel_app:
+            # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+            fee_item_amount = 0
+        else:
+            raise Exception('FeeItem not found.')
 
     line_items = [
         {

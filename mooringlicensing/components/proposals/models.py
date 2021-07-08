@@ -2357,6 +2357,12 @@ class WaitingListApplication(Proposal):
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+    @property
+    def does_accept_null_vessel(self):
+        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            return True
+        return False
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2446,6 +2452,10 @@ class AnnualAdmissionApplication(Proposal):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
         self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
+
+    @property
+    def does_accept_null_vessel(self):
+        return False
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2611,6 +2621,10 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
         self.save()
 
+    @property
+    def does_accept_null_vessel(self):
+        return False
+
 
 class MooringLicenceApplication(Proposal):
     REASON_FOR_EXPIRY_NOT_SUBMITTED = 'not_submitted'
@@ -2757,6 +2771,12 @@ class MooringLicenceApplication(Proposal):
             raise e
             msg = 'Payment taken for Proposal: {}, but approval creation has failed'.format(self.lodgement_number)
             logger.error(msg)
+
+    @property
+    def does_accept_null_vessel(self):
+        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            return True
+        return False
 
 
 class ProposalLogDocument(Document):
