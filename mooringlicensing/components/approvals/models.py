@@ -108,8 +108,8 @@ class MooringOnApproval(RevisionedMixin):
 
 class ApprovalHistory(RevisionedMixin):
     approval = models.ForeignKey('Approval')
-    #vessel = models.ForeignKey(Vessel)
-    vessel_ownership = models.ForeignKey(VesselOwnership)
+    # can be null due to requirement to allow null vessels on renewal/amendment applications
+    vessel_ownership = models.ForeignKey(VesselOwnership, blank=True, null=True)
     proposal = models.ForeignKey(Proposal,related_name='approval_history_records')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(blank=True, null=True)
@@ -242,7 +242,7 @@ class Approval(RevisionedMixin):
                 end_date = self.issue_date
                 previous_history_entry = self.approvalhistory_set.filter(proposal=previous_application)[0]
                 # check vo sale date
-                if previous_history_entry.vessel_ownership.end_date:
+                if previous_history_entry.vessel_ownership and previous_history_entry.vessel_ownership.end_date:
                     end_date = previous_history_entry.vessel_ownership.end_date
                 # update previous_history_entry
                 previous_history_entry.end_date = end_date
