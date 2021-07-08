@@ -576,6 +576,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def does_have_valid_associations(self):
+        # Check if this application has valid associations with other applications and approvals
+        return self.chilc_obj.does_have_valid_associations()
+
     @property
     def final_status(self):
         final_status = False
@@ -2383,6 +2387,18 @@ class WaitingListApplication(Proposal):
 
         return fee_item_amount
 
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        # from mooringlicensing.components.approvals.models import ApprovalHistory
+        # proposals = WaitingListApplication.objects.filter(vessel_details__vessel=self.vessel_details.vessel).exclude(
+        #     Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED)))
+        # approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_details.vessel)]
+        # approvals = list(dict.fromkeys(approvals))  # remove duplicates
+        return True
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2479,6 +2495,13 @@ class AnnualAdmissionApplication(Proposal):
 
     def get_fee_amount_adjusted(self, fee_item):
         raise NotImplementedError
+
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        return True
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2651,6 +2674,13 @@ class AuthorisedUserApplication(Proposal):
     def get_fee_amount_adjusted(self, fee_item):
         raise NotImplementedError
 
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        return True
+
 
 class MooringLicenceApplication(Proposal):
     REASON_FOR_EXPIRY_NOT_SUBMITTED = 'not_submitted'
@@ -2806,6 +2836,13 @@ class MooringLicenceApplication(Proposal):
 
     def get_fee_amount_adjusted(self, fee_item):
         raise NotImplementedError
+
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        return True
 
 
 class ProposalLogDocument(Document):
