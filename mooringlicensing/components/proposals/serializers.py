@@ -28,11 +28,8 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring,
 )
-from mooringlicensing.components.organisations.models import (
-                                Organisation
-                            )
+from mooringlicensing.components.approvals.models import MooringLicence
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
-from mooringlicensing.components.organisations.serializers import OrganisationSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from rest_framework import serializers
 from django.db.models import Q
@@ -234,6 +231,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     start_date = serializers.ReadOnlyField()
     end_date = serializers.ReadOnlyField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
+    mooring_licence_vessels = serializers.SerializerMethodField()
+    approval_lodgement_number = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -309,8 +308,22 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'dot_name',
                 'previous_application_id',
                 'previous_application_vessel_details_id',
+                'mooring_licence_vessels',
+                'approval_lodgement_number',
                 )
         read_only_fields=('documents',)
+
+    def get_approval_lodgement_number(self, obj):
+        lodgement_number = None
+        if obj.approval:
+            lodgement_number = obj.approval.lodgement_number
+        return lodgement_number
+
+    def get_mooring_licence_vessels(self, obj):
+        vessels = []
+        if obj.approval and type(obj.approval.child_obj) == MooringLicence:
+            vessels = obj.approval.child_obj.current_vessels_rego
+        return vessels
 
     def get_previous_application_vessel_details_id(self, obj):
         vessel_details_id = None

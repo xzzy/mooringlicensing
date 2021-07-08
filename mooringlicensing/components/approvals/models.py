@@ -906,7 +906,11 @@ class MooringLicence(Approval):
     def vessel_details_list(self):
         vessel_details = []
         for proposal in self.proposal_set.all():
-            if proposal.final_status and proposal.vessel_details not in vessel_details:
+            if (
+                    proposal.final_status and 
+                    proposal.vessel_details not in vessel_details and
+                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    ):
                 vessel_details.append(proposal.vessel_details)
         return vessel_details
 
@@ -914,7 +918,11 @@ class MooringLicence(Approval):
     def vessel_ownership_list(self):
         vessel_ownership = []
         for proposal in self.proposal_set.all():
-            if proposal.final_status and proposal.vessel_ownership not in vessel_ownership:
+            if (
+                    proposal.final_status and 
+                    proposal.vessel_ownership not in vessel_ownership and
+                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    ):
                 vessel_ownership.append(proposal.vessel_ownership)
         return vessel_ownership
 
@@ -934,6 +942,19 @@ class MooringLicence(Approval):
                     "rego_no": proposal.vessel_details.vessel.rego_no,
                     "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
                     })
+        return vessels
+
+    @property
+    def current_vessels_rego(self):
+        vessels = []
+        for proposal in self.proposal_set.all():
+            if (
+                    proposal.final_status and 
+                    proposal.vessel_ownership and 
+                    proposal.vessel_ownership not in vessels and 
+                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    ):
+                vessels.append(proposal.vessel_details.vessel.rego_no)
         return vessels
 
 
