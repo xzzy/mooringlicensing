@@ -12,7 +12,7 @@ from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
-from mooringlicensing.components.proposals.models import Proposal, ProposalType
+# from mooringlicensing.components.proposals.models import Proposal, ProposalType
 
 logger = logging.getLogger('__name__')
 
@@ -112,7 +112,8 @@ class DcvAdmissionFee(Payment):
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
-    fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
+    # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
+    fee_items = models.ManyToManyField('FeeItem', related_name='dcv_admission_fees')
 
     def __str__(self):
         return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
@@ -138,8 +139,9 @@ class DcvPermitFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
-    fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
+    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+    # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
+    fee_items = models.ManyToManyField('FeeItem', related_name='dcv_permit_fees')
 
     def __str__(self):
         return 'DcvPermit {} : Invoice {}'.format(self.dcv_permit, self.invoice_reference)
@@ -160,13 +162,14 @@ class ApplicationFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    proposal = models.ForeignKey(Proposal, on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
+    proposal = models.ForeignKey('Proposal', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
-    fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
+    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
+    # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
+    fee_items = models.ManyToManyField('FeeItem', related_name='application_fees')
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
@@ -399,7 +402,7 @@ class FeeItem(RevisionedMixin):
     fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True)
     fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
     vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
-    proposal_type = models.ForeignKey(ProposalType, null=True, blank=True)
+    proposal_type = models.ForeignKey('ProposalType', null=True, blank=True)
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
     # For DcvAdmission
     age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
