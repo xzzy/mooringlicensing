@@ -8,16 +8,15 @@ from django.urls import reverse
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
     use_existing_basket_from_invoice
 from ledger.settings_base import TIME_ZONE
-from rest_framework import serializers
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
+from mooringlicensing.components.approvals.models import DcvPermit
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
 
 #test
-from mooringlicensing.components.proposals.models import Proposal
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
+from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
+    AnnualAdmissionApplication
 
 logger = logging.getLogger('payment_checkout')
 
@@ -172,8 +171,16 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
     # Retrieve FeeItem object from FeeConstructor object
+    fee_constructor_additional = None
     if isinstance(instance, Proposal):
         fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
+        if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication):
+            # There should be annual admission fee component for the AUA/MLA.
+            annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
+            fee_constructor_additional = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+            if not fee_constructor_additional:
+                # Fees have not been configured for the annual admission application and date
+                raise Exception('FeeConstructor object for the Annual Admission Application not found for the date: {}'.format(target_date))
         if not fee_constructor:
             # Fees have not been configured for this application type and date
             raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
@@ -186,9 +193,14 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         raise Exception('Something went wrong when calculating the fee')
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
-    fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item)
+    fee_item_additional = fee_constructor_additional.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_additional else None
 
-    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
+    fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item)
+    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_additional) if fee_item_additional else None
+
+    # TODO: charge fee_amount_adjusted_additional if not null, then save it in ...Fee object after payment success by db_process
+
+    # db_processes_after_success['fee_constructor_id'] = fee_constructor.id
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
     db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
