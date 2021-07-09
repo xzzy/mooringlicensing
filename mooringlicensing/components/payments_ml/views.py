@@ -21,7 +21,8 @@ from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.payments_ml.email import send_dcv_permit_fee_invoice, \
     send_application_submit_confirmation_email, send_dcv_admission_fee_invoice, send_dcv_permit_notification
-from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
+    DcvAdmissionFee, FeeItem
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
@@ -504,6 +505,11 @@ class ApplicationFeeSuccessView(TemplateView):
                 # This payment is for the WLA or AAA
                 fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                 application_fee.fee_constructor = fee_constructor
+                application_fee.invoice_reference = invoice_ref
+            if 'fee_item_id' in db_operations:
+                # This payment is for the WLA or AAA
+                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+                application_fee.fee_item = fee_item
                 application_fee.invoice_reference = invoice_ref
 
             # Update the application_fee object
