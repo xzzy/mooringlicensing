@@ -724,8 +724,8 @@ class Approval(RevisionedMixin):
         fee_items = []
         for proposal in self.proposal_set.all():
             for application_fee in proposal.application_fees.all():
-                if application_fee.fee_item:
-                    fee_items.append(application_fee.fee_item)
+                for fee_item in application_fee.fee_items.all():
+                    fee_items.append(fee_item)
                 else:
                     # Should not be here (This does not apply to the data generated at the early stages of development)
                     pass
@@ -1202,6 +1202,10 @@ class DcvPermit(RevisionedMixin):
         # self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         permit_document = create_dcv_permit_document(self)
         # self.save()
+
+    def get_fee_amount_adjusted(self, fee_item):
+        # Adjust fee amount if needed
+        return fee_item.amount
 
     class Meta:
         app_label = 'mooringlicensing'

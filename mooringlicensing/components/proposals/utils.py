@@ -1,26 +1,20 @@
 import re
 
-import pytz
-from django.db import transaction, IntegrityError
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.conf import settings
-from ledger.settings_base import TIME_ZONE
-from preserialize.serialize import serialize
+from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
 from mooringlicensing.components.proposals.models import (
-    ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
-    ProposalUserAction,
-    ProposalAssessment,
-    ProposalAssessmentAnswer,
-    ChecklistQuestion,
-    ProposalStandardRequirement,
+    # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
+    # ProposalUserAction,
+    # ProposalAssessment,
+    # ProposalAssessmentAnswer,
+    # ChecklistQuestion,
+    # ProposalStandardRequirement,
     WaitingListApplication,
     AnnualAdmissionApplication,
     AuthorisedUserApplication,
     MooringLicenceApplication,
     Vessel,
-    VesselDetails,
+    # VesselDetails,
     VesselOwnership,
     Owner, 
     Proposal,
@@ -62,7 +56,10 @@ import time
 from rest_framework import serializers
 
 import logging
+
+
 logger = logging.getLogger(__name__)
+logger_for_payment = logging.getLogger('payment_checkout')
 
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
@@ -963,3 +960,47 @@ def is_payment_officer(user):
 #        booking_email.send_invoice_tclass_email_notification(request.user, booking, bi, recipients, is_test=True)
 #        booking_email.send_confirmation_tclass_email_notification(request.user, booking, bi, recipients, is_test=True)
 
+
+def get_fee_amount_adjusted(proposal, fee_item_being_applied):
+    # This logic might be true to all the four types of application
+    # If not, implement the logic specific to a certain application type under that class
+    if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
+        # This is Amendment application.  We have to adjust the fee
+        if fee_item_being_applied:
+            logger_for_payment.log('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
+            logger_for_payment.log('FeeItem being applied: {}'.format(fee_item_being_applied))
+
+            fee_amount_adjusted = fee_item_being_applied.amount
+
+            # Adjust the fee
+            for fee_item in proposal.approval.fee_items:
+                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
+                    # Find the fee_item which can be considered as already paid for this period
+                    target_fee_period = fee_item_being_applied.fee_period
+                    target_vessel_size_category = fee_item.vessel_size_category
+                    target_proposal_type = fee_item.proposal_type
+                    target_fee_constructor = fee_item_being_applied.fee_constructor
+                    fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+                        target_vessel_size_category,
+                        target_fee_period,
+                        proposal_type=target_proposal_type,
+                        age_group=None,
+                        admission_type=None
+                    )
+
+                    # Applicant already partially paid for this fee item.  Deduct it.
+                    fee_amount_adjusted -= fee_item_considered_paid.amount
+                    logger_for_payment.log('Deduct fee item: {}'.format(fee_item_considered_paid))
+
+            fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
+        else:
+            if proposal.does_accept_null_vessel:
+                # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+                fee_amount_adjusted = 0
+            else:
+                raise Exception('FeeItem not found.')
+    else:
+        # This is New/Renewal Application type
+        fee_amount_adjusted = fee_item_being_applied.amount
+
+    return fee_amount_adjusted
