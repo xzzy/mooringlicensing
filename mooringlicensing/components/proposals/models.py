@@ -2672,7 +2672,7 @@ class AuthorisedUserApplication(Proposal):
         return False
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
-        raise NotImplementedError
+        return get_fee_amount_adjusted(self, fee_item_being_applied)
 
     def does_have_valid_associations(self):
         """
@@ -2835,7 +2835,7 @@ class MooringLicenceApplication(Proposal):
         return False
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
-        raise NotImplementedError
+        return get_fee_amount_adjusted(self, fee_item_being_applied)
 
     def does_have_valid_associations(self):
         """
