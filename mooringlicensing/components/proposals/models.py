@@ -1575,6 +1575,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 line_items, db_operations = create_fee_lines(self)
                 # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                 fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+                try:
+                    fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                except:
+                    fee_item_additional = None
 
                 if line_items:
                     with transaction.atomic():
@@ -1591,7 +1595,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             annual_rental_fee = ApplicationFee.objects.create(
                                 proposal=self,
                                 # fee_constructor=fee_constructor,
-                                fee_item=fee_item,
+                                # fee_item=fee_item,
                                 # annual_rental_fee_period=annual_rental_fee_period,
                                 invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
@@ -1599,6 +1603,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 # invoice_period_end_date=invoice_period[1],
                                 # lines=line_items,  # We may add this field to the ApplicationFee model
                             )
+                            annual_rental_fee.fee_items.add(fee_item)
+                            if fee_item_additional:
+                                annual_rental_fee.fee_items.add(fee_item_additional)
                             # updates.append(annual_rental_fee.invoice_reference)
 
                             self.process_after_approval(request)

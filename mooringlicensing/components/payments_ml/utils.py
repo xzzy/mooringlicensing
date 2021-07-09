@@ -169,14 +169,14 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
     target_date = target_datetime.date()
     target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+    annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
     # Retrieve FeeItem object from FeeConstructor object
     fee_constructor_additional = None
     if isinstance(instance, Proposal):
         fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
         if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication):
-            # There should be annual admission fee component for the AUA/MLA.
-            annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
+            # There is also annual admission fee component for the AUA/MLA.
             fee_constructor_additional = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
             if not fee_constructor_additional:
                 # Fees have not been configured for the annual admission application and date
@@ -198,35 +198,38 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item)
     fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_additional) if fee_item_additional else None
 
-    # TODO: charge fee_amount_adjusted_additional if not null, then save it in ...Fee object after payment success by db_process
-
-    # db_processes_after_success['fee_constructor_id'] = fee_constructor.id
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
     db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
     db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
+    db_processes_after_success['fee_item_additional_id'] = fee_item_additional.id if fee_item_additional else 0
+    # TODO: Perform db_process for additional component, too???
 
-    line_items = [
-        {
-            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
-                fee_constructor.application_type.description,
-                instance.lodgement_number,
-                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
-                target_datetime_str,
-            ),
-            'oracle_code': application_type.oracle_code,
-            # 'price_incl_tax':  fee_item.amount,
-            # 'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
-            'price_incl_tax':  fee_amount_adjusted,
-            'price_excl_tax':  calculate_excl_gst(fee_amount_adjusted) if fee_constructor.incur_gst else fee_amount_adjusted,
-            'quantity': 1,
-        },
-    ]
+    line_items = []
+    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str))
+    if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication):
+        # There is also annual admission fee component for the AUA/MLA.
+        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, target_datetime_str))
 
     logger.info('{}'.format(line_items))
 
     return line_items, db_processes_after_success
+
+
+def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str):
+    return {
+        'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+            fee_constructor.application_type.description,
+            instance.lodgement_number,
+            fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+            fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+            target_datetime_str,
+        ),
+        'oracle_code': application_type.oracle_code,
+        'price_incl_tax': fee_amount_adjusted,
+        'price_excl_tax': calculate_excl_gst(fee_amount_adjusted) if fee_constructor.incur_gst else fee_amount_adjusted,
+        'quantity': 1,
+    }
 
 
 NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
