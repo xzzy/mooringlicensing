@@ -524,60 +524,60 @@ def submit_vessel_data(instance, request, vessel_data):
     instance.save()
 
     ## vessel association with other applications
-    if instance.does_have_valid_associations():
-        pass
-    else:
-        raise serializers.ValidationError("This vessel is already part of another application/permit/licence")
+    # if instance.does_have_valid_associations():
+    #     pass
+    # else:
+    #     raise serializers.ValidationError("This vessel is already part of another application/permit/licence")
 
-    #association_fail = False
-    #proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=vessel)]
-    #proposals_wla = []
-    #proposals_mla = []
-    #proposals_aaa = []
-    #proposals_aua = []
-    #approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=vessel)]
-    #approvals = list(dict.fromkeys(approvals))  # remove duplicates
-    #approvals_wla = []
-    #approvals_ml = []
-    #approvals_ml_sus = []
-    #approvals_aap = []
-    #approvals_aup = []
-    #approvals_aup_sus = []
-    #for proposal in proposals:
-    #    if type(proposal) == WaitingListApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
-    #        proposals_wla.append(proposal)
-    #    if type(proposal) == MooringLicenceApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
-    #        proposals_mla.append(proposal)
-    #    if type(proposal) == AnnualAdmissionApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
-    #        proposals_aaa.append(proposal)
-    #    if type(proposal) == AuthorisedUserApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
-    #        proposals_aua.append(proposal)
-    #for approval in approvals:
-    #    if type(approval) == WaitingListAllocation and approval.status == 'current':
-    #        approvals_wla.append(approval)
-    #    if type(approval) == MooringLicence and approval.status == 'current':
-    #        approvals_ml.append(approval)
-    #    if type(approval) == MooringLicence and approval.status in ['current', 'suspended']:
-    #        approvals_ml_sus.append(approval)
-    #    if type(approval) == AnnualAdmissionPermit and approval.status == 'current':
-    #        approvals_aap.append(approval)
-    #    if type(approval) == AuthorisedUserPermit and approval.status == 'current':
-    #        approvals_aup.append(approval)
-    #    if type(approval) == AuthorisedUserPermit and approval.status in ['current', 'suspended']:
-    #        approvals_aup_sus.append(approval)
-    ## apply rules
-    #if (type(instance.child_obj) == WaitingListApplication and proposals_wla or approvals_wla or
-    #        proposals_mla or approvals_ml_sus):
-    #    association_fail = True
-    #elif (type(instance.child_obj) == AnnualAdmissionApplication and proposals_aaa or approvals_aap or
-    #        proposals_aua or approvals_aup_sus or proposals_mla or approvals_ml_sus):
-    #    association_fail = True
-    #elif type(instance.child_obj) == AuthorisedUserApplication and proposals_aua or approvals_aup:
-    #    association_fail = True
-    #elif type(instance.child_obj) == MooringLicenceApplication and proposals_mla or approvals_ml:
-    #    association_fail = True
-    #if association_fail:
-    #    raise serializers.ValidationError("This vessel is already part of another application/permit/licence")
+    association_fail = False
+    proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=vessel).exclude(id=instance.id)]
+    proposals_wla = []
+    proposals_mla = []
+    proposals_aaa = []
+    proposals_aua = []
+    approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=vessel)]
+    approvals = list(dict.fromkeys(approvals))  # remove duplicates
+    approvals_wla = []
+    approvals_ml = []
+    approvals_ml_sus = []
+    approvals_aap = []
+    approvals_aup = []
+    approvals_aup_sus = []
+    for proposal in proposals:
+       if type(proposal) == WaitingListApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
+           proposals_wla.append(proposal)
+       if type(proposal) == MooringLicenceApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
+           proposals_mla.append(proposal)
+       if type(proposal) == AnnualAdmissionApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
+           proposals_aaa.append(proposal)
+       if type(proposal) == AuthorisedUserApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
+           proposals_aua.append(proposal)
+    for approval in approvals:
+       if type(approval) == WaitingListAllocation and approval.status == 'current':
+           approvals_wla.append(approval)
+       if type(approval) == MooringLicence and approval.status == 'current':
+           approvals_ml.append(approval)
+       if type(approval) == MooringLicence and approval.status in ['current', 'suspended']:
+           approvals_ml_sus.append(approval)
+       if type(approval) == AnnualAdmissionPermit and approval.status == 'current':
+           approvals_aap.append(approval)
+       if type(approval) == AuthorisedUserPermit and approval.status == 'current':
+           approvals_aup.append(approval)
+       if type(approval) == AuthorisedUserPermit and approval.status in ['current', 'suspended']:
+           approvals_aup_sus.append(approval)
+    # apply rules
+    if (type(instance.child_obj) == WaitingListApplication and proposals_wla or approvals_wla or
+           proposals_mla or approvals_ml_sus):
+       association_fail = True
+    elif (type(instance.child_obj) == AnnualAdmissionApplication and proposals_aaa or approvals_aap or
+           proposals_aua or approvals_aup_sus or proposals_mla or approvals_ml_sus):
+       association_fail = True
+    elif type(instance.child_obj) == AuthorisedUserApplication and proposals_aua or approvals_aup:
+       association_fail = True
+    elif type(instance.child_obj) == MooringLicenceApplication and proposals_mla or approvals_ml:
+       association_fail = True
+    if association_fail:
+       raise serializers.ValidationError("This vessel is already part of another application/permit/licence")
 
     ## vessel ownership cannot be greater than 100%
     ownership_percentage_validation(vessel_ownership)

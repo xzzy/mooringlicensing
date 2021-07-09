@@ -2396,12 +2396,17 @@ class WaitingListApplication(Proposal):
         # TODO: correct the logic.  just partially implemented
         valid = True
 
-        proposals = WaitingListApplication.objects.filter(vessel_details__vessel=self.vessel_details.vessel).exclude(
-            Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DISCARDED)))
+        # Rules for proposal
+        proposals = WaitingListApplication.objects.\
+            filter(vessel_details__vessel=self.vessel_details.vessel).\
+            exclude(
+                Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DISCARDED))
+            )
         if proposals:
             # The vessel in this application is already part of another application
             valid = False
 
+        # Rules for approval
         # from mooringlicensing.components.approvals.models import ApprovalHistory
         # approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_details.vessel)]
         # approvals = list(dict.fromkeys(approvals))  # remove duplicates
