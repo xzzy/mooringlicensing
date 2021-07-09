@@ -360,12 +360,19 @@ class DcvPermitFeeSuccessView(TemplateView):
             invoice = Invoice.objects.get(order_number=order.number)
             invoice_ref = invoice.reference
 
-            fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+            try:
+                fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+            except:
+                fee_item_additional = None
 
             # Update the application_fee object
             dcv_permit_fee.invoice_reference = invoice_ref
-            dcv_permit_fee.fee_constructor = fee_constructor
             dcv_permit_fee.save()
+            dcv_permit_fee.fee_items.add(fee_item)
+            if fee_item_additional:
+                dcv_permit_fee.fee_items.add(fee_item_additional)
 
             if dcv_permit_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 try:
@@ -377,7 +384,7 @@ class DcvPermitFeeSuccessView(TemplateView):
                     logger.error('{} tried paying an dcv_permit fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user'))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
                 # if inv.system not in ['0517']:
-                if inv.system != fee_constructor.application_type.oracle_code:
+                if inv.system != fee_item.fee_constructor.application_type.oracle_code:
                     logger.error('{} tried paying an dcv_permit fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
 
@@ -501,18 +508,15 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice = Invoice.objects.get(order_number=order.number)
             invoice_ref = invoice.reference
 
-            if 'fee_constructor_id' in db_operations:
-                # This payment is for the WLA or AAA
-                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                application_fee.fee_constructor = fee_constructor
-                application_fee.invoice_reference = invoice_ref
-            if 'fee_item_id' in db_operations:
-                # This payment is for the WLA or AAA
-                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-                application_fee.fee_item = fee_item
-                application_fee.invoice_reference = invoice_ref
-
             # Update the application_fee object
+            fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+            application_fee.fee_items.add(fee_item)
+            try:
+                fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                application_fee.fee_items.add(fee_item_additional)
+            except:
+                fee_item_additional = None
+            application_fee.invoice_reference = invoice_ref
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
