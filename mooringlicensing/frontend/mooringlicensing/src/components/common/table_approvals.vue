@@ -78,17 +78,17 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="approvals_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="datatable_options" 
+                <datatable
+                    ref="approvals_datatable"
+                    :id="datatable_id"
+                    :dtOptions="datatable_options"
                     :dtHeaders="datatable_headers"
                 />
             </div>
         </div>
         <div v-if="is_internal && wlaDash && selectedWaitingListAllocationId">
             <OfferMooringLicence
-                ref="offer_mooring_licence" 
+                ref="offer_mooring_licence"
                 :key="offerMooringLicenceKey"
                 :wlaId="selectedWaitingListAllocationId"
                 :mooringBayId="mooringBayId"
@@ -186,27 +186,27 @@ export default {
         datatable_headers: function() {
             if (this.is_external && this.wlaDash) {
                 return [
-                    'Id', 
-                    'Number', 
-                    'Bay', 
-                    //'Application number in Bay', 
+                    'Id',
+                    'Number',
+                    'Bay',
+                    //'Application number in Bay',
                     'Allocation number in bay',
-                    'Status', 
-                    'Vessel Registration', 
-                    'Vessel Name', 
-                    'Issue Date', 
-                    'Expiry Date', 
+                    'Status',
+                    'Vessel Registration',
+                    'Vessel Name',
+                    'Issue Date',
+                    'Expiry Date',
                     'Action'
                 ]
             } else if (this.is_external) {
                 return [
-                    'Id', 
+                    'Id',
                     'Number',
                     'Type',
                     'Sticker number',
-                    'Status', 
-                    'Issue Date', 
-                    'Expiry Date', 
+                    'Status',
+                    'Issue Date',
+                    'Expiry Date',
                     'Vessel',
                     'Action',
                     'Mooring Licence Vessels',
@@ -214,30 +214,30 @@ export default {
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
-                    'Id', 
-                    'Number', 
+                    'Id',
+                    'Number',
                     'Holder',
-                    'Status', 
+                    'Status',
                     //'Mooring area',
                     'Bay',
                     'Allocation number in bay',
                     'Action',
-                    'Issue Date', 
-                    'Expiry Date', 
+                    'Issue Date',
+                    'Expiry Date',
                     'Vessel length',
                     'Vessel draft',
                     'Mooring Licence Applications',
                 ]
             } else if (this.is_internal) {
                 return [
-                    'Id', 
-                    'Number', 
+                    'Id',
+                    'Number',
                     'Type',
                     'Sticker Number',
                     'Holder',
-                    'Status', 
-                    'Issue Date', 
-                    'Expiry Date', 
+                    'Status',
+                    'Issue Date',
+                    'Expiry Date',
                     'Approval letter',
                     'Action',
                     'Mooring Licence Vessels',
@@ -674,7 +674,7 @@ export default {
                     // the next line prevents from scrolling up to the top after clicking on the popover.
                     $(tablePopover).on('click', function (e) {
                         e.preventDefault();
-                        return true;   
+                        return true;
                     });
                 }
             }).on('draw.dt', function () {
@@ -684,7 +684,7 @@ export default {
                     // the next line prevents from scrolling up to the top after clicking on the popover.
                     $(tablePopover).on('click', function (e) {
                         e.preventDefault();
-                        return true;   
+                        return true;
                     });
                 }
             });
