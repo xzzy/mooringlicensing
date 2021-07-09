@@ -968,6 +968,8 @@ def is_payment_officer(user):
 
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied):
+    # This logic might be true to all the four types of application
+    # If not, implement the logic specific to a certain application type under that class
     if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
         # This is Amendment application.  We have to adjust the fee
         if fee_item_being_applied:
@@ -979,6 +981,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
             # Adjust the fee
             for fee_item in proposal.approval.fee_items:
                 if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
+                    # Find the fee_item which can be considered as already paid for this period
                     target_fee_period = fee_item_being_applied.fee_period
                     target_vessel_size_category = fee_item.vessel_size_category
                     target_proposal_type = fee_item.proposal_type
@@ -991,9 +994,9 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
                         admission_type=None
                     )
 
-                    # Applicant already partially paid for this period.
-                    logger_for_payment.log('Deduct fee item: {}'.format(fee_item_considered_paid))
+                    # Applicant already partially paid for this fee item.  Deduct it.
                     fee_amount_adjusted -= fee_item_considered_paid.amount
+                    logger_for_payment.log('Deduct fee item: {}'.format(fee_item_considered_paid))
 
             fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
         else:
