@@ -696,7 +696,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     #else:
      #   vessel.blocking_owner = vessel_ownership
       #  vessel.save()
-    vessel.set_blocking_ownership(vessel_ownership)
+    vessel.check_blocking_ownership(vessel_ownership)
     return vessel_ownership
 
 def ownership_percentage_validation(vessel_ownership):
