@@ -112,6 +112,7 @@ class DcvAdmissionFee(Payment):
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
+    fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
 
     def __str__(self):
         return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
@@ -138,6 +139,7 @@ class DcvPermitFee(Payment):
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+    fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
 
     def __str__(self):
         return 'DcvPermit {} : Invoice {}'.format(self.dcv_permit, self.invoice_reference)
@@ -164,6 +166,7 @@ class ApplicationFee(Payment):
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
+    fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
