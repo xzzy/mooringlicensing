@@ -360,11 +360,13 @@ class DcvPermitFeeSuccessView(TemplateView):
             invoice = Invoice.objects.get(order_number=order.number)
             invoice_ref = invoice.reference
 
-            fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
 
             # Update the application_fee object
             dcv_permit_fee.invoice_reference = invoice_ref
-            dcv_permit_fee.fee_constructor = fee_constructor
+            # dcv_permit_fee.fee_constructor = fee_constructor
+            dcv_permit_fee.fee_item = fee_item
             dcv_permit_fee.save()
 
             if dcv_permit_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
@@ -501,11 +503,11 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice = Invoice.objects.get(order_number=order.number)
             invoice_ref = invoice.reference
 
-            if 'fee_constructor_id' in db_operations:
-                # This payment is for the WLA or AAA
-                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                application_fee.fee_constructor = fee_constructor
-                application_fee.invoice_reference = invoice_ref
+            #if 'fee_constructor_id' in db_operations:
+            #    # This payment is for the WLA or AAA
+            #    fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+            #    application_fee.fee_constructor = fee_constructor
+            #    application_fee.invoice_reference = invoice_ref
             if 'fee_item_id' in db_operations:
                 # This payment is for the WLA or AAA
                 fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])

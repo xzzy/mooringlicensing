@@ -1,26 +1,20 @@
 import re
 
-import pytz
-from django.db import transaction, IntegrityError
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.conf import settings
-from ledger.settings_base import TIME_ZONE
-from preserialize.serialize import serialize
+from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
 from mooringlicensing.components.proposals.models import (
-    ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
-    ProposalUserAction,
-    ProposalAssessment,
-    ProposalAssessmentAnswer,
-    ChecklistQuestion,
-    ProposalStandardRequirement,
+    # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
+    # ProposalUserAction,
+    # ProposalAssessment,
+    # ProposalAssessmentAnswer,
+    # ChecklistQuestion,
+    # ProposalStandardRequirement,
     WaitingListApplication,
     AnnualAdmissionApplication,
     AuthorisedUserApplication,
     MooringLicenceApplication,
     Vessel,
-    VesselDetails,
+    # VesselDetails,
     VesselOwnership,
     Owner, 
     Proposal,
