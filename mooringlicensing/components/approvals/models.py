@@ -754,11 +754,6 @@ class WaitingListAllocation(Approval):
             self.save()
         self.approval.refresh_from_db()
 
-    def remove_blocking_owner(self):
-        # find vessels
-        self.current_proposal.vessel_ownership.vessel.set_blocking_ownership(
-                self.current_proposal.vessel_ownership,
-                remove=True)
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
