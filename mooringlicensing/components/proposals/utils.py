@@ -540,13 +540,13 @@ def submit_vessel_data(instance, request, vessel_data):
     approvals_aup = []
     approvals_aup_sus = []
     for proposal in proposals:
-        if type(proposal) == WaitingListApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
+        if type(proposal) == WaitingListApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
             proposals_wla.append(proposal)
-        if type(proposal) == MooringLicenceApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
+        if type(proposal) == MooringLicenceApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
             proposals_mla.append(proposal)
-        if type(proposal) == AnnualAdmissionApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
+        if type(proposal) == AnnualAdmissionApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
             proposals_aaa.append(proposal)
-        if type(proposal) == AuthorisedUserApplication and proposal.processing_status in ['approved', 'declined', 'discarded']:
+        if type(proposal) == AuthorisedUserApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
             proposals_aua.append(proposal)
     for approval in approvals:
         if type(approval) == WaitingListAllocation and approval.status == 'current':
