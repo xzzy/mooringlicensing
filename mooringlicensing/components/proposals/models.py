@@ -2480,7 +2480,6 @@ class AnnualAdmissionApplication(Proposal):
         approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
-
         return approval, created
 
     def process_after_payment_success(self, request):
@@ -2987,40 +2986,10 @@ class MooringUserAction(UserAction):
     mooring = models.ForeignKey(Mooring, related_name='action_logs')
 
 
-    #def save(self, **kwargs):
-    #    # save the application reference if the reference not provided
-    #    if not self.reference:
-    #        if hasattr(self.proposal, 'reference'):
-    #            self.reference = self.proposal.reference
-    #    super(MooringLogEntry, self).save(**kwargs)
-
-
-# class VesselSizeCategory(models.Model):
-#
-#     STATUS = (
-#         (0, 'Inactive'),
-#         (1, 'Active'),
-#     )
-#
-#     name = models.CharField(max_length=100)
-#     start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#     end_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#     status = models.SmallIntegerField(choices=STATUS, default=1)
-#     mooring_group = models.ForeignKey('MooringAreaGroup', blank=False, null=False)
-    # created = models.DateTimeField(auto_now_add=True)
-    # updated = models.DateTimeField(auto_now=True)
-    #
-    # def __str__(self):
-    #     return self.name
-    #
-    # class Meta:
-    #     verbose_name_plural = "Vessel Size Categories"
-    #     app_label = 'mooringlicensing'
-
-
 class Vessel(models.Model):
     rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
     # can be individual or company owner
+    ## TODO no longer required???
     blocking_owner = models.ForeignKey('VesselOwnership', blank=True, null=True, related_name='blocked_vessel')
 
     class Meta:
@@ -3030,14 +2999,35 @@ class Vessel(models.Model):
     def __str__(self):
         return self.rego_no
 
-   # @property
-   # def latest_vessel_details(self):
-   #     latest = None
-   #     if self.vesseldetails_set.filter(status="draft"):
-   #         latest = self.vesseldetails_set.filter(status="draft")[0]
-   #     elif self.vesseldetails_set.filter(status="approved"):
-   #         latest = self.vesseldetails_set.filter(status="approved")[0]
-   #     return latest
+    ## at submit
+    def check_blocking_ownership(self, vessel_ownership):
+        from mooringlicensing.components.approvals.models import Approval, MooringLicence
+        # Requirement: If vessel is owned by multiple parties then there must be no other application 
+        #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
+        proposals = [proposal.child_obj for proposal in 
+                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
+        if proposals:
+            raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+        # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered 
+        #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
+        filtered_approvals = []
+        for approval in Approval.objects.exclude(status__in=['cancelled', 'expired', 'surrendered']):
+            # we must check all the vessels on a MooringLicence
+            if type(approval.child_obj) == MooringLicence:
+                for ownership in approval.child_obj.vessel_ownership_list:
+                    if ownership.vessel == self and ownership != vessel_ownership:
+                        filtered_approvals.append(approval)
+            elif (approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel == self and 
+                    approval.current_proposal.vessel_ownership != vessel_ownership):
+                filtered_approvals.append(approval)
+        if filtered_approvals:
+            raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
+        #if remove and not proposals and not filtered_approvals:
+        #    self.blocking_owner = None
+        #    self.save()
+        #else:
+        #    self.blocking_owner = vessel_ownership
+        #    self.save()
 
     @property
     def latest_vessel_details(self):
@@ -3056,6 +3046,7 @@ class Vessel(models.Model):
                 id__in=VesselDetails.filtered_objects.values_list('id', flat=True)
                 )
 
+
 class VesselLogDocument(Document):
     log_entry = models.ForeignKey('VesselLogEntry',related_name='documents')
     _file = models.FileField(upload_to=update_vessel_comms_log_filename, max_length=512)
@@ -3072,15 +3063,6 @@ class VesselLogEntry(CommunicationsLogEntry):
 
     class Meta:
         app_label = 'mooringlicensing'
-
-    #def save(self, **kwargs):
-    #    # save the application reference if the reference not provided
-    #    if not self.reference:
-    #        if hasattr(self.proposal, 'reference'):
-    #            self.reference = self.proposal.reference
-    #    super(VesselLogEntry, self).save(**kwargs)
-
-
 
 class VesselDetailsManager(models.Manager):
     def get_queryset(self):
