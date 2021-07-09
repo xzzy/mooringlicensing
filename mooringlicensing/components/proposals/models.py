@@ -576,6 +576,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def does_have_valid_associations(self):
+        # Check if this application has valid associations with other applications and approvals
+        return self.child_obj.does_have_valid_associations()
+
     @property
     def final_status(self):
         final_status = False
@@ -2357,6 +2361,58 @@ class WaitingListApplication(Proposal):
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+    @property
+    def does_accept_null_vessel(self):
+        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            return True
+        return False
+
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
+
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
+            # This is Amendment application.  We have to adjust the fee
+            if fee_item_being_applied:
+                fee_amount_adjusted = fee_item_being_applied.amount
+
+                # Adjust the fee
+                for f_item in self.approval.fee_items:
+                    fee_amount_adjusted -= f_item.amount  # TODO: Correct the logic.  This is not always correct.  Take into account the fee_season, fee_period, etc
+            else:
+                if self.does_accept_null_vessel:
+                    # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+                    fee_amount_adjusted = 0
+                else:
+                    raise Exception('FeeItem not found.')
+        else:
+            # This is New/Renewal Application type
+            fee_amount_adjusted = fee_item_being_applied.amount
+
+        return fee_amount_adjusted
+
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: correct the logic.  just partially implemented
+        valid = True
+
+        # Rules for proposal
+        proposals = WaitingListApplication.objects.\
+            filter(vessel_details__vessel=self.vessel_details.vessel).\
+            exclude(
+                Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DISCARDED))
+            )
+        if proposals:
+            # The vessel in this application is already part of another application
+            valid = False
+
+        # Rules for approval
+        # from mooringlicensing.components.approvals.models import ApprovalHistory
+        # approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_details.vessel)]
+        # approvals = list(dict.fromkeys(approvals))  # remove duplicates
+
+        return valid
+
 
 class AnnualAdmissionApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
@@ -2446,6 +2502,20 @@ class AnnualAdmissionApplication(Proposal):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
         self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
+
+    @property
+    def does_accept_null_vessel(self):
+        return False
+
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
+        raise NotImplementedError
+
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        return True
 
 
 class AuthorisedUserApplication(Proposal):
@@ -2611,6 +2681,20 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
         self.save()
 
+    @property
+    def does_accept_null_vessel(self):
+        return False
+
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
+        raise NotImplementedError
+
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        return True
+
 
 class MooringLicenceApplication(Proposal):
     REASON_FOR_EXPIRY_NOT_SUBMITTED = 'not_submitted'
@@ -2757,6 +2841,22 @@ class MooringLicenceApplication(Proposal):
             raise e
             msg = 'Payment taken for Proposal: {}, but approval creation has failed'.format(self.lodgement_number)
             logger.error(msg)
+
+    @property
+    def does_accept_null_vessel(self):
+        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            return True
+        return False
+
+    def get_fee_amount_adjusted(self, fee_item_being_applied):
+        raise NotImplementedError
+
+    def does_have_valid_associations(self):
+        """
+        Check if this application has valid associations with other applications and approvals
+        """
+        # TODO: implement logic
+        return True
 
 
 class ProposalLogDocument(Document):

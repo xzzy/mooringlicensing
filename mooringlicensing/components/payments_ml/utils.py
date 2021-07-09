@@ -149,14 +149,16 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     if isinstance(instance, Proposal):
         application_type = instance.application_type
+        # this_is_null_vessel_app = False
+
         if instance.vessel_details:
             vessel_length = instance.vessel_details.vessel_applicable_length
         else:
             # No vessel specified in the application
-            if instance.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            if instance.child_obj.does_accept_null_vessel:
                 # For the amendment application or the renewal application, vessel field can be blank when submit.
                 vessel_length = -1
-                valid_null_vessel_application = True
+                # this_is_null_vessel_app = True
             else:
                 raise Exception('No vessel specified for the application {}'.format(instance.lodgement_number))
         proposal_type = instance.proposal_type
@@ -183,18 +185,15 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     else:
         raise Exception('Something went wrong when calculating the fee')
 
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+    fee_amount_adjusted = instance.child_obj.get_fee_amount_adjusted(fee_item)
+
+
     db_processes_after_success['fee_constructor_id'] = fee_constructor.id
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
     db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
-
-    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
-    if valid_null_vessel_application:
-        # We don't charge for this application but when new replacement vessel details are provided,
-        # TODO: We have to calculate fee and charge for it
-        fee_item_amount = 0
-    else:
-        fee_item_amount = fee_item.amount
+    db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
 
     line_items = [
         {
@@ -208,8 +207,8 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
             'oracle_code': application_type.oracle_code,
             # 'price_incl_tax':  fee_item.amount,
             # 'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
-            'price_incl_tax':  fee_item_amount,
-            'price_excl_tax':  calculate_excl_gst(fee_item_amount) if fee_constructor.incur_gst else fee_item_amount,
+            'price_incl_tax':  fee_amount_adjusted,
+            'price_excl_tax':  calculate_excl_gst(fee_amount_adjusted) if fee_constructor.incur_gst else fee_amount_adjusted,
             'quantity': 1,
         },
     ]
