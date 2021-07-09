@@ -32,6 +32,7 @@ from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.models import Invoice
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 
+from mooringlicensing.components.payments_ml.models import FeeItem
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
@@ -44,6 +45,7 @@ from mooringlicensing.components.proposals.email import (
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
 )
+# from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
 from mooringlicensing.ordered_model import OrderedModel
 import copy
 import subprocess
@@ -58,6 +60,7 @@ from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_REN
     PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW
 
 logger = logging.getLogger(__name__)
+logger_for_payment = logging.getLogger('payment_checkout')
 
 
 def update_proposal_doc_filename(instance, filename):
@@ -1570,7 +1573,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                 from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
                 line_items, db_operations = create_fee_lines(self)
-                fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+                try:
+                    fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                except:
+                    fee_item_additional = None
 
                 if line_items:
                     with transaction.atomic():
@@ -1586,7 +1594,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             annual_rental_fee = ApplicationFee.objects.create(
                                 proposal=self,
-                                fee_constructor=fee_constructor,
+                                # fee_constructor=fee_constructor,
+                                # fee_item=fee_item,
                                 # annual_rental_fee_period=annual_rental_fee_period,
                                 invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
@@ -1594,6 +1603,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 # invoice_period_end_date=invoice_period[1],
                                 # lines=line_items,  # We may add this field to the ApplicationFee model
                             )
+                            annual_rental_fee.fee_items.add(fee_item)
+                            if fee_item_additional:
+                                annual_rental_fee.fee_items.add(fee_item_additional)
                             # updates.append(annual_rental_fee.invoice_reference)
 
                             self.process_after_approval(request)
@@ -2185,6 +2197,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_approval(request)
         self.refresh_from_db()  # Somehow this is needed...
 
+    def get_fee_amount_adjusted(self, fee_item):
+        return self.child_obj.get_fee_amount_adjusted(fee_item)
+
     @property
     def application_type_code(self):
         return self.child_obj.code
@@ -2368,26 +2383,8 @@ class WaitingListApplication(Proposal):
         return False
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
-
-        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
-            # This is Amendment application.  We have to adjust the fee
-            if fee_item_being_applied:
-                fee_amount_adjusted = fee_item_being_applied.amount
-
-                # Adjust the fee
-                for f_item in self.approval.fee_items:
-                    fee_amount_adjusted -= f_item.amount  # TODO: Correct the logic.  This is not always correct.  Take into account the fee_season, fee_period, etc
-            else:
-                if self.does_accept_null_vessel:
-                    # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
-                    fee_amount_adjusted = 0
-                else:
-                    raise Exception('FeeItem not found.')
-        else:
-            # This is New/Renewal Application type
-            fee_amount_adjusted = fee_item_being_applied.amount
-
-        return fee_amount_adjusted
+        from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
+        return get_fee_amount_adjusted(self, fee_item_being_applied)
 
     def does_have_valid_associations(self):
         """
@@ -2508,7 +2505,8 @@ class AnnualAdmissionApplication(Proposal):
         return False
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
-        raise NotImplementedError
+        from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
+        return get_fee_amount_adjusted(self, fee_item_being_applied)
 
     def does_have_valid_associations(self):
         """
@@ -2686,7 +2684,8 @@ class AuthorisedUserApplication(Proposal):
         return False
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
-        raise NotImplementedError
+        from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
+        return get_fee_amount_adjusted(self, fee_item_being_applied)
 
     def does_have_valid_associations(self):
         """
@@ -2849,7 +2848,8 @@ class MooringLicenceApplication(Proposal):
         return False
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
-        raise NotImplementedError
+        from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
+        return get_fee_amount_adjusted(self, fee_item_being_applied)
 
     def does_have_valid_associations(self):
         """
