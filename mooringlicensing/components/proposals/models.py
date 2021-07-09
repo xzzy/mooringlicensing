@@ -2342,6 +2342,10 @@ class WaitingListApplication(Proposal):
         approval.write_approval_history()
         # set wla order
         approval = approval.set_wla_order()
+        # remove blocking owner
+        #if approval.current_proposal.vessel_ownership:
+         #   approval.current_proposal.vessel_ownership.vessel.remove_blocking_ownership(
+          #          approval.current_proposal.vessel_ownership)
         return approval, created
 
     def process_after_payment_success(self, request):
@@ -2483,7 +2487,10 @@ class AnnualAdmissionApplication(Proposal):
         approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
-
+        # remove blocking owner
+        #if approval.current_proposal.vessel_ownership:
+         #   approval.current_proposal.vessel_ownership.vessel.remove_blocking_ownership(
+          #          approval.current_proposal.vessel_ownership)
         return approval, created
 
     def process_after_payment_success(self, request):
@@ -2634,6 +2641,10 @@ class AuthorisedUserApplication(Proposal):
         approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
+        # remove blocking owner
+        #if approval.current_proposal.vessel_ownership:
+         #   approval.current_proposal.vessel_ownership.vessel.remove_blocking_ownership(
+          #          approval.current_proposal.vessel_ownership)
         return approval, created
 
     def process_after_approval(self, request):
@@ -2834,6 +2845,10 @@ class MooringLicenceApplication(Proposal):
             approval.child_obj.manage_stickers(self)
             # write approval history
             approval.write_approval_history()
+            # remove blocking owner
+            #if approval.current_proposal.vessel_ownership:
+             #   approval.current_proposal.vessel_ownership.vessel.remove_blocking_ownership(
+              #          approval.current_proposal.vessel_ownership)
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")
@@ -3030,14 +3045,40 @@ class Vessel(models.Model):
     def __str__(self):
         return self.rego_no
 
-   # @property
-   # def latest_vessel_details(self):
-   #     latest = None
-   #     if self.vesseldetails_set.filter(status="draft"):
-   #         latest = self.vesseldetails_set.filter(status="draft")[0]
-   #     elif self.vesseldetails_set.filter(status="approved"):
-   #         latest = self.vesseldetails_set.filter(status="approved")[0]
-   #     return latest
+    ## at submit
+    def set_blocking_ownership(self, vessel_ownership, remove=False):
+        # Requirement: If vessel is owned by multiple parties then there must be no other application 
+        #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
+        proposals = [proposal.child_obj for proposal in 
+                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
+        if proposals and not remove:
+            raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+        # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered 
+        #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
+        filtered_approvals = []
+        for approval in Approval.objects.exclude(status__in=['cancelled', 'expired', 'surrendered']):
+            # we must check all the vessels on a MooringLicence
+            if type(approval.child_obj) == MooringLicence:
+                for ownership in approval.child_obj.vessel_ownership_list:
+                    if ownership != vessel_ownership:
+                        filtered_approvals.append(approval)
+            elif (approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel == self and 
+                    approval.current_proposal.vessel_ownership != vessel_ownership):
+                filtered_approvals.append(approval)
+        if filtered_approvals and not remove:
+            raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
+        if remove and not proposals and not filtered_approvals:
+            self.blocking_owner = None
+            self.save()
+        else:
+            self.blocking_owner = vessel_ownership
+            self.save()
+
+    ## at approval update
+    #def remove_blocking_ownership(self, vessel_ownership):
+     #   if vessel_ownership and 
+      #  self.blocking_owner = None
+       # self.save()
 
     @property
     def latest_vessel_details(self):
