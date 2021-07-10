@@ -174,6 +174,13 @@ class ApplicationFee(Payment):
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
 
+    @property
+    def fee_constructor(self):
+        # TODO: this is not always correct...???
+        if self.fee_items:
+            return self.fee_items.first().fee_constructor
+        return None
+
     class Meta:
         app_label = 'mooringlicensing'
 
