@@ -1384,8 +1384,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def final_approval_for_WLA_AAA(self, request, details):
+    def final_approval_for_WLA_AAA(self, request, details=None, auto_approve=False):
         with transaction.atomic():
+            #import ipdb; ipdb.set_trace()
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 # current_date = current_datetime.date()
@@ -1397,9 +1398,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
                 else:
-                    if not self.can_assess(request.user):
+                    if not auto_approve and not self.can_assess(request.user):
                         raise exceptions.ProposalNotAuthorized()
-                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
+                    if not auto_approve and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
                     if not self.applicant_address:
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
@@ -2171,6 +2172,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
     @property
+    def previous_application_notnull_vessel(self):
+        prev_application = self.previous_application
+        while prev_application and not prev_application.vessel_details:
+            prev_application = prev_application.previous_application
+        return prev_application
+
+    @property
     def approval_class(self):
         from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
         if hasattr(self, 'waitinglistapplication'):
@@ -2330,6 +2338,7 @@ class WaitingListApplication(Proposal):
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             approval = self.approval
             approval.current_proposal=self
+            # TODO: should this be reset?
             approval.wla_queue_date = current_datetime
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
@@ -2360,6 +2369,7 @@ class WaitingListApplication(Proposal):
         return approval, created
 
     def process_after_payment_success(self, request):
+        #import ipdb; ipdb.set_trace()
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
@@ -2368,8 +2378,28 @@ class WaitingListApplication(Proposal):
             self.set_status_after_payment_success()
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-
         self.save()
+        # If renewal and no change to vessel
+        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+            auto_approve = True
+            if (
+                    # Vessel Details and rego
+                    self.vessel_details.vessel != self.previous_application_notnull_vessel.vessel_details.vessel or 
+                    self.vessel_details.vessel_type != self.previous_application_notnull_vessel.vessel_details.vessel_type or
+                    self.vessel_details.vessel_overall_length != self.previous_application_notnull_vessel.vessel_details.vessel_overall_length or
+                    self.vessel_details.vessel_length != self.previous_application_notnull_vessel.vessel_details.vessel_length or
+                    self.vessel_details.vessel_draft != self.previous_application_notnull_vessel.vessel_details.vessel_draft or
+                    self.vessel_details.vessel_beam != self.previous_application_notnull_vessel.vessel_details.vessel_beam or
+                    self.vessel_details.vessel_weight != self.previous_application_notnull_vessel.vessel_details.vessel_weight or
+                    # Vessel Ownership
+                    self.percentage != self.previous_application_notnull_vessel.percentage or
+                    self.individual_owner != self.previous_application_notnull_vessel.individual_owner or
+                    self.company_ownership_percentage != self.previous_application_notnull_vessel.company_ownership_percentage or
+                    self.company_ownership_name != self.previous_application_notnull_vessel.company_ownership_name
+                    ):
+                auto_approve = False
+            if auto_approve:
+                self.final_approval_for_WLA_AAA(request, details=None, auto_approve=auto_approve)
 
     def process_after_approval(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -2491,8 +2521,28 @@ class AnnualAdmissionApplication(Proposal):
             self.set_status_after_payment_success()
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-
         self.save()
+        # If renewal and no change to vessel
+        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+            auto_approve = True
+            if (
+                    # Vessel Details and rego
+                    self.vessel_details.vessel != self.previous_application_notnull_vessel.vessel_details.vessel or 
+                    self.vessel_details.vessel_type != self.previous_application_notnull_vessel.vessel_details.vessel_type or
+                    self.vessel_details.vessel_overall_length != self.previous_application_notnull_vessel.vessel_details.vessel_overall_length or
+                    self.vessel_details.vessel_length != self.previous_application_notnull_vessel.vessel_details.vessel_length or
+                    self.vessel_details.vessel_draft != self.previous_application_notnull_vessel.vessel_details.vessel_draft or
+                    self.vessel_details.vessel_beam != self.previous_application_notnull_vessel.vessel_details.vessel_beam or
+                    self.vessel_details.vessel_weight != self.previous_application_notnull_vessel.vessel_details.vessel_weight or
+                    # Vessel Ownership
+                    self.percentage != self.previous_application_notnull_vessel.percentage or
+                    self.individual_owner != self.previous_application_notnull_vessel.individual_owner or
+                    self.company_ownership_percentage != self.previous_application_notnull_vessel.company_ownership_percentage or
+                    self.company_ownership_name != self.previous_application_notnull_vessel.company_ownership_name
+                    ):
+                auto_approve = False
+            if auto_approve:
+                self.final_approval_for_WLA_AAA(request, details=None, auto_approve=auto_approve)
 
     def process_after_approval(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
