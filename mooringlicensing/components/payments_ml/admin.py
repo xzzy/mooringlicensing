@@ -6,6 +6,7 @@ from django.db.models import Min
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
+from mooringlicensing.components.proposals.models import AnnualAdmissionApplication, AuthorisedUserApplication
 
 
 class FeePeriodFormSet(forms.models.BaseInlineFormSet):
@@ -225,6 +226,12 @@ class FeeConstructorForm(forms.ModelForm):
                     existing_fc.fee_season.start_date,
                     existing_fc.fee_season.end_date))
 
+        # Check if the season start and end date of the annual admission fee_constructor match those of the authorised user fee_constructor and mooring licence fee_constructor.
+        # if cleaned_application_type == ApplicationType.objects.get(code=AnnualAdmissionApplication.code):
+        #     au_fee_constructors = existing_fee_constructors.exclude(id=self.instance.id, application_type=ApplicationType.objects.get(code=AuthorisedUserApplication.code))
+        #     for au_fee_
+
+
         return cleaned_data
 
 
@@ -240,6 +247,7 @@ class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
     list_display = ('id', 'application_type', 'fee_season', 'start_date', 'end_date', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment',)
+    list_display_links = ['id', 'application_type', ]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Sort 'fee_season' dropdown by the start_date
