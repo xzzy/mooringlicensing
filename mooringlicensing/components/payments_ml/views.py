@@ -512,11 +512,13 @@ class ApplicationFeeSuccessView(TemplateView):
             # For the AUA and MLA, the application_fee already has relations to fee_item(s) created when creating lines.
             # In that case, there are no 'fee_item_id' and/or 'fee_item_additional_id' keys in the db_operations
             if 'fee_item_id' in db_operations:
-                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-                application_fee.fee_items.add(fee_item)
+                fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
+                if fee_items:
+                    application_fee.fee_items.add(fee_items.first())
             if 'fee_item_additional_id' in db_operations:
-                fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
-                application_fee.fee_items.add(fee_item_additional)
+                fee_item_additionals = FeeItem.objects.filter(id=db_operations['fee_item_additional_id'])
+                if fee_item_additionals:
+                    application_fee.fee_items.add(fee_item_additionals.first())
             application_fee.invoice_reference = invoice_ref
             application_fee.save()
 
