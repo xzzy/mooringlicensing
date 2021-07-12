@@ -1384,8 +1384,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def final_approval_for_WLA_AAA(self, request, details=None):
+    def final_approval_for_WLA_AAA(self, request, details=None, auto_approve=False):
         with transaction.atomic():
+            #import ipdb; ipdb.set_trace()
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 # current_date = current_datetime.date()
@@ -1397,9 +1398,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
                 else:
-                    if not self.can_assess(request.user):
+                    if not auto_approve and not self.can_assess(request.user):
                         raise exceptions.ProposalNotAuthorized()
-                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
+                    if not auto_approve and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
                     if not self.applicant_address:
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
@@ -2368,6 +2369,7 @@ class WaitingListApplication(Proposal):
         return approval, created
 
     def process_after_payment_success(self, request):
+        #import ipdb; ipdb.set_trace()
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
@@ -2378,7 +2380,7 @@ class WaitingListApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
         # If renewal and no change to vessel
-        if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
             auto_approve = True
             if (
                     # Vessel Details and rego
@@ -2390,14 +2392,14 @@ class WaitingListApplication(Proposal):
                     self.vessel_details.vessel_beam != self.previous_application_notnull_vessel.vessel_details.vessel_beam or
                     self.vessel_details.vessel_weight != self.previous_application_notnull_vessel.vessel_details.vessel_weight or
                     # Vessel Ownership
-                    self.percentage == self.previous_application_notnull_vessel.percentage or
-                    self.individual_owner == self.previous_application_notnull_vessel.individual_owner or
-                    self.company_ownership_percentage == self.previous_application_notnull_vessel.company_ownership_percentage or
-                    self.company_ownership_name == self.previous_application_notnull_vessel.company_ownership_name
+                    self.percentage != self.previous_application_notnull_vessel.percentage or
+                    self.individual_owner != self.previous_application_notnull_vessel.individual_owner or
+                    self.company_ownership_percentage != self.previous_application_notnull_vessel.company_ownership_percentage or
+                    self.company_ownership_name != self.previous_application_notnull_vessel.company_ownership_name
                     ):
                 auto_approve = False
             if auto_approve:
-                self.final_approval_for_WLA_AAA(self, request, None)
+                self.final_approval_for_WLA_AAA(request, details=None, auto_approve=auto_approve)
 
     def process_after_approval(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -2511,7 +2513,6 @@ class AnnualAdmissionApplication(Proposal):
         return approval, created
 
     def process_after_payment_success(self, request):
-        import ipdb; ipdb.set_trace()
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
@@ -2534,14 +2535,14 @@ class AnnualAdmissionApplication(Proposal):
                     self.vessel_details.vessel_beam != self.previous_application_notnull_vessel.vessel_details.vessel_beam or
                     self.vessel_details.vessel_weight != self.previous_application_notnull_vessel.vessel_details.vessel_weight or
                     # Vessel Ownership
-                    self.percentage == self.previous_application_notnull_vessel.percentage or
-                    self.individual_owner == self.previous_application_notnull_vessel.individual_owner or
-                    self.company_ownership_percentage == self.previous_application_notnull_vessel.company_ownership_percentage or
-                    self.company_ownership_name == self.previous_application_notnull_vessel.company_ownership_name
+                    self.percentage != self.previous_application_notnull_vessel.percentage or
+                    self.individual_owner != self.previous_application_notnull_vessel.individual_owner or
+                    self.company_ownership_percentage != self.previous_application_notnull_vessel.company_ownership_percentage or
+                    self.company_ownership_name != self.previous_application_notnull_vessel.company_ownership_name
                     ):
                 auto_approve = False
             if auto_approve:
-                self.final_approval_for_WLA_AAA(self, request, None)
+                self.final_approval_for_WLA_AAA(request, details=None, auto_approve=auto_approve)
 
     def process_after_approval(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
