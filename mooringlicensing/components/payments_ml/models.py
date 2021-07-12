@@ -274,7 +274,6 @@ class FeeConstructor(RevisionedMixin):
     def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date(), age_group=None, admission_type=None):
         fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
         vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length).order_by('start_size').last()
-
         fee_item = self.get_fee_item_for_adjustment(vessel_size_category, fee_period, proposal_type=proposal_type, age_group=age_group, admission_type=admission_type)
 
         return fee_item
@@ -313,7 +312,9 @@ class FeeConstructor(RevisionedMixin):
 
     @property
     def num_of_times_used_for_payment(self):
-        return self.application_fees.count() + self.dcv_permit_fees.count()
+        # return self.application_fees.count() + self.dcv_permit_fees.count()
+        application_fees = ApplicationFee.objects.filter(fee_items__in=self.feeitem_set.all())
+        return application_fees.count()
 
     def validate_unique(self, exclude=None):
         # Conditional unique together validation
