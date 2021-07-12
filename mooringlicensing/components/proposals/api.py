@@ -1057,7 +1057,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
             raise ValidationError('A renewal/amendment for this licence has already been lodged.')
         ## create renewal or amendment
-        if approval and approval.renewal_document and approval.renewal_sent and approval.can_renew:
+        if approval and approval.renewal_document and approval.renewal_sent: # and approval.can_renew:
             instance = instance.renew_approval(request)
         else:
             instance = instance.amend_approval(request)
