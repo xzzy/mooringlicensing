@@ -967,8 +967,10 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
     if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
         # This is Amendment application.  We have to adjust the fee
         if fee_item_being_applied:
-            logger_for_payment.log('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-            logger_for_payment.log('FeeItem being applied: {}'.format(fee_item_being_applied))
+            #logger_for_payment.log('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
+            #logger_for_payment.log('FeeItem being applied: {}'.format(fee_item_being_applied))
+            logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
+            logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
 
             fee_amount_adjusted = fee_item_being_applied.amount
 
@@ -990,7 +992,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
 
                     # Applicant already partially paid for this fee item.  Deduct it.
                     fee_amount_adjusted -= fee_item_considered_paid.amount
-                    logger_for_payment.log('Deduct fee item: {}'.format(fee_item_considered_paid))
+                    logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
             fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
         else:
