@@ -10,15 +10,15 @@
                                 <div class="form-group">
                                     <label>Waiting List</label>
                                     <div v-if="wlaApprovals.length<=1">
-                                        <div v-for="application_type in wlaChoices">
+                                        <div v-for="(application_type, index) in wlaChoices">
                                             <input 
                                             type="radio" 
                                             name="applicationType" 
-                                            :id="application_type.code" 
+                                            :id="application_type.code + '_' + index" 
                                             value="application_type" 
                                             @change="selectApplication(application_type)"
                                             />
-                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                         </div>
                                     </div>
                                     <div v-else>
@@ -46,15 +46,15 @@
                                 <div class="form-group">
                                     <label>Annual Admission</label>
                                     <div v-if="aaaApprovals.length<=1">
-                                        <div v-for="application_type in aaaChoices">
+                                        <div v-for="(application_type, index) in aaaChoices">
                                             <input 
                                             type="radio" 
                                             name="applicationType" 
-                                            :id="application_type.code" 
+                                            :id="application_type.code + '_' + index" 
                                             value="application_type" 
                                             @change="selectApplication(application_type)"
                                             />
-                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                         </div>
                                     </div>
                                     <div v-else>
@@ -82,7 +82,7 @@
                                 <div class="form-group">
                                     <label>Authorised User</label>
                                     <div v-if="auaApprovals.length<=1">
-                                        <div v-for="application_type in auaChoices">
+                                        <div v-for="(application_type, index) in auaChoices">
                                             <input 
                                             type="radio" 
                                             name="applicationType" 
@@ -90,7 +90,7 @@
                                             value="application_type" 
                                             @change="selectApplication(application_type)"
                                             />
-                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                         </div>
                                     </div>
                                     <div v-else>
@@ -99,7 +99,7 @@
                                                 <input 
                                                 type="radio" 
                                                 name="applicationType" 
-                                                :id="application_type.code" 
+                                                :id="application_type.code + '_' + index" 
                                                 value="application_type" 
                                                 @change="selectApplication(application_type)"
                                                 />
@@ -118,15 +118,15 @@
                                 <div v-if="mlApprovals.length" class="form-group">
                                     <label>Mooring Licence</label>
                                     <div v-if="mlApprovals.length<=1">
-                                        <div v-for="application_type in mlChoices">
+                                        <div v-for="(application_type, index) in mlChoices">
                                             <input 
                                             type="radio" 
                                             name="applicationType" 
-                                            :id="application_type.code" 
+                                            :id="application_type.code + '_' + index" 
                                             value="application_type" 
                                             @change="selectApplication(application_type)"
                                             />
-                                            <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                         </div>
                                     </div>
                                     <div v-else>
