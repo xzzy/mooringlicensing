@@ -190,6 +190,7 @@ class FeeSeason(RevisionedMixin):
 
     def __str__(self):
         if self.start_date:
+            # return '{} ({} - {})'.format(self.name, self.start_date, self.end_date)
             return self.name
         else:
             return '{} (No periods found)'.format(self.name)

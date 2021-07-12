@@ -155,7 +155,7 @@ class ApplicationFeeExistingView(TemplateView):
                 set_session_application_invoice(request.session, application_fee)
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
 
-                request.session['db_processes'] = { 'payment_for_existing_invoice': True }
+                request.session['db_processes'] = {'payment_for_existing_invoice': True}
                 checkout_response = checkout_existing_invoice(
                     request,
                     invoice,
@@ -509,13 +509,14 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice_ref = invoice.reference
 
             # Update the application_fee object
-            fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-            application_fee.fee_items.add(fee_item)
-            try:
+            # For the AUA and MLA, the application_fee already has relations to fee_item(s) created when creating lines.
+            # In that case, there are no 'fee_item_id' and/or 'fee_item_additional_id' keys in the db_operations
+            if 'fee_item_id' in db_operations:
+                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+                application_fee.fee_items.add(fee_item)
+            if 'fee_item_additional_id' in db_operations:
                 fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
                 application_fee.fee_items.add(fee_item_additional)
-            except:
-                fee_item_additional = None
             application_fee.invoice_reference = invoice_ref
             application_fee.save()
 
