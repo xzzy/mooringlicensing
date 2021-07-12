@@ -175,7 +175,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     fee_constructor_additional = None
     if isinstance(instance, Proposal):
         fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
-        if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication):
+        if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             # There is also annual admission fee component for the AUA/MLA.
             fee_constructor_additional = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
             if not fee_constructor_additional:
@@ -207,7 +207,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     line_items = []
     line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str))
-    if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication):
+    if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
         # There is also annual admission fee component for the AUA/MLA.
         line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, target_datetime_str))
 
