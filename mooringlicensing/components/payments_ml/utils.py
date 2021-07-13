@@ -218,8 +218,9 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str):
     return {
-        'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+        'ledger_description': '{}({}) Fee: {} (Season: {} to {}) @{}'.format(
             fee_constructor.application_type.description,
+            instance.proposal_type.description,
             instance.lodgement_number,
             fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
             fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
