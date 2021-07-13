@@ -2243,7 +2243,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def get_target_date(self, applied_date):
         if self.proposal_type.code == settings.PROPOSAL_TYPE_AMENDMENT:
-            target_date = applied_date
+            # Retrieve the latest season
+            if applied_date < self.approval.latest_applied_season.start_date:
+                target_date = self.approval.latest_applied_season.start_date + datetime.timedelta(days=1)
+            elif self.approval.latest_applied_season.start_date <= applied_date <= self.approval.latest_applied_season.end_date:
+                target_date = applied_date
+            else:
+                msg = 'Approval: {} cannot be amended before renewal'.format(self.approval)
+                logger.error(msg)
+                raise Exception('Approval: {} cannot be amended before renewal'.format(self.approval))
         elif self.proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL:
             if applied_date < self.approval.expiry_date:
                 # Set the target_date to the 1st day of the next season
