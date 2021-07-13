@@ -15,6 +15,7 @@ from datetime import datetime, date
 from ledger.accounts.models import EmailUser, Address
 # from ledger.address.models import Country
 # from datetime import datetime, timedelta, date
+from mooringlicensing import settings
 from mooringlicensing.components.proposals.utils import (
         save_proponent_data,
         save_assessor_data, 
@@ -1057,10 +1058,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
             raise ValidationError('A renewal/amendment for this licence has already been lodged.')
         ## create renewal or amendment
-        if approval and approval.renewal_document and approval.renewal_sent: # and approval.can_renew:
+        if settings.DEBUG and request.GET.get('debug', '') == 'true' and request.GET.get('type', '') == 'renew':
+            # This is used just for debug
             instance = instance.renew_approval(request)
-        else:
+        elif settings.DEBUG and request.GET.get('debug', '') == 'true' and request.GET.get('type', '') == 'amend':
+            # This is used just for debug
             instance = instance.amend_approval(request)
+        else:
+            if approval and approval.renewal_document and approval.renewal_sent: # and approval.can_renew:
+                instance = instance.renew_approval(request)
+            else:
+                instance = instance.amend_approval(request)
         ## return new application
         serializer = SaveProposalSerializer(instance,context={'request':request})
         return Response(serializer.data)

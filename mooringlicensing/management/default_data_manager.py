@@ -17,7 +17,7 @@ class DefaultDataManager(object):
 
     def __init__(self):
         # Proposal Types
-        for item in settings.PROPOSAL_TYPES:
+        for item in settings.PROPOSAL_TYPES_FOR_FEE_ITEM:
             try:
                 type, created = ProposalType.objects.get_or_create(code=item[0])
                 if created:
