@@ -169,6 +169,12 @@ export default {
         },
     },
     computed: {
+        debug: function(){
+            if (this.$route.query.debug){
+                return this.$route.query.debug === 'Tru3'
+            }
+            return false
+        },
         wlaDash: function() {
             let returnVal = false;
             if (this.approvalTypeFilter.includes('wla')) {
@@ -370,13 +376,13 @@ export default {
                             } else if (vm.is_external && full.can_reissue) {
                                 // approval has no view
                                 //links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
-                                if(full.can_action){
+                                if(full.can_action || vm.debug){
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
-                                    if(full.amend_or_renew === 'amend'){
+                                    if(full.amend_or_renew === 'amend' || vm.debug){
                                        links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
                                    }
                                 }
-                                if(full.amend_or_renew === 'renew'){
+                                if(full.amend_or_renew === 'renew' || vm.debug){
                                 //if(full.renewal_document && full.renewal_sent && full.can_renew) {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
