@@ -1057,7 +1057,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
             raise ValidationError('A renewal/amendment for this licence has already been lodged.')
         ## create renewal or amendment
-        if approval and approval.renewal_document and approval.renewal_sent and approval.can_renew:
+        if approval and approval.renewal_document and approval.renewal_sent: # and approval.can_renew:
             instance = instance.renew_approval(request)
         else:
             instance = instance.amend_approval(request)
@@ -1279,7 +1279,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def destroy(self, request, *args, **kwargs):
+    #def destroy(self, request, *args, **kwargs):
+    def bak_destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
@@ -1291,7 +1292,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 }, partial=True)
                 serializer.is_valid(raise_exception=True)
                 self.perform_update(serializer)
-                return add_cache_control(Response(serializer.data, status=http_status))
+                return Response(serializer.data, status=http_status)
             else:
                 # This proposal has not been submitted yet, we can delete it from the database
                 instance.delete()
@@ -1300,6 +1301,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    #@detail_route(methods=['post'])
+    #@renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def destroy(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        instance = self.get_object()
+        instance.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+        instance.customer_status = Proposal.CUSTOMER_STATUS_DISCARDED
+        # TODO: why do we need this?
+        instance.previous_application = None
+        instance.save()
+        return Response()
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
