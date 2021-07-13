@@ -197,7 +197,7 @@ class ApplicationFeeView(TemplateView):
                     lines,
                     return_url_ns='fee_success',
                     return_preload_url_ns='fee_success',
-                    invoice_text='DcvPermit Fee',
+                    invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
