@@ -3,6 +3,7 @@
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
             <h4>Annual Admission Application: {{proposal.lodgement_number}}</h4>
+            <h5>{{ proposal.proposal_type.description }}</h5>
         </div>
 
         <div class="">
@@ -59,9 +60,9 @@
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
-                    <Profile 
-                    :isApplication="true" 
-                    v-if="applicantType == 'SUB'" 
+                    <Profile
+                    :isApplication="true"
+                    v-if="applicantType == 'SUB'"
                     ref="profile"
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
@@ -70,26 +71,26 @@
                     />
                   </div>
                   <div v-else>
-                    <Applicant 
-                    :proposal="proposal" 
+                    <Applicant
+                    :proposal="proposal"
                     id="proposalStartApplicant"
                     :readonly="readonly"
                     />
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
-                  <Vessels 
-                  :proposal="proposal" 
-                  :profile="profile" 
-                  id="proposalStartVessels" 
+                  <Vessels
+                  :proposal="proposal"
+                  :profile="profile"
+                  id="proposalStartVessels"
                   ref="vessels"
                   :readonly="readonly"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
                   <Insurance
-                  :proposal="proposal" 
-                  id="insurance" 
+                  :proposal="proposal"
+                  id="insurance"
                   ref="insurance"
                   :readonly="readonly"
                   />
@@ -272,7 +273,7 @@
             //indow.addEventListener('onblur', vm.leaving);
 
         }
- 
+
     }
 </script>
 

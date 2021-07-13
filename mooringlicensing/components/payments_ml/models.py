@@ -376,7 +376,7 @@ class FeeConstructor(RevisionedMixin):
             raise
 
     @classmethod
-    def get_current_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         logger = logging.getLogger('payment_checkout')
 
         # Select a fee_constructor object which has been started most recently for the application_type
