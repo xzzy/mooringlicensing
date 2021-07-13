@@ -2406,6 +2406,8 @@ class WaitingListApplication(Proposal):
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
+
+    def auto_approve(self, request):
         # If renewal and no change to vessel
         if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
             auto_approve = True
@@ -2426,7 +2428,7 @@ class WaitingListApplication(Proposal):
                     ):
                 auto_approve = False
             if auto_approve:
-                self.final_approval_for_WLA_AAA(request, details=None, auto_approve=auto_approve)
+                self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
 
     def process_after_approval(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -2549,6 +2551,8 @@ class AnnualAdmissionApplication(Proposal):
         else:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
+
+    def auto_approve(self, request):
         # If renewal and no change to vessel
         if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
             auto_approve = True
@@ -2569,7 +2573,7 @@ class AnnualAdmissionApplication(Proposal):
                     ):
                 auto_approve = False
             if auto_approve:
-                self.final_approval_for_WLA_AAA(request, details=None, auto_approve=auto_approve)
+                self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
 
     def process_after_approval(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
