@@ -167,10 +167,10 @@ MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
 PROPOSAL_TYPE_NEW = 'new'
 PROPOSAL_TYPE_RENEWAL = 'renewal'
 PROPOSAL_TYPE_AMENDMENT = 'amendment'
-PROPOSAL_TYPES = [
+PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_NEW, 'New Application'),
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
-    (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
+    # We don't need the fee item for the type 'renewal' because which is the type 'new' fee item of the next season.
 ]
 
 ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
