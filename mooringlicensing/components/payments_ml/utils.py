@@ -101,7 +101,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
 
     line_items = []
     for dcv_admission_arrival in dcv_admission.dcv_admission_arrivals.all():
-        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
 
         if not fee_constructor:
             raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, dcv_admission_arrival.arrival_date))
@@ -166,18 +166,18 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         vessel_length = 1  # any number greater than 0
         proposal_type = None
 
-    target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-    target_date = target_datetime.date()
-    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+    current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+    current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+    target_date = instance.get_target_date(current_datetime.date())
     annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
     # Retrieve FeeItem object from FeeConstructor object
     fee_constructor_additional = None
     if isinstance(instance, Proposal):
-        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
         if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             # There is also annual admission fee component for the AUA/MLA.
-            fee_constructor_additional = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+            fee_constructor_additional = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
             if not fee_constructor_additional:
                 # Fees have not been configured for the annual admission application and date
                 raise Exception('FeeConstructor object for the Annual Admission Application not found for the date: {}'.format(target_date))
@@ -200,16 +200,17 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
-    db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+    # db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+    db_processes_after_success['datetime_for_calculating_fee'] = current_datetime_str
     db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
     db_processes_after_success['fee_item_additional_id'] = fee_item_additional.id if fee_item_additional else 0
     # TODO: Perform db_process for additional component, too???
 
     line_items = []
-    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str))
+    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime_str))
     if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
         # There is also annual admission fee component for the AUA/MLA.
-        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, target_datetime_str))
+        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, current_datetime_str))
 
     logger.info('{}'.format(line_items))
 
@@ -218,8 +219,9 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str):
     return {
-        'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+        'ledger_description': '{}({}) Fee: {} (Season: {} to {}) @{}'.format(
             fee_constructor.application_type.description,
+            instance.proposal_type.description,
             instance.lodgement_number,
             fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
             fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
