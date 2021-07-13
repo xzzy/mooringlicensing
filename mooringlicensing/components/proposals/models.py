@@ -1410,12 +1410,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     elif self.application_fees.count() > 1:
                         raise ValidationError('More than 1 payment records found for the Annual Admission Application: {}'.format(self))
 
-                    self.proposed_issuance_approval = {
-                        #'start_date': current_date.strftime('%d/%m/%Y'),
-                        #'expiry_date': self.end_date.strftime('%d/%m/%Y'),
-                        'details': details.get('details'),
-                        'cc_email': details.get('cc_email')
-                    }
+                    if details:
+                        # When auto_approve, there are no 'details' because details are created from the modal when assessment
+                        self.proposed_issuance_approval = {
+                            #'start_date': current_date.strftime('%d/%m/%Y'),
+                            #'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+                            'details': details.get('details'),
+                            'cc_email': details.get('cc_email'),
+                        }
                 self.save()
                 self.process_after_approval(request)
                 # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
@@ -2239,6 +2241,23 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return type_list
 
+    def get_target_date(self, applied_date):
+        if self.proposal_type.code == settings.PROPOSAL_TYPE_AMENDMENT:
+            target_date = applied_date
+        elif self.proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL:
+            if applied_date < self.approval.expiry_date:
+                # Set the target_date to the 1st day of the next season
+                target_date = self.approval.expiry_date + datetime.timedelta(days=1)
+            else:
+                # Renewal application is being applied after the approval expiry date... Not sure if this is allowed.
+                target_date = applied_date
+        elif self.proposal_type.code == settings.PROPOSAL_TYPE_NEW:
+            target_date = applied_date
+        else:
+            raise ValueError('Unknown proposal type of the proposal: {}'.format(self))
+
+        return target_date
+
 
 def update_sticker_doc_filename(instance, filename):
     return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)
@@ -3050,12 +3069,13 @@ class Vessel(models.Model):
         return self.rego_no
 
     ## at submit
-    def check_blocking_ownership(self, vessel_ownership):
+    def check_blocking_ownership(self, vessel_ownership, proposal_being_processed):
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
         # Requirement: If vessel is owned by multiple parties then there must be no other application 
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals = [proposal.child_obj for proposal in 
-                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
+                # Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
+                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded']).exclude(id=proposal_being_processed.id)]
         if proposals:
             raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered 
