@@ -37,11 +37,32 @@ class VesselSizeCategoryForm(forms.ModelForm):
         return cleaned_data
 
 
+class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
+    def clean(self):
+        '''
+        Validate forms as a whole
+        '''
+        null_vessel_count = 0
+        size_list = []
+
+        for form in self.forms:
+            if form.cleaned_data['null_vessel']:
+                null_vessel_count += 1
+            if form.cleaned_data['start_size'] in size_list:
+                raise forms.ValidationError('There is a duplicate vessel size: {}'.format(form.cleaned_data['start_size']))
+            else:
+                size_list.append(form.cleaned_data['start_size'])
+
+        if null_vessel_count >= 2:
+            raise forms.ValidationError('There should not be more than 1 null-vessel catergories.  There are {}'.format(null_vessel_count))
+
+
 class VesselSizeCategoryInline(admin.TabularInline):
     model = VesselSizeCategory
     extra = 0
     can_delete = True
     form = VesselSizeCategoryForm
+    formset = VesselSizeCategoryFormset
 
 
 class VesselSizeCategoryGroupForm(forms.ModelForm):
