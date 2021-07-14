@@ -45,10 +45,13 @@ class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
         null_vessel_count = 0
         size_list = []
 
+        if not self.instance.is_editable:
+            raise forms.ValidationError('{} cannot be changed once used for payment calculation.'.format(self.instance))
+
         for form in self.forms:
             if form.cleaned_data['null_vessel']:
                 null_vessel_count += 1
-            if form.cleaned_data['start_size'] in size_list:
+            if form.cleaned_data.get('start_size') in size_list:
                 raise forms.ValidationError('There is a duplicate vessel size: {}'.format(form.cleaned_data['start_size']))
             else:
                 size_list.append(form.cleaned_data['start_size'])
