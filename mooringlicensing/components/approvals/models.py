@@ -36,6 +36,7 @@ from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMEND
 
 
 logger = logging.getLogger('log')
+logger_for_payment = logging.getLogger('payment_checkout')
 
 
 def update_waiting_list_offer_doc_filename(instance, filename):
@@ -724,12 +725,26 @@ class Approval(RevisionedMixin):
         fee_items = []
         for proposal in self.proposal_set.all():
             for application_fee in proposal.application_fees.all():
-                for fee_item in application_fee.fee_items.all():
-                    fee_items.append(fee_item)
+                if application_fee.fee_items:
+                    for fee_item in application_fee.fee_items.all():
+                        fee_items.append(fee_item)
                 else:
-                    # Should not be here (This does not apply to the data generated at the early stages of development)
-                    pass
+                    # Should not reach here, however the data generated at the early stage of the development may reach here.
+                    logger_for_payment.error('ApplicationFee: {} does not have any fee_item.  It should have at least one.')
         return fee_items
+
+    @property
+    def latest_applied_season(self):
+        latest_applied_season = None
+
+        for fee_item in self.fee_items:
+            if latest_applied_season:
+                if latest_applied_season.end_date < fee_item.fee_period.fee_season.end_date:
+                    latest_applied_season = fee_item.fee_period.fee_season
+            else:
+                latest_applied_season = fee_item.fee_period.fee_season
+
+        return latest_applied_season
 
 
 class WaitingListAllocation(Approval):
