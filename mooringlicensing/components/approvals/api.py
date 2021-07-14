@@ -415,94 +415,28 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
             return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete) for d in instance.qaofficer_documents.filter(input_name=section, visible=True) if d._file] )
 
-    @detail_route(methods=['POST',])
-    @renderer_classes((JSONRenderer,))
-    def add_eclass_licence(self, request, *args, **kwargs):
 
-        def raiser(exception): raise serializers.ValidationError(exception)
-
-        try:
-            with transaction.atomic():
-                #keys = request.data.keys()
-                #file_keys = [key for key in keys if 'file-upload' in i]
-                org_applicant = None
-                proxy_applicant = None
-
-                _file = request.data.get('file-upload-0') if request.data.get('file-upload-0') else raiser('Licence File is required')
-                try:
-                    if request.data.get('applicant_type') == 'org':
-                        org_applicant = Organisation.objects.get(organisation_id=request.data.get('holder-selected'))
-                        #org_applicant = ledger_org.objects.get(id=request.data.get('holder-selected'))
-                    else:
-                        proxy_applicant = EmailUser.objects.get(id=request.data.get('holder-selected'))
-                except:
-                    raise serializers.ValidationError('Licence holder is required')
-
-                start_date = datetime.strptime(request.data.get('start_date'), '%d/%m/%Y') if request.data.get('start_date') else raiser('Start Date is required')
-                issue_date = datetime.strptime(request.data.get('issue_date'), '%d/%m/%Y') if request.data.get('issue_date') else raiser('Issue Date is required')
-                expiry_date = datetime.strptime(request.data.get('expiry_date'), '%d/%m/%Y') if request.data.get('expiry_date') else raiser('Expiry Date is required')
-
-                application_type, app_type_created = ApplicationType.objects.get_or_create(
-                    name='E Class',
-                    defaults={'visible':False, 'max_renewals':1, 'max_renewal_period':5}
-                )
-
-                proposal, proposal_created = Proposal.objects.get_or_create( # Dummy 'E Class' proposal
-                    id=0,
-                    defaults={'application_type':application_type, 'submitter':request.user, 'schema':[]}
-                )
-
-                approval = Approval.objects.create(
-                    issue_date=issue_date,
-                    expiry_date=expiry_date,
-                    start_date=start_date,
-                    org_applicant=org_applicant,
-                    proxy_applicant=proxy_applicant,
-                    current_proposal=proposal
-                )
-
-                doc = ApprovalDocument.objects.create(approval=approval, _file=_file)
-                approval.licence_document=doc
-                approval.save()
-
-                return Response({'approval': approval.lodgement_number})
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-
-
-    @detail_route(methods=['POST',])
-    def approval_extend(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = ApprovalExtendSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.approval_extend(request,serializer.validated_data)
-            serializer = ApprovalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+    #@detail_route(methods=['POST',])
+    #def approval_extend(self, request, *args, **kwargs):
+    #    try:
+    #        instance = self.get_object()
+    #        serializer = ApprovalExtendSerializer(data=request.data)
+    #        serializer.is_valid(raise_exception=True)
+    #        instance.approval_extend(request,serializer.validated_data)
+    #        serializer = ApprovalSerializer(instance,context={'request':request})
+    #        return Response(serializer.data)
+    #    except serializers.ValidationError:
+    #        print(traceback.print_exc())
+    #        raise
+    #    except ValidationError as e:
+    #        if hasattr(e,'error_dict'):
+    #            raise serializers.ValidationError(repr(e.error_dict))
+    #        else:
+    #            if hasattr(e,'message'):
+    #                raise serializers.ValidationError(e.message)
+    #    except Exception as e:
+    #        print(traceback.print_exc())
+    #        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',])
     def approval_cancellation(self, request, *args, **kwargs):
@@ -511,8 +445,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             serializer = ApprovalCancellationSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.approval_cancellation(request,serializer.validated_data)
-            serializer = ApprovalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            #serializer = ApprovalSerializer(instance,context={'request':request})
+            #return Response(serializer.data)
+            return Response()
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -533,8 +468,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             serializer = ApprovalSuspensionSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.approval_suspension(request,serializer.validated_data)
-            serializer = ApprovalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            #serializer = ApprovalSerializer(instance,context={'request':request})
+            #return Response(serializer.data)
+            return Response()
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -554,8 +490,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reinstate_approval(request)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            #serializer = self.get_serializer(instance)
+            #return Response(serializer.data)
+            return Response()
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -576,8 +513,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             serializer = ApprovalSurrenderSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.approval_surrender(request,serializer.validated_data)
-            serializer = ApprovalSerializer(instance,context={'request':request})
-            return Response(serializer.data)
+            #serializer = ApprovalSerializer(instance,context={'request':request})
+            #return Response(serializer.data)
+            return Response()
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

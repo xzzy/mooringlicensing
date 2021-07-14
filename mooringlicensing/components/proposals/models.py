@@ -1442,8 +1442,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # approval, created = self.create_approval(current_datetime=current_datetime)
                 approval, created = self.update_or_create_approval(current_datetime)
                 checking_proposal = self
-                if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
-                    approval.renewal_sent = False
+                # always reset this flag
+                approval.renewal_sent = False
+                approval.save()
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 if created:
@@ -2318,8 +2319,9 @@ class AuthorisedUserApplication(Proposal):
             if created:
                 self.approval = approval
                 self.save()
-        if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
-            approval.renewal_sent = False
+        # always reset this flag
+        approval.renewal_sent = False
+        approval.save()
         # create MooringOnApproval records
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
@@ -2526,8 +2528,9 @@ class MooringLicenceApplication(Proposal):
                             ),
                         request
                         )
-            if self.proposal_type == PROPOSAL_TYPE_RENEWAL:
-                approval.renewal_sent = False
+            # always reset this flag
+            approval.renewal_sent = False
+            approval.save()
             # manage stickers
             approval.child_obj.manage_stickers(self)
             # write approval history
@@ -2706,7 +2709,10 @@ class Vessel(models.Model):
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals = [proposal.child_obj for proposal in 
                 # Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
-                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded']).exclude(id=proposal_being_processed.id)]
+                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(
+                    Q(vessel_ownership=vessel_ownership) | 
+                    Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
+                    Q(id=proposal_being_processed.id))]
         if proposals:
             raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered 

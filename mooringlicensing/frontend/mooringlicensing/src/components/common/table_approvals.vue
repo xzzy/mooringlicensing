@@ -95,12 +95,20 @@
                 @refreshFromResponse="refreshFromResponse"
             />
         </div>
+        <ApprovalCancellation ref="approval_cancellation"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalCancellation>
+        <ApprovalSuspension ref="approval_suspension"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalSuspension>
+        <ApprovalSurrender ref="approval_surrender"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalSurrender>
+        <!--ApprovalHistory ref="approval_history" /-->
     </div>
 </template>
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import OfferMooringLicence from '@/components/internal/approvals/offer_mooring_licence.vue'
+import ApprovalCancellation from '../internal/approvals/approval_cancellation.vue'
+import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
+import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
+//import ApprovalHistory from './approval_history_modal.vue';
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 export default {
@@ -149,6 +157,9 @@ export default {
     components:{
         datatable,
         OfferMooringLicence,
+        ApprovalCancellation,
+        ApprovalSuspension,
+        ApprovalSurrender,
     },
     watch: {
         show_expired_surrendered: function(value){
@@ -652,6 +663,9 @@ export default {
             this.$nextTick(() => {
                 this.$refs.offer_mooring_licence.isModalOpen = true;
             });
+        },
+        refreshFromResponseApprovalModify: function(){
+            this.$refs.approvals_datatable.vmDataTable.ajax.reload();
         },
         refreshFromResponse: async function(lodgementNumber){
             console.log("refreshFromResponse");

@@ -520,7 +520,6 @@ class Approval(RevisionedMixin):
                 if self.status == Approval.APPROVAL_STATUS_CURRENT and self.expiry_date < today:
                     self.status = Approval.APPROVAL_STATUS_EXPIRED
                     self.save()
-                    self.child_obj.remove_blocking_owner()
                     send_approval_expire_email_notification(self)
                     proposal = self.current_proposal
                     ApprovalUserAction.log_action(self,ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id),user)
@@ -533,8 +532,8 @@ class Approval(RevisionedMixin):
             try:
                 if not request.user in self.allowed_assessors:
                     raise ValidationError('You do not have access to extend this approval')
-                if not self.can_extend and self.can_action:
-                    raise ValidationError('You cannot extend approval any further')
+                #if not self.can_extend and self.can_action:
+                 #   raise ValidationError('You cannot extend approval any further')
                 self.renewal_count += 1
                 self.extend_details = details.get('extend_details')
                 self.expiry_date = datetime.date(self.expiry_date.year + self.current_proposal.application_type.max_renewal_period, self.expiry_date.month, self.expiry_date.day)
@@ -574,7 +573,6 @@ class Approval(RevisionedMixin):
                 else:
                     self.set_to_cancel = True
                 self.save()
-                self.child_obj.remove_blocking_owner()
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
                 # Log entry for organisation
@@ -672,7 +670,6 @@ class Approval(RevisionedMixin):
                 else:
                     self.set_to_surrender = True
                 self.save()
-                self.child_obj.remove_blocking_owner()
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
                 # Log entry for proposal
