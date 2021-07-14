@@ -86,7 +86,7 @@
                                             <input 
                                             type="radio" 
                                             name="applicationType" 
-                                            :id="application_type.code" 
+                                            :id="application_type.code + '_' + index" 
                                             value="application_type" 
                                             @change="selectApplication(application_type)"
                                             />
@@ -99,7 +99,7 @@
                                                 <input 
                                                 type="radio" 
                                                 name="applicationType" 
-                                                :id="application_type.code + '_' + index" 
+                                                :id="application_type.code" 
                                                 value="application_type" 
                                                 @change="selectApplication(application_type)"
                                                 />
