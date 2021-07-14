@@ -281,7 +281,7 @@ class FeeConstructor(RevisionedMixin):
             else:
                 raise ValueError('Null vessel size category not found under the vessel size category group: {}'.format(self.vessel_size_category_group))
         else:
-            vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length).order_by('start_size').last()
+            vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length, null_vessel=False).order_by('start_size').last()
         fee_item = self.get_fee_item_for_adjustment(vessel_size_category, fee_period, proposal_type=proposal_type, age_group=age_group, admission_type=admission_type)
 
         return fee_item
