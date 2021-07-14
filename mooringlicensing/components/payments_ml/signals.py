@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.payments_ml.models import FeeConstructor, FeeItem
-from mooringlicensing.components.proposals.models import ProposalType
+from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, AuthorisedUserApplication
 
 logger = logging.getLogger('log')
 
@@ -53,15 +53,20 @@ class FeeConstructorListener(object):
                                                                                          admission_type))
                     else:
                         for proposal_type in proposal_types:
-                            fee_item, created = FeeItem.objects.get_or_create(fee_constructor=instance,
-                                                                              fee_period=fee_period,
-                                                                              vessel_size_category=vessel_size_category,
-                                                                              proposal_type=proposal_type)
-                            valid_fee_item_ids.append(fee_item.id)
-                            if created:
-                                logger.info('FeeItem created: {} - {} - {}'.format(fee_period.name,
-                                                                                   vessel_size_category.name,
-                                                                                   proposal_type.description))
+                            if vessel_size_category.null_vessel and\
+                                    (instance.application_type.code in (AnnualAdmissionApplication.code, AuthorisedUserApplication.code) or proposal_type.code == settings.PROPOSAL_TYPE_NEW):
+                                # Null vessel is just for 'Renewal'/'Amendment' proposal type of WLA/MLA.
+                                continue
+                            else:
+                                fee_item, created = FeeItem.objects.get_or_create(fee_constructor=instance,
+                                                                                  fee_period=fee_period,
+                                                                                  vessel_size_category=vessel_size_category,
+                                                                                  proposal_type=proposal_type)
+                                valid_fee_item_ids.append(fee_item.id)
+                                if created:
+                                    logger.info('FeeItem created: {} - {} - {}'.format(fee_period.name,
+                                                                                       vessel_size_category.name,
+                                                                                       proposal_type.description))
 
             # Delete unused onl fee_items
             if instance.num_of_times_used_for_payment == 0:
