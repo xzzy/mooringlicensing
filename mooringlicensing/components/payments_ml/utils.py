@@ -144,7 +144,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
     # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
-    valid_null_vessel_application = False
+    accept_null_vessel = False
 
     if isinstance(instance, Proposal):
         application_type = instance.application_type
@@ -157,6 +157,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
             if instance.child_obj.does_accept_null_vessel:
                 # For the amendment application or the renewal application, vessel field can be blank when submit.
                 vessel_length = -1
+                accept_null_vessel = True
                 # this_is_null_vessel_app = True
             else:
                 raise Exception('No vessel specified for the application {}'.format(instance.lodgement_number))
@@ -192,7 +193,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     else:
         raise Exception('Something went wrong when calculating the fee')
 
-    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
     fee_item_additional = fee_constructor_additional.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_additional else None
 
     fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item)
