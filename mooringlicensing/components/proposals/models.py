@@ -1848,11 +1848,29 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def get_target_date(self, applied_date):
         if self.proposal_type.code == settings.PROPOSAL_TYPE_AMENDMENT:
-            target_date = applied_date
+            if applied_date < self.approval.latest_applied_season.start_date:
+                # This amendment application is being applied after the renewal but before the new season starts
+                # Set the target date used for calculation to the 1st date of the latest season applied
+                target_date = self.approval.latest_applied_season.start_date
+            elif self.approval.latest_applied_season.start_date <= applied_date <= self.approval.latest_applied_season.end_date:
+                # This amendment application is being applied during the latest season applied to the approval
+                # This is the most likely case
+                target_date = applied_date
+            else:
+                msg = 'Approval: {} cannot be amended before renewal'.format(self.approval)
+                logger.error(msg)
+                raise Exception(msg)
         elif self.proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL:
-            if applied_date < self.approval.expiry_date:
+            if applied_date < self.approval.latest_applied_season.start_date:  # This should be same as self.approval.expiry_date
+                # This renewal is being applied before the latest season starts
+                msg = 'Approval: {} has been probably renewed, already'.format(self.approval)
+                logger.error(msg)
+                raise Exception(msg)
+            elif self.approval.latest_applied_season.start_date <= applied_date <= self.approval.latest_applied_season.end_date:
+                # This renewal application is being applied before the licence expiry
+                # This is the most likely case
                 # Set the target_date to the 1st day of the next season
-                target_date = self.approval.expiry_date + datetime.timedelta(days=1)
+                target_date = self.approval.latest_applied_season.end_date + datetime.timedelta(days=1)
             else:
                 # Renewal application is being applied after the approval expiry date... Not sure if this is allowed.
                 target_date = applied_date
