@@ -1418,6 +1418,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             'details': details.get('details'),
                             'cc_email': details.get('cc_email'),
                         }
+                    else:
+                        self.proposed_issuance_approval = {}
                 self.save()
                 self.process_after_approval(request)
                 # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
