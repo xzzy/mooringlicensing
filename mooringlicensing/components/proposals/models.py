@@ -2709,7 +2709,10 @@ class Vessel(models.Model):
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals = [proposal.child_obj for proposal in 
                 # Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
-                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded']).exclude(id=proposal_being_processed.id)]
+                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(
+                    Q(vessel_ownership=vessel_ownership) | 
+                    Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
+                    Q(id=proposal_being_processed.id))]
         if proposals:
             raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered 

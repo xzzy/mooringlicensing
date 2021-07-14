@@ -614,7 +614,8 @@ class ApplicationFeeSuccessView(TemplateView):
                 application_fee = ApplicationFee.objects.get(id=request.session[self.LAST_APPLICATION_FEE_ID])
                 proposal = application_fee.proposal
                 submitter = proposal.submitter
-                proposal.child_obj.auto_approve(request)
+                if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
+                    proposal.child_obj.auto_approve(request)
 
             else:
                 return redirect('home')
