@@ -2447,7 +2447,7 @@ class WaitingListApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
             return True
         return False
 
@@ -2933,7 +2933,7 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        if self.proposal_type in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
             return True
         return False
 
