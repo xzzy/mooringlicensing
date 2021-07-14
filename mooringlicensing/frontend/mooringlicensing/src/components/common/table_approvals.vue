@@ -186,6 +186,13 @@ export default {
             }
             return false
         },
+        externalWaitingList: function() {
+            let extWLA = false;
+            if (this.is_external && this.wlaDash) {
+                extWLA = true;
+            }
+            return extWLA;
+        },
         wlaDash: function() {
             let returnVal = false;
             if (this.approvalTypeFilter.includes('wla')) {
@@ -617,6 +624,7 @@ export default {
                         //d.filter_approval_type = vm.approvalTypesToDisplay.join(',');
                         d.filter_approval_type = vm.approvalTypeFilter.join(',');
                         d.show_expired_surrendered = vm.show_expired_surrendered;
+                        d.external_waiting_list = vm.externalWaitingList;
                         d.filter_status = vm.filterStatus;
                         d.filter_approval_type2 = vm.filterApprovalType;
                         d.filter_mooring_bay_id = vm.filterMooringBay;
