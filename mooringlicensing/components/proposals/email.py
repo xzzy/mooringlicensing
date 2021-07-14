@@ -462,7 +462,7 @@ def send_proposal_approval_email_notification(proposal, request):
     #     email = ProposalApprovalSendNotificationEmail()
     email = ProposalApprovalSendNotificationEmail()
 
-    cc_list = proposal.proposed_issuance_approval['cc_email']
+    cc_list = proposal.proposed_issuance_approval.get('cc_email')
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
@@ -514,7 +514,7 @@ def send_proposal_awaiting_payment_approval_email_notification(proposal, request
     """ Send External Email with attached invoice and URL link to pay by credit card """
     email = ProposalAwaitingPaymentApprovalSendNotificationEmail()
 
-    cc_list = proposal.proposed_issuance_approval['cc_email']
+    cc_list = proposal.proposed_issuance_approval.get('cc_email')
     all_ccs = []
     if cc_list:
         all_ccs = cc_list.split(',')
