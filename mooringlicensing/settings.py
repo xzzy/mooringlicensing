@@ -170,7 +170,7 @@ PROPOSAL_TYPE_AMENDMENT = 'amendment'
 PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_NEW, 'New Application'),
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
-    # We don't need the fee item for the type 'renewal' because which is the type 'new' fee item of the next season.
+    (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
 
 ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
