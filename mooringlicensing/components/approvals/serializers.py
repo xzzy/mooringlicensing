@@ -404,9 +404,11 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     authorised_user_moorings = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
+    can_reinstate = serializers.SerializerMethodField()
     #can_renew = serializers.SerializerMethodField()
     #can_amend = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
+    allowed_assessors = EmailUserSerializer(many=True)
 
     class Meta:
         model = Approval
@@ -435,11 +437,13 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'authorised_user_moorings',
             'can_reissue',
             'can_action',
+            'can_reinstate',
             #'can_renew',
             #'can_amend',
             'amend_or_renew',
             'renewal_document',
             'renewal_sent',
+            'allowed_assessors',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -468,11 +472,13 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'authorised_user_moorings',
             'can_reissue',
             'can_action',
+            'can_reinstate',
             #'can_renew',
             #'can_amend',
             'amend_or_renew',
             'renewal_document',
             'renewal_sent',
+            'allowed_assessors',
         )
 
     def get_renewal_document(self,obj):
@@ -482,6 +488,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_can_reissue(self,obj):
         return obj.can_reissue
+
+    def get_can_reinstate(self,obj):
+        return obj.can_reinstate
 
     def get_can_action(self,obj):
         return obj.can_action
