@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Send email to AAP/ML holder configurable number of days before end of six month period in which a new vessel is to be nominated'
+    help = 'Send email to WLA/ML holder configurable number of days before end of six month period in which a new vessel is to be nominated'
 
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()

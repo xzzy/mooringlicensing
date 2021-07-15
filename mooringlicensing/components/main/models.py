@@ -180,7 +180,7 @@ class GlobalSettings(models.Model):
     KEY_DCV_PERMIT_TEMPLATE_FILE = 'dcv_permit_template_file'
     KEY_DCV_ADMISSION_TEMPLATE_FILE = 'dcv_admission_template_file'
     KEY_APPROVAL_TEMPLATE_FILE = 'approval_template_file'
-    KEY_RESET_WAITING_LIST_ALLOCATION_DAYS = 'reset_waiting_list_allocation_days'
+    # KEY_RESET_WAITING_LIST_ALLOCATION_DAYS = 'reset_waiting_list_allocation_days'
     # KEY_STICKER_PRINTING_CONTACT = 'sticker_printing_contact'
 
     keys_for_file = (
@@ -192,14 +192,14 @@ class GlobalSettings(models.Model):
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, 'DcvAdmission template file'),
         (KEY_APPROVAL_TEMPLATE_FILE, 'Approval template file'),
-        (KEY_RESET_WAITING_LIST_ALLOCATION_DAYS, 'Reset unclaimed Waiting List Allocations after X days'),
+        # (KEY_RESET_WAITING_LIST_ALLOCATION_DAYS, 'Reset unclaimed Waiting List Allocations after X days'),
         # (KEY_STICKER_PRINTING_CONTACT, 'Contact email addresses for printing the sticker'),
     )
     default_values = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, ''),
         (KEY_APPROVAL_TEMPLATE_FILE, ''),
-        (KEY_RESET_WAITING_LIST_ALLOCATION_DAYS, 0),
+        # (KEY_RESET_WAITING_LIST_ALLOCATION_DAYS, 0),
         # (KEY_STICKER_PRINTING_CONTACT, ''),
     )
 
