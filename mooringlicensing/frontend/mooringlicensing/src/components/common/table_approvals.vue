@@ -152,6 +152,7 @@ export default {
             holderList: [],
             maxVesselLength: null,
             maxVesselDraft: null,
+            profile: {},
         }
     },
     components:{
@@ -404,7 +405,30 @@ export default {
                                 //if(full.renewal_document && full.renewal_sent && full.can_renew) {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
+                            } else if (!vm.is_external){
+                                /*
+                                if(full.can_approver_reissue && full.current_proposal){
+                                        links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal_id}'>Reissue</a><br/>`;
+                                }
+                                */
+                                if(vm.check_assessor(full)){
+                                    if(full.can_reissue && full.can_action){
+                                        links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                    }
+                                    if(full.status == 'Current' && full.can_action){
+                                        links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`;
+                                    }
+                                    if(full.can_reinstate)
+                                    {
+                                        links +=  `<a href='#${full.id}' data-reinstate-approval='${full.id}'>Reinstate</a><br/>`;
+                                    }
+                                }
+                                if(full.renewal_document && full.renewal_sent){
+                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`;
+                                }
                             }
+
                             return links;
                         }
                     }
@@ -663,6 +687,36 @@ export default {
 
     },
     methods: {
+
+        fetchProfile: function(){
+            let vm = this;
+            Vue.http.get(api_endpoints.profile).then((response) => {
+                vm.profile = response.body
+
+            },(error) => {
+                console.log(error);
+
+            })
+        },
+
+        check_assessor: function(proposal){
+            let vm = this;
+            //console.log(proposal.id, proposal.can_approver_reissue);
+            var assessor = proposal.allowed_assessors.filter(function(elem){
+                    return(elem.id==vm.profile.id)
+
+                });
+
+            if (assessor.length > 0){
+                //console.log(proposal.id, assessor)
+                return true;
+            }
+            else
+                return false;
+
+            return false;
+        },
+
         offerMooringLicence: function(id){
             console.log('offerMooringLicence')
             console.log(id)
@@ -736,6 +790,33 @@ export default {
                     */
                 });
             });
+            // Internal Reissue listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-reissue-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-reissue-approval');
+                vm.reissueApproval(id);
+            });
+
+            //Internal Cancel listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-cancel-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-cancel-approval');
+                vm.cancelApproval(id);
+            });
+
+            //Internal Suspend listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-suspend-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-suspend-approval');
+                vm.suspendApproval(id);
+            });
+
+            // Internal Reinstate listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-reinstate-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-reinstate-approval');
+                vm.reinstateApproval(id);
+            });
 
             //Internal/ External Surrender listener
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-surrender-approval]', function(e) {
@@ -789,6 +870,86 @@ export default {
                 this.holderList.push(h);
             }
             */
+        },
+        reissueApproval:function (proposal_id) {
+            let vm = this;
+            let status= 'with_approver'
+            let data = {'status': status}
+            swal({
+                title: "Reissue Approval",
+                text: "Are you sure you want to reissue this approval?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Reissue approval',
+                //confirmButtonColor:'#d9534f'
+            }).then(() => {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/reissue_approval')),JSON.stringify(data),{
+                emulateJSON:true,
+                })
+                .then((response) => {
+
+                    vm.$router.push({
+                    name:"internal-proposal",
+                    params:{proposal_id:proposal_id}
+                    });
+                }, (error) => {
+                    console.log(error);
+                    swal({
+                    title: "Reissue Approval",
+                    text: error.body,
+                    type: "error",
+                    })
+                });
+            },(error) => {
+
+            });
+        },
+
+        reinstateApproval:function (approval_id) {
+            let vm = this;
+            let status= 'with_approver'
+            //let data = {'status': status}
+            swal({
+                title: "Reinstate Approval",
+                text: "Are you sure you want to reinstate this approval?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Reinstate approval',
+                //confirmButtonColor:'#d9534f'
+            }).then(() => {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals,(approval_id+'/approval_reinstate')),{
+
+                })
+                .then((response) => {
+                    swal(
+                        'Reinstate',
+                        'Your approval has been reinstated',
+                        'success'
+                    )
+                    vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
+
+                }, (error) => {
+                    console.log(error);
+                    swal({
+                    title: "Reinstate Approval",
+                    text: error.body,
+                    type: "error",
+                    })
+                });
+            },(error) => {
+
+            });
+        },
+        cancelApproval: function(approval_id){
+
+            this.$refs.approval_cancellation.approval_id = approval_id;
+            this.$refs.approval_cancellation.isModalOpen = true;
+        },
+
+        suspendApproval: function(approval_id){
+            this.$refs.approval_suspension.approval = {};
+            this.$refs.approval_suspension.approval_id = approval_id;
+            this.$refs.approval_suspension.isModalOpen = true;
         },
 
         surrenderApproval: function(approval_id){
@@ -875,6 +1036,7 @@ export default {
     },
     created: async function(){
         await this.fetchFilterLists();
+        await this.fetchProfile();
     },
     mounted: function(){
         this.$nextTick(() => {
