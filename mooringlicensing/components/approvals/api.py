@@ -150,14 +150,18 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
             filter_approval_type_list = filter_approval_type.split(',')
             filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
             queryset = queryset.filter(id__in=filtered_ids)
-        print(queryset)
         # Show/Hide expired and/or surrendered
         show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
-        if not show_expired_surrendered:
-            #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
-            queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_OFFERED))
+        external_waiting_list = request.GET.get('external_waiting_list')
+        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
+        if external_waiting_list and not show_expired_surrendered:
+                print("external")
+                #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
+                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_OFFERED))
+                #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
 
+        print(queryset)
         # approval types filter2 - Licences dash only (excludes wla)
         filter_approval_type2 = request.GET.get('filter_approval_type2')
         #import ipdb; ipdb.set_trace()
