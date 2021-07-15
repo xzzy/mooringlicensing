@@ -1,10 +1,8 @@
 from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
-from ledger.accounts.models import EmailUser
 
 import logging
 
@@ -12,6 +10,7 @@ from mooringlicensing.components.approvals.email import send_vessel_nomination_r
 from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, \
     MooringLicence
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.management.commands.utils import ml_meet_vessel_requirement
 from mooringlicensing.settings import CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML, \
     CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA
 
@@ -58,7 +57,7 @@ class Command(BaseCommand):
         debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
         approval_lodgement_number = params.get('send_vessel_nominate_reminder_lodgement_number', 'no-number')
 
-        # Construct queries
+        # Get approvals
         if approval_type == WaitingListAllocation.code:
             queries = Q()
             queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
@@ -103,12 +102,3 @@ class Command(BaseCommand):
         print(msg)  # will redirect to cron_tasks.log file, by the parent script
 
 
-def ml_meet_vessel_requirement(mooring_licence, boundary_date):
-    # Return True when mooring_licence has at least one vessel whoose size is more than 6.4m and not sold or sold after the boundary_date
-    for proposal in mooring_licence.proposal_set.all():
-        if proposal.vessel_details and proposal.vessel_details.vessel and proposal.vessel_details.vessel.latest_vessel_details and proposal.vessel_details.vessel.latest_vessel_details.vessel_applicable_length >= 6.4:
-            # Vessel meets the length requirements
-            if proposal.vessel_ownership.end_date is None or proposal.vessel_ownership.end_date > boundary_date:
-                # Vessel not sold or sold just recently
-                return True
-    return False
