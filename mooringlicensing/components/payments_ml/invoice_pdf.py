@@ -244,7 +244,7 @@ def _create_header(canvas, doc, draw_page_number=True):
 
 def _is_gst_exempt(invoice):
     '''
-    Return False if there is at least one item which incur gst.  Need to rethinkt 
+    Return False if there is at least one item which incur gst.  Need to rethinkt
     '''
     from mooringlicensing.components.payments_ml.models import ApplicationFee
     application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)

@@ -59,14 +59,31 @@ class Command(BaseCommand):
         approval_lodgement_number = params.get('send_vessel_nominate_reminder_lodgement_number', 'no-number')
 
         # Construct queries
-        queries = Q()
-        queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
-        queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
-        queries &= Q(vessel_nomination_reminder_sent=False)
-        if debug:
-            queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
+        if approval_type == WaitingListAllocation.code:
+            queries = Q()
+            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
+            queries &= Q(vessel_nomination_reminder_sent=False)
+            if debug:
+                queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
+            approvals = approval_class.objects.filter(queries)
+        elif approval_type == MooringLicence.code:
+            queries = Q()
+            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(vessel_nomination_reminder_sent=False)
+            possible_approvals = approval_class.objects.filter(queries)
 
-        for a in approval_class.objects.filter(queries):
+            approvals = []
+            for approval in possible_approvals:
+                # Check if there is at least one vessel which meets the ML vessel requirement
+                if not ml_meet_vessel_requirement(approval, boundary_date):
+                    approvals.append(approval)
+            if debug:
+                apps = MooringLicence.objects.filter(lodgement_number__iexact=approval_lodgement_number)
+                if apps:
+                    approvals.append(apps[0])
+
+        for a in approvals:
             try:
                 send_vessel_nomination_reminder_mail(a)
                 a.vessel_nomination_reminder_sent = True
@@ -85,3 +102,13 @@ class Command(BaseCommand):
         logger.info(msg)
         print(msg)  # will redirect to cron_tasks.log file, by the parent script
 
+
+def ml_meet_vessel_requirement(mooring_licence, boundary_date):
+    # Return True when mooring_licence has at least one vessel whoose size is more than 6.4m and not sold or sold after the boundary_date
+    for proposal in mooring_licence.proposal_set.all():
+        if proposal.vessel_details.vessel.latest_vessel_details.applicable_vessel_length >= 6.4:
+            # Vessel meets the length requirements
+            if proposal.vessel_ownership.end_date > boundary_date or proposal.vessel_ownership.end_date is None:
+                # Vessel not sold or sold just recently
+                return True
+    return False
