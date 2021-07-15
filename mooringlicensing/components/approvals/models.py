@@ -986,6 +986,7 @@ class MooringLicence(Approval):
         return vessels
 
 
+
 class PreviewTempApproval(Approval):
     class Meta:
         app_label = 'mooringlicensing'

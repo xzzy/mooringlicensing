@@ -7,6 +7,7 @@ import logging
 
 from mooringlicensing.components.approvals.email import send_approval_cancelled_due_to_no_vessels_nominated_mail
 from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
+from mooringlicensing.management.commands.utils import ml_meet_vessel_requirement
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +52,38 @@ class Command(BaseCommand):
         debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
         approval_lodgement_number = params.get('cancel_approvals_due_to_no_vessels_nominated_lodgement_number', 'no-number')
 
+        # Get approvals
+        if approval_type == WaitingListAllocation.code:
+            queries = Q()
+            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
+            queries &= Q(vessel_nomination_reminder_sent=False)
+            if debug:
+                queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
+            approvals = approval_class.objects.filter(queries)
+        elif approval_type == MooringLicence.code:
+            queries = Q()
+            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(vessel_nomination_reminder_sent=False)
+            possible_approvals = approval_class.objects.filter(queries)
+
+            approvals = []
+            for approval in possible_approvals:
+                # Check if there is at least one vessel which meets the ML vessel requirement
+                if not ml_meet_vessel_requirement(approval, boundary_date):
+                    approvals.append(approval)
+            if debug:
+                apps = MooringLicence.objects.filter(lodgement_number__iexact=approval_lodgement_number)
+                if apps:
+                    approvals.append(apps[0])
+
         # Construct queries
-        queries = Q()
-        queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
-        queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
-        # queries &= Q(vessel_nomination_reminder_sent=False)
-        if debug:
-            queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
+        # queries = Q()
+        # queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+        # queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
+        # queries &= Q(vessel_nomination_reminder_sent=True)
+        # if debug:
+        #     queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
 
         for a in approval_class.objects.filter(queries):
             try:

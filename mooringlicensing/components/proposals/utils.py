@@ -979,8 +979,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
                 if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
                     # Find the fee_item which can be considered as already paid for this period
                     target_fee_period = fee_item_being_applied.fee_period
-                    target_vessel_size_category = fee_item.vessel_size_category
-                    target_proposal_type = fee_item.proposal_type
+                    target_vessel_size_category = fee_item_being_applied.vessel_size_category
+                    target_proposal_type = fee_item_being_applied.proposal_type
                     target_fee_constructor = fee_item_being_applied.fee_constructor
                     fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
                         target_vessel_size_category,
