@@ -863,10 +863,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def allowed_assessors(self):
+        # TODO: check this logic
         if self.processing_status == 'with_approver':
             group = self.__approver_group()
-        elif self.processing_status =='with_qa_officer':
-            group = QAOfficerGroup.objects.get(default=True)
         else:
             group = self.__assessor_group()
         return group.members.all() if group else []
