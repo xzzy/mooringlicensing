@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+from confy import env
 
 import six
 from django.conf import settings
