@@ -386,6 +386,7 @@ class Approval(RevisionedMixin):
 
     @property
     def allowed_assessors(self):
+        # TODO: check this logic
         return self.current_proposal.allowed_assessors
 
 
