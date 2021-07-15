@@ -3,9 +3,9 @@
         <div class="row">
             <h3>Proposal: {{ proposal.lodgement_number }}</h3>
             <h4>Proposal Type: {{ proposal.proposal_type.description }}</h4>
-            <div v-if="proposal.application_type!='Apiary'">
+            <!--div v-if="proposal.application_type!='Apiary'">
                 <h4>Approval Level: {{ proposal.approval_level }}</h4>
-            </div>
+            </div-->
             <div class="col-md-3">
                 <CommsLogs 
                     :comms_url="comms_url" 
