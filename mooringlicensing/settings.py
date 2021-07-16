@@ -173,8 +173,8 @@ PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
 
-ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
-APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
+#ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
+#APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
 HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',

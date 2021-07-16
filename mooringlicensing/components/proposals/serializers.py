@@ -841,7 +841,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'has_assessor_mode': obj.has_assessor_mode(user),
             'assessor_can_assess': obj.can_assess(user),
             'assessor_level': 'assessor',
-            'assessor_box_view': obj.assessor_comments_view(user)
+            #'assessor_box_view': obj.assessor_comments_view(user)
         }
 
     # def get_can_edit_activities(self,obj):

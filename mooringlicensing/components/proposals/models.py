@@ -13,6 +13,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.conf import settings
 from ledger.accounts.models import EmailUser, RevisionedMixin
@@ -668,15 +669,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def allowed_assessors(self):
         # TODO: check this logic
         if self.processing_status == 'with_approver':
+            #group = self.__approver_group()
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        return group.members.all() if group else []
+            #group = self.__assessor_group()
+        return group.user_set.all() if group else []
 
-    @property
-    def compliance_assessors(self):
-        group = self.__assessor_group()
-        return group.members.all() if group else []
+    #@property
+    #def compliance_assessors(self):
+    #    group = self.__assessor_group()
+    #    return group.members.all() if group else []
 
     @property
     def can_officer_process(self):
@@ -719,10 +722,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
 
     def __assessor_group(self):
-        return ProposalAssessorGroup.objects.first()
+        return self.child_obj.assessor_group
+        #return ProposalAssessorGroup.objects.first()
 
     def __approver_group(self):
-        return ProposalApproverGroup.objects.first()
+        return self.child_obj.approver_group
+        #return ProposalApproverGroup.objects.first()
 
     def __check_proposal_filled_out(self):
         if not self.data:
@@ -738,13 +743,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def assessor_recipients(self):
-        recipients = ProposalAssessorGroup.objects.first().members_email  # We expect there is only one assessor group
-        return recipients
+        return self.child_obj.assessor_recipients
+        #recipients = ProposalAssessorGroup.objects.first().members_email  # We expect there is only one assessor group
+        #return recipients
+
 
     @property
     def approver_recipients(self):
-        recipients = ProposalApproverGroup.objects.first().members_email  # We expect there is only one assessor group
-        return recipients
+        return self.child_obj.approver_recipients
+        #recipients = ProposalApproverGroup.objects.first().members_email  # We expect there is only one assessor group
+        #return recipients
     #    recipients = []
     #    try:
     #        recipients = ProposalApproverGroup.objects.get(region=self.region).members_email
@@ -754,38 +762,43 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     #Check if the user is member of assessor group for the Proposal
     def is_assessor(self, user):
-        return self.__assessor_group() in user.proposalassessorgroup_set.all()
+        return self.child_obj.is_assessor(user)
+        #return self.__assessor_group() in user.proposalassessorgroup_set.all()
+        #return 
 
     #Check if the user is member of assessor group for the Proposal
     def is_approver(self, user):
-        return self.__approver_group() in user.proposalapprovergroup_set.all()
+        return self.child_obj.is_approver(user)
+        #return self.__approver_group() in user.proposalapprovergroup_set.all()
 
     def can_assess(self, user):
         #if self.processing_status == 'on_hold' or self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements':
         # if self.processing_status in ['on_hold', 'with_qa_officer', 'with_assessor', 'with_referral', 'with_assessor_requirements']:
         if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS]:
-            return self.__assessor_group() in user.proposalassessorgroup_set.all()
+            #return self.__assessor_group() in user.proposalassessorgroup_set.all()
+            return self.child_obj.is_assessor(user)
         elif self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_PRINTING_STICKER]:
-            return self.__approver_group() in user.proposalapprovergroup_set.all()
+            #return self.__approver_group() in user.proposalapprovergroup_set.all()
+            return self.child_obj.is_approver(user)
         else:
             return False
 
-    def assessor_comments_view(self, user):
-        if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver':
-            try:
-                referral = Referral.objects.get(proposal=self,referral=user)
-            except:
-                referral = None
-            if referral:
-                return True
-            elif self.__assessor_group() in user.proposalassessorgroup_set.all():
-                return True
-            elif self.__approver_group() in user.proposalapprovergroup_set.all():
-                return True
-            else:
-                return False
-        else:
-            return False
+    #def assessor_comments_view(self, user):
+    #    if self.processing_status == 'with_assessor' or self.processing_status == 'with_referral' or self.processing_status == 'with_assessor_requirements' or self.processing_status == 'with_approver':
+    #        try:
+    #            referral = Referral.objects.get(proposal=self,referral=user)
+    #        except:
+    #            referral = None
+    #        if referral:
+    #            return True
+    #        elif self.__assessor_group() in user.proposalassessorgroup_set.all():
+    #            return True
+    #        elif self.__approver_group() in user.proposalapprovergroup_set.all():
+    #            return True
+    #        else:
+    #            return False
+    #    else:
+    #        return False
 
     def has_assessor_mode(self,user):
         status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
@@ -794,11 +807,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             if self.assigned_officer:
                 if self.assigned_officer == user:
-                    return self.__assessor_group() in user.proposalassessorgroup_set.all()
+                    return self.child_obj.is_assessor(user)
+                    #return self.__assessor_group() in user.proposalassessorgroup_set.all()
                 else:
                     return False
             else:
-                return self.__assessor_group() in user.proposalassessorgroup_set.all()
+                #return self.__assessor_group() in user.proposalassessorgroup_set.all()
+                return self.child_obj.is_assessor(user)
 
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
@@ -1749,6 +1764,28 @@ class WaitingListApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def assessor_group(self):
+        return Group.objects.get(name="Mooring Licensing - Assessors: Waiting List")
+
+    @property
+    def approver_group(self):
+        return None
+
+    @property
+    def assessor_recipients(self):
+        return [i.email for i in self.assessor_group.user_set.all()]
+
+    @property
+    def approver_recipients(self):
+        return []
+
+    def is_assessor(self, user):
+        return user in self.assessor_group.user_set.all()
+
+    def is_approver(self, user):
+        return False
+
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(WaitingListApplication, self).save(*args, **kwargs)
@@ -1897,6 +1934,28 @@ class AnnualAdmissionApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def assessor_group(self):
+        return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
+
+    @property
+    def approver_group(self):
+        return None
+
+    @property
+    def assessor_recipients(self):
+        return [i.email for i in self.assessor_group.user_set.all()]
+
+    @property
+    def approver_recipients(self):
+        return []
+
+    def is_assessor(self, user):
+        return user in self.assessor_group.user_set.all()
+
+    def is_approver(self, user):
+        return False
+
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(AnnualAdmissionApplication, self).save(*args,**kwargs)
@@ -2025,6 +2084,28 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def assessor_group(self):
+        return Group.objects.get(name="Mooring Licensing - Assessors: Authorised User")
+
+    @property
+    def approver_group(self):
+        return Group.objects.get(name="Mooring Licensing - Approvers: Authorised User")
+
+    @property
+    def assessor_recipients(self):
+        return [i.email for i in self.assessor_group.user_set.all()]
+
+    @property
+    def approver_recipients(self):
+        return [i.email for i in self.approver_group.user_set.all()]
+
+    def is_assessor(self, user):
+        return user in self.assessor_group.user_set.all()
+
+    def is_approver(self, user):
+        return user in self.approver_group.user_set.all()
 
     def save(self, *args, **kwargs):
         super(AuthorisedUserApplication, self).save(*args, **kwargs)
@@ -2210,6 +2291,28 @@ class MooringLicenceApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def assessor_group(self):
+        return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
+
+    @property
+    def approver_group(self):
+        return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
+
+    @property
+    def assessor_recipients(self):
+        return [i.email for i in self.assessor_group.user_set.all()]
+
+    @property
+    def approver_recipients(self):
+        return [i.email for i in self.approver_group.user_set.all()]
+
+    def is_assessor(self, user):
+        return user in self.assessor_group.user_set.all()
+
+    def is_approver(self, user):
+        return user in self.approver_group.user_set.all()
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
