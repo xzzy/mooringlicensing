@@ -84,148 +84,59 @@ def update_vessel_comms_log_filename(instance, filename):
 def update_mooring_comms_log_filename(instance, filename):
     return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
 
-#def application_type_choicelist():
-#    try:
-#        return [( (choice.name), (choice.name) ) for choice in ApplicationType.objects.filter(visible=True)]
-#    except:
-#        # required because on first DB tables creation, there are no ApplicationType objects -- setting a default value
-#        return ( ('T Class', 'T Class'), )
+
+#class ProposalAssessorGroup(models.Model):
+#    name = models.CharField(max_length=255)
+#    members = models.ManyToManyField(EmailUser)
+#    #region = models.ForeignKey(Region, null=True, blank=True)
+#    #default = models.BooleanField(default=False)
 #
-#class ProposalType(models.Model):
-#    #name = models.CharField(verbose_name='Application name (eg. mooringlicensing, Apiary)', max_length=24)
-#    #application_type = models.ForeignKey(ApplicationType, related_name='aplication_types')
-#    description = models.CharField(max_length=256, blank=True, null=True)
-#    #name = models.CharField(verbose_name='Application name (eg. mooringlicensing, Apiary)', max_length=24, choices=application_type_choicelist(), default=application_type_choicelist()[0][0])
-#    name = models.CharField(verbose_name='Application name (eg. T Class, Filming, Event, E Class)', max_length=64, choices=application_type_choicelist(), default='T Class')
-#    schema = JSONField(default=[{}])
-#    #activities = TaggableManager(verbose_name="Activities",help_text="A comma-separated list of activities.")
-#    #site = models.OneToOneField(Site, default='1')
-#    replaced_by = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
-#    #replaced_by = models.ForeignKey('self', blank=True, null=True)
-#    version = models.SmallIntegerField(default=1, blank=False, null=False)
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#        verbose_name = "Application Assessor Group"
+#        verbose_name_plural = "Application Assessor Group"
 #
 #    def __str__(self):
-#        return '{} - v{}'.format(self.name, self.version)
+#        num_of_members = self.members.count()
+#        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
+#        return '{} ({})'.format(self.name, num_of_members_str)
+#
+#    # TODO: check this logic
+#    def member_is_assigned(self,member):
+#        for p in self.current_proposals:
+#            if p.assigned_officer == member:
+#                return True
+#        return False
+#
+#    @property
+#    def members_email(self):
+#        return [i.email for i in self.members.all()]
+#
+#
+#class ProposalApproverGroup(models.Model):
+#    name = models.CharField(max_length=255)
+#    members = models.ManyToManyField(EmailUser)
 #
 #    class Meta:
 #        app_label = 'mooringlicensing'
-#        unique_together = ('name', 'version')
+#        verbose_name = "Application Approver Group"
+#        verbose_name_plural = "Application Approver Group"
 #
-#class TaggedProposalAssessorGroupRegions(TaggedItemBase):
-#    content_object = models.ForeignKey("ProposalAssessorGroup")
+#    def __str__(self):
+#        num_of_members = self.members.count()
+#        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
+#        return '{} ({})'.format(self.name, num_of_members_str)
 #
-#    class Meta:
-#        app_label = 'mooringlicensing'
+#    # TODO: check this logic
+#    def member_is_assigned(self,member):
+#        for p in self.current_proposals:
+#            if p.assigned_approver == member:
+#                return True
+#        return False
 #
-#class TaggedProposalAssessorGroupActivities(TaggedItemBase):
-#    content_object = models.ForeignKey("ProposalAssessorGroup")
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-
-
-class ProposalAssessorGroup(models.Model):
-    name = models.CharField(max_length=255)
-    members = models.ManyToManyField(EmailUser)
-    #region = models.ForeignKey(Region, null=True, blank=True)
-    #default = models.BooleanField(default=False)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name = "Application Assessor Group"
-        verbose_name_plural = "Application Assessor Group"
-
-    def __str__(self):
-        num_of_members = self.members.count()
-        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
-        return '{} ({})'.format(self.name, num_of_members_str)
-
-    #def clean(self):
-    #    try:
-    #        default = ProposalAssessorGroup.objects.get(default=True)
-    #    except ProposalAssessorGroup.DoesNotExist:
-    #        default = None
-
-    #    if self.pk:
-    #        if not self.default and not self.region:
-    #            raise ValidationError('Only default can have no region set for proposal assessor group. Please specifiy region')
-    #    else:
-    #        if default and self.default:
-    #            raise ValidationError('There can only be one default proposal assessor group')
-
-    # TODO: check this logic
-    def member_is_assigned(self,member):
-        for p in self.current_proposals:
-            if p.assigned_officer == member:
-                return True
-        return False
-
-    #@property
-    #def current_proposals(self):
-    #    assessable_states = ['with_assessor','with_referral','with_assessor_requirements']
-    #    return Proposal.objects.filter(processing_status__in=assessable_states)
-
-    @property
-    def members_email(self):
-        return [i.email for i in self.members.all()]
-
-#class TaggedProposalApproverGroupRegions(TaggedItemBase):
-#    content_object = models.ForeignKey("ProposalApproverGroup")
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#
-#class TaggedProposalApproverGroupActivities(TaggedItemBase):
-#    content_object = models.ForeignKey("ProposalApproverGroup")
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-
-
-class ProposalApproverGroup(models.Model):
-    name = models.CharField(max_length=255)
-    members = models.ManyToManyField(EmailUser)
-    #region = models.ForeignKey(Region, null=True, blank=True)
-    #default = models.BooleanField(default=False)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name = "Application Approver Group"
-        verbose_name_plural = "Application Approver Group"
-
-    def __str__(self):
-        num_of_members = self.members.count()
-        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
-        return '{} ({})'.format(self.name, num_of_members_str)
-
-    #def clean(self):
-    #    try:
-    #        default = ProposalApproverGroup.objects.get(default=True)
-    #    except ProposalApproverGroup.DoesNotExist:
-    #        default = None
-
-    #    if self.pk:
-    #        if not self.default and not self.region:
-    #            raise ValidationError('Only default can have no region set for proposal assessor group. Please specifiy region')
-    #    else:
-    #        if default and self.default:
-    #            raise ValidationError('There can only be one default proposal approver group')
-    
-    # TODO: check this logic
-    def member_is_assigned(self,member):
-        for p in self.current_proposals:
-            if p.assigned_approver == member:
-                return True
-        return False
-
-    #@property
-    #def current_proposals(self):
-    #    assessable_states = ['with_approver']
-    #    return Proposal.objects.filter(processing_status__in=assessable_states)
-
-    @property
-    def members_email(self):
-        return [i.email for i in self.members.all()]
+#    @property
+#    def members_email(self):
+#        return [i.email for i in self.members.all()]
 
 
 #class DefaultDocument(Document):
@@ -256,50 +167,7 @@ class ProposalDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Application Document"
 
-#class OnHoldDocument(Document):
-#    proposal = models.ForeignKey('Proposal',related_name='onhold_documents')
-#    _file = models.FileField(upload_to=update_onhold_doc_filename, max_length=512)
-#    input_name = models.CharField(max_length=255,null=True,blank=True)
-#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-#    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
-#
-#    def delete(self):
-#        if self.can_delete:
-#            return super(ProposalDocument, self).delete()
-#
-##Documents on Activities(land)and Activities(Marine) tab for T-Class related to required document questions
-#class ProposalRequiredDocument(Document):
-#    proposal = models.ForeignKey('Proposal',related_name='required_documents')
-#    _file = models.FileField(upload_to=update_proposal_required_doc_filename, max_length=512)
-#    input_name = models.CharField(max_length=255,null=True,blank=True)
-#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-#    required_doc = models.ForeignKey('RequiredDocument',related_name='proposals')
-#    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
-#    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
-#
-#    def delete(self):
-#        if self.can_delete:
-#            return super(ProposalRequiredDocument, self).delete()
-#        logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#
-#
-#class ReferralDocument(Document):
-#    referral = models.ForeignKey('Referral',related_name='referral_documents')
-#    _file = models.FileField(upload_to=update_referral_doc_filename, max_length=512)
-#    input_name = models.CharField(max_length=255,null=True,blank=True)
-#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-#
-#    def delete(self):
-#        if self.can_delete:
-#            return super(ProposalDocument, self).delete()
-#        logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#
+
 class RequirementDocument(Document):
     requirement = models.ForeignKey('ProposalRequirement',related_name='requirement_documents')
     _file = models.FileField(upload_to=update_requirement_doc_filename, max_length=512)
@@ -311,12 +179,6 @@ class RequirementDocument(Document):
         if self.can_delete:
             return super(RequirementDocument, self).delete()
 
-
-#class ProposalApplicantDetails(models.Model):
-#    first_name = models.CharField(max_length=24, blank=True, default='')
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
 
 VESSEL_TYPES = (
         ('yacht', 'Yacht'),
@@ -475,15 +337,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                  (PROCESSING_STATUS_EXPIRED, 'Expired'),
                                 )
 
-    # PROPOSAL_TYPE_CHOICES = (
-    #     ('new_proposal', 'New Application'),
-    #     ('amendment', 'Amendment'),
-    #     ('renewal', 'Renewal'),
-    #     ('external', 'External'),
-    # )
-
-    # proposal_type = models.CharField('Proposal Status Type', max_length=40, choices=PROPOSAL_TYPE_CHOICES,
-    #                                     default=PROPOSAL_TYPE_CHOICES[0][0])
     proposal_type = models.ForeignKey(ProposalType, blank=True, null=True)
 
 #data = JSONField(blank=True, null=True)
@@ -608,25 +461,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         self.save()
 
-    #def post_payment_success(self, request):
-    #    self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-    #    self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id),request)
-
-    #    # ret1 = send_submit_email_notification(request, self)
-    #    #ret2 = send_external_submit_email_notification(request, self)
-    #    # ret2 = True
-    #    ret1 = self.child_obj.send_emails_after_payment_success(request)
-
-    #    if ret1:
-    #        self.child_obj.set_status_after_payment_success()
-    #        self.refresh_from_db()
-    #        # self.refresh_from_db()
-    #        # wobj = WaitingListApplication.objects.get(proposal_id=self.id)
-    #        # wobj.set_status_after_payment_success()
-    #    else:
-    #        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-    #    self.save()
-
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
         self.child_obj.refresh_from_db()
@@ -704,14 +538,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def fee_amount(self):
         return self.invoice.amount if self.fee_paid else None
-
-    #@property
-    #def can_create_final_approval(self):
-    #    return self.fee_paid and self.processing_status==Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-
-    #@property
-    #def reference(self):
-    #    return '{}-{}'.format(self.lodgement_number, self.lodgement_sequence)
 
     @property
     def reversion_ids(self):
@@ -811,10 +637,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def is_assigned(self):
         return self.assigned_officer is not None
 
-    #@property
-    #def is_temporary(self):
-    #    return self.customer_status == 'temp' and self.processing_status == 'temp'
-
     @property
     def can_user_edit(self):
         """
@@ -828,25 +650,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         :return: True if the application is in one of the approved status.
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
-
-
-
-    #@property
-    #def is_discardable(self):
-    #    """
-    #    An application can be discarded by a customer if:
-    #    1 - It is a draft
-    #    2- or if the application has been pushed back to the user
-    #    """
-    #    return self.customer_status == 'draft' or self.processing_status == 'awaiting_applicant_response'
-
-    #@property
-    #def is_deletable(self):
-    #    """
-    #    An application can be deleted only if it is a draft and it hasn't been lodged yet
-    #    :return:
-    #    """
-    #    return self.customer_status == 'draft' and not self.lodgement_number
 
     @property
     def assessor_assessment(self):
@@ -926,9 +729,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise exceptions.ProposalNotComplete()
         missing_fields = []
         required_fields = {
-        #    'region':'Region/District',
-        #    'title': 'Title',
-        #    'activity': 'Activity'
         }
         for k,v in required_fields.items():
             val = getattr(self,k)
