@@ -2,6 +2,9 @@ import re
 
 from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
+
+from mooringlicensing import settings
+from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.proposals.models import (
     # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
     # ProposalUserAction,
@@ -486,6 +489,12 @@ def save_vessel_data(instance, request, vessel_data):
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
+
+    min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
+    min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
+    min_vessel_size = float(min_vessel_size_str)
+    min_mooring_vessel_size = float(min_mooring_vessel_size_str)
+
     #import ipdb; ipdb.set_trace()
     if (not vessel_data.get('rego_no') and instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and
             type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication]):
@@ -500,17 +509,17 @@ def submit_vessel_data(instance, request, vessel_data):
     instance.save()
     ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
     if type(instance.child_obj) in [AnnualAdmissionApplication, AuthorisedUserApplication]:
-        if instance.vessel_details.vessel_applicable_length < 3.75:
-            raise serializers.ValidationError("Vessel must be at least 3.75m in length")
+        if instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
     elif type(instance.child_obj) == WaitingListApplication:
-        if instance.vessel_details.vessel_applicable_length < 6.4:
-            raise serializers.ValidationError("Vessel must be at least 6.4m in length")
+        if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
     else:
         ## Mooring Licence Application
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < 3.75:
-            raise serializers.ValidationError("Vessel must be at least 3.75m in length")
-        elif instance.vessel_details.vessel_applicable_length < 6.4:
-            raise serializers.ValidationError("Vessel must be at least 6.4m in length")
+        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vesel_size:
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+        elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
 
     # record ownership data
     #submit_vessel_ownership(instance, request)
