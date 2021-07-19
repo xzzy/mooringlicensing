@@ -2,7 +2,7 @@
     <div>
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading">
-            <h4>Authorised User Application: {{proposal.lodgement_number}}</h4>
+            <h4>Authorised User {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
         </div>
 
         <div>
@@ -229,6 +229,13 @@
         computed:{
             applicantType: function(){
                 return this.proposal.applicant_type;
+            },
+            applicationTypeText: function(){
+                let text = '';
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new') {
+                    text = this.proposal.proposal_type.description;
+                }
+                return text;
             },
             /*
             showElectoralRoll: function() {
