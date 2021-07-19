@@ -57,14 +57,14 @@ class Command(BaseCommand):
             queries = Q()
             queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
             queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
-            queries &= Q(vessel_nomination_reminder_sent=False)
+            queries &= Q(vessel_nomination_reminder_sent=False)  # Is this correct?  SHould be True?
             if debug:
                 queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
             approvals = approval_class.objects.filter(queries)
         elif approval_type == MooringLicence.code:
             queries = Q()
             queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
-            queries &= Q(vessel_nomination_reminder_sent=False)
+            queries &= Q(vessel_nomination_reminder_sent=False)  # Is this correct?  SHould be True?
             possible_approvals = approval_class.objects.filter(queries)
 
             approvals = []

@@ -38,6 +38,7 @@ class VesselSizeCategoryForm(forms.ModelForm):
 
 
 class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
+
     def clean(self):
         '''
         Validate forms as a whole
