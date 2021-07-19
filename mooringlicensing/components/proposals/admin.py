@@ -49,54 +49,48 @@ class ProposalAdmin(VersionAdmin):
     inlines =[ProposalDocumentInline,]
 
 
-@admin.register(models.ProposalAssessorGroup)
-class ProposalAssessorGroupAdmin(admin.ModelAdmin):
-    #list_display = ['name','default']
-    filter_horizontal = ('members',)
-    form = forms.ProposalAssessorGroupAdminForm
-    #readonly_fields = ['default']
-    #readonly_fields = ['regions', 'activities']
-
-    def get_actions(self, request):
-        actions = super(ProposalAssessorGroupAdmin, self).get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
-
-    def has_delete_permission(self, request, obj=None):
-        if self.model.objects.count() == 1:
-            return False
-        return super(ProposalAssessorGroupAdmin, self).has_delete_permission(request, obj)
-
-    def has_add_permission(self, request):
-        if self.model.objects.count() > 0:
-            return False
-        return super(ProposalAssessorGroupAdmin, self).has_add_permission(request)
-
-
-@admin.register(models.ProposalApproverGroup)
-class ProposalApproverGroupAdmin(admin.ModelAdmin):
-    #list_display = ['name','default']
-    filter_horizontal = ('members',)
-    form = forms.ProposalApproverGroupAdminForm
-    #readonly_fields = ['default']
-    #readonly_fields = ['default', 'regions', 'activities']
-
-    def get_actions(self, request):
-        actions =  super(ProposalApproverGroupAdmin, self).get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
-
-    def has_delete_permission(self, request, obj=None):
-        if self.model.objects.count() == 1:
-            return False
-        return super(ProposalApproverGroupAdmin, self).has_delete_permission(request, obj)
-
-    def has_add_permission(self, request):
-        if self.model.objects.count() > 0:
-            return False
-        return super(ProposalApproverGroupAdmin, self).has_add_permission(request)
+#@admin.register(models.ProposalAssessorGroup)
+#class ProposalAssessorGroupAdmin(admin.ModelAdmin):
+#    filter_horizontal = ('members',)
+#    form = forms.ProposalAssessorGroupAdminForm
+#
+#    def get_actions(self, request):
+#        actions = super(ProposalAssessorGroupAdmin, self).get_actions(request)
+#        if 'delete_selected' in actions:
+#            del actions['delete_selected']
+#        return actions
+#
+#    def has_delete_permission(self, request, obj=None):
+#        if self.model.objects.count() == 1:
+#            return False
+#        return super(ProposalAssessorGroupAdmin, self).has_delete_permission(request, obj)
+#
+#    def has_add_permission(self, request):
+#        if self.model.objects.count() > 0:
+#            return False
+#        return super(ProposalAssessorGroupAdmin, self).has_add_permission(request)
+#
+#
+#@admin.register(models.ProposalApproverGroup)
+#class ProposalApproverGroupAdmin(admin.ModelAdmin):
+#    filter_horizontal = ('members',)
+#    form = forms.ProposalApproverGroupAdminForm
+#
+#    def get_actions(self, request):
+#        actions =  super(ProposalApproverGroupAdmin, self).get_actions(request)
+#        if 'delete_selected' in actions:
+#            del actions['delete_selected']
+#        return actions
+#
+#    def has_delete_permission(self, request, obj=None):
+#        if self.model.objects.count() == 1:
+#            return False
+#        return super(ProposalApproverGroupAdmin, self).has_delete_permission(request, obj)
+#
+#    def has_add_permission(self, request):
+#        if self.model.objects.count() > 0:
+#            return False
+#        return super(ProposalApproverGroupAdmin, self).has_add_permission(request)
 
 @admin.register(models.ProposalStandardRequirement)
 class ProposalStandardRequirementAdmin(admin.ModelAdmin):

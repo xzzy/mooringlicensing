@@ -334,7 +334,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         "code": lchild.code,
                         "description": lchild.description,
                         #"new_application_text": "I want to add a vessel to Mooring Licence {} on mooring {}".format(lchild.lodgement_number, mooring.name)
-                        "new_application_text": "I want to (amend/renew) my current mooring licence {}".format(lchild.lodgement_number)
+                        "new_application_text": "I want to amend or renew my current mooring licence {}".format(lchild.lodgement_number)
                         })
             else:
                 existing_licences.append({
@@ -344,7 +344,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                     #"lodgement_number": ml.lodgement_number,
                     "code": lchild.code,
                     "description": lchild.description,
-                    "new_application_text": "I want to (amend/renew) my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
+                    "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
                     })
 
 
