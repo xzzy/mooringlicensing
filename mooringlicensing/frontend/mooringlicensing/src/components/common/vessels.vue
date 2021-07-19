@@ -831,7 +831,10 @@ from '@/utils/hooks'
                 this.initialiseCompanyNameSelect();
                 this.addEventListeners();
                 // read in Renewal/Amendment vessel details
-                if (this.proposal && this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new')) {
+                if (this.proposal && this.proposal.processing_status === 'Draft' && 
+                    !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new') &&
+                    !this.vessel.rego_no
+                ) {
                     let vm = this;
                     let res = null;
                     // check vessel ownership on the previous application

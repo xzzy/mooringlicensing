@@ -373,7 +373,7 @@ export default {
                         vm.issuingApproval = false;
                         vm.close();
                         vm.$emit('refreshFromResponse', response);
-                        vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after Propose issue.
+                        vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after final approval.
                     },(error)=>{
                         vm.errors = true;
                         vm.issuingApproval = false;
