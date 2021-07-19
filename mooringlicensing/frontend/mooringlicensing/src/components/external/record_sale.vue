@@ -124,6 +124,7 @@ export default {
                 }
                 this.close()
                 this.saving = false;
+                this.$emit('refreshDatatable');
             } catch(error) {
                 this.errors = true;
                 this.saving = false;
