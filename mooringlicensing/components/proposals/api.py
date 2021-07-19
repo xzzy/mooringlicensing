@@ -434,6 +434,9 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             queryset = queryset.filter(site_licensee_email=request.user.email)
         else:
             queryset = queryset.exclude(site_licensee_email=request.user.email)
+        # don't show discarded applications
+        if not level == 'internal':
+            queryset = queryset.exclude(customer_status='discarded')
 
         getter = request.query_params.get
         fields = self.get_fields(getter)

@@ -533,7 +533,7 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             //return full.vessel_draft;
-                            return '';
+                            return full.stickers;
                         }
                     }
         },

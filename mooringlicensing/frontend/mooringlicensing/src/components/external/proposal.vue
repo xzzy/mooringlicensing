@@ -318,7 +318,8 @@ export default {
                 payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
             }
             if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
-                payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
+                //payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
+                payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring;
             }
         // AAA
         } else if (this.$refs.annual_admission_application) {
