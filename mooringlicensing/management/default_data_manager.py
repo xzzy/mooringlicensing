@@ -5,10 +5,19 @@ from django.contrib.auth.models import Group
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
-from mooringlicensing.components.main.models import ApplicationType, GlobalSettings, NumberOfDaysType, \
-    NumberOfDaysSetting
-from mooringlicensing.components.proposals.models import ProposalType, Proposal, ProposalAssessorGroup, \
-    ProposalApproverGroup, StickerPrintingContact
+from mooringlicensing.components.main.models import (
+        ApplicationType, 
+        GlobalSettings, 
+        NumberOfDaysType,
+        NumberOfDaysSetting
+        )
+from mooringlicensing.components.proposals.models import (
+        ProposalType, 
+        Proposal, 
+        #ProposalAssessorGroup,
+        #ProposalApproverGroup, 
+        StickerPrintingContact
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -59,23 +68,23 @@ class DefaultDataManager(object):
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
-        # Assessor Group
-        for item in settings.ASSESSOR_GROUPS:
-            try:
-                group, created = ProposalAssessorGroup.objects.get_or_create(name=item)
-                if created:
-                    logger.info("Created ProposalAssessorGroup: {}".format(item))
-            except Exception as e:
-                logger.error('{}, ProposalAssessorGroup: {}'.format(e, item))
+        ## Assessor Group
+        #for item in settings.ASSESSOR_GROUPS:
+        #    try:
+        #        group, created = ProposalAssessorGroup.objects.get_or_create(name=item)
+        #        if created:
+        #            logger.info("Created ProposalAssessorGroup: {}".format(item))
+        #    except Exception as e:
+        #        logger.error('{}, ProposalAssessorGroup: {}'.format(e, item))
 
-        # Approver Group
-        for item in settings.APPROVER_GROUPS:
-            try:
-                group, created = ProposalApproverGroup.objects.get_or_create(name=item)
-                if created:
-                    logger.info("Created ProposalApproverGroup: {}".format(item))
-            except Exception as e:
-                logger.error('{}, ProposalApproverGroup: {}'.format(e, item))
+        ## Approver Group
+        #for item in settings.APPROVER_GROUPS:
+        #    try:
+        #        group, created = ProposalApproverGroup.objects.get_or_create(name=item)
+        #        if created:
+        #            logger.info("Created ProposalApproverGroup: {}".format(item))
+        #    except Exception as e:
+        #        logger.error('{}, ProposalApproverGroup: {}'.format(e, item))
 
         # Store
         for item in GlobalSettings.default_values:
