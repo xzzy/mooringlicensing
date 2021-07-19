@@ -606,7 +606,8 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
             # Vessel docs
             #if not self.instance.vessel_registration_documents.all():
-            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
+            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not 
+                    self.instance.vessel_registration_documents.all()):
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
