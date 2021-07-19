@@ -231,6 +231,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     start_date = serializers.ReadOnlyField()
     end_date = serializers.ReadOnlyField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
+    previous_application_preferred_bay_id = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
 
@@ -308,6 +309,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'dot_name',
                 'previous_application_id',
                 'previous_application_vessel_details_id',
+                'previous_application_preferred_bay_id',
                 'mooring_licence_vessels',
                 'approval_lodgement_number',
                 )
@@ -324,6 +326,12 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         if obj.approval and type(obj.approval.child_obj) == MooringLicence:
             vessels = obj.approval.child_obj.current_vessels_rego
         return vessels
+
+    def get_previous_application_preferred_bay_id(self, obj):
+        preferred_bay_id = None
+        if obj.previous_application and obj.previous_application.preferred_bay:
+            preferred_bay_id = obj.previous_application.preferred_bay.id
+        return preferred_bay_id
 
     def get_previous_application_vessel_details_id(self, obj):
         vessel_details_id = None
@@ -754,6 +762,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
+    previous_application_preferred_bay_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -814,6 +823,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'mooring_authorisation_preference',
                 'previous_application_id',
                 'previous_application_vessel_details_id',
+                'previous_application_preferred_bay_id',
                 )
         read_only_fields = (
             'documents',
@@ -825,6 +835,12 @@ class InternalProposalSerializer(BaseProposalSerializer):
         if obj.previous_application and obj.previous_application.vessel_details:
             vessel_details_id = obj.previous_application.vessel_details.id
         return vessel_details_id
+
+    def get_previous_application_preferred_bay_id(self, obj):
+        preferred_bay_id = None
+        if obj.previous_application and obj.previous_application.preferred_bay:
+            preferred_bay_id = obj.previous_application.preferred_bay.id
+        return preferred_bay_id
 
     def get_approval_level_document(self,obj):
         if obj.approval_level_document is not None:
