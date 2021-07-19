@@ -13,7 +13,7 @@ from mooringlicensing.components.proposals.email import (
         )
 from ledger.accounts.models import EmailUser
 
-from mooringlicensing.components.proposals.models import ProposalApproverGroup
+#from mooringlicensing.components.proposals.models import ProposalApproverGroup
 
 logger = logging.getLogger(__name__)
 
@@ -211,14 +211,12 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
 
-    approver_group = ProposalApproverGroup.objects.all().first()
+    #approver_group = ProposalApproverGroup.objects.all().first()
     to_address = approval.submitter.email
     all_ccs = []
-    bcc = approver_group.members_email
-    # if proposal.org_applicant and proposal.org_applicant.email:
-    #     cc_list = proposal.org_applicant.email
-    #     if cc_list:
-    #         all_ccs = [cc_list]
+    #bcc = approver_group.members_email
+    # TODO: fix bcc with correct security group
+    bcc = []
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
 
     _log_approval_email(msg, approval, sender=sender_user)
