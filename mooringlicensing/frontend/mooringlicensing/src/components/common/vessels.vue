@@ -846,7 +846,7 @@ from '@/utils/hooks'
                         res = await this.$http.get(url);
                     }
                     //if (this.proposal.vessel_id && res.body && !res.body.vessel_ownership.end_date) {
-                    if (!this.proposal.rego_no && res.body && !res.body.vessel_ownership.end_date) {
+                    if (!this.proposal.rego_no && res && res.body && !res.body.vessel_ownership.end_date) {
                         this.vessel = Object.assign({}, res.body);
                         const payload = {
                             id: this.vessel.id,

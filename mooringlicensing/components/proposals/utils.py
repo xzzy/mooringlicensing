@@ -497,7 +497,7 @@ def submit_vessel_data(instance, request, vessel_data):
 
     #import ipdb; ipdb.set_trace()
     if (not vessel_data.get('rego_no') and instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and
-            type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication]):
+            type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication, AnnualAdmissionApplication]):
         return
     #else:
      #   raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})

@@ -797,10 +797,10 @@ class AnnualAdmissionPermit(Approval):
             sticker = Sticker.objects.create(
                 approval=self,
                 fee_constructor=proposal.fee_constructor,
-                vessel=proposal.vessel_details.vessel,
+                vessel=proposal.vessel_details.vessel if proposal.vessel_details else None,
             )
         elif stickers_current.count() == 1:
-            if stickers_current.first().vessel != proposal.vessel_details.vessel:
+            if stickers_current.first().vessel != proposal.vessel_details.vessel if proposal.vessel_details else None:
                 stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
                 # TODO: email to the permission holder to notify the existing sticker to be returned
             else:
