@@ -409,6 +409,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     #can_amend = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
+    stickers = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -444,6 +445,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'renewal_document',
             'renewal_sent',
             'allowed_assessors',
+            'stickers',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -479,7 +481,11 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'renewal_document',
             'renewal_sent',
             'allowed_assessors',
+            'stickers',
         )
+
+    def get_stickers(self, obj):
+        return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
 
     def get_renewal_document(self,obj):
         if obj.renewal_document and obj.renewal_document._file:
@@ -567,25 +573,45 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_vessel_length(self, obj):
         vessel_length = ''
-        if obj.current_proposal and obj.current_proposal.vessel_details:
+        if (
+                obj.current_proposal and 
+                obj.current_proposal.vessel_details and 
+                obj.current_proposal.vessel_ownership and
+                not obj.current_proposal.vessel_ownership.end_date
+                ):
             vessel_length = obj.current_proposal.vessel_details.vessel_applicable_length
         return vessel_length
 
     def get_vessel_registration(self, obj):
         vessel_rego = ''
-        if obj.current_proposal and obj.current_proposal.vessel_details:
+        if (
+                obj.current_proposal and 
+                obj.current_proposal.vessel_details and 
+                obj.current_proposal.vessel_ownership and
+                not obj.current_proposal.vessel_ownership.end_date
+                ):
             vessel_rego = obj.current_proposal.vessel_details.vessel.rego_no
         return vessel_rego
 
     def get_vessel_name(self, obj):
         vessel_name = ''
-        if obj.current_proposal and obj.current_proposal.vessel_details:
+        if (
+                obj.current_proposal and 
+                obj.current_proposal.vessel_details and 
+                obj.current_proposal.vessel_ownership and
+                not obj.current_proposal.vessel_ownership.end_date
+                ):
             vessel_name = obj.current_proposal.vessel_details.vessel_name
         return vessel_name
 
     def get_vessel_draft(self, obj):
         vessel_draft = ''
-        if obj.current_proposal and obj.current_proposal.vessel_details:
+        if (
+                obj.current_proposal and 
+                obj.current_proposal.vessel_details and 
+                obj.current_proposal.vessel_ownership and
+                not obj.current_proposal.vessel_ownership.end_date
+                ):
             vessel_draft = obj.current_proposal.vessel_details.vessel_draft
         return vessel_draft
 
