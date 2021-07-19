@@ -23,6 +23,7 @@
                 :recordSaleId="recordSaleId"
                 :key="recordSaleKey"
                 @closeModal="closeModal"
+                @refreshDatatable="refreshFromResponse"
                 />
             </div>
         </FormSection>
