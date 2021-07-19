@@ -177,7 +177,7 @@ class ApplicationFee(Payment):
     @property
     def fee_constructor(self):
         # TODO: this is not always correct...???
-        if self.fee_items:
+        if self.fee_items.count():
             return self.fee_items.first().fee_constructor
         return None
 
