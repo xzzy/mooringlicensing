@@ -150,9 +150,6 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_SUSPENDED = 'suspended'
     APPROVAL_STATUS_EXTENDED = 'extended'
     APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
-    # waiting list allocation approvals
-    APPROVAL_STATUS_OFFERED = 'offered'
-    APPROVAL_STATUS_APPROVED = 'approved'
 
     STATUS_CHOICES = (
         (APPROVAL_STATUS_CURRENT, 'Current'),
@@ -162,12 +159,19 @@ class Approval(RevisionedMixin):
         (APPROVAL_STATUS_SUSPENDED, 'Suspended'),
         (APPROVAL_STATUS_EXTENDED, 'Extended'),
         (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
-        (APPROVAL_STATUS_OFFERED, 'Mooring Licence offered'),
-        (APPROVAL_STATUS_APPROVED, 'Mooring Licence approved'),
     )
+    # waiting list allocation approvals
+    INTERNAL_STATUS_OFFERED = 'offered'
+    INTERNAL_STATUS_APPROVED = 'approved'
+    INTERNAL_STATUS_CHOICES = (
+        (INTERNAL_STATUS_OFFERED, 'Mooring Licence offered'),
+        (INTERNAL_STATUS_APPROVED, 'Mooring Licence approved'),
+        )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
+    #status = models.CharField(max_length=40, choices=STATUS_CHOICES,
+     #                                  default=STATUS_CHOICES[0][0])
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
@@ -228,7 +232,8 @@ class Approval(RevisionedMixin):
             proposal=self.current_proposal,
             start_date=self.issue_date,
         )
-        stickers = self.stickers.all()
+        #stickers = self.stickers.all()
+        stickers = self.stickers.filter(status__in=['current', 'awaiting_printing'])
         for sticker in stickers:
             new_approval_history_entry.stickers.add(sticker)
 
@@ -797,10 +802,10 @@ class AnnualAdmissionPermit(Approval):
             sticker = Sticker.objects.create(
                 approval=self,
                 fee_constructor=proposal.fee_constructor,
-                vessel=proposal.vessel_details.vessel if proposal.vessel_details else None,
+                vessel_ownership=proposal.vessel_ownership,
             )
         elif stickers_current.count() == 1:
-            if stickers_current.first().vessel != proposal.vessel_details.vessel if proposal.vessel_details else None:
+            if stickers_current.first().vessel_ownership != proposal.vessel_ownership:
                 stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
                 # TODO: email to the permission holder to notify the existing sticker to be returned
             else:
@@ -839,7 +844,7 @@ class AuthorisedUserPermit(Approval):
             # Nothing wrong with the stickers already printed.  Just print a new sticker
             sticker = Sticker.objects.create(
                 approval=self,
-                vessel=proposal.vessel_details.vessel,
+                vessel_ownership=proposal.vessel_ownership,
                 fee_constructor=proposal.fee_constructor,
             )
         else:
@@ -900,7 +905,7 @@ class MooringLicence(Approval):
                     approval=self,
                     status=Sticker.STICKER_STATUS_READY,
                     # vessel_details=vessel_details,
-                    vessel=vessel,
+                    vessel_ownership=proposal.vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
                 )
             stickers_required.append(sticker)
@@ -1299,7 +1304,8 @@ class Sticker(models.Model):
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
     # vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
     fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
-    vessel = models.ForeignKey('Vessel', blank=True, null=True)
+    #vessel = models.ForeignKey('Vessel', blank=True, null=True)
+    vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
