@@ -1,4 +1,4 @@
-<template id="proposal_requirements">
+<template id="proposal_approval">
     <div>
         <div v-if="displayApprovedMsg" class="col-md-12 alert alert-success">
             <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
@@ -101,8 +101,8 @@
         </template>
 -->
 
-        <div class="col-md-12">
-            <div class="row">
+        <!--div class="col-md-12"-->
+            <!--div class="row"-->
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h3 v-if="!isFinalised" class="panel-title">Proposed Decision
@@ -143,8 +143,8 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            <!--/div-->
+        <!--/div-->
     </div>
 </template>
 <script>
@@ -161,7 +161,7 @@ import uuid from 'uuid'
 import { constants } from '@/utils/hooks'
 
 export default {
-    name: 'InternalProposalRequirements',
+    name: 'InternalProposalApproval',
     props: {
         proposal: Object
     },
