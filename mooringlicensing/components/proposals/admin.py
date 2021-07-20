@@ -41,9 +41,14 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
             'text',
             'obsolete', 
             #'application_type', 
-            'participant_number_required', 
-            'default'
+            #'participant_number_required', 
+            #'default'
             ]
+
+    def get_form(self, request, obj=None, **kwargs):
+        self.exclude = ("participant_number_required", "default",)
+        form = super(ProposalStandardRequirementAdmin, self).get_form(request, obj, **kwargs)
+        return form
 
 
 @admin.register(SystemMaintenance)
@@ -63,7 +68,7 @@ class GlobalSettingsAdmin(admin.ModelAdmin):
         if obj and obj.key in GlobalSettings.keys_for_file:
             return ['key', '_file',]
         else:
-            return ['key', 'value', 'stickerprintingcontact_set',]
+            return ['key', 'value', ]
 
     def has_add_permission(self, request):
         return False

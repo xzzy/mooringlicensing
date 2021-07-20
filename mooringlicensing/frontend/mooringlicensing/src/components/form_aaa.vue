@@ -2,8 +2,8 @@
     <div class="">
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
-            <h4>Annual Admission Application: {{proposal.lodgement_number}}</h4>
-            <h5>{{ proposal.proposal_type.description }}</h5>
+            <h4>Annual Admission {{ applicationTypeText }} Application: {{proposal.lodgement_number}}</h4>
+            <!--h5>{{ proposal.proposal_type.description }}</h5-->
         </div>
 
         <div class="">
@@ -215,6 +215,13 @@
         computed:{
             applicantType: function(){
                 return this.proposal.applicant_type;
+            },
+            applicationTypeText: function(){
+                let text = '';
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new') {
+                    text = this.proposal.proposal_type.description;
+                }
+                return text;
             },
             /*
             showElectoralRoll: function() {
