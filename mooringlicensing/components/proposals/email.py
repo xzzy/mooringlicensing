@@ -94,25 +94,38 @@ class EndorsementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
 
 
+class PaymentRequiredEmail(TemplateEmailBase):
+    subject = 'Payment required for approval of the application: {}'
+    html_template = 'mooringlicensing/emails/proposals/payment_required_email.html'
+    txt_template = 'mooringlicensing/emails/proposals/payment_required_email.txt'
+
+    def __init__(self, proposal):
+        self.subject = self.subject.format(proposal.lodgement_number)
+
+
 class SubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'A new Application has been submitted.'
     html_template = 'mooringlicensing/emails/proposals/send_submit_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_submit_notification.txt'
+
 
 class ExternalSubmitSendNotificationEmail(TemplateEmailBase):
     subject = '{} - Confirmation - Application submitted.'.format(settings.DEP_NAME)
     html_template = 'mooringlicensing/emails/proposals/send_external_submit_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_external_submit_notification.txt'
 
+
 class ApproverDeclineSendNotificationEmail(TemplateEmailBase):
     subject = 'An Application has been recommended for decline.'
     html_template = 'mooringlicensing/emails/proposals/send_approver_decline_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_approver_decline_notification.txt'
 
+
 class ApproverApproveSendNotificationEmail(TemplateEmailBase):
     subject = 'An Application has been recommended for approval.'
     html_template = 'mooringlicensing/emails/proposals/send_approver_approve_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_approver_approve_notification.txt'
+
 
 class ApproverSendBackNotificationEmail(TemplateEmailBase):
     subject = 'An Application has been sent back by approver.'
@@ -324,6 +337,30 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+
+    return msg
+
+
+def send_emails_for_payment_required(request, proposal, attachments=[]):
+    email = PaymentRequiredEmail(proposal)
+    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # if "-internal" not in url:
+        # add it. This email is for internal staff (assessors)
+        # url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        # 'url': url
+    }
+    to_address = proposal.submitter.email
+    cc = proposal.child_obj.approver_recipients
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
 
