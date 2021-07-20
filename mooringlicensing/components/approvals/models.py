@@ -148,8 +148,9 @@ class Approval(RevisionedMixin):
     APPROVAL_STATUS_CANCELLED = 'cancelled'
     APPROVAL_STATUS_SURRENDERED = 'surrendered'
     APPROVAL_STATUS_SUSPENDED = 'suspended'
-    APPROVAL_STATUS_EXTENDED = 'extended'
-    APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
+    APPROVAL_STATUS_FULFILLED = 'fulfilled'
+    #APPROVAL_STATUS_EXTENDED = 'extended'
+    #APPROVAL_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
 
     STATUS_CHOICES = (
         (APPROVAL_STATUS_CURRENT, 'Current'),
@@ -157,21 +158,29 @@ class Approval(RevisionedMixin):
         (APPROVAL_STATUS_CANCELLED, 'Cancelled'),
         (APPROVAL_STATUS_SURRENDERED, 'Surrendered'),
         (APPROVAL_STATUS_SUSPENDED, 'Suspended'),
-        (APPROVAL_STATUS_EXTENDED, 'Extended'),
-        (APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (APPROVAL_STATUS_FULFILLED, 'Fulfilled'),
+        #(APPROVAL_STATUS_EXTENDED, 'Extended'),
+        #(APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
     )
     # waiting list allocation approvals
-    INTERNAL_STATUS_OFFERED = 'offered'
-    INTERNAL_STATUS_APPROVED = 'approved'
+    INTERNAL_STATUS_WAITING = 'waiting' #b
+    INTERNAL_STATUS_OFFERED = 'offered' #b
+    INTERNAL_STATUS_SUBMITTED = 'submitted' #c
+    INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d
+    INTERNAL_STATUS_LICENCE_APPROVED = 'approved' #e
+    INTERNAL_STATUS_LICENCE_DECLINED = 'licence_declined' #f
     INTERNAL_STATUS_CHOICES = (
+        (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
         (INTERNAL_STATUS_OFFERED, 'Mooring Licence offered'),
-        (INTERNAL_STATUS_APPROVED, 'Mooring Licence approved'),
+        (INTERNAL_STATUS_SUBMITTED, 'Mooring Licence application submitted'),
+        (INTERNAL_STATUS_APPLICATION_EXPIRED, 'Mooring Licence application expired'),
+        (INTERNAL_STATUS_LICENCE_APPROVED, 'Mooring Licence approved'),
+        (INTERNAL_STATUS_LICENCE_DECLINED, 'Mooring Licence declined'),
         )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
-    #status = models.CharField(max_length=40, choices=STATUS_CHOICES,
-     #                                  default=STATUS_CHOICES[0][0])
+    internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
