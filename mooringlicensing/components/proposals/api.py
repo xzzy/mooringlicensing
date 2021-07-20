@@ -1619,17 +1619,14 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
                 ## change Sticker status
-                stickers = []
                 for approval in approval_list:
+                    for a_sticker in instance.sticker_set.filter(status__in=['current', 'awaiting_printing']):
+                        sticker.status = 'to_be_returned'
+                        sticker.save()
+                    # write approval history
+                    approval.write_approval_history()
                     ## send notification email
                     send_vessel_nomination_notification_main(approval)
-                    # add to stickers list
-                    #stickers.append(approval.stickers.filter(status='current'))
-                    for a_sticker in approval.stickers.filter(status='current'):
-                        stickers.append(a_sticker)
-                for sticker in stickers:
-                    sticker.status = 'to_be_returned'
-                    sticker.save()
             else:
                 raise serializers.ValidationError("Missing information: You must specify a sale date")
             return Response()
@@ -1994,12 +1991,39 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MooringFilterBackend(DatatablesFilterBackend):
-    def filter_queryset(self, request, queryset, view):
-        total_count = queryset.count()
+    #def filter_queryset(self, request, queryset, view):
+    #    total_count = queryset.count()
 
-        #filter_mooring_status = request.GET.get('filter_mooring_status')
-        #if filter_mooring_status and not filter_mooring_status.lower() == 'all':
-            ##queryset = queryset.filter(customer_status=filter_compliance_status)
+    #    #filter_mooring_status = request.GET.get('filter_mooring_status')
+    #    #if filter_mooring_status and not filter_mooring_status.lower() == 'all':
+    #        ##queryset = queryset.filter(customer_status=filter_compliance_status)
+
+    #    filter_mooring_bay = request.GET.get('filter_mooring_bay')
+    #    if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
+    #        queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
+
+    #    getter = request.query_params.get
+    #    fields = self.get_fields(getter)
+    #    ordering = self.get_ordering(getter, fields)
+    #    queryset = queryset.order_by(*ordering)
+    #    if len(ordering):
+    #        queryset = queryset.order_by(*ordering)
+
+    #    try:
+    #        queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
+    #    except Exception as e:
+    #        print(e)
+    #    setattr(view, '_datatables_total_count', total_count)
+    #    return queryset
+    def filter_queryset(self, request, queryset, view):
+        print(request.GET)
+        total_count = queryset.count()
+        # filter_mooring_status
+        filter_mooring_status = request.GET.get('filter_mooring_status')
+        if filter_mooring_status and not filter_mooring_status.lower() == 'all':
+            #queryset = queryset.filter(status=filter_status)
+            filtered_ids = [m.id for m in Mooring.objects.all() if m.status.lower() == filter_mooring_status.lower()]
+            queryset = queryset.filter(id__in=filtered_ids)
 
         filter_mooring_bay = request.GET.get('filter_mooring_bay')
         if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
@@ -2047,9 +2071,6 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def list_internal(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
@@ -2057,6 +2078,7 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListMooringSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
 
 
 class MooringViewSet(viewsets.ReadOnlyModelViewSet):

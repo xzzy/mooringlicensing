@@ -832,13 +832,21 @@ from '@/utils/hooks'
                 this.addEventListeners();
                 // read in Renewal/Amendment vessel details
                 if (this.proposal && this.proposal.processing_status === 'Draft' && 
-                    !this.proposal.vessel_details_id && !(this.proposal.proposal_type.code==='new') &&
+                    !this.proposal.vessel_details_id && (this.proposal.proposal_type.code !=='new' || this.proposal.application_type_code === 'mla') &&
                     !this.vessel.rego_no
                 ) {
                     let vm = this;
                     let res = null;
-                    // check vessel ownership on the previous application
-                    if (this.proposal.previous_application_vessel_details_id) {
+                    // if mla, get vessel from waiting list
+                    if (this.proposal.waiting_list_application_id) {
+                        const url = helpers.add_endpoint_join(
+                            api_endpoints.proposal,
+                            this.proposal.waiting_list_application_id + '/fetch_vessel/'
+                        );
+                        res = await this.$http.get(url);
+                        console.log(res)
+                    } else if (this.proposal.previous_application_vessel_details_id) {
+                        // check vessel ownership on the previous application
                         const url = helpers.add_endpoint_join(
                             api_endpoints.proposal,
                             this.proposal.previous_application_id + '/fetch_vessel/'
@@ -846,7 +854,7 @@ from '@/utils/hooks'
                         res = await this.$http.get(url);
                     }
                     //if (this.proposal.vessel_id && res.body && !res.body.vessel_ownership.end_date) {
-                    if (!this.proposal.rego_no && res.body && !res.body.vessel_ownership.end_date) {
+                    if (!this.proposal.rego_no && res && res.body && !res.body.vessel_ownership.end_date) {
                         this.vessel = Object.assign({}, res.body);
                         const payload = {
                             id: this.vessel.id,
