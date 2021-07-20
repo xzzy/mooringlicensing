@@ -12,7 +12,7 @@ from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
+# from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
     AuthorisedUserApplication
@@ -434,7 +434,9 @@ class FeeConstructor(RevisionedMixin):
 
                     elif self.application_type.code == settings.APPLICATION_TYPE_DCV_ADMISSION['code']:
                         # For DcvAdmission, no proposal type for-loop
+                        from mooringlicensing.components.approvals.models import AgeGroup
                         for age_gruop in AgeGroup.objects.all():
+                            from mooringlicensing.components.approvals.models import AdmissionType
                             for admission_type in AdmissionType.objects.all():
                                 fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
                                                                                   fee_period=fee_period,
