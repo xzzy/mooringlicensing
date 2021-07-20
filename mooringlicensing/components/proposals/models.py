@@ -1706,7 +1706,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def auto_approve(self, request):
         ## If renewal and no change to vessel
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
-        if self.proposal_type == ProposalType.objects.get(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
+        if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
             if not self.vessel_details and not self.previous_application.vessel_details:
                 auto_approve = True
             elif not self.vessel_details or not self.vessel_details:
@@ -2547,6 +2547,21 @@ class Mooring(models.Model):
 
     def log_user_action(self, action, request):
         return MooringUserAction.log_action(self, action, request.user)
+
+    @property
+    def status(self):
+        from mooringlicensing.components.approvals.models import MooringOnApproval
+        status = ''
+        ## check for Mooring Licences
+        if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+            status = 'Licenced'
+        if not status:
+            # check for Mooring Applications
+            proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
+            for proposal in proposals:
+                if proposal.child_obj.code == 'mla':
+                    status = 'Licence Application'
+        return status
 
 
 class MooringLogDocument(Document):
