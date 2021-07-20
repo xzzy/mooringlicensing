@@ -44,7 +44,7 @@ from mooringlicensing.components.proposals.email import (
     send_approver_decline_email_notification,
     send_approver_approve_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
-    send_documents_upload_for_mooring_licence_application_email,
+    send_documents_upload_for_mooring_licence_application_email, send_emails_for_payment_required,
 )
 # from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
 from mooringlicensing.ordered_model import OrderedModel
@@ -1359,24 +1359,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
 
-                            annual_rental_fee = ApplicationFee.objects.create(
+                            application_fee = ApplicationFee.objects.create(
                                 proposal=self,
-                                # fee_constructor=fee_constructor,
-                                # fee_item=fee_item,
-                                # annual_rental_fee_period=annual_rental_fee_period,
                                 invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
-                                # invoice_period_start_date=invoice_period[0],
-                                # invoice_period_end_date=invoice_period[1],
-                                # lines=line_items,  # We may add this field to the ApplicationFee model
                             )
-                            annual_rental_fee.fee_items.add(fee_item)
+                            application_fee.fee_items.add(fee_item)
                             if fee_item_additional:
-                                annual_rental_fee.fee_items.add(fee_item_additional)
-                            # updates.append(annual_rental_fee.invoice_reference)
+                                application_fee.fee_items.add(fee_item_additional)
 
                             self.process_after_approval(request)
-                            # self.save()
+
+                            self.send_emails_for_payment_required(request, invoice)
 
                             # Log proposal action
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
@@ -1395,6 +1389,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
             except:
                 raise
+
+    def send_emails_for_payment_required(self, request, invoice):
+        attachments = []
+        if invoice:
+            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+            attachments.append(attachment)
+        ret_value = send_emails_for_payment_required(request, self, attachments)
+        return ret_value
 
     def final_approval(self, request, details):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):

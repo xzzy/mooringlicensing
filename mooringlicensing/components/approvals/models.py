@@ -799,6 +799,7 @@ class AnnualAdmissionPermit(Approval):
                 fee_constructor=proposal.fee_constructor,
                 vessel=proposal.vessel_details.vessel,
             )
+            logger.info('Sticker: {} has been created for the application: {}'.format(sticker, self.lodgement_number))
         elif stickers_current.count() == 1:
             if stickers_current.first().vessel != proposal.vessel_details.vessel:
                 stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
@@ -808,6 +809,7 @@ class AnnualAdmissionPermit(Approval):
                 # There is a sticker present already with the same vessel.  We don't have to do anything with stickers..???
         else:
             raise ValueError('AAP: {} has more than one stickers with current status'.format(self.lodgement_number))
+
 
 
 class AuthorisedUserPermit(Approval):
