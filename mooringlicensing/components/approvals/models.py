@@ -164,18 +164,18 @@ class Approval(RevisionedMixin):
     )
     # waiting list allocation approvals
     INTERNAL_STATUS_WAITING = 'waiting' #b
-    INTERNAL_STATUS_OFFERED = 'offered' #b
-    INTERNAL_STATUS_SUBMITTED = 'submitted' #c
-    INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d
-    INTERNAL_STATUS_LICENCE_APPROVED = 'approved' #e
-    INTERNAL_STATUS_LICENCE_DECLINED = 'licence_declined' #f
+    INTERNAL_STATUS_OFFERED = 'offered' #b - no change to queue #y
+    INTERNAL_STATUS_SUBMITTED = 'submitted' #c - no change to queue # currently 3 cron jobs manage this.. !?
+    #INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d - status2 back to waiting, back in queue
+    #INTERNAL_STATUS_LICENCE_APPROVED = 'approved' #e - status is fulfilled, status2 is approved, out of queue #y
+    #INTERNAL_STATUS_LICENCE_DECLINED = 'licence_declined' #f - status2 is waiting, status is current, position in queue is same
     INTERNAL_STATUS_CHOICES = (
         (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
         (INTERNAL_STATUS_OFFERED, 'Mooring Licence offered'),
         (INTERNAL_STATUS_SUBMITTED, 'Mooring Licence application submitted'),
-        (INTERNAL_STATUS_APPLICATION_EXPIRED, 'Mooring Licence application expired'),
-        (INTERNAL_STATUS_LICENCE_APPROVED, 'Mooring Licence approved'),
-        (INTERNAL_STATUS_LICENCE_DECLINED, 'Mooring Licence declined'),
+        #(INTERNAL_STATUS_APPLICATION_EXPIRED, 'Mooring Licence application expired'),
+        #(INTERNAL_STATUS_LICENCE_APPROVED, 'Mooring Licence approved'),
+        #(INTERNAL_STATUS_LICENCE_DECLINED, 'Mooring Licence declined'),
         )
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
