@@ -33,7 +33,7 @@ from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.models import Invoice
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 
-from mooringlicensing.components.payments_ml.models import FeeItem
+# from mooringlicensing.components.payments_ml.models import FeeItem
 from mooringlicensing.components.proposals.email import (
     send_proposal_decline_email_notification,
     send_proposal_approval_email_notification,
@@ -1340,6 +1340,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
                 line_items, db_operations = create_fee_lines(self)
                 # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                from mooringlicensing.components.payments_ml.models import FeeItem
                 fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
                 try:
                     fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])

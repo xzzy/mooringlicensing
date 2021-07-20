@@ -8,6 +8,9 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from datetime import datetime
+from django.dispatch import receiver
+from django.db.models.signals import post_save, post_delete, pre_delete
+from mooringlicensing import settings
 
 
 class UserSystemSettings(models.Model):
@@ -293,6 +296,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         else:
             super(VesselSizeCategoryGroup, self).save(**kwargs)
 
+
     @property
     def is_editable(self):
         for fee_constructor in self.fee_constructors.all():
@@ -300,6 +304,12 @@ class VesselSizeCategoryGroup(RevisionedMixin):
                 # This object has been used in the fee_constructor for payments at least once
                 return False
         return True
+
+
+# @receiver(post_save, sender=VesselSizeCategoryGroup)
+# def _post_save_vscg(sender, instance, **kwargs):
+#     print('VesselSizeCategoryGroup post save()')
+#     print(instance)
 
 
 class VesselSizeCategory(RevisionedMixin):
@@ -329,6 +339,32 @@ class VesselSizeCategory(RevisionedMixin):
         if self.vessel_size_category_group:
             return self.vessel_size_category_group.is_editable
         return True
+
+
+@receiver(post_save, sender=VesselSizeCategory)
+def _post_save_vsc(sender, instance, **kwargs):
+    print('VesselSizeCategory post save()')
+    print(instance.vessel_size_category_group)
+
+    for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
+        if fee_constructor.is_editable:
+            fee_constructor.reconstruct_fees()
+
+
+@receiver(post_delete, sender=VesselSizeCategory)
+def _post_delete_vsc(sender, instance, **kwargs):
+    print('VesselSizeCategory post delete()')
+    print(instance.vessel_size_category_group)
+
+    for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
+        if fee_constructor.is_editable:
+            fee_constructor.reconstruct_fees()
+
+
+# @receiver(pre_delete, sender=VesselSizeCategory)
+# def _pre_delete_vsc(sender, instance, **kwargs):
+#     print('VesselSizeCategory pre delete()')
+#     print(instance.vessel_size_category_group)
 
 
 class NumberOfDaysType(RevisionedMixin):
