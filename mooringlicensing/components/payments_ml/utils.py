@@ -10,13 +10,14 @@ from ledger.checkout.utils import create_basket_session, create_checkout_session
 from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit
+from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, DcvAdmissionFee
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
+    DcvAdmissionFee, FeeItem
 
 #test
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
-    AnnualAdmissionApplication
+    AnnualAdmissionApplication, ProposalType
 
 logger = logging.getLogger('payment_checkout')
 
