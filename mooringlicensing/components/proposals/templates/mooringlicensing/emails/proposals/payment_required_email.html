@@ -1,0 +1,11 @@
+{%  extends 'mooringlicensing/emails/base_email.html' %}
+
+{%  block content %}
+    {{ proposal.submitter }},
+    <p>
+        Your {{ proposal.child_obj.description }}: {{ proposal.lodgement_number }} has been approved.  Please find attached invoice<br />
+    </p>
+
+
+    Regards,
+{%  endblock %}
