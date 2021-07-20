@@ -2548,6 +2548,21 @@ class Mooring(models.Model):
     def log_user_action(self, action, request):
         return MooringUserAction.log_action(self, action, request.user)
 
+    @property
+    def status(self):
+        from mooringlicensing.components.approvals.models import MooringOnApproval
+        status = ''
+        ## check for Mooring Licences
+        if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+            status = 'Licenced'
+        if not status:
+            # check for Mooring Applications
+            proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
+            for proposal in proposals:
+                if proposal.child_obj.code == 'mla':
+                    status = 'Licence Application'
+        return status
+
 
 class MooringLogDocument(Document):
     log_entry = models.ForeignKey('MooringLogEntry',related_name='documents')
