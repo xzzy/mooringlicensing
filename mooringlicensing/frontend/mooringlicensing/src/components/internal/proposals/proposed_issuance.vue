@@ -113,16 +113,16 @@
                                         <label v-else class="control-label pull-left"  for="Name">Proposed BCC email</label>
                                     </div>
                                     <div class="col-sm-9">
-                                            <input type="text" class="form-control" name="approval_cc" style="width:70%;" ref="bcc_email" v-model="approval.cc_email">
+                                        <input type="text" class="form-control" name="approval_cc" style="width:70%;" ref="bcc_email" v-model="approval.cc_email">
                                     </div>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <div class="row">
-                                    <div class="col-sm-12">
+                                    <!--div class="col-sm-12">
                                         <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
                                         <label v-else class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}}.</label>
-                                    </div>
+                                    </div-->
 
                                 </div>
                             </div>
