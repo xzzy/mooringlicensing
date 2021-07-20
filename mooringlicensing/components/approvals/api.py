@@ -1053,12 +1053,12 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 # send email
                 send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
                 # update waiting_list_allocation
-                waiting_list_allocation.status = 'offered'
+                waiting_list_allocation.internal_status = 'offered'
                 ## BB 20210609 - we no longer reset wla_queue_date
                 #waiting_list_allocation.wla_queue_date = None
-                waiting_list_allocation.wla_order = None
+                #waiting_list_allocation.wla_order = None
                 waiting_list_allocation.save()
-                waiting_list_allocation.set_wla_order()
+                #waiting_list_allocation.set_wla_order()
             return Response({"proposal_created": new_proposal.lodgement_number})
 
 
