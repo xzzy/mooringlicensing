@@ -9,6 +9,8 @@ from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from datetime import datetime
 
+from mooringlicensing import settings
+
 
 class UserSystemSettings(models.Model):
     user = models.OneToOneField(EmailUser, related_name='system_settings')
@@ -292,6 +294,10 @@ class VesselSizeCategoryGroup(RevisionedMixin):
             raise ValidationError('VesselSizeCategoryGroup cannot be changed once used for payment calculation')
         else:
             super(VesselSizeCategoryGroup, self).save(**kwargs)
+
+        for fee_constructor in self.fee_constructors.all():
+            if fee_constructor.is_editable:
+                fee_constructor.reconstruct_fees()
 
     @property
     def is_editable(self):
