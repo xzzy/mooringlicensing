@@ -163,10 +163,10 @@ class Approval(RevisionedMixin):
         #(APPROVAL_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
     )
     # waiting list allocation approvals
-    INTERNAL_STATUS_WAITING = 'waiting' #b
+    INTERNAL_STATUS_WAITING = 'waiting' #b #y
     INTERNAL_STATUS_OFFERED = 'offered' #b - no change to queue #y
-    INTERNAL_STATUS_SUBMITTED = 'submitted' #c - no change to queue # currently 3 cron jobs manage this.. !?
-    #INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d - status2 back to waiting, back in queue
+    INTERNAL_STATUS_SUBMITTED = 'submitted' #c - no change to queue #y
+    #INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d - status2 back to waiting, back in queue # check on cron job
     #INTERNAL_STATUS_LICENCE_APPROVED = 'approved' #e - status is fulfilled, status2 is approved, out of queue #y
     #INTERNAL_STATUS_LICENCE_DECLINED = 'licence_declined' #f - status2 is waiting, status is current, position in queue is same
     INTERNAL_STATUS_CHOICES = (
