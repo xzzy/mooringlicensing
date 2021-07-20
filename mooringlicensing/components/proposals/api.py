@@ -1621,8 +1621,8 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                 ## change Sticker status
                 for approval in approval_list:
                     for a_sticker in instance.sticker_set.filter(status__in=['current', 'awaiting_printing']):
-                        sticker.status = 'to_be_returned'
-                        sticker.save()
+                        a_sticker.status = 'to_be_returned'
+                        a_sticker.save()
                     # write approval history
                     approval.write_approval_history()
                     ## send notification email
