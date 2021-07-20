@@ -106,7 +106,7 @@ from mooringlicensing.components.proposals.serializers import (
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
-from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation
+from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker
 from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main
 from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 
@@ -1622,6 +1622,10 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                 for approval in approval_list:
                     for a_sticker in instance.sticker_set.filter(status__in=['current', 'awaiting_printing']):
                         a_sticker.status = 'to_be_returned'
+                        a_sticker.save()
+                    for a_sticker in instance.sticker_set.filter(status=Sticker.STICKER_STATUS_READY):
+                        # vessel sold before the sticker is picked up by cron for export (very rarely happens)
+                        a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
                         a_sticker.save()
                     # write approval history
                     approval.write_approval_history()
