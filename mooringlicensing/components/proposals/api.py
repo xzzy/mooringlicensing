@@ -1619,17 +1619,14 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
                 ## change Sticker status
-                stickers = []
                 for approval in approval_list:
+                    for a_sticker in instance.sticker_set.filter(status__in=['current', 'awaiting_printing']):
+                        sticker.status = 'to_be_returned'
+                        sticker.save()
+                    # write approval history
+                    approval.write_approval_history()
                     ## send notification email
                     send_vessel_nomination_notification_main(approval)
-                    # add to stickers list
-                    #stickers.append(approval.stickers.filter(status='current'))
-                    for a_sticker in approval.stickers.filter(status='current'):
-                        stickers.append(a_sticker)
-                for sticker in stickers:
-                    sticker.status = 'to_be_returned'
-                    sticker.save()
             else:
                 raise serializers.ValidationError("Missing information: You must specify a sale date")
             return Response()
