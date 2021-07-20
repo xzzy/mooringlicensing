@@ -14,7 +14,6 @@ from ledger.settings_base import TIME_ZONE
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
-# from mooringlicensing.components.proposals.models import Proposal, ProposalType
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
     AuthorisedUserApplication
 
