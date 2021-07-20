@@ -1045,6 +1045,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
+                # update WLA internal_status
+                if self.application_type.code == MooringLicence.code:
+                    self.waiting_list_allocation.internal_status = 'licence_declined' 
+                    self.waiting_list_allocation.save()
                 send_proposal_decline_email_notification(self,request, proposal_decline)
             except:
                 raise
@@ -1874,6 +1878,7 @@ class WaitingListApplication(Proposal):
                     'start_date': current_datetime.date(),
                     'expiry_date': self.end_date,
                     'submitter': self.submitter,
+                    'internal_status': 'waiting',
                 }
             )
             if created:
@@ -2410,8 +2415,11 @@ class MooringLicenceApplication(Proposal):
                 self.allocated_mooring.mooring_licence = approval
                 self.allocated_mooring.save()
                 # Move WLA to status approved
-                self.waiting_list_allocation.status = 'approved'
+                self.waiting_list_allocation.internal_status = 'approved'
+                self.waiting_list_allocation.status = 'fulfilled'
+                self.waiting_list_allocation.wla_order = None
                 self.waiting_list_allocation.save()
+                self.waiting_list_allocation.set_wla_order()
             # log Mooring action
             if existing_mooring_licence and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(

@@ -243,6 +243,7 @@ export default {
                     'Number',
                     'Holder',
                     'Status',
+                    'Status 2',
                     //'Mooring area',
                     'Bay',
                     'Allocation number in bay',
@@ -329,6 +330,18 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             return full.status
+                        }
+                    }
+        },
+        columnStatusInternal: function() {
+            return {
+                        // 5. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.internal_status
                         }
                     }
         },
@@ -610,6 +623,7 @@ export default {
                     vm.columnLodgementNumber,
                     vm.columnHolder,
                     vm.columnStatus,
+                    vm.columnStatusInternal,
                     vm.columnPreferredMooringBay,
                     vm.columnAllocationNumberInBay,
                     vm.columnAction,

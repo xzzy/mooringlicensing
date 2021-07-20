@@ -33,10 +33,6 @@
             </div>
 
             <div class="row">
-                <button type="submit" name="script" value="reset_waiting_list_allocations" {% if reset_waiting_list_allocations == 'true' %}style="color:green" {% endif %} title="Reset Waiting List Allocations">Run Script 'reset_waiting_list_allocations'</button>
-            </div>
-
-            <div class="row">
                 <button type="submit" name="script" value="expire_approvals" {% if expire_approvals == 'true' %}style="color:green" {% endif %} title="Expire Approvals">Run Script 'expire_approvals'</button>
                 {% if debug %}
                     <div class="debug-box">
