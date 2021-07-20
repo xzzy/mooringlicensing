@@ -158,7 +158,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         if external_waiting_list and not show_expired_surrendered:
                 print("external")
                 #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
-                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_OFFERED))
+                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
                 #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
 
         print(queryset)
@@ -936,6 +936,10 @@ class StickerViewSet(viewsets.ModelViewSet):
         # Update Sticker
         sticker.record_lost()
         serializer = StickerSerializer(sticker)
+
+        # Write approval history
+        sticker.approval.write_approval_history()
+
         return Response({'sticker': serializer.data})
 
     @detail_route(methods=['POST',])
