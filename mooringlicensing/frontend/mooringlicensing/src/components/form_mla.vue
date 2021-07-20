@@ -85,7 +85,7 @@
                   :profile="profile" 
                   id="proposalStartVessels" 
                   ref="vessels"
-                  :readonly="readonly"
+                  :readonly="true"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
