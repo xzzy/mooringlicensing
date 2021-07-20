@@ -28,7 +28,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring,
 )
-from mooringlicensing.components.approvals.models import MooringLicence
+from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from rest_framework import serializers
@@ -606,7 +606,8 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
             # Vessel docs
             #if not self.instance.vessel_registration_documents.all():
-            if self.instance.vessel_ownership.company_ownership and not self.instance.vessel_registration_documents.all():
+            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not 
+                    self.instance.vessel_registration_documents.all()):
                 custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -1428,42 +1429,11 @@ class ListMooringSerializer(serializers.ModelSerializer):
         return obj.mooring_bay.name
 
     def get_authorised_user_permits(self, obj):
-        permits = 0
-        ## site licensee
-        proposals = obj.proposal_set.all()
-        for proposal in proposals:
-            if (
-                    proposal.child_obj.code == 'aua' and 
-                    proposal.approval and 
-                    proposal.approval.status == 'current' and 
-                    proposal.mooring_authorisation_preference == 'site_licensee'
-                    ):
-                    permits += 1
-        # site selected by ria
-        approvals = obj.approval_set.all()
-        for approval in approvals:
-            if (
-                    approval.child_obj.code == 'aup' and 
-                    approval.status == 'current' and
-                    approval.current_proposal.mooring_authorisation_preference == 'ria' and 
-                    approval.ria_selected_mooring == obj
-                    ):
-                    permits += 1
-        return permits
+        mooring_on_approval_qs = MooringOnApproval.objects.filter(mooring=obj, approval__status='current')
+        return mooring_on_approval_qs.count()
 
-    def get_status(self, obj):
-        status = ''
-        proposals = obj.proposal_set.all()
-        # check for Mooring Licences
-        for proposal in proposals:
-            if proposal.child_obj.code == 'mla' and proposal.approval:
-                status = 'Licenced'
-        if not status:
-            # check for Mooring Applications
-            for proposal in proposals:
-                if proposal.child_obj.code == 'mla':
-                    status = 'Licence Application'
-        return status
+    def get_status(status, obj):
+        return obj.status
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
