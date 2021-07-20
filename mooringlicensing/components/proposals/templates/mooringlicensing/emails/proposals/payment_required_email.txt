@@ -1,0 +1,9 @@
+{%  extends 'mooringlicensing/emails/base_email.txt' %}
+
+{%  block content %}
+    {{ proposal.submitter }},
+    Your mooring licence application: {{ proposal.lodgement_number }}  has been submitted successfully.  You will now need to submit
+
+
+    Regards,
+{%  endblock %}
