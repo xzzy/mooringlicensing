@@ -20,12 +20,7 @@
                                 <div class="col-sm-offset-2 col-sm-8">
                                     <div class="form-group">
                                         <label class="control-label pull-left"  for="Name">Details</label>
-                                        <div v-if="is_apiary_proposal">
-                                             <textarea class="form-control" name="name" v-model="amendment.text" id="amendment_text"></textarea>
-                                        </div>
-                                        <div v-else>
-                                            <textarea class="form-control" name="name" v-model="amendment.text" readonly="true"></textarea>
-                                        </div>
+                                        <textarea class="form-control" name="name" v-model="amendment.text" id="amendment_text"></textarea>
                                     </div>
                                 </div>
                             </div>
