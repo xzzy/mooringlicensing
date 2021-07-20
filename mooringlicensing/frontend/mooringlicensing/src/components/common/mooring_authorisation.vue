@@ -41,7 +41,10 @@
         </div>
 
         <div v-show="mooringAuthPreference==='ria'" class="row form-group">
+            <div class="col-sm-9">
+            <label for="ria_draggable" class="draggable-label-class control-label">Order the bays in your preferred order with most preferred bay on top</label>
             <draggable 
+            id="ria_draggable"
             :disabled="readonly" 
             :list="mooringBays"
             tag="ul"
@@ -50,27 +53,15 @@
             >
                 <li
                     class="list-group-item"
-                    v-for="(mooring, index) in mooringBays"
+                    v-for="mooring in mooringBays"
                     :key="mooring.name"
                 >
                     <i class="fa fa-align-justify handle"></i>
-                    <!--i class="fa handle"></i-->
                     <span class="col-sm-1"/>
                     <span class="text">{{ mooring.name }}</span>
-                    <span class="pull-right">{{ index }}</span>
                 </li>
-
-                 
-
-            <!--tr class="form-control" id="mooringList" v-for="(mooring, index) in mooringBays" :key="mooring.id">
-                        <td scope="row">{{ index }}</td>
-                        <td>{{ mooring.name }}</td>
-                    </tr-->
-                    <!--div class="form-control" id="mooringList" v-for="(mooring, index) in mooringBays" :key="mooring.id">
-                        <span class="pull-left"> {{ mooring.name }}</span>
-                        <span class="pull-right"> {{ index }}</span>
-                    </div-->
             </draggable>
+            </div>
         </div>
     </FormSection>
 </template>
@@ -209,6 +200,10 @@ import draggable from 'vuedraggable';
 }
 .draggable-class {
     padding-left: 3%;
+}
+.draggable-label-class {
+    padding-left: 3%;
+    padding-bottom: 3%;
 }
 </style>
 
