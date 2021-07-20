@@ -936,6 +936,10 @@ class StickerViewSet(viewsets.ModelViewSet):
         # Update Sticker
         sticker.record_lost()
         serializer = StickerSerializer(sticker)
+
+        # Write approval history
+        sticker.approval.write_approval_history()
+
         return Response({'sticker': serializer.data})
 
     @detail_route(methods=['POST',])
