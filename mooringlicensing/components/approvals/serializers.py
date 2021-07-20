@@ -387,6 +387,7 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 class ListApprovalSerializer(serializers.ModelSerializer):
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
+    internal_status = serializers.SerializerMethodField()
     approval_type_dict = serializers.SerializerMethodField()
     holder = serializers.SerializerMethodField()
     issue_date_str = serializers.SerializerMethodField()
@@ -417,6 +418,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'status',
+            'internal_status',
             'approval_type_dict',
             'issue_date',
             'holder',
@@ -453,6 +455,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'status',
+            'internal_status',
             'approval_type_dict',
             'issue_date',
             'holder',
@@ -629,6 +632,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return obj.get_status_display()
+
+    def get_internal_status(self, obj):
+        return obj.get_internal_status_display()
 
     def get_approval_type_dict(self, obj):
         try:
