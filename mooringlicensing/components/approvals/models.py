@@ -871,7 +871,7 @@ class AuthorisedUserPermit(Approval):
                 # Find stickers which doesn't have 4 moorings on it
                 stickers = self.stickers.annotate(num_of_moorings=Count('mooringonapproval')).filter(num_of_moorings__lt=4)
                 if stickers.count() == 0:
-                    # All stickers have 4 moorings.--> Just create new sticker
+                    # All stickers have 4 moorings.--> Just create new sticker for the new mooring
                     sticker = Sticker.objects.create(
                         approval=self,
                         vessel_ownership=proposal.vessel_ownership,
@@ -900,16 +900,29 @@ class AuthorisedUserPermit(Approval):
                     # TODO: email to the permission holder to notify the existing sticker to be returned
 
                 else:
-                    # There are more than one stickers with less than 4 moorings
                     raise ValueError('AUP: {} has more than one stickers with less than 4 moorings'.format(self.lodgement_number))
             else:
                 raise ValueError('AUP: {} has more than one new moorings without sticker'.format(self.lodgement_number))
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            stickers_to_be_replaced = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_CURRENT,))
 
-            # TODO: Change all the existing stickers status to the 'Expired' (too early???)  Create new stickers
+            for sticker_to_be_replaced in stickers_to_be_replaced:
+                # Update existing sticker's status to 'to_be_returned'
+                sticker_to_be_replaced.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker_to_be_replaced.save()
 
-            pass
+                # Create new replacement sticker
+                new_sticker = Sticker.objects.create(
+                    approval=self,
+                    vessel_ownership=sticker_to_be_replaced.vessel_ownership,
+                    fee_constructor=proposal.fee_constructor,
+                )
+
+                # Update mooring_on_approval
+                for mooring_on_approval in sticker_to_be_replaced.mooringonapproval_set.all():
+                    mooring_on_approval.sticker = new_sticker
+                    mooring_on_approval.save()
 
 
 class MooringLicence(Approval):
