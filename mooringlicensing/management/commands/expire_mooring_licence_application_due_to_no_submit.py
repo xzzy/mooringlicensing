@@ -58,6 +58,13 @@ class Command(BaseCommand):
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.customer_status = Proposal.CUSTOMER_STATUS_EXPIRED
                 a.save()
+                # update WLA internal_status and queue date
+                a.waiting_list_allocation.internal_status = 'waiting'
+                a.waiting_list_allocation.wla_queue_date = today
+                a.waiting_list_allocation.save()
+                # reset Waiting List order
+                a.waiting_list_allocation.set_wla_order()
+
                 send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)

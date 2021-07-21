@@ -166,9 +166,9 @@ class Approval(RevisionedMixin):
     INTERNAL_STATUS_WAITING = 'waiting' #b #y
     INTERNAL_STATUS_OFFERED = 'offered' #b - no change to queue #y
     INTERNAL_STATUS_SUBMITTED = 'submitted' #c - no change to queue #y
-    #INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d - status2 back to waiting, back in queue # check on cron job
+    #INTERNAL_STATUS_APPLICATION_EXPIRED = 'expired' #d - status2 back to waiting, back in queue # check on cron job #y
     #INTERNAL_STATUS_LICENCE_APPROVED = 'approved' #e - status is fulfilled, status2 is approved, out of queue #y
-    #INTERNAL_STATUS_LICENCE_DECLINED = 'licence_declined' #f - status2 is waiting, status is current, position in queue is same
+    #INTERNAL_STATUS_LICENCE_DECLINED = 'licence_declined' #f - status2 is waiting, status is current, position in queue is same #y
     INTERNAL_STATUS_CHOICES = (
         (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
         (INTERNAL_STATUS_OFFERED, 'Mooring Licence offered'),
