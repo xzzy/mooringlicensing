@@ -547,15 +547,17 @@ class ApplicationFeeSuccessView(TemplateView):
 
                     if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
                         # For AUA or MLA, as payment has been done, create approval
-                        if proposal.proposal_type == PROPOSAL_TYPE_RENEWAL:
-                            # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                            pass
-                        elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                            # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                            pass
-                        else:
-                            # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-                            approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                        # if proposal.proposal_type == PROPOSAL_TYPE_RENEWAL:
+                        #     # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                        #     pass
+                        # elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                        #     # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                        #     pass
+                        # else:
+                        #     # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                        #     approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+
+                        approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                         if created:
                             if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
