@@ -12,7 +12,7 @@ import logging
 from mooringlicensing.components.proposals.email import send_expire_mooring_licence_application_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
-from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_WLA
+from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_MLA
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_WLA)
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
             # No number of days found
@@ -41,8 +41,9 @@ class Command(BaseCommand):
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
+        # MLA and associated documents must be submitted within X days period after invitation
         queries = Q()
-        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+        queries &= Q(processing_status__in=(Proposal.PROCESSING_STATUS_DRAFT, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS))
         queries &= Q(date_invited__lt=boundary_date)
 
         # For debug
