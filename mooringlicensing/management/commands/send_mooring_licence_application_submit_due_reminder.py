@@ -12,7 +12,7 @@ import logging
 from mooringlicensing.components.proposals.email import send_invitee_reminder_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
-from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_WLA, CODE_DAYS_BEFORE_PERIOD_WLA
+from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_MLA, CODE_DAYS_BEFORE_PERIOD_MLA
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +31,12 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type_period = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_WLA)
+        days_type_period = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
         days_setting_period = NumberOfDaysSetting.get_setting_by_date(days_type_period, today)
         if not days_setting_period:
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_period.name, today))
 
-        days_type_before = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_PERIOD_WLA)
+        days_type_before = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_PERIOD_MLA)
         days_setting_before = NumberOfDaysSetting.get_setting_by_date(days_type_before, today)
         if not days_setting_before:
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_before.name, today))
