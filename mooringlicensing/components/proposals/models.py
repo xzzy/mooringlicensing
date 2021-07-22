@@ -1046,6 +1046,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field=getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
+                from mooringlicensing.components.approvals.models import MooringLicence
                 if self.application_type.code == MooringLicence.code:
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
@@ -2059,7 +2060,6 @@ class AnnualAdmissionApplication(Proposal):
         if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
             return True
         return False
-
 
     def get_fee_amount_adjusted(self, fee_item_being_applied):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
