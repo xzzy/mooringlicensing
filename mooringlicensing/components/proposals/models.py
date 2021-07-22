@@ -1047,7 +1047,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
                 if self.application_type.code == MooringLicence.code:
-                    self.waiting_list_allocation.internal_status = 'licence_declined' 
+                    self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
                 send_proposal_decline_email_notification(self,request, proposal_decline)
             except:
@@ -2333,6 +2333,8 @@ class MooringLicenceApplication(Proposal):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        self.waiting_list_allocation.internal_status = 'submitted'
+        self.waiting_list_allocation.save()
         self.save()
 
     def set_status_after_payment_success(self):
