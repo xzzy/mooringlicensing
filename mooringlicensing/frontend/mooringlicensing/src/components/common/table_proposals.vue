@@ -104,6 +104,12 @@ export default {
         }
     },
     computed: {
+        debug: function(){
+            if (this.$route.query.debug){
+                return this.$route.query.debug === 'Tru3'
+            }
+            return false
+        },
         is_external: function() {
             return this.level == 'external'
         },
@@ -243,10 +249,15 @@ export default {
                 'render': function(row, type, full){
                     let links = '';
                     if (vm.is_internal){
-                        if(full.assessor_process){
+                        if (vm.debug){
                             links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                        } else {
                             links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                        } else {
+                            if(full.assessor_process){
+                                links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                            } else {
+                                links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                            }
                         }
                     }
                     if (vm.is_external){
