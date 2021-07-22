@@ -892,7 +892,7 @@ class AuthorisedUserPermit(Approval):
 
                     # Update mooringonapprovals
                     new_mooring_on_approval[0].sticker = new_sticker
-                    new_mooring_on_approval.save()
+                    new_mooring_on_approval[0].save()
                     for mooring_on_approval in old_sticker.mooringonapproval_set.all():
                         mooring_on_approval.sticker = new_sticker
                         mooring_on_approval.save()
