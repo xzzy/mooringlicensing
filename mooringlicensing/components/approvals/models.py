@@ -869,7 +869,7 @@ class AuthorisedUserPermit(Approval):
                 # There is a new mooring which is not on the sticker
 
                 # Find stickers which doesn't have 4 moorings on it
-                stickers = self.stickers.annotate(num_of_moorings=Count('mooringonapproval')).filter(num_of_moorings__lt=4)
+                stickers = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING)).annotate(num_of_moorings=Count('mooringonapproval')).filter(num_of_moorings__lt=4)
                 if stickers.count() == 0:
                     # All stickers have 4 moorings.--> Just create new sticker for the new mooring
                     sticker = Sticker.objects.create(
@@ -880,7 +880,7 @@ class AuthorisedUserPermit(Approval):
                 elif stickers.count() == 1:
                     # Found one sticker which doesn't have 4 moorings on it.
                     old_sticker = stickers[0]
-                    old_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                    old_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED if old_sticker.status == Sticker.STICKER_STATUS_CURRENT else Sticker.STICKER_STATUS_CANCELLED
                     old_sticker.save()
 
                     # Create new sticker with new mooring and existing moorings on the sticker above
@@ -949,11 +949,22 @@ class MooringLicence(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
+        # TODO: do we need conditional like the AUP.manage_stickers() ???
+        # if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
+        #     pass
+        #
+        # elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+        #     pass
+        #
+        # elif proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+        #     pass
+
         stickers_present = list(self.stickers.all())
 
-        stickers_required = []
+        stickers_required = []  # All the stickers we want to keep
         # for vessel_details in self.vessel_details_list:
         for vessel in self.vessel_list:
+            # Look for the sticker for the vessel
             sticker = self.stickers.filter(
                 status__in=(
                     Sticker.STICKER_STATUS_CURRENT,
@@ -963,8 +974,10 @@ class MooringLicence(Approval):
                 vessel=vessel,
             )
             if sticker:
+                # Found a sticker for the vessel
                 stickers_required.append(sticker)
             else:
+                # Sticker not found --> Create it
                 sticker = Sticker.objects.create(
                     approval=self,
                     status=Sticker.STICKER_STATUS_READY,
@@ -974,6 +987,7 @@ class MooringLicence(Approval):
                 )
             stickers_required.append(sticker)
 
+        # Calculate the stickers which are no longer needed.
         stickers_to_be_removed = [sticker for sticker in stickers_present if sticker not in stickers_required]
 
         for sticker in stickers_to_be_removed:
