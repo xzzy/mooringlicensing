@@ -8,11 +8,14 @@ import logging
 
 from mooringlicensing.components.approvals.email import send_vessel_nomination_reminder_mail
 from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, \
-    MooringLicence
+    MooringLicence, AuthorisedUserPermit
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.management.commands.utils import ml_meet_vessel_requirement
-from mooringlicensing.settings import CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML, \
-    CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA
+from mooringlicensing.settings import (
+        CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML,
+        CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA,
+        CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AUP,
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,7 @@ class Command(BaseCommand):
 
         self.perform(WaitingListAllocation.code, today, **options)
         self.perform(MooringLicence.code, today, **options)
+        self.perform(AuthorisedUserPermit.code, today, **options)
 
     def perform(self, approval_type, today, **options):
         errors = []
@@ -37,6 +41,9 @@ class Command(BaseCommand):
         elif approval_type == MooringLicence.code:
             days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML)
             approval_class = MooringLicence
+        elif approval_type == AuthorisedUserPermit.code:
+            days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AUP)
+            approval_class = AuthorisedUserPermit
         else:
             # Do nothing
             return
@@ -81,6 +88,14 @@ class Command(BaseCommand):
                 apps = MooringLicence.objects.filter(lodgement_number__iexact=approval_lodgement_number)
                 if apps:
                     approvals.append(apps[0])
+        elif approval_type == AuthorisedUserPermit.code:
+            queries = Q()
+            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
+            queries &= Q(vessel_nomination_reminder_sent=False)
+            if debug:
+                queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
+            approvals = approval_class.objects.filter(queries)
 
         for a in approvals:
             try:
