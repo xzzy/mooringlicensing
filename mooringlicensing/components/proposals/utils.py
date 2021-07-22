@@ -516,7 +516,7 @@ def submit_vessel_data(instance, request, vessel_data):
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
     else:
         ## Mooring Licence Application
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vesel_size:
+        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
         elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
