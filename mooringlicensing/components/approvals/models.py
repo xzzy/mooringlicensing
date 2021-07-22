@@ -32,8 +32,7 @@ from mooringlicensing.components.approvals.email import (
 #from mooringlicensing.utils import search_keys, search_multiple_keys
 from mooringlicensing.helpers import is_customer
 #from mooringlicensing.components.approvals.email import send_referral_email_notification
-from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT
-
+from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
 
 logger = logging.getLogger('log')
 logger_for_payment = logging.getLogger('payment_checkout')
@@ -825,7 +824,6 @@ class AnnualAdmissionPermit(Approval):
             raise ValueError('AAP: {} has more than one stickers with current status'.format(self.lodgement_number))
 
 
-
 class AuthorisedUserPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
     code = 'aup'
@@ -850,26 +848,81 @@ class AuthorisedUserPermit(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
-        stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
-        if stickers_current.count() % 4 == 0:
-            # Nothing wrong with the stickers already printed.  Just print a new sticker
+        # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
+
+        stickers_current = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
+
+        if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
             sticker = Sticker.objects.create(
                 approval=self,
                 vessel_ownership=proposal.vessel_ownership,
                 fee_constructor=proposal.fee_constructor,
             )
-        else:
-            # Last sticker should be returned and a new sticker will be printed
-            stickers = Sticker.objects.annotate(num_of_moorings=Count('mooringonapproval')).filter(num_of_moorings__lt=4)
-            if stickers.count() == 1:
-                # Found one sticker which doesn't have 4 moorings on it.
-                sticker = stickers.first()
-                sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
-                sticker.save()
-                # TODO: email to the permission holder to notify the existing sticker to be returned
+
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            new_mooring_on_approval = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True)
+
+            if new_mooring_on_approval.count() == 0:
+                # No new moorings --> Do nothing
+                pass
+            elif new_mooring_on_approval.count() == 1:
+                # There is a new mooring which is not on the sticker
+
+                # Find stickers which doesn't have 4 moorings on it
+                stickers = self.stickers.annotate(num_of_moorings=Count('mooringonapproval')).filter(num_of_moorings__lt=4)
+                if stickers.count() == 0:
+                    # All stickers have 4 moorings.--> Just create new sticker for the new mooring
+                    sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=proposal.vessel_ownership,
+                        fee_constructor=proposal.fee_constructor,
+                    )
+                elif stickers.count() == 1:
+                    # Found one sticker which doesn't have 4 moorings on it.
+                    old_sticker = stickers[0]
+                    old_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                    old_sticker.save()
+
+                    # Create new sticker with new mooring and existing moorings on the sticker above
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=proposal.vessel_ownership,
+                        fee_constructor=proposal.fee_constructor,
+                    )
+
+                    # Update mooringonapprovals
+                    new_mooring_on_approval[0].sticker = new_sticker
+                    new_mooring_on_approval[0].save()
+                    for mooring_on_approval in old_sticker.mooringonapproval_set.all():
+                        mooring_on_approval.sticker = new_sticker
+                        mooring_on_approval.save()
+
+                    # TODO: email to the permission holder to notify the existing sticker to be returned
+
+                else:
+                    raise ValueError('AUP: {} has more than one stickers with less than 4 moorings'.format(self.lodgement_number))
             else:
-                # There are more than one stickers with less than 4 moorings
-                raise ValueError('AUP: {} has more than one stickers with less than 4 moorings'.format(self.lodgement_number))
+                raise ValueError('AUP: {} has more than one new moorings without sticker'.format(self.lodgement_number))
+
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            stickers_to_be_replaced = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_CURRENT,))
+
+            for sticker_to_be_replaced in stickers_to_be_replaced:
+                # Update existing sticker's status to 'to_be_returned'
+                sticker_to_be_replaced.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker_to_be_replaced.save()
+
+                # Create new replacement sticker
+                new_sticker = Sticker.objects.create(
+                    approval=self,
+                    vessel_ownership=sticker_to_be_replaced.vessel_ownership,
+                    fee_constructor=proposal.fee_constructor,
+                )
+
+                # Update mooring_on_approval
+                for mooring_on_approval in sticker_to_be_replaced.mooringonapproval_set.all():
+                    mooring_on_approval.sticker = new_sticker
+                    mooring_on_approval.save()
 
 
 class MooringLicence(Approval):
