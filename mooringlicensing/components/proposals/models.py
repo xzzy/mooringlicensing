@@ -2151,18 +2151,14 @@ class AuthorisedUserApplication(Proposal):
             send_submit_email_notification(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
-        #import ipdb; ipdb.set_trace()
+        # This function is called after payment success for new/amendment/renewal application
+
         created = None
         mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
-        #mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
         ria_selected_mooring = None
-        #ria_selected_mooring_bay = None
         if mooring_id_pk:
             ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
-        #if mooring_bay_id_pk:
-         #   ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
 
-        #else:
         # find any current AUP for this submitter with the same vessel
         au_list = self.approval_class.objects.filter(
                 status='current', 
@@ -2170,30 +2166,16 @@ class AuthorisedUserApplication(Proposal):
                 current_proposal__vessel_details__vessel=self.vessel_details.vessel
                 )
         if au_list:
-            #approval = au_list[0]
             # change proposal to amendment application
             self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-        #    approval.issue_date = current_datetime
-        #    approval.current_proposal = self
-        #    # change start and expiry dates???
-        #    approval.start_date = current_datetime.date()
-        #    approval.expiry_date = self.end_date
-        #    approval.save()
-        if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
-            approval = self.approval
-            approval.current_proposal=self
-            approval.issue_date = current_datetime
-            approval.start_date = current_datetime.date()
-            approval.expiry_date = self.end_date
-            approval.submitter = self.submitter
-            approval.save()
-        else:
+
+        # Manage approval
+        if self.proposal_type.code == PROPOSAL_TYPE_NEW:
+            # When new application
             approval, created = self.approval_class.objects.update_or_create(
                 current_proposal=self,
                 defaults={
                     'issue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
                     'start_date': current_datetime.date(),
                     'expiry_date': self.end_date,
                     'submitter': self.submitter,
@@ -2202,28 +2184,51 @@ class AuthorisedUserApplication(Proposal):
             if created:
                 self.approval = approval
                 self.save()
-        # always reset this flag
-        approval.renewal_sent = False
-        approval.save()
-        # create MooringOnApproval records
+        elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            # When amendment application
+            approval = self.approval
+            approval.current_proposal = self
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.submitter = self.submitter
+            approval.save()
+        elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            # When renewal application
+            approval = self.approval
+            approval.current_proposal = self
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.submitter = self.submitter
+            approval.renewal_sent = False
+            approval.expiry_notice_sent = False
+            approval.renewal_count += 1
+            approval.save()
+
+        # Create MooringOnApproval records
         if ria_selected_mooring:
-            approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
+            approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
-            approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
-        # manage stickers
+            approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+
+        # Manage stickers
         approval.child_obj.manage_stickers(self)
-        # write approval history
+
+        # Write approval history
         approval.write_approval_history()
+
         return approval, created
 
     def process_after_approval(self, request):
         print('process_after_approved() in AuthorisedUserApplication')
-        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_NEW):
+        if self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New proposal
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT):
-            # Renewal or Amendment proposal --> Approval exists
+        elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            # Amendment --> Approval already exists
+            # TODO: Reconsider the case there are no payments...?
             if self.approval.moorings.all().count() % 4 == 0:
                 # Each existing sticker filled with 4 moorings --> Just creating new sticker.  No need to return.
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
@@ -2232,15 +2237,12 @@ class AuthorisedUserApplication(Proposal):
                 # One of the existing stickers should be replaced by a new sticker
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
                 self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-                # TODO: find the sticker to be replaced and change status of it to 'to_be_returned'
-        elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+        elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            # TODO: Reconsider the case there are no payments...?
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            # TODO: Change all the existing stickers status to the 'Expired' (too early???)  Create new stickers
         else:
             raise  # Should not reach here
-
-            # TODO: update approval (append a mooring, etc)
 
         self.save()
         # TODO: Send email (payment required)
