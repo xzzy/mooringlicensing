@@ -304,6 +304,7 @@ def handle_validation_error(e):
 
 
 def sticker_export():
+    # TODO: Implement below
     # Note: if the user wants to apply for e.g. three new authorisations,
     # then the user needs to submit three applications. The system will
     # combine them onto one sticker if payment is received on one day
@@ -315,6 +316,7 @@ def sticker_export():
 
     errors = []
     updates = []
+    today = timezone.localtime(timezone.now()).date()
 
     if stickers.count():
         try:
@@ -345,16 +347,16 @@ def sticker_export():
                     bay_moorings = ', '.join(bay_moorings)
 
                     ws1.append([
-                        'date',
+                        today.strftime('%d/%m/%Y'),
                         sticker.first_name,
                         sticker.last_name,
                         sticker.postal_address_line1,
                         sticker.postal_address_line2,
-                        'suburb',
+                        sticker.postal_address_suburb,
                         sticker.postal_address_state,
                         sticker.postal_address_postcode,
                         sticker.number,
-                        'v rego',
+                        sticker.vessel_registration_number,
                         bay_moorings,
                         sticker.get_sticker_colour(),
                     ])
