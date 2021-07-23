@@ -293,7 +293,8 @@ class Approval(RevisionedMixin):
                     wla_queue_date__isnull=False,
                     current_proposal__preferred_bay=self.current_proposal.preferred_bay,
                     status='current').order_by(
-                            '-wla_queue_date'):
+                            #'-wla_queue_date'):
+                            'wla_queue_date'):
                 w.wla_order = place
                 w.save()
                 place += 1
