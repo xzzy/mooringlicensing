@@ -1456,9 +1456,14 @@ class Sticker(models.Model):
 
     def get_sticker_colour(self):
         colour = self.approval.child_obj.sticker_colour
-        # TODO: account for the vessel size colour
-        colour += '/(length colour for AUP and ML)'
+        colour += '/' + self.get_vessel_size_colour()
         return colour
+
+    def get_vessel_size_colour(self):
+        for item in self.colour_matrix:
+            if self.vessel_applicable_length <= item['length']:
+                return item['colour']
+        return '---'
 
     @property
     def next_number(self):
@@ -1501,6 +1506,24 @@ class Sticker(models.Model):
         if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
             return self.approval.submitter.postal_address.state
         return '---'
+
+    @property
+    def postal_address_suburb(self):
+        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
+            return self.approval.submitter.postal_address.locality
+        return '---'
+
+    @property
+    def vessel_registration_number(self):
+        if self.vessel_ownership and self.vessel_ownership.vessel:
+            return self.vessel_ownership.vessel.rego_no
+        return '---'
+
+    @property
+    def vessel_applicable_length(self):
+        if self.vessel_ownership and self.vessel_ownership.vessel and self.vessel_ownership.vessel.latest_vessel_details:
+            return self.vessel_ownership.vessel.latest_vessel_details.vessel_applicable_length
+        raise ValueError('Vessel size not found for the sticker: {}'.format(self))
 
     @property
     def postal_address_postcode(self):
