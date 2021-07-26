@@ -17,7 +17,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     Sticker,
     MooringLicence,
-    AuthorisedUserPermit, StickerActionDetail,
+    AuthorisedUserPermit, StickerActionDetail, ApprovalHistory,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -907,3 +907,11 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         if obj.lodgement_datetime:
             lodgement_datetime = obj.lodgement_datetime.strftime('%d/%m/%Y')
         return lodgement_datetime
+
+
+class ApprovalHistorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ApprovalHistory
+        fields = '__all__'
+
