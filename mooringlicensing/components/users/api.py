@@ -78,6 +78,36 @@ class GetProfile(views.APIView):
         response = Response(serializer.data)
         return add_cache_control(response)
 
+
+class GetPerson(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data = EmailUser.objects.filter(
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term) |
+                Q(email__icontains=search_term)
+            )[:10]
+            data_transform = []
+            for email_user in data:
+                if email_user.dob:
+                    text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
+                else:
+                    text = '{} {}'.format(email_user.first_name, email_user.last_name)
+
+                data_transform.append({
+                    'id': email_user.id,
+                    'text': text,
+                    'first_name': email_user.first_name,
+                    'last_name': email_user.last_name,
+                    'email': email_user.email,
+                })
+            return Response({"results": data_transform})
+        return Response()
+
+
 class GetSubmitterProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):

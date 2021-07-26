@@ -92,6 +92,7 @@ api_patterns = [
     url(r'^api/mooring_lookup_per_bay$', proposal_api.GetMooringPerBay.as_view(), name='get-mooring-per-bay'),
     url(r'^api/vessel_lookup$', proposal_api.GetVessel.as_view(), name='get-vessel'),
     url(r'^api/sticker_lookup$', approval_api.GetSticker.as_view(), name='get-sticker'),
+    url(r'^api/person_lookup$', users_api.GetPerson.as_view(), name='get-person'),
     url(r'^api/company_names$', proposal_api.GetCompanyNames.as_view(), name='get-company-names'),
     url(r'^api/dcv_vessel_rego_nos$', proposal_api.GetDcvVesselRegoNos.as_view(), name='get-dcv-vessel_rego-nos'),
     url(r'^api/fee_configurations$', payments_api.GetFeeConfigurations.as_view(), name='get-fee-configurations'),
