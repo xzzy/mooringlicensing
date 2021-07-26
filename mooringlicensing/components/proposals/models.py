@@ -1047,7 +1047,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
                 from mooringlicensing.components.approvals.models import MooringLicence
-                if self.application_type.code == MooringLicence.code:
+                if self.application_type.code == MooringLicence.code and self.waiting_list_allocation:
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
                 send_proposal_decline_email_notification(self,request, proposal_decline)
@@ -2423,11 +2423,12 @@ class MooringLicenceApplication(Proposal):
                 self.allocated_mooring.mooring_licence = approval
                 self.allocated_mooring.save()
                 # Move WLA to status approved
-                self.waiting_list_allocation.internal_status = 'approved'
-                self.waiting_list_allocation.status = 'fulfilled'
-                self.waiting_list_allocation.wla_order = None
-                self.waiting_list_allocation.save()
-                self.waiting_list_allocation.set_wla_order()
+                if self.waiting_list_allocation:
+                    self.waiting_list_allocation.internal_status = 'approved'
+                    self.waiting_list_allocation.status = 'fulfilled'
+                    self.waiting_list_allocation.wla_order = None
+                    self.waiting_list_allocation.save()
+                    self.waiting_list_allocation.set_wla_order()
             # log Mooring action
             if existing_mooring_licence and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(
