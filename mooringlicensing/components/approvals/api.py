@@ -46,6 +46,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
     EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
+    ApprovalHistorySerializer,
 )
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -373,6 +374,19 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     #         application_types=application_types,
     #     )
     #     return Response(data)
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def lookup_approval_history(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
+        approval_history = {
+                "approvalType": instance.child_obj.description,
+                "approvalLodgementNumber": instance.lodgement_number,
+                "history": serializer.data,
+                }
+        return Response(approval_history)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
