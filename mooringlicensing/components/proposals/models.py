@@ -1713,12 +1713,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return target_date
 
     def auto_approve(self, request):
+        #import ipdb; ipdb.set_trace()
         ## If renewal and no change to vessel
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
         if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
-            auto_approve = None
+            auto_approve = True
             if not self.vessel_details and not self.previous_application.vessel_details:
-                auto_approve = True
+                #auto_approve = True
+                pass
             elif not self.vessel_details or not self.vessel_details:
                 auto_approve = False
             elif (
@@ -2334,8 +2336,9 @@ class MooringLicenceApplication(Proposal):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        self.waiting_list_allocation.internal_status = 'submitted'
-        self.waiting_list_allocation.save()
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.internal_status = 'submitted'
+            self.waiting_list_allocation.save()
         self.save()
 
     def set_status_after_payment_success(self):
