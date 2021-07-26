@@ -86,7 +86,7 @@
                   :profile="profile" 
                   id="proposalStartVessels" 
                   ref="vessels"
-                  :readonly="true"
+                  :readonly="readonlyMLA"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -215,6 +215,13 @@
             */
         },
         computed:{
+            readonlyMLA: function() {
+                let readonly = false;
+                if (this.readonly || (this.proposal.proposal_type.code === 'new')) {
+                    readonly = true;
+                }
+                return readonly;
+            },
             silentElector: function() {
                 if (this.proposal) {
                     return this.proposal.silent_elector;
