@@ -1716,6 +1716,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         ## If renewal and no change to vessel
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
         if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
+            auto_approve = None
             if not self.vessel_details and not self.previous_application.vessel_details:
                 auto_approve = True
             elif not self.vessel_details or not self.vessel_details:
