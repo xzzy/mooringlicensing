@@ -62,6 +62,9 @@ module.exports = {
     vesselownership: '/api/vesselownership/',
     proposal_by_uuid: '/api/proposal_by_uuid/',
 
+    lookupApprovalHistory: function(id) {
+        return `/api/approvals/${id}/lookup_approval_history.json`;
+    },
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
     },
