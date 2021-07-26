@@ -1,8 +1,7 @@
 <template>
     <div class="container" id="SearchDash">
-        <FormSection :formCollapse="false" label="Search Persons" Index="search_persons">
-        </FormSection>
 
+        <SearchPerson />
         <SearchVessel />
         <SearchMooring />
         <SearchSticker />
@@ -20,6 +19,7 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import SearchMooring from "./search_mooring.vue"
 import SearchVessel from "./search_vessel.vue"
 import SearchSticker from "./search_sticker.vue"
+import SearchPerson from "./search_person.vue"
 
 export default {
     name: 'InternalSearch',
@@ -34,6 +34,7 @@ export default {
         SearchMooring,
         SearchVessel,
         SearchSticker,
+        SearchPerson,
     },
     methods: {
 

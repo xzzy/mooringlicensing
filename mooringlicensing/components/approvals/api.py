@@ -68,20 +68,19 @@ class GetSticker(views.APIView):
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             data = Sticker.objects.filter(number__icontains=search_term)[:10]
             data_transform = []
             for sticker in data:
                 approval_history = sticker.approvalhistory_set.order_by('id').first()
-                data_transform.append({
-                    'id': sticker.id,
-                    'text': sticker.number,
-                    'approval_id': approval_history.approval.id,
-                })
-                return Response({"results": data_transform})
+                if approval_history.approval:
+                    data_transform.append({
+                        'id': sticker.id,
+                        'text': sticker.number,
+                        'approval_id': approval_history.approval.id,
+                    })
+            return Response({"results": data_transform})
         return Response()
-
 
 
 class GetApprovalTypeDict(views.APIView):

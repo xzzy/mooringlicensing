@@ -13,6 +13,7 @@ import MooringsDash from '@/components/internal/moorings/dashboard.vue'
 import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
 import VesselDetail from '@/components/internal/vessels/vessel_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
+import PersonDetail from '@/components/internal/person/person_detail.vue'
 import Compliance from '../compliances/access.vue'
 import Reports from '@/components/reports/reports.vue'
 /*
@@ -104,6 +105,11 @@ export default
             path: 'sticker',
             component: StickersDash,
             name: "internal-stickers-dash"
+        },
+        {
+            path: 'person',
+            component: PersonDetail,
+            name: "internal-person-detail"
         },
         {
             path: 'compliance/:compliance_id',
