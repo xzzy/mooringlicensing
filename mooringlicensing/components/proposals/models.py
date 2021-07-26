@@ -2336,8 +2336,9 @@ class MooringLicenceApplication(Proposal):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        self.waiting_list_allocation.internal_status = 'submitted'
-        self.waiting_list_allocation.save()
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.internal_status = 'submitted'
+            self.waiting_list_allocation.save()
         self.save()
 
     def set_status_after_payment_success(self):
