@@ -107,7 +107,7 @@ export default
             name: "internal-stickers-dash"
         },
         {
-            path: 'person',
+            path: 'person/:email_user_id',
             component: PersonDetail,
             name: "internal-person-detail"
         },
