@@ -72,9 +72,10 @@
                   </div>
                   <div v-else>
                     <Applicant
-                    :proposal="proposal"
-                    id="proposalStartApplicant"
-                    :readonly="readonly"
+                        :email_user="proposal.submitter" 
+                        :applicantType="proposal.applicant_type" 
+                        id="proposalStartApplicant"
+                        :readonly="readonly"
                     />
                   </div>
               </div>

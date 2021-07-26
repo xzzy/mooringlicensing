@@ -33,6 +33,7 @@ from mooringlicensing.components.main.decorators import (
 from mooringlicensing.components.organisations.models import  (
                                     Organisation,
                                 )
+from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 
 from mooringlicensing.components.users.serializers import   (
                                                 UserSerializer,
@@ -97,13 +98,10 @@ class GetPerson(views.APIView):
                 else:
                     text = '{} {}'.format(email_user.first_name, email_user.last_name)
 
-                data_transform.append({
-                    'id': email_user.id,
-                    'text': text,
-                    'first_name': email_user.first_name,
-                    'last_name': email_user.last_name,
-                    'email': email_user.email,
-                })
+                serializer = EmailUserAppViewSerializer(email_user)
+                email_user_data = serializer.data
+                email_user_data['text'] = text
+                data_transform.append(email_user_data)
             return Response({"results": data_transform})
         return Response()
 
