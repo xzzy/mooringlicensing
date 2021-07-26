@@ -1,5 +1,6 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
+        aho
         <div class="row">
             <h3>Application: {{ proposal.lodgement_number }}</h3>
             <h4>Application Type: {{ proposal.proposal_type.description }}</h4>
