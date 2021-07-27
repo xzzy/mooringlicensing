@@ -129,6 +129,9 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.all()
     serializer_class = UserSerializer
 
+    def get_queryset(self):
+        pass
+
     @detail_route(methods=['POST',])
     def update_personal(self, request, *args, **kwargs):
         try:
