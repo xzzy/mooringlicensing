@@ -125,12 +125,14 @@ class UserListFilterView(generics.ListAPIView):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('email', 'first_name', 'last_name')
 
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.all()
     serializer_class = UserSerializer
 
-    def get_queryset(self):
-        pass
+    # def get_queryset(self):
+    #     queryset = EmailUser.objects.all()
+    #     pass
 
     @detail_route(methods=['POST',])
     def update_personal(self, request, *args, **kwargs):
