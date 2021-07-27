@@ -50,11 +50,6 @@ from '@/utils/hooks'
                 this.$nextTick(() => {
                     if (this.email_user) {
                         window.location.replace("/internal/person/" + this.email_user.id);
-
-                        //this.$router.push({
-                        //    name: 'internal-person-detail',
-                        //    params: {"email_user": this.email_user},
-                        //});
                     }
                 });
 
