@@ -1047,7 +1047,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
                 from mooringlicensing.components.approvals.models import MooringLicence
-                if self.application_type.code == MooringLicence.code:
+                if self.application_type.code == MooringLicence.code and self.waiting_list_allocation:
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
                 send_proposal_decline_email_notification(self,request, proposal_decline)
@@ -1713,12 +1713,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return target_date
 
     def auto_approve(self, request):
+        #import ipdb; ipdb.set_trace()
         ## If renewal and no change to vessel
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
         if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
-            auto_approve = None
+            auto_approve = True
             if not self.vessel_details and not self.previous_application.vessel_details:
-                auto_approve = True
+                #auto_approve = True
+                pass
             elif not self.vessel_details or not self.vessel_details:
                 auto_approve = False
             elif (
@@ -2334,8 +2336,9 @@ class MooringLicenceApplication(Proposal):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-        self.waiting_list_allocation.internal_status = 'submitted'
-        self.waiting_list_allocation.save()
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.internal_status = 'submitted'
+            self.waiting_list_allocation.save()
         self.save()
 
     def set_status_after_payment_success(self):
@@ -2420,11 +2423,12 @@ class MooringLicenceApplication(Proposal):
                 self.allocated_mooring.mooring_licence = approval
                 self.allocated_mooring.save()
                 # Move WLA to status approved
-                self.waiting_list_allocation.internal_status = 'approved'
-                self.waiting_list_allocation.status = 'fulfilled'
-                self.waiting_list_allocation.wla_order = None
-                self.waiting_list_allocation.save()
-                self.waiting_list_allocation.set_wla_order()
+                if self.waiting_list_allocation:
+                    self.waiting_list_allocation.internal_status = 'approved'
+                    self.waiting_list_allocation.status = 'fulfilled'
+                    self.waiting_list_allocation.wla_order = None
+                    self.waiting_list_allocation.save()
+                    self.waiting_list_allocation.set_wla_order()
             # log Mooring action
             if existing_mooring_licence and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(

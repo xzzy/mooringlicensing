@@ -17,7 +17,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     Sticker,
     MooringLicence,
-    AuthorisedUserPermit, StickerActionDetail,
+    AuthorisedUserPermit, StickerActionDetail, ApprovalHistory,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -907,3 +907,76 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         if obj.lodgement_datetime:
             lodgement_datetime = obj.lodgement_datetime.strftime('%d/%m/%Y')
         return lodgement_datetime
+
+
+class ApprovalHistorySerializer(serializers.ModelSerializer):
+    reason = serializers.SerializerMethodField()
+    approval_letter = serializers.SerializerMethodField()
+    sticker_numbers = serializers.SerializerMethodField()
+    approval_lodgement_number = serializers.SerializerMethodField()
+    approval_type_description = serializers.SerializerMethodField()
+    approval_status = serializers.SerializerMethodField()
+    holder = serializers.SerializerMethodField()
+    start_date_str = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApprovalHistory
+        fields = (
+                'id',
+                'approval_lodgement_number', 
+                'approval_type_description',
+                'approval_status',
+                'holder',
+                #vessel_ownership,
+                #proposal,
+                'start_date_str',
+                #end_date = models.DateTimeField(blank=True, null=True)
+                'sticker_numbers',
+                'reason',
+                'approval_letter',
+                )
+        datatables_always_serialize = (
+                'id',
+                'approval_lodgement_number', 
+                'approval_type_description',
+                'approval_status',
+                'holder',
+                #vessel_ownership,
+                #proposal,
+                'start_date_str',
+                #end_date = models.DateTimeField(blank=True, null=True)
+                'sticker_numbers',
+                'reason',
+                'approval_letter',
+                )
+
+    def get_reason(self, obj):
+        return ''
+
+    def get_approval_status(self, obj):
+        return obj.approval.get_status_display()
+
+    def get_holder(self, obj):
+        return obj.approval.submitter.get_full_name()
+
+    def get_approval_letter(self, obj):
+        return ''
+
+    def get_sticker_numbers(self, obj):
+        numbers = []
+        for sticker in obj.stickers.all():
+            numbers.append(sticker.number)
+        return numbers
+
+    def get_approval_type_description(self, obj):
+        return obj.approval.child_obj.description
+
+    def get_approval_lodgement_number(self, obj):
+        return obj.approval.lodgement_number
+
+    def get_start_date_str(self, obj):
+        start_date = ''
+        if obj.start_date:
+            start_date = obj.start_date.strftime('%d/%m/%Y')
+        return start_date
+
