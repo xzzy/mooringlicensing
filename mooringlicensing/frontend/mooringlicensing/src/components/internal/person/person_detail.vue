@@ -32,12 +32,7 @@
                     />
                 </div>
                 <div class="tab-pane fade" id="pills-approvals" role="tabpanel" aria-labelledby="pills-approvals-tab">
-                    <FormSection 
-                        :formCollapse="false" 
-                        label="Applications" 
-                        subtitle="" 
-                        Index="applications"
-                    >
+                    <FormSection :formCollapse="false" label="Applications" subtitle="" Index="applications" >
                         <ApplicationsTable 
                             v-if="email_user"
                             level="internal"
@@ -45,12 +40,7 @@
                         />
                     </FormSection>
 
-                    <FormSection 
-                        :formCollapse="false" 
-                        label="Waiting List" 
-                        subtitle=""
-                        Index="waiting_list"
-                    >
+                    <FormSection :formCollapse="false" label="Waiting List" subtitle="" Index="waiting_list" >
                         <WaitingListTable
                             v-if="email_user"
                             level="internal"
@@ -59,12 +49,7 @@
                         />
                     </FormSection>
 
-                    <FormSection 
-                        :formCollapse="false" 
-                        label="Licences and Permits" 
-                        subtitle="" 
-                        Index="licences_and_permits"
-                    >
+                    <FormSection :formCollapse="false" label="Licences and Permits" subtitle="" Index="licences_and_permits" >
                         <LicencesAndPermitsTable
                             v-if="email_user"
                             level="internal"
@@ -73,12 +58,7 @@
                         />
                     </FormSection>
 
-                    <FormSection 
-                        :formCollapse="false" 
-                        label="Compliances" 
-                        subtitle="" 
-                        Index="compliances"
-                    >
+                    <FormSection :formCollapse="false" label="Compliances" subtitle="" Index="compliances" >
                         <CompliancesTable
                             v-if="email_user"
                             level="internal"
@@ -87,15 +67,7 @@
                     </FormSection>
                 </div>
                 <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
-                    <!--
-                    <VesselsDashboard />
-                    -->
-                    <FormSection 
-                        :formCollapse="false" 
-                        label="Vessels" 
-                        subtitle="" 
-                        Index="vessels"
-                    >
+                    <FormSection :formCollapse="false" label="Vessels" subtitle="" Index="vessels" >
                         <VesselsTable
                             v-if="email_user"
                             level="internal"
@@ -164,7 +136,8 @@ export default {
         }
     },
     mounted: function(){
-
+        /* set Details tab Active */
+        $('#pills-tab a[href="#pills-details"]').tab('show');
     },
 }
 </script>
