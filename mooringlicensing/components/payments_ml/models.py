@@ -454,9 +454,9 @@ class FeeConstructor(RevisionedMixin):
                     else:
                         for proposal_type in proposal_types:
                             if vessel_size_category.null_vessel and \
-                                    (self.application_type.code in (AnnualAdmissionApplication.code,
-                                                                    AuthorisedUserApplication.code) or proposal_type.code == settings.PROPOSAL_TYPE_NEW):
-                                # Null vessel is just for 'Renewal'/'Amendment' proposal type of WLA/MLA.
+                                    ((self.application_type.code in (AnnualAdmissionApplication.code, AuthorisedUserApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
+                                     proposal_type.code == settings.PROPOSAL_TYPE_NEW):
+                                # No null vessel fees
                                 continue
                             else:
                                 fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
