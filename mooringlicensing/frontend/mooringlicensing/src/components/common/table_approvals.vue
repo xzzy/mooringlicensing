@@ -98,6 +98,13 @@
         <ApprovalCancellation ref="approval_cancellation"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalCancellation>
         <ApprovalSuspension ref="approval_suspension"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalSuspension>
         <ApprovalSurrender ref="approval_surrender"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalSurrender>
+        <div v-if="approvalHistoryId">
+            <ApprovalHistory 
+                ref="approval_history"
+                :key="approvalHistoryId"
+                :approvalId="approvalHistoryId"
+            />
+        </div>
         <!--ApprovalHistory ref="approval_history" /-->
     </div>
 </template>
@@ -108,6 +115,7 @@ import OfferMooringLicence from '@/components/internal/approvals/offer_mooring_l
 import ApprovalCancellation from '../internal/approvals/approval_cancellation.vue'
 import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
+import ApprovalHistory from '../internal/approvals/approval_history.vue'
 //import ApprovalHistory from './approval_history_modal.vue';
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
@@ -145,6 +153,7 @@ export default {
             //approvalTypesToDisplay: ['wla'],
             show_expired_surrendered: false,
             selectedWaitingListAllocationId: null,
+            approvalHistoryId: null,
             uuid: 0,
             mooringBayId: null,
             filterStatus: null,
@@ -166,6 +175,7 @@ export default {
         ApprovalCancellation,
         ApprovalSuspension,
         ApprovalSurrender,
+        ApprovalHistory,
     },
     watch: {
         show_expired_surrendered: function(value){
@@ -241,6 +251,7 @@ export default {
                     'Action',
                     'Mooring Licence Vessels',
                     'Authorised User Permit Moorings',
+                    //'Approval History',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -273,9 +284,24 @@ export default {
                     'Action',
                     'Mooring Licence Vessels',
                     'Authorised User Permit Moorings',
+                    //'Approval History',
                 ]
             }
         },
+        /*
+        columnApprovalHistory: function() {
+            return {
+                        // 1. ID
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.id
+                        }
+                    }
+        },
+        */
         columnId: function() {
             return {
                         // 1. ID
@@ -427,6 +453,7 @@ export default {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
                             } else if (!vm.is_external){
+                                links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
                                 /*
                                 if(full.can_approver_reissue && full.current_proposal){
                                         links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal_id}'>Reissue</a><br/>`;
@@ -621,6 +648,7 @@ export default {
                     vm.columnAction,
                     vm.columnMooringLicenceVessels,
                     vm.columnAuthorisedUserMoorings,
+                    //vm.columnApprovalHistory,
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -652,6 +680,7 @@ export default {
                     vm.columnAction,
                     vm.columnMooringLicenceVessels,
                     vm.columnAuthorisedUserMoorings,
+                    //vm.columnApprovalHistory,
                 ]
             }
 
@@ -864,6 +893,13 @@ export default {
                 vm.amendApproval(id);
             });
 
+            // Internal history listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-history-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-history-approval');
+                vm.approvalHistory(id);
+            });
+
         },
         fetchFilterLists: async function(){
             // Status values
@@ -981,6 +1017,16 @@ export default {
 
             this.$refs.approval_surrender.approval_id = approval_id;
             this.$refs.approval_surrender.isModalOpen = true;
+        },
+        approvalHistory: function(id){
+            this.approvalHistoryId = parseInt(id);
+            this.uuid++;
+            this.$nextTick(() => {
+                this.$refs.approval_history.isModalOpen = true;
+            });
+
+            //this.$refs.approval_history.approvalId = approvalId;
+            //this.$refs.approval_history.isModalOpen = true;
         },
 
         renewApproval:function (proposal_id) {
