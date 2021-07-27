@@ -39,13 +39,13 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Given Name(s)</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.submitter.first_name">
+                                                <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="email_user.first_name">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Surname</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="proposal.submitter.last_name">
+                                                <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="email_user.last_name">
                                             </div>
                                           </div>
                                       </form>
@@ -95,34 +95,34 @@
                                           </div>
                                        </form>
                                 </div-->
-                                <div v-if="applicantType == 'SUB' && proposal.submitter.residential_address" class="panel-body panel-collapse collapse" :id="addressBody">
+                                <div v-if="applicantType == 'SUB' && email_user.residential_address" class="panel-body panel-collapse collapse" :id="addressBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Street</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="proposal.submitter.residential_address.line1">
+                                                <input disabled type="text" class="form-control" name="street" placeholder="" v-model="email_user.residential_address.line1">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                                             <div class="col-sm-6">
-                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="proposal.submitter.residential_address.locality">
+                                                <input disabled type="text" class="form-control" name="surburb" placeholder="" v-model="email_user.residential_address.locality">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">State</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="proposal.submitter.residential_address.state">
+                                                <input disabled type="text" class="form-control" name="country" placeholder="" v-model="email_user.residential_address.state">
                                             </div>
                                             <label for="" class="col-sm-2 control-label">Postcode</label>
                                             <div class="col-sm-2">
-                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="proposal.submitter.residential_address.postcode">
+                                                <input disabled type="text" class="form-control" name="postcode" placeholder="" v-model="email_user.residential_address.postcode">
                                             </div>
                                           </div>
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
-                                                <input disabled type="text" class="form-control" name="country" v-model="proposal.submitter.residential_address.country"/>
+                                                <input disabled type="text" class="form-control" name="country" v-model="email_user.residential_address.country"/>
                                             </div>
                                           </div>
                                        </form>
@@ -149,19 +149,19 @@
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">Phone (work)</label>
                                         <div class="col-sm-6">
-                                            <input disabled type="text" class="form-control" name="applicantPhoneNumber" placeholder="" v-model="proposal.submitter.phone_number">
+                                            <input disabled type="text" class="form-control" name="applicantPhoneNumber" placeholder="" v-model="email_user.phone_number">
                                         </div>
                                       </div>
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">Mobile</label>
                                         <div class="col-sm-6">
-                                            <input disabled type="text" class="form-control" name="applicantMobileNumber" placeholder="" v-model="proposal.submitter.mobile_number">
+                                            <input disabled type="text" class="form-control" name="applicantMobileNumber" placeholder="" v-model="email_user.mobile_number">
                                         </div>
                                       </div>
                                       <div class="form-group">
                                         <label for="" class="col-sm-3 control-label" >Email</label>
                                         <div class="col-sm-6">
-                                            <input disabled type="text" class="form-control" name="applicantEmail" placeholder="" v-model="proposal.submitter.email">
+                                            <input disabled type="text" class="form-control" name="applicantEmail" placeholder="" v-model="email_user.email">
                                         </div>
                                       </div>
                                   </form>
@@ -182,12 +182,21 @@ import {
 }
 from '@/utils/hooks'
     export default {
+        name: 'Applicant',
         //props:["type","name","id", "comment_value","value","isRequired","help_text","help_text_assessor","assessorMode","label","readonly","assessor_readonly", "help_text_url", "help_text_assessor_url"],
         props:{
-            proposal:{
+            //proposal:{
+            //    type: Object,
+            //    required: true,
+            //},
+            email_user: {
                 type: Object,
-                required:true
-            }
+                required: true,
+            },
+            applicantType: {
+                type: String,
+                required: true,
+            },
         },
         data:function () {
             let vm=this;
@@ -246,9 +255,9 @@ from '@/utils/hooks'
                 //return this.proposal != null ? helpers.add_endpoint_json(api_endpoints.organisations, this.proposal.org_applicant.id+'/contacts') : '';
                 return ''
             },
-            applicantType: function(){
-                return this.proposal.applicant_type;
-            },
+            //applicantType: function(){
+            //    return this.proposal.applicant_type;
+            //},
             // hasAssessorMode:function(){
             //     return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
             // },
@@ -257,7 +266,8 @@ from '@/utils/hooks'
             initialiseOrgContactTable: function(){
                 let vm = this;
                 //console.log("i am here")
-                if (vm.proposal && !vm.contacts_table_initialised){
+                //if (vm.proposal && !vm.contacts_table_initialised){
+                if (!vm.contacts_table_initialised){
                     // We don't need anything relating to organisations
                     //vm.contacts_options.ajax.url = helpers.add_endpoint_json(api_endpoints.organisations, vm.proposal.org_applicant.id + '/contacts');
                     vm.contacts_table = $('#'+vm.contacts_table_id).DataTable(vm.contacts_options);
