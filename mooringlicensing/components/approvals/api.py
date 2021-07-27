@@ -177,12 +177,12 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         external_waiting_list = request.GET.get('external_waiting_list')
         external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
         if external_waiting_list and not show_expired_surrendered:
-                print("external")
+                #print("external")
                 #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
                 queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
                 #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
 
-        print(queryset)
+        #print(queryset)
         # approval types filter2 - Licences dash only (excludes wla)
         filter_approval_type2 = request.GET.get('filter_approval_type2')
         #import ipdb; ipdb.set_trace()
@@ -398,15 +398,23 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET'])
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def lookup_approval_history(self, request, *args, **kwargs):
+    def approval_history(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
-        approval_history = {
+        return Response(serializer.data)
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def lookup_approval(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
+        approval_details = {
                 "approvalType": instance.child_obj.description,
                 "approvalLodgementNumber": instance.lodgement_number,
-                "history": serializer.data,
+                #"history": serializer.data,
                 }
-        return Response(approval_history)
+        return Response(approval_details)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
