@@ -132,6 +132,11 @@ export default {
                 return options.indexOf(val) != -1 ? true: false;
             }
         },
+        target_email_user_id: {
+            type: Number,
+            required: false,
+            default: 0,
+        }
     },
     data() {
         let vm = this;
@@ -660,7 +665,7 @@ export default {
                 //searching: false,
                 searching: true,
                 ajax: {
-                    "url": api_endpoints.approvals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.approvals_paginated_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering

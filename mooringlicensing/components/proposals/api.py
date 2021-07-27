@@ -473,7 +473,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         request_user = self.request.user
         all = Proposal.objects.all()
 
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+
         if is_internal(self.request):
+            if target_email_user_id:
+                target_user = EmailUser.objects.get(id=target_email_user_id)
+                user_orgs = [org.id for org in target_user.mooringlicensing_organisations.all()]
+                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user) | Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
@@ -1942,6 +1948,43 @@ class VesselViewSet(viewsets.ModelViewSet):
     #        return add_cache_control(Response(serializer.data))
     #    else:
     #        return Response([])
+
+    @list_route(methods=['GET',])
+    def list_internal(self, request, *args, **kwargs):
+        search_text = request.GET.get('search[value]', '')
+
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+        if target_email_user_id:
+            target_user = EmailUser.objects.get(id=target_email_user_id)
+        owner_qs = Owner.objects.filter(emailuser=target_user)
+
+        if owner_qs:
+            owner = owner_qs[0]
+            #vessel_details_list = [vessel.latest_vessel_details for vessel in owner.vessels.all()]
+            vessel_ownership_list = owner.vesselownership_set.all()
+
+            # rewrite following for vessel_ownership_list
+            if search_text:
+                search_text = search_text.lower()
+                #search_text_vessel_detail_ids = []
+                search_text_vessel_ownership_ids = []
+                matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
+                for vo in vessel_ownership_list:
+                    vd = vo.vessel.latest_vessel_details
+                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
+                            search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
+                            vd.vessel_type in matching_vessel_type_choices or
+                            search_text in vo.end_date.strftime('%d/%m/%Y')
+                            #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
+                    ):
+                        search_text_vessel_ownership_ids.append(vo.id)
+                #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
+                vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+
+            serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
+            return add_cache_control(Response(serializer.data))
+        else:
+            return Response([])
 
     @list_route(methods=['GET',])
     def list_external(self, request, *args, **kwargs):

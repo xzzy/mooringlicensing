@@ -44,6 +44,7 @@ module.exports = {
     moorings_paginated_internal: '/api/moorings_paginated/list_internal',
     compliances:"/api/compliances.json",
     vessel_external_list: '/api/vessel/list_external',
+    vessel_internal_list: '/api/vessel/list_internal',
     waitinglistapplication: '/api/waitinglistapplication/',
     waitinglistallocation: '/api/waitinglistallocation/',
     existing_mooring_licences: '/api/mooringlicence/existing_mooring_licences',
