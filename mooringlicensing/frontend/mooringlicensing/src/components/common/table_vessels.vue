@@ -18,12 +18,23 @@
                 />
             </div>
         </div>
+
+        <div v-if="recordSaleId">
+            <RecordSale 
+            ref="record_sale" 
+            :recordSaleId="recordSaleId"
+            :key="recordSaleKey"
+            @closeModal="closeModal"
+            @refreshDatatable="refreshFromResponse"
+            />
+        </div>
     </div>
 </template>
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
+import RecordSale from '@/components/external/record_sale.vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 
 export default {
@@ -38,6 +49,7 @@ export default {
     data() {
         let vm = this;
         return {
+            recordSaleId: null,
             uuid: 0,
             // Datatable settings
             datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Sale date', 'Action'],
@@ -181,13 +193,19 @@ export default {
     components:{
         FormSection,
         datatable,
+        RecordSale,
     },
     watch: {
     },
     computed: {
-
+        recordSaleKey: function() {
+            return `${this.recordSaleId}_${this.uuid}`
+        },
     },
     methods: {
+        closeModal: function() {
+            this.uuid++;
+        },
         addVessel: function() {
             this.$router.push({
                 name: 'new-vessel'
@@ -195,6 +213,12 @@ export default {
         },
         refreshFromResponse: async function(){
             await this.$refs.vessels_datatable.vmDataTable.ajax.reload();
+        },
+        openSaleModal: function() {
+            this.$nextTick(() => {
+                console.log(this.recordSaleId)
+                this.$refs.record_sale.isModalOpen = true;
+            });
         },
         addEventListeners: function() {
             let vm = this;
@@ -207,6 +231,8 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-id');
                 //await vm.actionShortcut(id, 'issue');
+                vm.recordSaleId = parseInt(id);
+                vm.openSaleModal();
             });
             /*
             let recordSale = $('#record_sale_96');
