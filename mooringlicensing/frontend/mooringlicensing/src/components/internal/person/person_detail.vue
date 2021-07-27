@@ -97,7 +97,9 @@
                         Index="vessels"
                     >
                         <VesselsTable
+                            v-if="email_user"
                             level="internal"
+                            :target_email_user_id="email_user.id"
                         />
                     </FormSection>
                 </div>
@@ -153,9 +155,10 @@ export default {
     methods: {
 
     },
-    created: function(){
+    created: async function(){
         console.log(this.$route.params.email_user_id)
-        const res = this.$http.get('/api/users/' + this.$route.params.email_user_id)
+        const res = await this.$http.get('/api/users/' + this.$route.params.email_user_id)
+
         if (res.ok) {
             this.email_user = res.body
         }
