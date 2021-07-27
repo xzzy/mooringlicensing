@@ -963,9 +963,14 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
         return ''
 
     def get_sticker_numbers(self, obj):
-        numbers = []
+        #numbers = []
+        numbers = ""
         for sticker in obj.stickers.all():
-            numbers.append(sticker.number)
+            #numbers.append(sticker.number)
+            if numbers:
+                numbers += ',\n' + sticker.number
+            else:
+                numbers += sticker.number
         return numbers
 
     def get_approval_type_description(self, obj):

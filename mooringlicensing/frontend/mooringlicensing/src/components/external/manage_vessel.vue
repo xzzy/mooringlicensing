@@ -122,7 +122,8 @@ export default {
             if (withConfirm) {
                 await swal(
                     'Saved',
-                    'Your application has been saved',
+                    //'Your application has been saved',
+                    'Your vessel details have been saved',
                     'success'
                 );
             };
