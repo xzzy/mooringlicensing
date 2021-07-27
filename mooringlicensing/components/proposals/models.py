@@ -1612,7 +1612,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def previous_application_status_filter(self):
         prev_application = self.previous_application
-        while prev_application and prev_application.processing_status in ['discarded', 'declined']:
+        while prev_application and prev_application.processing_status in ['discarded', 'declined'] and prev_application.previous_application:
             prev_application = prev_application.previous_application
         return prev_application
 
@@ -1718,11 +1718,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
         if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
             auto_approve = True
-            if not self.vessel_details and not self.previous_application.vessel_details:
+            #auto_approve = False
+            ## current and previous application both do not have a vessel
+            if not self.vessel_details and not self.previous_application_status_filter.vessel_details:
                 #auto_approve = True
                 pass
-            elif not self.vessel_details or not self.vessel_details:
+            ## either current or previous application does not have a vessel
+            elif not self.vessel_details or not self.previous_application_status_filter.vessel_details:
                 auto_approve = False
+                #pass
+            #elif self.previous_application_status_filter and (
+            ## compare current vessel data to previous application's vessel data
             elif (
                     # Vessel Details and rego
                     self.vessel_details.vessel != self.previous_application_status_filter.vessel_details.vessel or 
@@ -1739,6 +1745,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.company_ownership_name != self.previous_application_status_filter.company_ownership_name
                     ):
                 auto_approve = False
+                #pass
             if auto_approve:
                 self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
 
