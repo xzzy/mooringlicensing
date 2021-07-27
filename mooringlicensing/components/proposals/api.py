@@ -1953,10 +1953,11 @@ class VesselViewSet(viewsets.ModelViewSet):
     def list_internal(self, request, *args, **kwargs):
         search_text = request.GET.get('search[value]', '')
 
+        owner_qs = None
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
         if target_email_user_id:
             target_user = EmailUser.objects.get(id=target_email_user_id)
-        owner_qs = Owner.objects.filter(emailuser=target_user)
+            owner_qs = Owner.objects.filter(emailuser=target_user)
 
         if owner_qs:
             owner = owner_qs[0]
