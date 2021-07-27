@@ -230,7 +230,12 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         request_user = self.request.user
         all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
 
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+
         if is_internal(self.request):
+            if target_email_user_id:
+                target_user = EmailUser.objects.get(id=target_email_user_id)
+                all = all.filter(Q(submitter=target_user))
             return all
         elif is_customer(self.request):
             qs = all.filter(Q(submitter=request_user))
