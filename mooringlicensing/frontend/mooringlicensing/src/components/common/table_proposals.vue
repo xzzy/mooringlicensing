@@ -278,6 +278,9 @@ export default {
                                 links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
                             }
                         }
+                        if (full.document_upload_url){
+                            links +=  `<a href='${full.document_upload_url}'>Upload Documents</a>`
+                        }
                     }
                     return links;
                 }
@@ -324,6 +327,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log(full)
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
