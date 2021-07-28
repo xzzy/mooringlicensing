@@ -22,11 +22,11 @@ from mooringlicensing.components.proposals.models import (
     VesselDetails,
     VesselOwnership,
     Vessel,
-    MooringBay, 
+    MooringBay,
     ProposalType,
     Company,
     CompanyOwnership,
-    Mooring,
+    Mooring, MooringLicenceApplication,
 )
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
@@ -418,6 +418,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     # fee_invoice_references = serializers.SerializerMethodField()
     mooring = MooringSerializer()
     uuid = serializers.SerializerMethodField()
+    document_upload_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -459,6 +460,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'mooring_id',
                 'mooring',
                 'uuid',
+                'document_upload_url',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -490,7 +492,14 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'mooring_id',
                 'mooring',
                 'uuid',
+                'document_upload_url',
                 )
+
+    def get_document_upload_url(self, proposal):
+        if proposal.application_type.code == MooringLicenceApplication.code and proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS:
+            request = self.context['request']
+            return proposal.child_obj.get_document_upload_url(request)
+        return ''
 
     def get_uuid(self, obj):
         try:
