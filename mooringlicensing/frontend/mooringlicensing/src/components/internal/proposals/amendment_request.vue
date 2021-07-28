@@ -7,20 +7,24 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
                             <div class="row">
-                                <div class="col-sm-offset-2 col-sm-8">
-                                    <div class="form-group">
-                                        <label class="control-label pull-left"  for="Name">Reason</label>
-                                        <select class="form-control" name="reason" ref="reason" v-model="amendment.reason">
+                                <div class="form-group">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-right"  for="reason_select">Reason</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <select class="form-control" id="reason_select" ref="reason" v-model="amendment.reason">
                                             <option v-for="r in reason_choices" :value="r.key">{{r.value}}</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-offset-2 col-sm-8">
-                                    <div class="form-group">
-                                        <label class="control-label pull-left"  for="Name">Details</label>
-                                        <textarea class="form-control" name="name" v-model="amendment.text" id="amendment_text"></textarea>
+                                <div class="form-group">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-right" for="amendment_text">Details</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <textarea class="form-control" v-model="amendment.text" id="amendment_text"></textarea>
                                     </div>
                                 </div>
                             </div>
