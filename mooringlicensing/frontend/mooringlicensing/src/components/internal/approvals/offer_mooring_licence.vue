@@ -9,7 +9,7 @@
                         <div class="form-group">
                             <div class="row">
                                 <div class="col-sm-3">
-                                    <label class="control-label pull-left" for="mooring_bay">Bay</label>
+                                    <label class="control-label pull-left" for="mooring_bay_lookup">Bay</label>
                                 </div>
                                 <div class="col-sm-6">
                                     <select class="form-control" v-model="selectedMooringBayId" id="mooring_bay_lookup">

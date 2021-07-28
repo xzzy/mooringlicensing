@@ -675,6 +675,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval_type_dict = serializers.SerializerMethodField()
     submitter_phone_number = serializers.SerializerMethodField()
+    vessel_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -685,6 +686,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             'approval_type_dict',
             'issue_date',
             'submitter_phone_number',
+            'vessel_data',
         )
 
     def get_status(self, obj):
@@ -709,6 +711,21 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     def get_submitter_phone_number(self, obj):
         #return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
         return obj.submitter.mobile_number if obj.submitter.mobile_number else obj.submitter.phone_number
+
+    def get_vessel_data(self, obj):
+        vessel_data = []
+        if type(obj.child_obj) != MooringLicence:
+            vessel_data.append({
+                "rego_no": obj.current_proposal.vessel_details.vessel.rego_no,
+                "vessel_name": obj.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name,
+                })
+        else:
+            for vessel_details in obj.child_obj.vessel_details_list:
+                vessel_data.append({
+                    "rego_no": vessel_details.vessel.rego_no,
+                    "vessel_name": vessel_details.vessel.latest_vessel_details.vessel_name,
+                    })
+        return vessel_data
 
 
 class ApprovalSimpleSerializer(serializers.ModelSerializer):
