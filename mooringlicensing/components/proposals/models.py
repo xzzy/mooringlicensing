@@ -16,6 +16,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
 
@@ -45,6 +46,7 @@ from mooringlicensing.components.proposals.email import (
     send_approver_approve_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email, send_emails_for_payment_required,
+    send_other_documents_submitted_notification_email,
 )
 # from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
 from mooringlicensing.ordered_model import OrderedModel
@@ -2307,6 +2309,10 @@ class MooringLicenceApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def get_document_upload_url(self, request):
+        document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': self.uuid}))
+        return document_upload_url
+
     @property
     def assessor_group(self):
         return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
@@ -2339,7 +2345,7 @@ class MooringLicenceApplication(Proposal):
         self.proposal.refresh_from_db()
         print('refresh_from_db1')
 
-    def process_after_uploading_other_documents(self, request):
+    def process_after_submit_other_documents(self, request):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
@@ -2347,6 +2353,12 @@ class MooringLicenceApplication(Proposal):
             self.waiting_list_allocation.internal_status = 'submitted'
             self.waiting_list_allocation.save()
         self.save()
+
+        # Log actions
+        self.log_user_action(ProposalUserAction.ACTION_SUBMIT_OTHER_DOCUMENTS, request)
+
+        # Send email to assessors
+        send_other_documents_submitted_notification_email(request, self)
 
     def set_status_after_payment_success(self):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
@@ -3173,6 +3185,7 @@ class ProposalUserAction(UserAction):
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
+    ACTION_SUBMIT_OTHER_DOCUMENTS = 'Submit other documents'
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
