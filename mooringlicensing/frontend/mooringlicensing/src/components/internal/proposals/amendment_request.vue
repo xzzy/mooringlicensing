@@ -173,10 +173,9 @@ export default {
             vm.$http.post('/api/amendment_request.json', vm.amendment).then(
                 response => {
                     //vm.$parent.loading.splice('processing contact',1);
-                    let proposal_or_licence = vm.is_apiary_proposal ? 'application' : 'proposal'
                     swal(
                          'Sent',
-                         'An email has been sent to the proponent with the request to amend this ' + proposal_or_licence,
+                         'An email has been sent to the applicant with the request to amend this application',
                          'success'
                     );
                     vm.amendingProposal = true;
