@@ -666,7 +666,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             # Documents missing
             raise
 
-        instance.process_after_uploading_other_documents(request)
+        instance.process_after_submit_other_documents(request)
         return add_cache_control(Response())
 
 
