@@ -15,46 +15,50 @@
         </div>
         <div class="row form-group">
             <div class="col-sm-12">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Entity type</th>
-                            <th>Number</th>
-                            <th>Action</th>
-                            <th>Contact number</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="approval in approvals">
-                            <td>{{ approval.approval_type_dict.description }}</td>
-                            <td>{{ approval.lodgement_number }}</td>
-                            <!--td>View</td-->
-                            <td></td>
-                            <td>{{ approval.submitter_phone_number }}</td>
-                            <td>
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Registration number</th>
-                                            <th>Vessel Name</th>
+                <div id="spinnerLoader" v-if="dataLoading">
+                    <i class="fa fa-4x fa-spinner fa-spin"></i>
+                </div>
+                <div v-else>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Entity type</th>
+                                <th>Number</th>
+                                <th>Action</th>
+                                <th>Contact number</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="approval in approvals">
+                                <td>{{ approval.approval_type_dict.description }}</td>
+                                <td>{{ approval.lodgement_number }}</td>
+                                <!--td>View</td-->
+                                <td></td>
+                                <td>{{ approval.submitter_phone_number }}</td>
+                                <td>
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Registration number</th>
+                                                <th>Vessel Name</th>
+                                            </tr>
+                                        </thead>
+                                        <tr v-for="vessel in approval.vessel_data">
+                                            <td>{{ vessel.rego_no }}</td>
+                                            <td>{{ vessel.vessel_name }}</td>
                                         </tr>
-                                    </thead>
-                                    <tr v-for="vessel in approval.vessel_data">
-                                        <td>{{ vessel.rego_no }}</td>
-                                        <td>{{ vessel.vessel_name }}</td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        <tr v-for="booking in bookings">
-                            <td>Booking</td>
-                            <td>{{ booking.booking_id_pf }}</td>
-                            <td></td>
-                            <td>{{ booking.customer_phone_number }}</td>
-                        </tr>
-
-                    </tbody>
-                </table>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr v-for="booking in bookings">
+                                <td>Booking</td>
+                                <td>{{ booking.booking_id_pf }}</td>
+                                <td></td>
+                                <td>{{ booking.customer_phone_number }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -84,6 +88,7 @@ from '@/utils/hooks'
                 approvals: [],
                 bookings: [],
                 selectedDate: null,
+                dataLoading: false,
              }
         },
         /*
@@ -129,6 +134,8 @@ from '@/utils/hooks'
             },
             lookupEntities: async function() {
                 this.$nextTick(async () => {
+                    console.log("lookupEntities");
+                    this.dataLoading = true;
                     let payload = {
                         "selected_date": this.selectedDate,
                     }
@@ -161,6 +168,7 @@ from '@/utils/hooks'
                         }
                     }
                     // DCV
+                    this.dataLoading = false;
                 });
             },
         },
@@ -184,5 +192,9 @@ from '@/utils/hooks'
 </script>
 
 <style lang="css" scoped>
+  #spinnerLoader {
+    width: 100%;
+    text-align: center;
+    padding: 1em 0;
+  }
 </style>
-
