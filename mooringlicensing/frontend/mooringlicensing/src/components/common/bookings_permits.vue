@@ -91,7 +91,7 @@ from '@/utils/hooks'
                 let options = {
                     format: "DD/MM/YYYY",
                     showClear: true ,
-                    useCurrent: false,
+                    //useCurrent: false,
                 };
 
                 el_fr.datetimepicker(options);
@@ -152,7 +152,15 @@ from '@/utils/hooks'
         },
         mounted: function () {
             this.$nextTick(async () => {
+                let vm = this;
                 this.addEventListeners();
+                var dateNow = new Date();
+                let el_fr = $(vm.$refs.datePicker);
+                /*
+                console.log(el_fr);
+                console.log(el_fr.data("DateTimePicker"));
+                */
+                el_fr.data("DateTimePicker").date(dateNow);
             });
         },
         created: async function() {
