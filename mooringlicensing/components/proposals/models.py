@@ -16,6 +16,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
 
@@ -2306,6 +2307,10 @@ class MooringLicenceApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_document_upload_url(self, request):
+        document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': self.uuid}))
+        return document_upload_url
 
     @property
     def assessor_group(self):

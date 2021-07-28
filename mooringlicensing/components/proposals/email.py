@@ -184,7 +184,8 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
     email = DocumentsUploadForMooringLicenceApplicationEmail()
     # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    # document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    document_upload_url = proposal.get_document_upload_url(request)
     print(document_upload_url)
 
     # Configure recipients, contents, etc
