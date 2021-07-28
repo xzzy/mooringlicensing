@@ -26,20 +26,32 @@ class ProposalDeclineSendNotificationEmail(TemplateEmailBase):
     html_template = 'mooringlicensing/emails/proposals/send_decline_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_decline_notification.txt'
 
+
 class ProposalApprovalSendNotificationEmail(TemplateEmailBase):
     subject = '{} - Approved.'.format(settings.DEP_NAME)
     html_template = 'mooringlicensing/emails/proposals/send_approval_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_approval_notification.txt'
+
 
 class ProposalAwaitingPaymentApprovalSendNotificationEmail(TemplateEmailBase):
     subject = '{} - Commercial Filming Application - Pending Payment.'.format(settings.DEP_NAME)
     html_template = 'mooringlicensing/emails/proposals/send_awaiting_payment_approval_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_awaiting_payment_approval_notification.txt'
 
+
 class AmendmentRequestSendNotificationEmail(TemplateEmailBase):
     subject = '{} - Commercial Operations Incomplete application.'.format(settings.DEP_NAME)
     html_template = 'mooringlicensing/emails/proposals/send_amendment_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_amendment_notification.txt'
+
+
+class OtherDocumentsSumittedNotificationEmail(TemplateEmailBase):
+    subject = 'Application: {} is ready for assessment.  Other documents have been submitted.'
+    html_template = 'mooringlicensing/emails/proposals/send_documents_submitted_for_mla.html'
+    txt_template = 'mooringlicensing/emails/proposals/send_documents_submitted_for_mla.txt'
+
+    def __init__(self, proposal):
+        self.subject = self.subject.format(proposal.lodgement_number)
 
 
 class DocumentsUploadForMooringLicenceApplicationEmail(TemplateEmailBase):
@@ -181,10 +193,49 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
 
+def send_other_documents_submitted_notification_email(request, proposal):
+    email = OtherDocumentsSumittedNotificationEmail(proposal)
+
+    context = {
+        'proposal': proposal,
+    }
+    to_address = proposal.assessor_recipients
+    cc = []
+    bcc = []
+
+    attachments = []
+    for my_file in proposal.mooring_report_documents.all():
+        if my_file._file is not None:
+            file_name = my_file._file.name
+            mime = mimetypes.guess_type(file_name)[0]
+            if mime:
+                attachment = (my_file.name, my_file._file.read(), mime)
+                attachments.append(attachment)
+    for my_file in proposal.written_proof_documents.all():
+        if my_file._file is not None:
+            file_name = my_file._file.name
+            mime = mimetypes.guess_type(file_name)[0]
+            if mime:
+                attachment = (my_file.name, my_file._file.read(), mime)
+                attachments.append(attachment)
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+    return msg
+
+
+
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
     email = DocumentsUploadForMooringLicenceApplicationEmail()
-    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    document_upload_url = proposal.get_document_upload_url(request)
     print(document_upload_url)
 
     # Configure recipients, contents, etc

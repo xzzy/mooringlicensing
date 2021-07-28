@@ -119,15 +119,22 @@ class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
 
+        debug = self.request.GET.get('debug', 'f')
+        if debug.lower() in ['true', 't', 'yes', 'y']:
+            debug = True
+        else:
+            debug = False
+
         if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS:
-            raise ValidationError('You cannot upload documents for the application when it is not in awaiting-documents status')
+            if not debug:
+                raise ValidationError('You cannot upload documents for the application when it is not in awaiting-documents status')
 
         context = {
             'proposal': proposal,
+            'dev': settings.DEV_STATIC,
+            'dev_url': settings.DEV_STATIC_URL
         }
 
-        context['dev'] = settings.DEV_STATIC
-        context['dev_url'] = settings.DEV_STATIC_URL
         if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
             context['app_build_url'] = settings.DEV_APP_BUILD_URL
 

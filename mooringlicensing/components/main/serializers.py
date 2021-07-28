@@ -73,7 +73,8 @@ class OracleSerializer(serializers.Serializer):
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    payment_status = serializers.ReadOnlyField()
+    # payment_status = serializers.ReadOnlyField()
+    payment_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -84,3 +85,13 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'payment_status',
             'settlement_date',
         )
+
+    def get_payment_status(self, invoice):
+        if invoice.payment_status.lower() == 'unpaid':
+            return 'Unpaid'
+        elif invoice.payment_status.lower() == 'partially_paid':
+            return 'Partially Paid'
+        elif invoice.payment_status.lower() == 'paid':
+            return 'Paid'
+        else:
+            return 'Over Paid'
