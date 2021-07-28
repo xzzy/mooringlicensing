@@ -31,6 +31,20 @@
                             <!--td>View</td-->
                             <td></td>
                             <td>{{ approval.submitter_phone_number }}</td>
+                            <td>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Registration number</th>
+                                            <th>Vessel Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tr v-for="vessel in approval.vessel_data">
+                                        <td>{{ vessel.rego_no }}</td>
+                                        <td>{{ vessel.vessel_name }}</td>
+                                    </tr>
+                                </table>
+                            </td>
                         </tr>
                         <tr v-for="booking in bookings">
                             <td>Booking</td>
