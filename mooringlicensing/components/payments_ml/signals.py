@@ -31,5 +31,8 @@ class InvoiceListerner(object):
 
             # Update proposal status
             if application_fee.proposal:
-                application_fee.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                if application_fee.proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+                    application_fee.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                elif application_fee.proposal.processing_status == Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
+                    application_fee.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
                 application_fee.proposal.save()
