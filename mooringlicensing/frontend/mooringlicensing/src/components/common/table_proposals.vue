@@ -418,7 +418,7 @@ export default {
             let vm = this;
             swal({
                 title: "Discard Application",
-                text: "Are you sure you want to discard this proposal?",
+                text: "Are you sure you want to discard this application?",
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Discard Application',
@@ -430,7 +430,7 @@ export default {
                     console.log(response)
                     swal(
                         'Discarded',
-                        'Your proposal has been discarded',
+                        'Your application has been discarded',
                         'success'
                     )
                     //vm.$refs.application_datatable.vmDataTable.ajax.reload();
