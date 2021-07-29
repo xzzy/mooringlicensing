@@ -348,13 +348,16 @@ def send_invitee_reminder_email(proposal, request=None):
 def send_endorser_reminder_email(proposal, request=None):
     email = EndorserReminderEmail()
     url = settings.SITE_URL if settings.SITE_URL else ''
-    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    # endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    decline_url = request.build_absolute_uri(reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
     dashboard_url = url + reverse('external')
 
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
         'endorse_url': endorse_url,
+        'decline_url': decline_url,
         'dashboard_url': dashboard_url,
         'mooring': proposal.mooring,
     }
@@ -373,12 +376,14 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
     email = EndorsementOfAuthorisedUserApplicationEmail()
     # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    decline_url = request.build_absolute_uri(reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
     dashboard_url = request.build_absolute_uri(reverse('external'))
 
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
         'endorse_url': endorse_url,
+        'decline_url': decline_url,
         'dashboard_url': dashboard_url,
         'mooring': proposal.mooring,
     }
