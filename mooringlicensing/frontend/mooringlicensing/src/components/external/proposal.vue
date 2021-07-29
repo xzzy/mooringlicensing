@@ -265,7 +265,7 @@ export default {
     submit_text: function() {
         let submitText = 'Submit';
         if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
-            submitText = 'Pay and Submit';
+            submitText = 'Pay / Submit';
         }
         return submitText;
     },
