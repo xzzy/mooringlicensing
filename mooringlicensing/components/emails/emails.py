@@ -36,6 +36,12 @@ class TemplateEmailBase(object):
     # txt_template can be None, in this case a 'tag-stripped' version of the html will be sent. (see send)
     txt_template = 'mooringlicensing/emails/base-email.txt'
 
+    def __init__(self, subject='', html_template='', txt_template=''):
+        # Update
+        self.subject = subject if subject else self.subject
+        self.html_template = html_template if html_template else self.html_template
+        self.txt_template = txt_template if txt_template else self.txt_template
+
     def send_to_user(self, user, context=None):
         return self.send(user.email, context=context)
 
