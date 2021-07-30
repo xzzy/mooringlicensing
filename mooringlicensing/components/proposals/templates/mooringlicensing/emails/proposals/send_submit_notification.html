@@ -1,8 +1,12 @@
 {%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {%  block content_body %}
-<p>Dear {{ recipient.first_name }} {{ recipient.last_name}},</p>
-Your {{ proposal.description }} application {{ proposal.lodgement_number }} has been successfully submitted.
-Please find your invoice attached to this email.
-{% include "mooringlicensing/emails/signature-rottnest.html" %}
+    <p>Dear {{ recipient.first_name }} {{ recipient.last_name}},</p>
+    Your {{ proposal.description }} application {{ proposal.lodgement_number }} has been successfully submitted.
+
+    {% if payment_made %}
+        Please find your invoice attached to this email.
+    {% endif %}
+
+    {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

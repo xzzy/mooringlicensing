@@ -1863,7 +1863,7 @@ class WaitingListApplication(Proposal):
             invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
-        ret_value = send_submit_email_notification(request, self, attachments)
+        ret_value = send_submit_email_notification(request, self, True, attachments)
         return ret_value
 
     #@classmethod
@@ -2011,7 +2011,7 @@ class AnnualAdmissionApplication(Proposal):
             invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
-        ret_value = send_submit_email_notification(request, self, attachments)
+        ret_value = send_submit_email_notification(request, self, True, attachments)
         return ret_value
 
     #@classmethod
@@ -2153,14 +2153,13 @@ class AuthorisedUserApplication(Proposal):
             self.save()
             # Email to endorser
             send_endorsement_of_authorised_user_application_email(request, self)
-            # Email to submitter
-            send_submit_email_notification(request, self)
         else:
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             self.save()
-            # Email to submitter
-            send_submit_email_notification(request, self)
+
+        # Email to submitter
+        send_submit_email_notification(request, self, False)
 
     def update_or_create_approval(self, current_datetime, request=None):
         # This function is called after payment success for new/amendment/renewal application
