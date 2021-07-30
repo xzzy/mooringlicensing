@@ -793,7 +793,7 @@ from '@/utils/hooks'
                 }
                 */
                 // read in vessel ownership data from Proposal if in Draft status
-                if (this.proposal && this.proposal.processing_status === 'Draft') {
+                if (this.proposal && this.proposal.processing_status === 'Draft' && !this.proposal.pending_amendment_request) {
                     if (vesselData && vesselData.rego_no) {
                         this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
                         this.vessel.id = vesselData.id;
@@ -831,10 +831,15 @@ from '@/utils/hooks'
                 this.initialiseCompanyNameSelect();
                 this.addEventListeners();
                 // read in Renewal/Amendment vessel details
-                if (this.proposal && this.proposal.processing_status === 'Draft' && 
+                if (this.proposal && this.proposal.pending_amendment_request) {
+                    // ensure an Amendment which has been sent back to draft with request amendment does not have the logic applied below
+                    console.log("amendment request")
+                    // pass
+                } else if (this.proposal && this.proposal.processing_status === 'Draft' && 
                     !this.proposal.vessel_details_id && (this.proposal.proposal_type.code !=='new' || this.proposal.application_type_code === 'mla') &&
                     !this.vessel.rego_no
                 ) {
+                    console.log("Amendment/Renewal");
                     let vm = this;
                     let res = null;
                     // if mla, get vessel from waiting list
@@ -853,7 +858,6 @@ from '@/utils/hooks'
                         );
                         res = await this.$http.get(url);
                     }
-                    //if (this.proposal.vessel_id && res.body && !res.body.vessel_ownership.end_date) {
                     if (!this.proposal.rego_no && res && res.body && !res.body.vessel_ownership.end_date) {
                         this.vessel = Object.assign({}, res.body);
                         const payload = {

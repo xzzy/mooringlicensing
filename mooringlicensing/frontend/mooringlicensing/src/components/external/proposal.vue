@@ -659,28 +659,27 @@ export default {
         } else {
             /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
             console.log('application was pushed back by assessor for amendment')
-            const res = await this.save(false, this.proposal_submit_url);
-            if (res.ok) {
-                vm.$router.push({
-                  name: 'external-dashboard'
-                });
+            try {
+                const res = await this.save(false, this.proposal_submit_url);
+                if (res.ok) {
+                    vm.$router.push({
+                      name: 'external-dashboard'
+                    });
+                }
+            } catch(err) {
+                console.log(err)
+                console.log(typeof(err.body))
+                await swal({
+                    title: 'Submit Error',
+                    //text: helpers.apiVueResourceError(err),
+                    html: helpers.formatError(err),
+                    type: "error",
+                    //html: true,
+                })
+                this.savingProposal=false;
+                this.paySubmitting=false;
+                //this.submitting = false;
             }
-            /*
-            vm.save_wo_confirm()
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id + '/submit'), formData).then(res=>{
-                vm.proposal = res.body;
-                vm.$router.push({
-                    name: 'submit_proposal',
-                    params: { proposal: vm.proposal}
-                });
-            },err=>{
-                swal(
-                    'Submit Error',
-                    helpers.apiVueResourceError(err),
-                    'error'
-                )
-            });
-                */
         }
     },
 
