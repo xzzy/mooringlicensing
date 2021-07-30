@@ -1,12 +1,8 @@
-{%  extends 'mooringlicensing/emails/base_email.html' %}
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content %}
-	The Application {{ proposal.lodgement_number }} has been submitted and can be assessed.
-
-    <p>
-    You can access this Application using the following link:
-    </p>
-    <a href="{{url}}">Access Application</a>
-
-
-{%  endblock %}
+{%  block content_body %}
+<p>Dear {{ recipient.first_name }} {{ recipient.last_name}},</p>
+Your {{ proposal.description }} application {{ proposal.lodgement_number }} has been successfully submitted.
+Please find your invoice attached to this email.
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}
