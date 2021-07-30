@@ -279,7 +279,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         CUSTOMER_STATUS_EXPIRED,
     ]
 
-    # PROCESSING_STATUS_TEMP = 'temp'
+    PROCESSING_STATUS_TEMP = 'temp'
     PROCESSING_STATUS_DRAFT = 'draft'
     PROCESSING_STATUS_WITH_ASSESSOR = 'with_assessor'
     # PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR = 'with_district_assessor'
@@ -310,7 +310,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_EXPIRED = 'expired'
 
     PROCESSING_STATUS_CHOICES = (
-        # (PROCESSING_STATUS_TEMP, 'Temporary'),
+        (PROCESSING_STATUS_TEMP, 'Temporary'),
         (PROCESSING_STATUS_DRAFT, 'Draft'),
         (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
         # (PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR, 'With District Assessor'),
@@ -691,7 +691,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_DRAFT,
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
-            # Proposal.PROCESSING_STATUS_TEMP,
+            Proposal.PROCESSING_STATUS_TEMP,
             Proposal.PROCESSING_STATUS_DISCARDED,
             # 'with_referral',
             # 'with_qa_officer',
