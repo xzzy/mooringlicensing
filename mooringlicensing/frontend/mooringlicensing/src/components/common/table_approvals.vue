@@ -715,18 +715,18 @@ export default {
                 //dom: 'frt', //'lBfrtip',
                 dom: 'lBfrtip',
                 buttons:[
-                    //{
-                    //    extend: 'excel',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
                 ],
                 columns: selectedColumns,
                 processing: true,
