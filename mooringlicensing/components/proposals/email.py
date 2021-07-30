@@ -424,7 +424,7 @@ def send_emails_for_payment_required(request, proposal, attachments=[]):
     return msg
 
 
-def send_submit_email_notification(request, proposal, attachments=[]):
+def send_submit_email_notification(request, proposal, payment_made, attachments=[]):
     # email = SubmitSendNotificationEmail()
     email = TemplateEmailBase(
         subject='Successful submission of application',
@@ -440,6 +440,7 @@ def send_submit_email_notification(request, proposal, attachments=[]):
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
+        'payment_made': payment_made,
         'url': url
     }
     to_address = proposal.assessor_recipients
