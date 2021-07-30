@@ -380,6 +380,22 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+                /*
+
+                buttons:[
                     //{
                     //    extend: 'csv',
                     //    exportOptions: {
@@ -387,6 +403,7 @@ export default {
                     //    }
                     //},
                 ],
+                */
                 columns: vm.applicableColumns,
                 processing: true,
                 initComplete: function() {
