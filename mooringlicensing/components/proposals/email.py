@@ -117,7 +117,8 @@ class PaymentRequiredEmail(TemplateEmailBase):
 
 class SubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'A new Application has been submitted.'
-    html_template = 'mooringlicensing/emails/proposals/send_submit_notification.html'
+    # html_template = 'mooringlicensing/emails/proposals/send_submit_notification.html'
+    html_template = 'mooringlicensing/emails/base_email-rottnest.html'
     txt_template = 'mooringlicensing/emails/proposals/send_submit_notification.txt'
 
 
@@ -423,8 +424,14 @@ def send_emails_for_payment_required(request, proposal, attachments=[]):
     return msg
 
 
-def send_submit_email_notification(request, proposal, attachments=[]):
-    email = SubmitSendNotificationEmail()
+def send_submit_email_notification(request, proposal, payment_made, attachments=[]):
+    # email = SubmitSendNotificationEmail()
+    email = TemplateEmailBase(
+        subject='Successful submission of application',
+        html_template='mooringlicensing/emails/proposals/send_submit_notification.html',
+        txt_template='mooringlicensing/emails/proposals/send_submit_notification.txt',
+    )
+
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
@@ -433,6 +440,7 @@ def send_submit_email_notification(request, proposal, attachments=[]):
     # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
+        'payment_made': payment_made,
         'url': url
     }
     to_address = proposal.assessor_recipients
@@ -440,6 +448,8 @@ def send_submit_email_notification(request, proposal, attachments=[]):
     bcc = []
 
     # Send email
+    # in send() method, self.html_template is rendered by context and attached as alternative
+    # In other words, self.html_template should be full html-email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
