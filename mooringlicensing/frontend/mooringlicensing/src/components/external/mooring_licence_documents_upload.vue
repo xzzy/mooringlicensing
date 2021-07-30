@@ -6,6 +6,11 @@
             Index="other_documents"
         >
             <div class="row form-group">
+                <!--label for="" class="col-sm-5 control-label">Attach the following documents and submit them to the Rottnest Island Authority</label-->
+                <label for="" class="col-sm-12 control-label">Attach the following documents and submit them to the Rottnest Island Authority</label>
+            </div>
+
+            <div class="row form-group">
                 <label for="" class="col-sm-5 control-label">Copy of current mooring report</label>
                 <div class="col-sm-7">
                     <FileField 
