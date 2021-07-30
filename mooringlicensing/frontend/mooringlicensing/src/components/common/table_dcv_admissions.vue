@@ -288,7 +288,22 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[ ],
+                //buttons:[ ],
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+
                 columns: columns,
                 processing: true,
                 initComplete: function() {
