@@ -69,8 +69,25 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
+                /*
                 buttons:[
                 ],
+                */
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+
                 columns: [
                     {
                         // 1. ID
