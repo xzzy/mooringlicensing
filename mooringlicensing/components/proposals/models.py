@@ -2014,6 +2014,7 @@ class AnnualAdmissionApplication(Proposal):
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
         ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
+        send_notification_email_upon_submit_to_assessor(request, self, attachments)
         return ret_value
 
     #@classmethod
@@ -2162,6 +2163,7 @@ class AuthorisedUserApplication(Proposal):
 
         # Email to submitter
         send_confirmation_email_upon_submit(request, self, False)
+        send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         # This function is called after payment success for new/amendment/renewal application
