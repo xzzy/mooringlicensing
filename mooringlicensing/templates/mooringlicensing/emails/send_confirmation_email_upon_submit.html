@@ -2,7 +2,7 @@
 
 {%  block content_body %}
     <p>Dear {{ recipient.first_name }} {{ recipient.last_name}},</p>
-    Your {{ proposal.description }} application {{ proposal.lodgement_number }} has been successfully submitted.
+    Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.
 
     {% if payment_made %}
         Please find your invoice attached to this email.
