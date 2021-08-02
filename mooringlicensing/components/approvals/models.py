@@ -107,6 +107,22 @@ class MooringOnApproval(RevisionedMixin):
 
 
 class ApprovalHistory(RevisionedMixin):
+    REASON_NEW = 'new'
+    REASON_REPLACEMENT_STICKER = 'replacement_sticker'
+    REASON_VESSEL_ADD_REMOVE = 'vessel_change'
+    REASON_NEW_MOORING = 'new_mooring'
+    REASON_MOORING_SWAP = 'mooring_swap'
+
+    REASON_CHOICES = (
+        (REASON_NEW, 'New'),
+        (REASON_REPLACEMENT_STICKER, 'Replacement sticker'),
+        (REASON_VESSEL_ADD_REMOVE, 'Vessel added/removed'),
+        (REASON_NEW_MOORING, 'New mooring'),
+        (REASON_MOORING_SWAP, 'Mooring swap'),
+    )
+
+    reason = models.CharField(max_length=40, choices=REASON_CHOICES,
+                                       default=REASON_CHOICES[0][0])
     approval = models.ForeignKey('Approval')
     # can be null due to requirement to allow null vessels on renewal/amendment applications
     vessel_ownership = models.ForeignKey(VesselOwnership, blank=True, null=True)
@@ -114,6 +130,7 @@ class ApprovalHistory(RevisionedMixin):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(blank=True, null=True)
     stickers = models.ManyToManyField('Sticker')
+    approval_letter = models.ForeignKey(ApprovalDocument, blank=True, null=True)
     # derive from proposal
     #dot_name = models.CharField(max_length=200, blank=True, null=True)
 
@@ -239,6 +256,7 @@ class Approval(RevisionedMixin):
             approval=self,
             proposal=self.current_proposal,
             start_date=self.issue_date,
+            approval_letter=self.licence_document,
         )
         #stickers = self.stickers.all()
         stickers = self.stickers.filter(status__in=['current', 'awaiting_printing'])
@@ -262,6 +280,8 @@ class Approval(RevisionedMixin):
                 previous_history_entry.end_date = end_date
                 previous_history_entry.save()
         # TODO: need to worry about all entries for this approval?
+
+        ## reason
         return new_approval_history_entry
 
     #def add_vessel(self, vessel, vessel_ownership, dot_name):
