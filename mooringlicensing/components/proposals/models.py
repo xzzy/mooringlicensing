@@ -2385,6 +2385,9 @@ class MooringLicenceApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             self.save()
         else:
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            self.save()
             approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
         # self.proposal.refresh_from_db()
         # print('refresh_from_db2')
