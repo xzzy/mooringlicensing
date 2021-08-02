@@ -2219,6 +2219,7 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
 
         # Create MooringOnApproval records
+        existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
@@ -2228,7 +2229,13 @@ class AuthorisedUserApplication(Proposal):
         approval.child_obj.manage_stickers(self)
 
         # Write approval history
-        approval.write_approval_history()
+        if existing_mooring_count and approval.mooringonapproval.count() > existing_mooring_count:
+            approval.write_approval_history('mooring_add')
+        elif created:
+            approval.write_approval_history('new')
+        else:
+            approval.write_approval_history()
+        #approval.write_approval_history()
 
         return approval, created
 
@@ -2396,6 +2403,7 @@ class MooringLicenceApplication(Proposal):
     def update_or_create_approval(self, current_datetime, request):
         try:
             existing_mooring_licence = self.allocated_mooring.mooring_licence
+            existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
             # find any current ML for this submitter on the same mooring
             #if (self.allocated_mooring.mooring_licence and 
@@ -2449,6 +2457,7 @@ class MooringLicenceApplication(Proposal):
                     self.waiting_list_allocation.save()
                     self.waiting_list_allocation.set_wla_order()
             # log Mooring action
+            ## TODO: rework switch licence logic
             if existing_mooring_licence and existing_mooring_licence != approval:
                 approval.current_proposal.allocated_mooring.log_user_action(
                         MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
@@ -2470,7 +2479,12 @@ class MooringLicenceApplication(Proposal):
             # manage stickers
             approval.child_obj.manage_stickers(self)
             # write approval history
-            approval.write_approval_history()
+            if existing_mooring_licence_vessel_count and len(approval.vessel_list) > existing_mooring_licence_vessel_count:
+                approval.write_approval_history('vessel_add')
+            elif created:
+                approval.write_approval_history('new')
+            else:
+                approval.write_approval_history()
             return approval, created
         except Exception as e:
             print("error in update_or_create_approval")
