@@ -5,12 +5,9 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
 from django.conf import settings
-from datetime import date, timedelta
+from datetime import timedelta
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-from mooringlicensing.components.proposals.email import (
-        _log_user_email as log_proposal_user_email,
-        )
 from ledger.accounts.models import EmailUser
 
 #from mooringlicensing.components.proposals.models import ProposalApproverGroup
@@ -412,51 +409,6 @@ def send_approval_renewal_email_notification(approval):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
 
-# waiting list allocation notice
-def send_create_mooring_licence_application_email_notification(request, approval):
-    email = CreateMooringLicenceApplicationEmail(approval)
-    proposal = approval.current_proposal
-    ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
-    #url=settings.SITE_URL if settings.SITE_URL else ''
-    #url += reverse('external')
-
-    url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
-    context = {
-        'approval': approval,
-        'proposal': proposal,
-        'mla_proposal': ria_generated_proposal,
-        'url': url,
-        'message_details': request.data.get('message_details'),
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-
-    attachments = []
-    if approval.waiting_list_offer_documents.all():
-        for doc in approval.waiting_list_offer_documents.all():
-            #file_name = doc._file.name
-            file_name = doc.name
-            attachment = (file_name, doc._file.file.read())
-            attachments.append(attachment)
-
-    bcc = request.data.get('cc_email')
-    bcc_list = bcc.split(',')
-    msg = email.send(proposal.submitter.email,bcc=bcc_list, attachments=attachments, context=context)
-    #msg = email.send(proposal.submitter.email, attachments=attachments, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    #_log_approval_email(msg, approval, sender=sender_user)
-    log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
-    #_log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-    log_proposal_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user)
-
 
 def send_approval_reinstate_email_notification(approval, request):
     email = ApprovalReinstateNotificationEmail(approval)
@@ -682,4 +634,6 @@ def log_mla_created_proposal_email(email_message, proposal, sender=None):
 
     return email_entry
 
+
+# waiting list allocation notice
 
