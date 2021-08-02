@@ -227,7 +227,8 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     //return full.approval_letter;
-                    return '';
+                    //return '';
+                    return `<div><a href='${full.approval_letter}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a></div>`;
                 }
             }
         },
