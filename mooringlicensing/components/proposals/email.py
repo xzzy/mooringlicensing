@@ -441,7 +441,7 @@ def send_submit_email_notification(request, proposal, payment_made, attachments=
     context = {
         'proposal': proposal,
         'payment_made': payment_made,
-        'url': url
+        'url': url,
     }
     to_address = proposal.assessor_recipients
     cc = []
