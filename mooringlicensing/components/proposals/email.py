@@ -115,11 +115,11 @@ class PaymentRequiredEmail(TemplateEmailBase):
         self.subject = self.subject.format(proposal.lodgement_number)
 
 
-class SubmitSendNotificationEmail(TemplateEmailBase):
-    subject = 'A new Application has been submitted.'
-    # html_template = 'mooringlicensing/emails/proposals/send_submit_notification.html'
-    html_template = 'mooringlicensing/emails/base_email-rottnest.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_submit_notification.txt'
+#class SubmitSendNotificationEmail(TemplateEmailBase):
+#    subject = 'A new Application has been submitted.'
+#    # html_template = 'mooringlicensing/emails/proposals/send_submit_notification.html'
+#    html_template = 'mooringlicensing/emails/base_email-rottnest.html'
+#    txt_template = 'mooringlicensing/emails/proposals/send_submit_notification.txt'
 
 
 class ExternalSubmitSendNotificationEmail(TemplateEmailBase):
@@ -231,7 +231,6 @@ def send_other_documents_submitted_notification_email(request, proposal):
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
     return msg
-
 
 
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
@@ -424,24 +423,18 @@ def send_emails_for_payment_required(request, proposal, attachments=[]):
     return msg
 
 
-def send_submit_email_notification(request, proposal, payment_made, attachments=[]):
-    # email = SubmitSendNotificationEmail()
+def send_notification_email_upon_submit_to_assessor(request, proposal, attachments=[]):
     email = TemplateEmailBase(
-        subject='Successful submission of application',
-        html_template='mooringlicensing/emails/proposals/send_submit_notification.html',
-        txt_template='mooringlicensing/emails/proposals/send_submit_notification.txt',
+        subject='A new application has been submitted',
+        html_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.html',
+        txt_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.txt',
     )
 
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    if "-internal" not in url:
-        # add it. This email is for internal staff (assessors)
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
-    # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
-        'payment_made': payment_made,
-        'url': url
+        'url': url,
     }
     to_address = proposal.assessor_recipients
     cc = []
@@ -456,30 +449,67 @@ def send_submit_email_notification(request, proposal, payment_made, attachments=
 
     return msg
 
+def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
+    # email = SubmitSendNotificationEmail()
+    email = TemplateEmailBase(
+        subject='Successful submission of application',
+        html_template='mooringlicensing/emails/send_confirmation_email_upon_submit.html',
+        txt_template='mooringlicensing/emails/send_confirmation_email_upon_submit.txt',
+    )
 
-def send_external_submit_email_notification(request, proposal):
-    email = ExternalSubmitSendNotificationEmail()
-    url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    if "-internal" not in url:
+        # add it. This email is for internal staff (assessors)
+        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
+    # Configure recipients, contents, etc
     context = {
         'proposal': proposal,
-        'submitter': proposal.submitter.get_full_name(),
-        'url': url
+        'payment_made': payment_made,
+        'url': url,
     }
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
+    to_address = proposal.submitter
+    cc = []
+    bcc = []
 
-    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    # Send email
+    # in send() method, self.html_template is rendered by context and attached as alternative
+    # In other words, self.html_template should be full html-email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
+
     return msg
+
+
+#def send_external_submit_email_notification(request, proposal):
+#    # email = ExternalSubmitSendNotificationEmail()
+#    email = TemplateEmailBase(
+#        subject='{} - Confirmation - Application submitted.'.format(settings.DEP_NAME),
+#        html_template='mooringlicensing/emails/proposals/send_external_submit_notification.html',
+#        txt_template='mooringlicensing/emails/proposals/send_external_submit_notification.txt',
+#    )
+#    url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+#
+#    if "-internal" in url:
+#        # remove '-internal'. This email is for external submitters
+#        url = ''.join(url.split('-internal'))
+#
+#    context = {
+#        'proposal': proposal,
+#        'submitter': proposal.submitter.get_full_name(),
+#        'url': url
+#    }
+#    all_ccs = []
+#    if proposal.org_applicant and proposal.org_applicant.email:
+#        cc_list = proposal.org_applicant.email
+#        if cc_list:
+#            all_ccs = [cc_list]
+#
+#    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+#    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+#    log_proposal_email(msg, proposal, sender)
+#    return msg
 
 
 def send_approver_decline_email_notification(reason, request, proposal):
