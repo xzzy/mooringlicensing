@@ -590,7 +590,8 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             //return full.vessel_draft;
-                            return '';
+                            //return '';
+                            return `<div><a href='${full.licence_document}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i></a></div>`;
                         }
                     }
         },
