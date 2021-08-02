@@ -3,6 +3,7 @@ import mimetypes
 from urllib.parse import urljoin
 from os.path import join
 
+from django.urls import reverse
 from ledger.accounts.models import EmailUser
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
@@ -12,9 +13,13 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
+from mooringlicensing.components.approvals.email import CreateMooringLicenceApplicationEmail, \
+    log_mla_created_proposal_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-from datetime import datetime
+from datetime import datetime, timezone
 
+from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.settings import CODE_DAYS_BEFORE_PERIOD_MLA, CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
 
 logger = logging.getLogger(__name__)
 
@@ -855,3 +860,63 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+
+def send_create_mooring_licence_application_email_notification(request, approval):
+    # 6
+    email = TemplateEmailBase(
+        subject='Invitation to apply for a mooring licence',
+        html_template='mooringlicensing/emails/create_mooring_licence_application_notification.html',
+        txt_template='mooringlicensing/emails/create_mooring_licence_application_notification.txt',
+    )
+
+    proposal = approval.current_proposal
+    ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
+    #url=settings.SITE_URL if settings.SITE_URL else ''
+    #url += reverse('external')
+
+    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+
+    today = timezone.localtime(timezone.now()).date()
+    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_PERIOD_MLA)
+    days_setting_application_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
+    days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        'application_period': days_setting_application_period.number_of_days,
+        'documents_period': days_setting_documents_period.number_of_days,
+        'mla_proposal': ria_generated_proposal,
+        'url': url,
+        'message_details': request.data.get('message_details'),
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    attachments = []
+    if approval.waiting_list_offer_documents.all():
+        for doc in approval.waiting_list_offer_documents.all():
+            #file_name = doc._file.name
+            file_name = doc.name
+            attachment = (file_name, doc._file.file.read())
+            attachments.append(attachment)
+
+    bcc = request.data.get('cc_email')
+    bcc_list = bcc.split(',')
+    msg = email.send(proposal.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
+    #msg = email.send(proposal.submitter.email, attachments=attachments, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    #_log_approval_email(msg, approval, sender=sender_user)
+    log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
+    #_log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+    _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user)
