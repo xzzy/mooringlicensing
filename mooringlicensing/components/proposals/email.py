@@ -99,10 +99,10 @@ class StickerPrintingBatchEmail(TemplateEmailBase):
 #         self.subject = self.subject.format(proposal.lodgement_number)
 
 
-class EndorserReminderEmail(TemplateEmailBase):
-    subject = 'Reminder: Endorsement of Authorised user application'
-    html_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt'
+# class EndorserReminderEmail(TemplateEmailBase):
+#     subject = 'Reminder: Endorsement of Authorised user application'
+#     html_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html'
+#     txt_template = 'mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt'
 
 
 class EndorsementOfAuthorisedUserApplicationEmail(TemplateEmailBase):
@@ -244,33 +244,6 @@ def send_sticker_printing_batch_email(batches):
     # else:
     #     _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
-    return msg
-
-
-def send_endorser_reminder_email(proposal, request=None):
-    email = EndorserReminderEmail()
-    url = settings.SITE_URL if settings.SITE_URL else ''
-    # endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
-    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
-    decline_url = request.build_absolute_uri(reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
-    dashboard_url = url + reverse('external')
-
-    # Configure recipients, contents, etc
-    context = {
-        'proposal': proposal,
-        'endorse_url': endorse_url,
-        'decline_url': decline_url,
-        'dashboard_url': dashboard_url,
-        'mooring': proposal.mooring,
-    }
-    to_address = proposal.site_licensee_email
-    cc = []
-    bcc = []
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -994,3 +967,47 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     sender = settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
     return msg
+
+
+def send_endorser_reminder_email(proposal, due_date, request=None):
+    # 15
+    email = TemplateEmailBase(
+        subject='Your endorsement of an Authorised User Permit application is due',
+        html_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html',
+        txt_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt',
+    )
+
+    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    decline_url = request.build_absolute_uri(reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
+    proposal_url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+
+    try:
+        endorser = EmailUser.objects.get(email=proposal.site_licensee_email)
+    except:
+        # Should not reach here
+        return
+
+    mooring_name = proposal.mooring.name if proposal.mooring else ''
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'endorser': endorser,
+        'applicant': proposal.submitter,
+        'endorse_url': endorse_url,
+        'decline_url': decline_url,
+        'proposal_url': proposal_url,
+        'mooring_name': mooring_name,
+        'due_date': due_date,
+    }
+    to_address = proposal.site_licensee_email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
