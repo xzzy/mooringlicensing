@@ -1,4 +1,4 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {%  block content_body %}
     The {{ proposal.description }} {{ proposal.lodgement_number }} has been assessed and is ready for approval or decline.
@@ -10,5 +10,5 @@
     <p>Details: {{ details }}</p>
     {% endif %}
 
-    Please accwss {{ url }} to access the application.
+    Please click <a href="{{ url }}">here</a> to access the application.
 {%  endblock %}
