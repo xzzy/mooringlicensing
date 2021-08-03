@@ -1,0 +1,17 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{%  block content_body %}
+The {{ proposal.description }} {{ proposal.lodgement_number }} has been assessed and is ready for approval or decline.
+
+{% if proposal.proposed_issuance_approval %}
+Details:
+Start date: {{ start_date }}
+Expiry date: {{ expiry_date }}
+Details: {{ details }}
+{% endif %}
+{% if reason %}
+Declined Reason: {{ reason }}
+{% endif %}
+
+Please click <a href="{{ url }}">here</a> to access the application.
+{%  endblock %}
