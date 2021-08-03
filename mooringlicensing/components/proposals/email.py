@@ -59,10 +59,10 @@ class OtherDocumentsSumittedNotificationEmail(TemplateEmailBase):
         self.subject = self.subject.format(proposal.lodgement_number)
 
 
-class DocumentsUploadForMooringLicenceApplicationEmail(TemplateEmailBase):
-    subject = 'A new Application has been submitted. (Documents required)'
-    html_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.txt'
+# class DocumentsUploadForMooringLicenceApplicationEmail(TemplateEmailBase):
+#     subject = 'A new Application has been submitted. (Documents required)'
+#     html_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.html'
+#     txt_template = 'mooringlicensing/emails/proposals/send_documents_upload_for_mla.txt'
 
 
 class StickerPrintingBatchEmail(TemplateEmailBase):
@@ -203,31 +203,6 @@ def send_other_documents_submitted_notification_email(request, proposal):
     return msg
 
 
-def send_documents_upload_for_mooring_licence_application_email(request, proposal):
-    email = DocumentsUploadForMooringLicenceApplicationEmail()
-    document_upload_url = proposal.get_document_upload_url(request)
-    print(document_upload_url)
-
-    # Configure recipients, contents, etc
-    context = {
-        'proposal': proposal,
-        'documents_upload_url': document_upload_url,
-    }
-    to_address = proposal.submitter.email
-    cc = []
-    bcc = []
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
-
-    return msg
 
 
 def send_sticker_printing_batch_email(batches):
@@ -723,7 +698,7 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
         txt_template='mooringlicensing/emails/send_confirmation_email_upon_submit.txt',
     )
 
-    url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
@@ -920,3 +895,42 @@ def send_create_mooring_licence_application_email_notification(request, approval
     log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
     #_log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
     _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user)
+
+
+def send_documents_upload_for_mooring_licence_application_email(request, proposal):
+    # 7
+    email = TemplateEmailBase(
+        subject='Upload of additional documents for mooring licence application',
+        html_template='mooringlicensing/emails/send_documents_upload_for_mla.html',
+        txt_template='mooringlicensing/emails/send_documents_upload_for_mla.txt',
+    )
+    document_upload_url = proposal.get_document_upload_url(request)
+
+    today = timezone.localtime(timezone.now()).date()
+    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
+    days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+
+    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'documents_upload_url': document_upload_url,
+        'url': url,
+        'number_of_days': days_setting.number_of_days,
+    }
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+    return msg
