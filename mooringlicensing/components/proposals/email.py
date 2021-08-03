@@ -71,23 +71,23 @@ class StickerPrintingBatchEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_endorsement_of_aua.txt'
 
 
-class ExpireMooringLicenceApplicationEmail(TemplateEmailBase):
-    subject = 'Mooring Licence Application {} has been expired'
-    html_template = 'mooringlicensing/emails/proposals/{}.html'
-    txt_template = 'mooringlicensing/emails/proposals/{}.txt'
-
-    def __init__(self, proposal, reason):
-        from mooringlicensing.components.proposals.models import MooringLicenceApplication
-
-        self.subject = self.subject.format(proposal.lodgement_number)
-        if reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED:
-            self.html_template = self.html_template.format('send_expire_mooring_licence_application_not_submitted')
-            self.txt_template = self.html_template.format('send_expire_mooring_licence_application_not_submitted')
-        elif reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS:
-            self.html_template = self.html_template.format('send_expire_mooring_licence_application_no_documents')
-            self.txt_template = self.html_template.format('send_expire_mooring_licence_application_no_documents')
-        else:
-            raise
+# class ExpireMooringLicenceApplicationEmail(TemplateEmailBase):
+#     subject = 'Mooring Licence Application {} has been expired'
+#     html_template = 'mooringlicensing/emails/proposals/{}.html'
+#     txt_template = 'mooringlicensing/emails/proposals/{}.txt'
+#
+#     def __init__(self, proposal, reason):
+#         from mooringlicensing.components.proposals.models import MooringLicenceApplication
+#
+#         self.subject = self.subject.format(proposal.lodgement_number)
+#         if reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED:
+#             self.html_template = self.html_template.format('send_expire_mooring_licence_application_not_submitted')
+#             self.txt_template = self.html_template.format('send_expire_mooring_licence_application_not_submitted')
+#         elif reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS:
+#             self.html_template = self.html_template.format('send_expire_mooring_licence_application_no_documents')
+#             self.txt_template = self.html_template.format('send_expire_mooring_licence_application_no_documents')
+#         else:
+#             raise
 
 
 # class InviteeReminderEmail(TemplateEmailBase):
@@ -244,29 +244,6 @@ def send_sticker_printing_batch_email(batches):
     # else:
     #     _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
-    return msg
-
-
-def send_expire_mooring_licence_application_email(proposal, reason, request=None):
-    # Expire mooring licence application if additional documents are not submitted within a configurable number of days
-    # from the initial submit of the mooring licence application and email to inform the applicant
-    email = ExpireMooringLicenceApplicationEmail(proposal, reason)
-    url = settings.SITE_URL if settings.SITE_URL else ''
-    dashboard_url = url + reverse('external')
-
-    # Configure recipients, contents, etc
-    context = {
-        'proposal': proposal,
-        'dashboard_url': dashboard_url,
-    }
-    to_address = proposal.submitter.email
-    cc = []
-    bcc = []
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -934,9 +911,52 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 
     context = {
         'proposal': proposal,
+        'recipient': proposal.submitter,
         'url': url,
         'due_date': due_date,
         'number_of_days': number_of_days,
+    }
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_expire_mooring_licence_application_email(proposal, reason, due_date, request=None):
+    from mooringlicensing.components.proposals.models import MooringLicenceApplication
+    # 12
+    # 13
+    # Expire mooring licence application if additional documents are not submitted within a configurable number of days
+    # from the initial submit of the mooring licence application and email to inform the applicant
+    if reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS:
+        html_template='mooringlicensing/emails/send_expire_mooring_licence_application_no_documents.html',
+        txt_template='mooringlicensing/emails/send_expire_mooring_licence_application_no_documents.txt',
+    elif reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED:
+        html_template='mooringlicensing/emails/send_expire_mooring_licence_application_not_submitted.html',
+        txt_template='mooringlicensing/emails/send_expire_mooring_licence_application_not_submitted.txt',
+    else:
+        # Should not reach here
+        return
+
+
+    email = TemplateEmailBase(
+        subject='Your application for a mooring licence',
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    dashboard_url = url + reverse('external')
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        'dashboard_url': dashboard_url,
     }
     to_address = proposal.submitter.email
     cc = []

@@ -62,7 +62,8 @@ class Command(BaseCommand):
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.customer_status = Proposal.CUSTOMER_STATUS_EXPIRED
                 a.save()
-                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS)
+                due_date = a.lodgement_date + timedelta(days=days_setting.number_of_days)
+                send_expire_mooring_licence_application_email(a, due_date, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS, due_date)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:
