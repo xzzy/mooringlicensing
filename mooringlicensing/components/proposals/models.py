@@ -1376,7 +1376,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             if fee_item_additional:
                                 application_fee.fee_items.add(fee_item_additional)
 
-                            self.process_after_approval(request)
+                            self.process_after_approval(request, self.invoice.payment_status)
 
                             self.send_emails_for_payment_required(request, invoice)
 
@@ -1642,7 +1642,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_payment_success(request)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status=None):
         self.child_obj.process_after_approval(request)
         self.refresh_from_db()  # Somehow this is needed...
 
@@ -2240,7 +2240,7 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status):
         print('process_after_approved() in AuthorisedUserApplication')
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New proposal
@@ -2378,11 +2378,17 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status):
         print('in process_after_approved')
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        self.save()
+        if payment_status == 'unpaid':
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            self.save()
+        else:
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            self.save()
+            approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
         # self.proposal.refresh_from_db()
         # print('refresh_from_db2')
         # TODO: Send email (payment required)
