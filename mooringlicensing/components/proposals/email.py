@@ -943,7 +943,6 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date, re
         # Should not reach here
         return
 
-
     email = TemplateEmailBase(
         subject='Your application for a mooring licence',
         html_template=html_template,
@@ -969,3 +968,29 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date, re
     return msg
 
 
+def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
+    # 14
+    email = TemplateEmailBase(
+        subject='Mooring licence application not submitted on time',
+        html_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.html',
+        txt_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.txt',
+    )
+
+    mooring_name = proposal.mooring.name if proposal.mooring else ''
+
+    context = {
+        'proposal': proposal,
+        'applicant': proposal.submitter,
+        'due_date': due_date,
+        'mooring_name': mooring_name,
+    }
+
+    to_address = proposal.assessor_recipients
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
