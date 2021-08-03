@@ -65,7 +65,8 @@ class Command(BaseCommand):
                 # reset Waiting List order
                 a.waiting_list_allocation.set_wla_order()
 
-                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED)
+                due_date = a.date_invited + timedelta(days=days_setting.number_of_days)
+                send_expire_mooring_licence_application_email(a, due_date, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:
