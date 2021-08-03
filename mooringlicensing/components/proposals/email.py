@@ -90,13 +90,13 @@ class ExpireMooringLicenceApplicationEmail(TemplateEmailBase):
             raise
 
 
-class InviteeReminderEmail(TemplateEmailBase):
-    subject = 'Reminder: Submission of Mooring Licence Application {}'
-    html_template = 'mooringlicensing/emails/proposals/send_reminder_submission_of_mla.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_reminder_submission_of_mla.txt'
-
-    def __init__(self, proposal):
-        self.subject = self.subject.format(proposal.lodgement_number)
+# class InviteeReminderEmail(TemplateEmailBase):
+#     subject = 'Reminder: Submission of Mooring Licence Application {}'
+#     html_template = 'mooringlicensing/emails/proposals/send_reminder_submission_of_mla.html'
+#     txt_template = 'mooringlicensing/emails/proposals/send_reminder_submission_of_mla.txt'
+#
+#     def __init__(self, proposal):
+#         self.subject = self.subject.format(proposal.lodgement_number)
 
 
 class EndorserReminderEmail(TemplateEmailBase):
@@ -258,26 +258,6 @@ def send_expire_mooring_licence_application_email(proposal, reason, request=None
     context = {
         'proposal': proposal,
         'dashboard_url': dashboard_url,
-    }
-    to_address = proposal.submitter.email
-    cc = []
-    bcc = []
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
-    return msg
-
-
-def send_invitee_reminder_email(proposal, request=None):
-    email = InviteeReminderEmail(proposal)
-    url = settings.SITE_URL if settings.SITE_URL else ''
-    proposal_url = join(url, 'external', 'proposal', str(proposal.id))
-
-    context = {
-        'proposal': proposal,
-        'proposal_url': proposal_url,
     }
     to_address = proposal.submitter.email
     cc = []
@@ -934,3 +914,38 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
     return msg
+
+
+#  8
+#  9
+# 10
+
+
+def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None):
+    # 11
+    email = TemplateEmailBase(
+        subject='Reminder to apply for a mooring licence',
+        html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
+        txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
+    )
+    # url = settings.SITE_URL if settings.SITE_URL else ''
+    # proposal_url = join(url, 'external', 'proposal', str(proposal.id))
+    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+
+    context = {
+        'proposal': proposal,
+        'url': url,
+        'due_date': due_date,
+        'number_of_days': number_of_days,
+    }
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
