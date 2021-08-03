@@ -107,6 +107,24 @@ class MooringOnApproval(RevisionedMixin):
 
 
 class ApprovalHistory(RevisionedMixin):
+    REASON_NEW = 'new'
+    REASON_REPLACEMENT_STICKER = 'replacement_sticker'
+    REASON_VESSEL_ADD = 'vessel_add'
+    REASON_VESSEL_SOLD = 'vessel_sold'
+    REASON_MOORING_ADD = 'mooring_add'
+    REASON_MOORING_SWAP = 'mooring_swap'
+
+    REASON_CHOICES = (
+        (REASON_NEW, 'New'),
+        (REASON_REPLACEMENT_STICKER, 'Replacement sticker'),
+        (REASON_VESSEL_ADD, 'Vessel added'),
+        (REASON_VESSEL_SOLD, 'Vessel sold'),
+        (REASON_MOORING_ADD, 'New mooring'),
+        (REASON_MOORING_SWAP, 'Mooring swap'),
+    )
+
+    reason = models.CharField(max_length=40, choices=REASON_CHOICES, blank=True, null=True)
+                                       #default=REASON_CHOICES[0][0])
     approval = models.ForeignKey('Approval')
     # can be null due to requirement to allow null vessels on renewal/amendment applications
     vessel_ownership = models.ForeignKey(VesselOwnership, blank=True, null=True)
@@ -114,6 +132,7 @@ class ApprovalHistory(RevisionedMixin):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(blank=True, null=True)
     stickers = models.ManyToManyField('Sticker')
+    approval_letter = models.ForeignKey(ApprovalDocument, blank=True, null=True)
     # derive from proposal
     #dot_name = models.CharField(max_length=200, blank=True, null=True)
 
@@ -233,13 +252,35 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
-    def write_approval_history(self):
-        new_approval_history_entry = ApprovalHistory.objects.create(
-            vessel_ownership=self.current_proposal.vessel_ownership,
-            approval=self,
-            proposal=self.current_proposal,
-            start_date=self.issue_date,
-        )
+    def write_approval_history(self, reason=None):
+        history_count = self.approvalhistory_set.count()
+        if reason:
+            new_approval_history_entry = ApprovalHistory.objects.create(
+                vessel_ownership=self.current_proposal.vessel_ownership,
+                approval=self,
+                proposal=self.current_proposal,
+                start_date=self.issue_date,
+                approval_letter=self.licence_document,
+                reason=reason,
+            )
+        elif not history_count:
+            new_approval_history_entry = ApprovalHistory.objects.create(
+                vessel_ownership=self.current_proposal.vessel_ownership,
+                approval=self,
+                proposal=self.current_proposal,
+                start_date=self.issue_date,
+                approval_letter=self.licence_document,
+                reason='new',
+            )
+        else:
+            new_approval_history_entry = ApprovalHistory.objects.create(
+                vessel_ownership=self.current_proposal.vessel_ownership,
+                approval=self,
+                proposal=self.current_proposal,
+                start_date=self.issue_date,
+                approval_letter=self.licence_document,
+            )
+
         #stickers = self.stickers.all()
         stickers = self.stickers.filter(status__in=['current', 'awaiting_printing'])
         for sticker in stickers:
@@ -262,6 +303,8 @@ class Approval(RevisionedMixin):
                 previous_history_entry.end_date = end_date
                 previous_history_entry.save()
         # TODO: need to worry about all entries for this approval?
+
+        ## reason
         return new_approval_history_entry
 
     #def add_vessel(self, vessel, vessel_ownership, dot_name):

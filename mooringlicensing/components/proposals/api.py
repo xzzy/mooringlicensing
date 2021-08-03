@@ -1634,7 +1634,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                         a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
                         a_sticker.save()
                     # write approval history
-                    approval.write_approval_history()
+                    approval.write_approval_history('vessel_sold')
                     ## send notification email
                     send_vessel_nomination_notification_main(approval)
             else:
