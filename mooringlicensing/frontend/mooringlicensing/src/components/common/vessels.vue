@@ -740,7 +740,9 @@ from '@/utils/hooks'
             },
 
             fetchVessel: async function() {
-                if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                //if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
+                // changed to read in application data for amendment/request amendment/renewal
+                if (this.proposal.processing_status === 'Draft' && !this.readonly) {
                     console.log("new")
                     this.vessel.rego_no = this.proposal.rego_no;
                     //this.vessel.vessel_id = this.proposal.vessel_id;

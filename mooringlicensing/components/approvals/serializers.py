@@ -385,6 +385,7 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
 
 class ListApprovalSerializer(serializers.ModelSerializer):
+    licence_document = serializers.CharField(source='licence_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
     internal_status = serializers.SerializerMethodField()
@@ -448,6 +449,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'renewal_sent',
             'allowed_assessors',
             'stickers',
+            'licence_document',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -485,6 +487,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'renewal_sent',
             'allowed_assessors',
             'stickers',
+            'licence_document',
         )
 
     def get_stickers(self, obj):
@@ -928,7 +931,8 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
 class ApprovalHistorySerializer(serializers.ModelSerializer):
     reason = serializers.SerializerMethodField()
-    approval_letter = serializers.SerializerMethodField()
+    #approval_letter = serializers.SerializerMethodField()
+    approval_letter = serializers.CharField(source='approval_letter._file.url')
     sticker_numbers = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_type_description = serializers.SerializerMethodField()
@@ -976,8 +980,8 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
     def get_holder(self, obj):
         return obj.approval.submitter.get_full_name()
 
-    def get_approval_letter(self, obj):
-        return ''
+    #def get_approval_letter(self, obj):
+     #   return ''
 
     def get_sticker_numbers(self, obj):
         #numbers = []
