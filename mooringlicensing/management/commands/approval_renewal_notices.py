@@ -6,7 +6,7 @@ from django.db.models import Q
 from mooringlicensing.components.approvals.models import Approval
 from ledger.accounts.models import EmailUser
 from datetime import timedelta
-from mooringlicensing.components.approvals.email import ( send_approval_renewal_email_notification,)
+from mooringlicensing.components.proposals.email import send_approval_renewal_email_notification
 
 import logging
 
