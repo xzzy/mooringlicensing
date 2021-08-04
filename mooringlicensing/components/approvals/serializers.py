@@ -23,6 +23,8 @@ from mooringlicensing.components.organisations.models import (
     Organisation
 )
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
+#from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
+from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -385,6 +387,8 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
 
 class ApprovalSerializer(serializers.ModelSerializer):
+    #submitter = EmailUserAppViewSerializer()
+    submitter = UserSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
@@ -417,6 +421,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
+            'submitter',
             'lodgement_number',
             'status',
             'internal_status',

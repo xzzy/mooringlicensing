@@ -48,6 +48,16 @@
         <div class="col-md-1"></div>
         <div class="col-md-8">
             <div class="row">
+                <div v-if="approval && approval.submitter">
+                    <Applicant
+                        :email_user="approval.submitter" 
+                        applicantType="SUB" 
+                        id="approvalSubmitterDetails"
+                        :readonly="true"
+                        customerType="holder"
+                    />
+                </div>
+
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h3 class="panel-title">Holder
@@ -116,7 +126,7 @@
                 </div>
             </div>
 
-            <div class="row">
+            <!--div class="row">
 
                 <div class="panel panel-default">
                   <div class="panel-heading">
@@ -161,7 +171,7 @@
                   </div>
                 </div>
 
-            </div>
+            </div-->
 
             <div class="row">
 
@@ -279,6 +289,7 @@ import $ from 'jquery'
 import Vue from 'vue'
 //import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
+import Applicant from '@/components/common/applicant.vue'
 //import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
@@ -328,6 +339,7 @@ export default {
     Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.$route.params.approval_id)).then((response) => {
         this.approval = response.body;
         this.approval.applicant_id = response.body.applicant_id;
+        if (this.approval.submitter.postal_address == null){ this.approval.submitter.postal_address = {}; }
     },(error) => {
         console.log(error);
     })
@@ -337,6 +349,7 @@ export default {
         //datatable,
         CommsLogs,
         FormSection,
+        Applicant,
         //OnSiteInformation,
         //TemporaryUse,
         //ComponentSiteSelection,
