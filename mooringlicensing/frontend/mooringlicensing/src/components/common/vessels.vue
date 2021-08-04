@@ -254,6 +254,10 @@ from '@/utils/hooks'
             editingVessel:{
                 type: Boolean,
             },
+            is_internal:{
+              type: Boolean,
+              default: false
+            },
         },
         watch: {
             individualOwner: async function() {
@@ -742,7 +746,7 @@ from '@/utils/hooks'
             fetchVessel: async function() {
                 //if (this.proposal.processing_status === 'Draft' && !this.proposal.vessel_details_id) {
                 // changed to read in application data for amendment/request amendment/renewal
-                if (this.proposal.processing_status === 'Draft' && !this.readonly) {
+                if (this.proposal.processing_status === 'Draft' && (!this.readonly || this.is_internal)) {
                     console.log("new")
                     this.vessel.rego_no = this.proposal.rego_no;
                     //this.vessel.vessel_id = this.proposal.vessel_id;
