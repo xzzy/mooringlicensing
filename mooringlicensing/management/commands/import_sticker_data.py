@@ -34,13 +34,13 @@ class Command(BaseCommand):
         """
         Retrieve messages
         """
-        imapclient.select()  # メールボックスの選択
+        imapclient.select()  # Select mail box
         typ, data = imapclient.search(None, "ALL")  # data = [b"1 2 3 4 ..."]
         datas = data[0].split()
-        fetch_num = 5  # 取得したいメッセージの数
+        fetch_num = 5  # The number of messages to fetch
         if (len(datas) - fetch_num) < 0:
             fetch_num = len(datas)
-        msg_list = []  # 取得したMIMEメッセージを格納するリスト
+        msg_list = []
         for num in datas[len(datas) - fetch_num::]:
             typ, data = imapclient.fetch(num, '(RFC822)')
             msg = email.message_from_bytes(data[0][1])
