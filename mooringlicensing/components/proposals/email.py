@@ -33,10 +33,10 @@ class ProposalDeclineSendNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/proposals/send_decline_notification.txt'
 
 
-class ProposalApprovalSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Approved.'.format(settings.DEP_NAME)
-    html_template = 'mooringlicensing/emails/proposals/send_approval_notification.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_approval_notification.txt'
+# class ProposalApprovalSendNotificationEmail(TemplateEmailBase):
+#     subject = '{} - Approved.'.format(settings.DEP_NAME)
+#     html_template = 'mooringlicensing/emails/proposals/send_approval_notification.html'
+#     txt_template = 'mooringlicensing/emails/proposals/send_approval_notification.txt'
 
 
 class ProposalAwaitingPaymentApprovalSendNotificationEmail(TemplateEmailBase):
@@ -1006,53 +1006,134 @@ def send_approval_renewal_email_notification(approval):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
 
-def send_proposal_approval_email_notification(proposal, request):
+def send_application_processed_email(proposal, decision, with_payment, request):
     # 17
-    email = ProposalApprovalSendNotificationEmail()
+    from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
-    cc_list = proposal.proposed_issuance_approval.get('cc_email')
-    all_ccs = []
-    if cc_list:
-        all_ccs = cc_list.split(',')
+    if proposal.application_type.code == WaitingListApplication.code:
+        send_wla_processed_email(proposal, decision, with_payment, request)
+    else:
+        html_template = 'mooringlicensing/emails/send_wla_processed.html',
+        txt_template = 'mooringlicensing/emails/send_wla_processed.txt',
+        if decision == 'approved':
+            subject='Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+        elif decision == 'declined':
+            subject='Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
 
-    attachments = []
-    licence_document= proposal.approval.licence_document._file
-    if licence_document is not None:
-        file_name = proposal.approval.licence_document.name
-        attachment = (file_name, licence_document.file.read(), 'application/pdf')
-        attachments.append(attachment)
+        email = TemplateEmailBase(
+            subject=subject,
+            html_template=html_template,
+            txt_template=txt_template,
+        )
 
-        # add requirement documents
-        for requirement in proposal.requirements.exclude(is_deleted=True):
-            for doc in requirement.requirement_documents.all():
-                file_name = doc._file.name
-                #attachment = (file_name, doc._file.file.read(), 'image/*')
-                attachment = (file_name, doc._file.file.read())
-                attachments.append(attachment)
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        all_ccs = []
+        if cc_list:
+            all_ccs = cc_list.split(',')
 
-    url = request.build_absolute_uri(reverse('external'))
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-    # if proposal.is_filming_licence:
-    #     handbook_url= settings.COLS_FILMING_HANDBOOK_URL
-    # else:
-    #     handbook_url= settings.COLS_HANDBOOK_URL
+        attachments = []
+        licence_document= proposal.approval.licence_document._file
+        if licence_document is not None:
+            file_name = proposal.approval.licence_document.name
+            attachment = (file_name, licence_document.file.read(), 'application/pdf')
+            attachments.append(attachment)
+
+            # add requirement documents
+            for requirement in proposal.requirements.exclude(is_deleted=True):
+                for doc in requirement.requirement_documents.all():
+                    file_name = doc._file.name
+                    #attachment = (file_name, doc._file.file.read(), 'image/*')
+                    attachment = (file_name, doc._file.file.read())
+                    attachments.append(attachment)
+
+        url = request.build_absolute_uri(reverse('external'))
+        if "-internal" in url:
+            # remove '-internal'. This email is for external submitters
+            url = ''.join(url.split('-internal'))
+        # if proposal.is_filming_licence:
+        #     handbook_url= settings.COLS_FILMING_HANDBOOK_URL
+        # else:
+        #     handbook_url= settings.COLS_HANDBOOK_URL
+        context = {
+            'proposal': proposal,
+            'num_requirement_docs': len(attachments) - 1,
+            'url': url,
+            # 'handbook_url': handbook_url
+        }
+
+        msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+
+        email_entry =_log_proposal_email(msg, proposal, sender=sender)
+        path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
+        email_entry.documents.get_or_create(_file=path_to_file, name=file_name)
+
+        if proposal.org_applicant:
+            _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+        else:
+            _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+
+
+def send_wla_processed_email(proposal, decision, with_payment, request):
+    if decision == 'approved':
+        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+        details = proposal.proposed_issuance_approval.get('details'),
+
+    elif decision == 'declined':
+        subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
+        details = proposal.proposaldeclineddetails.reason
+
+    html_template = 'mooringlicensing/emails/send_wla_processed_email.html',
+    txt_template = 'mooringlicensing/emails/send_wla_processed_email.txt',
+
     context = {
         'proposal': proposal,
-        'num_requirement_docs': len(attachments) - 1,
-        'url': url,
-        # 'handbook_url': handbook_url
+        'decision': decision,
+        'details': details,
     }
 
-    msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
-    email_entry =_log_proposal_email(msg, proposal, sender=sender)
-    path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
-    email_entry.documents.get_or_create(_file=path_to_file, name=file_name)
 
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+def send_aaa_processed_email(proposal, decision, with_payment, request):
+    if decision == 'approved':
+        subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
+    elif decision == 'declined':
+        subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
+    html_template = 'mooringlicensing/emails/send_aaa_processed_email.html',
+    txt_template = 'mooringlicensing/emails/send_aaa_processed_email.txt',
+
+
+def send_aua_processed_email(proposal, decision, with_payment, request):
+    if decision == 'approved':
+        subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
+    elif decision == 'declined':
+        subject = 'Your authorised user application {} has been declined'.format(proposal.lodgement_number)
+    html_template = 'mooringlicensing/emails/send_aua_processed_email.html',
+    txt_template = 'mooringlicensing/emails/send_aua_processed_email.txt',
+
+
+def send_mla_processed_email(proposal, decision, with_payment, request):
+    if decision == 'approved':
+        subject = 'Your mooring licence application {} has been approved'.format(proposal.lodgement_number)
+    elif decision == 'declined':
+        subject = 'Your mooring licence application {} has been declined'.format(proposal.lodgement_number)
+    html_template = 'mooringlicensing/emails/send_mla_processed_email.html',
+    txt_template = 'mooringlicensing/emails/send_mla_processed_email.txt',
+
+
