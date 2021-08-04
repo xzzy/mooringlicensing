@@ -1,4 +1,5 @@
 import imaplib
+import email
 import ssl
 from confy import env
 from django.core.management.base import BaseCommand
@@ -30,7 +31,25 @@ class Command(BaseCommand):
         # login
         imapclient.login(sticker_email_username, sticker_email_password)
 
+        """
+        Retrieve messages
+        """
+        imapclient.select()  # メールボックスの選択
+        typ, data = imapclient.search(None, "ALL")  # data = [b"1 2 3 4 ..."]
+        datas = data[0].split()
+        fetch_num = 5  # 取得したいメッセージの数
+        if (len(datas) - fetch_num) < 0:
+            fetch_num = len(datas)
+        msg_list = []  # 取得したMIMEメッセージを格納するリスト
+        for num in datas[len(datas) - fetch_num::]:
+            typ, data = imapclient.fetch(num, '(RFC822)')
+            msg = email.message_from_bytes(data[0][1])
+            msg_list.append(msg)
+        imapclient.close()
+        imapclient.logout()
 
+        for msg in msg_list:
+            print(msg)
 
         # updates, errors = sticker_export()
         # success_filenames, error_filenames = email_stickers_document()
