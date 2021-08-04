@@ -14,7 +14,8 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.approvals.email import CreateMooringLicenceApplicationEmail, \
-    log_mla_created_proposal_email
+    log_mla_created_proposal_email, _log_approval_email, _log_org_email, \
+    _log_user_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime, timezone
 
@@ -375,62 +376,6 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     log_proposal_email(msg, proposal, sender)
     return msg
 
-
-def send_proposal_approval_email_notification(proposal, request):
-    # if proposal.is_filming_licence:
-    #     email = ProposalFilmingApprovalSendNotificationEmail()
-    # elif proposal.is_event_application:
-    #     email= ProposalEventApprovalSendNotificationEmail()
-    # else:
-    #     email = ProposalApprovalSendNotificationEmail()
-    email = ProposalApprovalSendNotificationEmail()
-
-    cc_list = proposal.proposed_issuance_approval.get('cc_email')
-    all_ccs = []
-    if cc_list:
-        all_ccs = cc_list.split(',')
-
-    attachments = []
-    licence_document= proposal.approval.licence_document._file
-    if licence_document is not None:
-        file_name = proposal.approval.licence_document.name
-        attachment = (file_name, licence_document.file.read(), 'application/pdf')
-        attachments.append(attachment)
-
-        # add requirement documents
-        for requirement in proposal.requirements.exclude(is_deleted=True):
-            for doc in requirement.requirement_documents.all():
-                file_name = doc._file.name
-                #attachment = (file_name, doc._file.file.read(), 'image/*')
-                attachment = (file_name, doc._file.file.read())
-                attachments.append(attachment)
-
-    url = request.build_absolute_uri(reverse('external'))
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-    # if proposal.is_filming_licence:
-    #     handbook_url= settings.COLS_FILMING_HANDBOOK_URL
-    # else:
-    #     handbook_url= settings.COLS_HANDBOOK_URL
-    context = {
-        'proposal': proposal,
-        'num_requirement_docs': len(attachments) - 1,
-        'url': url,
-        # 'handbook_url': handbook_url
-    }
-
-    msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-
-    email_entry =_log_proposal_email(msg, proposal, sender=sender)
-    path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
-    email_entry.documents.get_or_create(_file=path_to_file, name=file_name)
-
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
 
 def send_proposal_awaiting_payment_approval_email_notification(proposal, request):
@@ -900,7 +845,7 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
     return msg
 
 
-def send_expire_mooring_licence_application_email(proposal, reason, due_date, request=None):
+def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
     from mooringlicensing.components.proposals.models import MooringLicenceApplication
     # 12
     # 13
@@ -936,7 +881,7 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date, re
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
     return msg
 
@@ -977,9 +922,10 @@ def send_endorser_reminder_email(proposal, due_date, request=None):
         txt_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt',
     )
 
-    endorse_url = request.build_absolute_uri(reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
-    decline_url = request.build_absolute_uri(reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid}))
-    proposal_url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     try:
         endorser = EmailUser.objects.get(email=proposal.site_licensee_email)
@@ -1011,3 +957,102 @@ def send_endorser_reminder_email(proposal, due_date, request=None):
     return msg
 
 
+def send_approval_renewal_email_notification(approval):
+    # 16
+    email = TemplateEmailBase(
+        subject='Renewal notice for your {} {}'.format(approval.description, approval.lodgement_number),
+        html_template='mooringlicensing/emails/approval_renewal_notification.html',
+        txt_template='mooringlicensing/emails/approval_renewal_notification.txt',
+    )
+    proposal = approval.current_proposal
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    dashboard_url = url + reverse('external')
+
+    context = {
+        'approval': approval,
+        'proposal': approval.current_proposal,
+        'url': dashboard_url,
+        'expiry_date': approval.expiry_date,
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    #attach renewal notice
+    if approval.renewal_document and approval.renewal_document._file is not None:
+        renewal_document= approval.renewal_document._file
+        file_name = approval.renewal_document.name
+        attachment = (file_name, renewal_document.file.read(), 'application/pdf')
+        attachment = [attachment]
+    else:
+        attachment = []
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+
+    msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+
+def send_proposal_approval_email_notification(proposal, request):
+    # 17
+    email = ProposalApprovalSendNotificationEmail()
+
+    cc_list = proposal.proposed_issuance_approval.get('cc_email')
+    all_ccs = []
+    if cc_list:
+        all_ccs = cc_list.split(',')
+
+    attachments = []
+    licence_document= proposal.approval.licence_document._file
+    if licence_document is not None:
+        file_name = proposal.approval.licence_document.name
+        attachment = (file_name, licence_document.file.read(), 'application/pdf')
+        attachments.append(attachment)
+
+        # add requirement documents
+        for requirement in proposal.requirements.exclude(is_deleted=True):
+            for doc in requirement.requirement_documents.all():
+                file_name = doc._file.name
+                #attachment = (file_name, doc._file.file.read(), 'image/*')
+                attachment = (file_name, doc._file.file.read())
+                attachments.append(attachment)
+
+    url = request.build_absolute_uri(reverse('external'))
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+    # if proposal.is_filming_licence:
+    #     handbook_url= settings.COLS_FILMING_HANDBOOK_URL
+    # else:
+    #     handbook_url= settings.COLS_HANDBOOK_URL
+    context = {
+        'proposal': proposal,
+        'num_requirement_docs': len(attachments) - 1,
+        'url': url,
+        # 'handbook_url': handbook_url
+    }
+
+    msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+
+    email_entry =_log_proposal_email(msg, proposal, sender=sender)
+    path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
+    email_entry.documents.get_or_create(_file=path_to_file, name=file_name)
+
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
