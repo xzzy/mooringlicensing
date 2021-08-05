@@ -1,14 +1,16 @@
+import datetime
 import imaplib
 import email
 import ssl
-import os
+import openpyxl
+from django.utils import timezone
+
 from confy import env
 from django.core.management.base import BaseCommand
-import base64
 from email.header import decode_header, make_header
-from django.core.files.base import File, ContentFile
+from django.core.files.base import ContentFile
 
-
+from mooringlicensing.components.approvals.models import Sticker
 from mooringlicensing.components.main.utils import sticker_export, email_stickers_document
 
 import logging
@@ -22,9 +24,9 @@ class Command(BaseCommand):
     help = 'Import emails and process sticker data'
 
     def handle(self, *args, **options):
-        errors = []
-        updates = []
-
+        ##########
+        # 1. Save the email-attachment file to the django model (database)
+        ##########
         sticker_email_host = env('STICKER_EMAIL_HOST', '')
         sticker_email_port = env('STICKER_EMAIL_PORT', '')
         sticker_email_username = env('STICKER_EMAIL_USERNAME', '')
@@ -50,7 +52,7 @@ class Command(BaseCommand):
         if (len(datas) - fetch_num) < 0:
             fetch_num = len(datas)
 
-        msg_list = []
+        # msg_list = []
 
         for num in datas[len(datas) - fetch_num::]:
             typ, data = imapclient.fetch(num, '(RFC822)')
@@ -60,13 +62,11 @@ class Command(BaseCommand):
             raw_email_string = raw_email.decode('utf-8')
             email_message = email.message_from_string(raw_email_string)
 
-            subject = str(make_header(decode_header(email_message["Subject"])))
-            print('Title: ' + subject)
-            print('From: ' + email_message['From'])
-            # print('Body: ' + email_message.get_payload(decode=True))
+            email_subject = str(make_header(decode_header(email_message["Subject"])))
+            email_from = email_message['From']
             body = get_text(email_message)
-            body = body.decode()
-            print('Body: ' + body)
+            email_body = body.decode()
+            email_date = email_message['Date']
 
             # downloading attachments
             for part in email_message.walk():
@@ -77,49 +77,31 @@ class Command(BaseCommand):
                     continue
                 fileName = part.get_filename()
                 if bool(fileName):
+                    now = timezone.localtime(timezone.now())
+
+                    # Create sticker_printing_response object. File is not saved yet
+                    sticker_printing_response = StickerPrintingResponse.objects.create(
+                        imported_datetime=now,
+                        email_subject=email_subject,
+                        email_from=email_from,
+                        email_body=email_body,
+                        email_date=email_date,
+                    )
+
+                    # Load attachment file
                     my_bytes = part.get_payload(decode=True)
                     content_file = ContentFile(my_bytes)
-                    sticker_printing_response = StickerPrintingResponse.objects.create()
+
+                    # Save file
                     sticker_printing_response._file.save(fileName, content_file)
-                    aho = 'baka'
-
-
-
-                    # filePath = os.path.join('./tmp/', fileName)
-                    # if not os.path.isfile(filePath):
-
-                        # fp = open(filePath, 'wb')
-                        # fp.write(part.get_payload(decode=True))
-                        # file_imported = File(fp)
-                        # my_obj = Model_Type(obj_name=name, my_file=File(outfile))
-                        # fp.close()
-                    subject = str(email_message).split("Subject: ", 1)[1].split("\nTo:", 1)[0]
-
-            # mail = email.message_from_string(data[0][1].decode('utf-8'))
-            #
-            # subject = str(make_header(decode_header(mail["Subject"])))
-            # print('Title: {}'.format(subject))
-            #
-            # for part in mail.walk():
-            #     if part.get_content_maintype() == 'multipart':
-            #         continue
-            #     filename = part.get_filename()
-            #     if not filename:
-            #         body = base64.urlsafe_b64decode(part.get_payload().encode('ASCII')).decode('utf-8')
-            #         print('body: {}'.format(body))
-            #     else:
-            #         with open('./' + filename, 'wb') as f:
-            #             f.write(part.get_payload(decode=True))
-            #             print('{} has been saved'.format(filename))
 
         imapclient.close()
         imapclient.logout()
 
-        for msg in msg_list:
-            print(msg)
-
-        # updates, errors = sticker_export()
-        # success_filenames, error_filenames = email_stickers_document()
+        ##########
+        # 2. Process xlsx file saved in django model
+        ##########
+        updates, errors = process_sticker_printing_response()
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
         # error_count = len(errors) + len(error_filenames)
@@ -135,3 +117,83 @@ def get_text(msg):
         return get_text(msg.get_payload(0))
     else:
         return msg.get_payload(None, True)
+
+
+def make_sure_datetime(dt_obj):
+    if isinstance(dt_obj, datetime):
+        return dt_obj
+    else:
+        return datetime.datetime.strptime(dt_obj, '%d/%m/%Y')
+
+
+def make_sure_sticker_number(sticker_number):
+    if isinstance(sticker_number, int):
+        return '{0:07d}'.format(sticker_number)
+    else:
+        return sticker_number
+
+
+def process_sticker_printing_response():
+    errors = []
+    updates = []
+
+    responses = StickerPrintingResponse.objects.filter(processed=False)
+    for response in responses:
+        if response._file:
+            # Load file
+            wb = openpyxl.load_workbook(response._file)
+
+            # Retrieve the first worksheet
+            ws = wb.worksheets[0]
+
+            # Loop rows in order to determine which column is what
+            header_row = 0
+            batch_date_column, sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0, 0
+            for row in ws.rows:
+                for cell in row:
+                    if 'batch' in cell.value.lower() and 'date' in cell.value.lower():
+                        batch_date_column = cell.column  # 1-based
+                        header_row = cell.row  # 1-based
+                    elif 'sticker' in cell.value.lower() and 'number' in cell.value.lower():
+                        sticker_number_column = cell.column
+                    elif 'printing' in cell.value.lower() and 'date' in cell.value.lower():
+                        printing_date_column = cell.column
+                    elif 'mailing' in cell.value.lower() and 'date' in cell.value.lower():
+                        mailing_date_column = cell.column
+                if header_row > 0:
+                    break
+
+            # Loop rows after the header row and retrieve values
+            for row in ws.iter_rows(min_row=header_row + 1):
+                batch_date_value = row[batch_date_column - 1].value  # [] is index, therefore minus 1
+                sticker_number_value = row[sticker_number_column - 1].value
+                printing_date_value = row[printing_date_column - 1].value
+                mailing_date_value = row[mailing_date_column - 1].value
+
+                batch_date_value = make_sure_datetime(batch_date_value)
+                sticker_number_value = make_sure_sticker_number(sticker_number_value)
+                printing_date_value = make_sure_datetime(printing_date_value)
+                mailing_date_value = make_sure_datetime(mailing_date_value)
+
+                try:
+                    sticker = Sticker.objects.get(number=sticker_number_value)
+                    sticker.printing_date = printing_date_value
+                    sticker.mailing_date = mailing_date_value
+                    sticker.sticker_printing_response = response
+                    sticker.status = Sticker.STICKER_STATUS_CURRENT
+                    sticker.save()
+
+                    updates.append(sticker.number)
+                except Exception as e:
+                    err_msg = 'Error updating the sticker {}'.format(sticker_number_value)
+                    logger.error('{}\n{}'.format(err_msg, str(e)))
+                    errors.append(err_msg)
+
+            # Update response obj not to process again
+            response.processed = True
+            response.save()
+        else:
+            # No fild is saved in the _file field
+            pass
+
+    return updates, errors
