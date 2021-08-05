@@ -17,7 +17,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     Sticker,
     MooringLicence,
-    AuthorisedUserPermit, StickerActionDetail, ApprovalHistory,
+    AuthorisedUserPermit, StickerActionDetail, ApprovalHistory, MooringOnApproval,
 )
 from mooringlicensing.components.organisations.models import (
     Organisation
@@ -261,6 +261,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     ria_generated_proposals = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
     mooring_licence_vessels_detail = serializers.SerializerMethodField()
+    mooring_licence_authorised_users = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
     authorised_user_moorings_detail = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
@@ -300,6 +301,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'ria_generated_proposals',
             'mooring_licence_vessels',
             'mooring_licence_vessels_detail',
+            'mooring_licence_authorised_users',
             'authorised_user_moorings',
             'authorised_user_moorings_detail',
             'can_reissue',
@@ -356,23 +358,73 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     links += '{}\n'.format(vessel_details.vessel.rego_no)
         return links
 
+    def get_mooring_licence_authorised_users(self, obj):
+        authorised_users = []
+        if type(obj.child_obj) == MooringLicence:
+            moa_set = MooringOnApproval.objects.filter(
+                    mooring=obj.child_obj.mooring,
+                    #approval__status__in=['current', 'suspended']
+                    )
+            for moa in moa_set:
+                approval = moa.approval
+                authorised_users.append({
+                    "id": moa.id,
+                    "lodgement_number": approval.lodgement_number,
+                    "vessel_name": (
+                        approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name 
+                        if approval.current_proposal.vessel_details else ''
+                        ),
+                    "holder": approval.submitter.get_full_name(),
+                    "mobile": approval.submitter.mobile_number,
+                    "email": approval.submitter.email,
+                    "status": approval.get_status_display(),
+                    })
+        return authorised_users
+
+
     def get_mooring_licence_vessels_detail(self, obj):
         vessels = []
         vessel_details = []
         if type(obj.child_obj) == MooringLicence:
-            for proposal in obj.proposal_set.all():
-                if proposal.final_status and proposal.vessel_details and proposal.vessel_details.vessel not in vessels:
-                    vessel = proposal.vessel_details.vessel
-                    vessels.append(vessel)
-                    vessel_details.append({
-                        "id": vessel.id,
-                        "vessel_name": vessel.latest_vessel_details.vessel_name,
-                        "sticker_name": '',
-                        "owner": obj.submitter.get_full_name(),
-                        "mobile": obj.submitter.mobile_number,
-                        "email": obj.submitter.email,
-                        })
+            for vessel_ownership in obj.child_obj.vessel_ownership_list:
+                vessel = vessel_ownership.vessel
+                vessels.append(vessel)
+                sticker_numbers = ''
+                for sticker in obj.stickers.filter(
+                        status__in=['current', 'ready', 'awaiting_printing', 'to_be_returned'],
+                        vessel_ownership=vessel_ownership):
+                    sticker_numbers += sticker.number + ', '
+                sticker_numbers = sticker_numbers[0:-2]
+
+                vessel_details.append({
+                    "id": vessel.id,
+                    "vessel_name": vessel.latest_vessel_details.vessel_name,
+                    "sticker_numbers": sticker_numbers,
+                    "owner": vessel_ownership.owner.emailuser.get_full_name(),
+                    "mobile": vessel_ownership.owner.emailuser.mobile_number,
+                    "email": vessel_ownership.owner.emailuser.email,
+                    })
         return vessel_details
+
+    #def get_mooring_licence_vessels_detail(self, obj):
+    #    vessels = []
+    #    vessel_details = []
+    #    if type(obj.child_obj) == MooringLicence:
+    #        for sticker in obj.stickers.all():
+    #            if sticker.status in ['current', 'awaiting_printing', 'to_be_returned']:
+    #            #if sticker.status in ['current', 'ready', 'awaiting_printing', 'to_be_returned']:
+    #                vessel = sticker.vessel_ownership.vessel
+    #                vessels.append(vessel)
+
+    #                vessel_details.append({
+    #                    "id": vessel.id,
+    #                    "vessel_name": vessel.latest_vessel_details.vessel_name,
+    #                    "sticker_number": sticker.number,
+    #                    "owner": sticker.vessel_ownership.owner.emailuser.get_full_name(),
+    #                    "mobile": sticker.vessel_ownership.owner.emailuser.mobile_number,
+    #                    "email": sticker.vessel_ownership.owner.emailuser.email,
+    #                    })
+    #    return vessel_details
 
     def get_authorised_user_moorings_detail(self, obj):
         moorings = []
