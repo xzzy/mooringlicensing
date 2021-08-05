@@ -56,6 +56,7 @@ class Command(BaseCommand):
 
         for num in datas[len(datas) - fetch_num::]:
             typ, data = imapclient.fetch(num, '(RFC822)')
+            # typ, data = imapclient.fetch(num, '(BODY[HEADER.FIELDS (MESSAGE-ID)])')
             raw_email = data[0][1]
 
             # converts byte literal to string removing b''
@@ -63,6 +64,7 @@ class Command(BaseCommand):
             email_message = email.message_from_string(raw_email_string)
 
             email_subject = str(make_header(decode_header(email_message["Subject"])))
+            email_message_id = str(make_header(decode_header(email_message["Message-ID"])))
             email_from = email_message['From']
             body = get_text(email_message)
             email_body = body.decode()
@@ -86,6 +88,7 @@ class Command(BaseCommand):
                         email_from=email_from,
                         email_body=email_body,
                         email_date=email_date,
+                        email_message_id=email_message_id,
                     )
 
                     # Load attachment file
@@ -120,7 +123,7 @@ def get_text(msg):
 
 
 def make_sure_datetime(dt_obj):
-    if isinstance(dt_obj, datetime):
+    if isinstance(dt_obj, datetime.datetime):
         return dt_obj
     else:
         return datetime.datetime.strptime(dt_obj, '%d/%m/%Y')
