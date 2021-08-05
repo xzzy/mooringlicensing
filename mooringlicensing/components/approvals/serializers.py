@@ -203,154 +203,6 @@ class DcvVesselSerializer(serializers.ModelSerializer):
         )
 
 
-class BakApprovalSerializer(serializers.ModelSerializer):
-    applicant = serializers.SerializerMethodField(read_only=True)
-    applicant_type = serializers.SerializerMethodField(read_only=True)
-    applicant_id = serializers.SerializerMethodField(read_only=True)
-    licence_document = serializers.CharField(source='licence_document._file.url')
-    renewal_document = serializers.SerializerMethodField(read_only=True)
-    status = serializers.CharField(source='get_status_display')
-    allowed_assessors = EmailUserSerializer(many=True)
-    title = serializers.CharField(source='current_proposal.title')
-    application_type = serializers.SerializerMethodField(read_only=True)
-    linked_applications = serializers.SerializerMethodField(read_only=True)
-    #can_renew = serializers.SerializerMethodField()
-    amend_or_renew = serializers.SerializerMethodField()
-    #can_extend = serializers.SerializerMethodField()
-    is_assessor = serializers.SerializerMethodField()
-    is_approver = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Approval
-        fields = (
-            'id',
-            'lodgement_number',
-            'linked_applications',
-            'licence_document',
-            'replaced_by',
-            'current_proposal',
-            'title',
-            'renewal_document',
-            'renewal_sent',
-            'issue_date',
-            'original_issue_date',
-            'start_date',
-            'expiry_date',
-            'surrender_details',
-            'suspension_details',
-            'applicant',
-            'applicant_type',
-            'applicant_id',
-            'extracted_fields',
-            'status',
-            'reference',
-            'can_reissue',
-            'allowed_assessors',
-            'cancellation_date',
-            'cancellation_details',
-            'can_action',
-            'set_to_cancel',
-            'set_to_surrender',
-            'set_to_suspend',
-            #'can_renew',
-            #'can_extend',
-            #'can_amend',
-            'amend_or_renew',
-            'can_reinstate',
-            'application_type',
-            'migrated',
-            'is_assessor',
-            'is_approver',
-            #'can_reissue_lawful_authority',
-            #'is_lawful_authority',
-            #'is_lawful_authority_finalised',
-        )
-        # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
-        # also require the following additional fields for some of the mRender functions
-        datatables_always_serialize = (
-            'id',
-            'title',
-            'status',
-            'reference',
-            'lodgement_number',
-            'linked_applications',
-            'licence_document',
-            'start_date',
-            'expiry_date',
-            'applicant',
-            'can_reissue',
-            'can_action',
-            'can_reinstate',
-            #'can_amend',
-            #'can_renew',
-            'amend_or_renew',
-            'can_extend',
-            'set_to_cancel',
-            'set_to_suspend',
-            'set_to_surrender',
-            'current_proposal',
-            'renewal_document',
-            'renewal_sent',
-            'allowed_assessors',
-            'application_type',
-            'migrated',
-            'is_assessor',
-            'is_approver',
-            #'can_reissue_lawful_authority',
-            #'is_lawful_authority',
-            #'is_lawful_authority_finalised',
-        )
-
-    def get_linked_applications(self,obj):
-        return obj.linked_applications
-
-
-    def get_renewal_document(self,obj):
-        if obj.renewal_document and obj.renewal_document._file:
-            return obj.renewal_document._file.url
-        return None
-
-    def get_application_type(self,obj):
-        if obj.current_proposal.application_type:
-            return obj.current_proposal.application_type.name
-        return None
-
-    def get_applicant(self,obj):
-        try:
-            return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
-        except:
-            return None
-
-    def get_applicant_type(self,obj):
-        try:
-            return obj.applicant_type
-        except:
-            return None
-
-    def get_applicant_id(self,obj):
-        try:
-            return obj.applicant_id
-        except:
-            return None
-
-    #def get_can_renew(self,obj):
-     #   return obj.can_renew
-    def get_amend_or_renew(self,obj):
-        return obj.amend_or_renew
-
-    #def get_can_extend(self,obj):
-     #   return obj.can_extend
-
-    def get_is_assessor(self,obj):
-        request = self.context['request']
-        user = request.user
-        return obj.is_assessor(user)
-
-    def get_is_approver(self,obj):
-        request = self.context['request']
-        user = request.user
-        return obj.is_approver(user)
-
 class ApprovalExtendSerializer(serializers.Serializer):
     extend_details = serializers.CharField()
 
@@ -408,7 +260,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
+    mooring_licence_vessels_detail = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
+    authorised_user_moorings_detail = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
@@ -445,7 +299,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'offer_link',
             'ria_generated_proposals',
             'mooring_licence_vessels',
+            'mooring_licence_vessels_detail',
             'authorised_user_moorings',
+            'authorised_user_moorings_detail',
             'can_reissue',
             'can_action',
             'can_reinstate',
@@ -499,6 +355,42 @@ class ApprovalSerializer(serializers.ModelSerializer):
                 else:
                     links += '{}\n'.format(vessel_details.vessel.rego_no)
         return links
+
+    def get_mooring_licence_vessels_detail(self, obj):
+        vessels = []
+        vessel_details = []
+        if type(obj.child_obj) == MooringLicence:
+            for proposal in obj.proposal_set.all():
+                if proposal.final_status and proposal.vessel_details and proposal.vessel_details.vessel not in vessels:
+                    vessel = proposal.vessel_details.vessel
+                    vessels.append(vessel)
+                    vessel_details.append({
+                        "id": vessel.id,
+                        "vessel_name": vessel.latest_vessel_details.vessel_name,
+                        "sticker_name": '',
+                        "owner": obj.submitter.get_full_name(),
+                        "mobile": obj.submitter.mobile_number,
+                        "email": obj.submitter.email,
+                        })
+        return vessel_details
+
+    def get_authorised_user_moorings_detail(self, obj):
+        moorings = []
+        if type(obj.child_obj) == AuthorisedUserPermit:
+            for moa in obj.mooringonapproval_set.all():
+                #mooring_name = moa.mooring.name
+                licence_holder_data = {}
+                if moa.mooring.mooring_licence:
+                    licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+                moorings.append({
+                    "id": moa.id,
+                    "mooring_name": moa.mooring.name,
+                    #"licence_holder": licence_holder_data,
+                    "licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
+                    "mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
+                    "email": licence_holder_data.get('email') if licence_holder_data else '',
+                    })
+        return moorings
 
     def get_authorised_user_moorings(self, obj):
         #return_list = []

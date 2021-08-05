@@ -1,7 +1,7 @@
 <template>
 <div class="container" id="internalApproval">
     <div class="row">
-        <h3>Licence {{ approval.lodgement_number }}</h3>
+        <h3>{{ approvalLabel }}: {{ approval.lodgement_number }}</h3>
         <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
             <div class="row">
@@ -63,7 +63,7 @@
 
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <h3 class="panel-title">Licence Details
+                      <h3 class="panel-title">{{ approvalLabel }}
                         <a class="panelClicker" :href="'#'+oBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="oBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -94,7 +94,7 @@
 
                           </div>
                           <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Document</label>
+                              <label for="" class="col-sm-3 control-label" >{{ approvalLabel }}</label>
                             <div class="col-sm-4">
                                 <!-- <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p> -->
                                 <!--p><a :href="'#'+approval.id" class="control-label pull-left" @click="viewApprovalPDF(approval.id, approval.latest_apiary_licence_document)">Approval.pdf</a></p-->
@@ -113,7 +113,7 @@
                   </div>
                 </div>
             </div>
-            <div class="row" v-if="approval && approval.submitter && approval.current_proposal">
+            <div class="row" v-if="approval && approval.submitter && approval.current_proposal && annualAdmissionPermit">
                   <Vessels
                   :proposal="approval.current_proposal"
                   :profile="approval.submitter"
@@ -123,6 +123,34 @@
                   :is_internal="true"
                   />
             </div>
+            <div class="row" v-if="approval && approval.id && authorisedUserPermit">
+                <FormSection 
+                    :formCollapse="false" 
+                    label="Moorings" 
+                    Index="moorings"
+                >
+                    <datatable
+                        ref="moorings_datatable"
+                        :id="moorings_datatable_id"
+                        :dtOptions="moorings_datatable_options"
+                        :dtHeaders="moorings_datatable_headers"
+                    />
+                </FormSection>
+            </div>
+            <div class="row" v-if="approval && approval.id && mooringLicence">
+                <FormSection 
+                    :formCollapse="false" 
+                    label="Vessels" 
+                    Index="mooringLicenceVessels"
+                >
+                    <datatable
+                        ref="ml_vessels_datatable"
+                        :id="ml_vessels_datatable_id"
+                        :dtOptions="ml_vessels_datatable_options"
+                        :dtHeaders="ml_vessels_datatable_headers"
+                    />
+                </FormSection>
+            </div>
 
         </div>
     </div>
@@ -131,7 +159,7 @@
 <script>
 import $ from 'jquery'
 import Vue from 'vue'
-//import datatable from '@vue-utils/datatable.vue'
+import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import Applicant from '@/components/common/applicant.vue'
 import Vessels from '@/components/common/vessels.vue'
@@ -147,6 +175,8 @@ export default {
   data() {
     let vm = this;
     return {
+        moorings_datatable_id: 'moorings-datatable-' + vm._uid,
+        ml_vessels_datatable_id: 'ml-vessels-datatable-' + vm._uid,
         loading: [],
         approval: {
             applicant_id: null
@@ -165,6 +195,59 @@ export default {
         logs_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/action_log'),
         comms_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/comms_log'),
         comms_add_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/add_comms_log'),
+        moorings_datatable_headers: [
+                //'Id',
+                'Mooring',
+                'Licensee',
+                'Mobile',
+                'Email',
+            ],
+
+        moorings_datatable_options: {
+            columns: [
+                {
+                    data: "mooring_name",
+                },
+                {
+                    data: "licensee",
+                },
+                {
+                    data: "mobile",
+                },
+                {
+                    data: "email",
+                },
+            ],
+        },
+        ml_vessels_datatable_headers: [
+                //'Id',
+                'Vessel',
+                'Sticker',
+                'Owner',
+                'Mobile',
+                'Email',
+            ],
+
+        ml_vessels_datatable_options: {
+            columns: [
+                {
+                    data: "vessel_name",
+                },
+                {
+                    data: "sticker_name",
+                },
+                {
+                    data: "owner",
+                },
+                {
+                    data: "mobile",
+                },
+                {
+                    data: "email",
+                },
+            ],
+        },
+
     }
   },
   watch: {},
@@ -178,60 +261,97 @@ export default {
             type: Number,
         },
     },
-  created: function(){
-    //Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.approvalId)).then((response) => {
-    //console.log(this.$
-    Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.$route.params.approval_id)).then((response) => {
-        this.approval = response.body;
-        this.approval.applicant_id = response.body.applicant_id;
-        if (this.approval.submitter.postal_address == null){ this.approval.submitter.postal_address = {}; }
-    },(error) => {
-        console.log(error);
-    })
+  created: async function(){
+      const response = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.$route.params.approval_id));
+      this.approval = Object.assign({}, response.body);
+      this.approval.applicant_id = response.body.applicant_id;
+      if (this.approval.submitter.postal_address == null){ this.approval.submitter.postal_address = {}; }
+      await this.$nextTick(() => {
+          if (this.approval && this.approval.id && this.authorisedUserPermit) {
+              this.constructMooringsTable();
+          }
+          if (this.approval && this.approval.id && this.mooringLicence) {
+              this.constructMLVesselsTable();
+          }
+      })
   },
   components: {
-        //SectionAnnualRentalFee,
-        //datatable,
+        datatable,
         CommsLogs,
         FormSection,
         Applicant,
         Vessels,
-        //OnSiteInformation,
-        //TemporaryUse,
-        //ComponentSiteSelection,
   },
   computed: {
     isLoading: function () {
       return this.loading.length > 0;
     },
-      /*
-    proposal: function() {
-        if (this.approval && this.approval.current_proposal_number){
-            return ({
-                "id": this.approval.current_proposal_number,
-            })
+    approvalLabel: function() {
+        let description = '';
+        if (this.approval && this.approval.approval_type_dict) {
+            description = this.approval.approval_type_dict.description;
         }
+        return description;
     },
-    */
+    annualAdmissionPermit: function() {
+        let permit = false;
+        if (this.approval && this.approval.approval_type_dict && this.approval.approval_type_dict.code === 'aap') {
+            permit = true;
+        }
+        return permit;
+    },
+    authorisedUserPermit: function() {
+        let permit = false;
+        if (this.approval && this.approval.approval_type_dict && this.approval.approval_type_dict.code === 'aup') {
+            permit = true;
+        }
+        return permit;
+    },
+    mooringLicence: function() {
+        let permit = false;
+        if (this.approval && this.approval.approval_type_dict && this.approval.approval_type_dict.code === 'ml') {
+            permit = true;
+        }
+        return permit;
+    },
 
   },
   methods: {
+    constructMooringsTable: function() {
+        let vm = this;
+        this.$refs.moorings_datatable.vmDataTable.clear().draw();
+
+        for(let aum of vm.approval.authorised_user_moorings_detail) {
+            this.$refs.moorings_datatable.vmDataTable.row.add(
+                {
+                    'mooring_name': aum.mooring_name,
+                    'licensee': aum.licensee,
+                    'mobile': aum.mobile,
+                    'email': aum.email,
+                }
+            ).draw();
+        }
+    },
+    constructMLVesselsTable: function() {
+        let vm = this;
+        this.$refs.ml_vessels_datatable.vmDataTable.clear().draw();
+
+        for(let mlv of vm.approval.mooring_licence_vessels_detail) {
+            this.$refs.ml_vessels_datatable.vmDataTable.row.add(
+                {
+                    'vessel_name': mlv.vessel_name,
+                    'sticker_name': mlv.sticker_name,
+                    'owner': mlv.owner,
+                    'mobile': mlv.mobile,
+                    'email': mlv.email,
+                }
+            ).draw();
+        }
+    },
+
     commaToNewline(s){
         return s.replace(/[,;]/g, '\n');
     },
-      /*
-    fetchOrganisation(applicant_id){
-        let vm=this;
-        Vue.http.get(helpers.add_endpoint_json(api_endpoints.organisations,applicant_id)).then((response) => {
-
-            vm.org = response.body;
-            vm.org.address = response.body.address;
-    },(error) => {
-        console.log(error);
-    })
-
-    },
-    */
     viewApprovalPDF: function(id,media_link){
             let vm=this;
             //console.log(approval);
@@ -248,8 +368,7 @@ export default {
 
   },
   mounted: function () {
-    let vm = this;
-  }
+  },
 }
 </script>
 <style scoped>
