@@ -89,13 +89,13 @@ class ApprovalReinstateNotificationEmail(TemplateEmailBase):
         self.subject = '{} - {} reinstated.'.format(settings.RIA_NAME, approval.child_obj.description)
 
 
-class ApprovalRenewalNotificationEmail(TemplateEmailBase):
-    subject = 'Approval renewal'
-    html_template = 'mooringlicensing/emails/approval_renewal_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_renewal_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} renewal.'.format(settings.RIA_NAME, approval.child_obj.description)
+# class ApprovalRenewalNotificationEmail(TemplateEmailBase):
+#     subject = 'Approval renewal'
+#     html_template = 'mooringlicensing/emails/approval_renewal_notification.html'
+#     txt_template = 'mooringlicensing/emails/approval_renewal_notification.txt'
+#
+#     def __init__(self, approval):
+#         self.subject = '{} - {} renewal.'.format(settings.RIA_NAME, approval.child_obj.description)
 
 
 class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
@@ -362,52 +362,6 @@ def send_approval_surrender_email_notification(approval, request=None):
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-
-def send_approval_renewal_email_notification(approval):
-    email = ApprovalRenewalNotificationEmail(approval)
-    proposal = approval.current_proposal
-    url=settings.SITE_URL if settings.SITE_URL else ''
-    url += reverse('external')
-
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
-
-    context = {
-        'approval': approval,
-        'proposal': approval.current_proposal,
-        'url': url,
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    #attach renewal notice
-    if approval.renewal_document and approval.renewal_document._file is not None:
-        renewal_document= approval.renewal_document._file
-        file_name = approval.renewal_document.name
-        attachment = (file_name, renewal_document.file.read(), 'application/pdf')
-        attachment = [attachment]
-    else:
-        attachment = []
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
 
 
 def send_approval_reinstate_email_notification(approval, request):

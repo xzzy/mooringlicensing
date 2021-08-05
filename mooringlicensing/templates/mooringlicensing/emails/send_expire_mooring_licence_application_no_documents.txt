@@ -1,0 +1,11 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+Dear {{ recipient.first_name }} {{ recipient.last_name }},
+
+Your opportunity to submit the requested documents supporting your mooring licence application has passed the due date {{ due_date }}. Your mooring licence application has been discarded.
+
+Your Waiting List Allocation will remain current but has been moved to the back of the queue.
+
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}

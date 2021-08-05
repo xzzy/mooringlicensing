@@ -33,6 +33,13 @@
             </div>
 
             <div class="row">
+                <button type="submit" name="script" value="import_sticker_data" {% if import_sticker_data == 'true' %}style="color:green" {% endif %} title="Import Sticker data">Run Script 'import_sticker_data'</button>
+                {% if debug %}
+
+                {% endif %}
+            </div>
+
+            <div class="row">
                 <button type="submit" name="script" value="expire_approvals" {% if expire_approvals == 'true' %}style="color:green" {% endif %} title="Expire Approvals">Run Script 'expire_approvals'</button>
                 {% if debug %}
                     <div class="debug-box">
