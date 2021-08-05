@@ -2568,7 +2568,12 @@ class PrivateMooringManager(models.Manager):
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
-        lookups = Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current'))
+        # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
+        lookups = (
+                Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current')) 
+                & (Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) | Q(ria_generated_proposal=None))
+                )
+        #return super(AvailableMooringManager, self).get_queryset().filter(lookups).filter(mooring_application_lookups)
         return super(AvailableMooringManager, self).get_queryset().filter(lookups)
 
 
@@ -2619,7 +2624,7 @@ class Mooring(models.Model):
         status = ''
         ## check for Mooring Licences
         if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
-            status = 'Licenced'
+            status = 'Licensed'
         if not status:
             # check for Mooring Applications
             proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
