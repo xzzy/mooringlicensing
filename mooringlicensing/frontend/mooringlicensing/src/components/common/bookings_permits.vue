@@ -26,6 +26,7 @@
                                 <th>Number</th>
                                 <th>Action</th>
                                 <th>Contact number</th>
+                                <th>View</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -35,6 +36,8 @@
                                 <!--td>View</td-->
                                 <td></td>
                                 <td>{{ approval.submitter_phone_number }}</td>
+                                <td><a :href=approval.url>View</a></td>
+                                <!--td>{{approval.url}}</td-->
                                 <td>
                                     <table class="table">
                                         <thead>
@@ -153,6 +156,7 @@ from '@/utils/hooks'
                             this.approvals.push(approval);
                         }
                     }
+                    /*
                     // Bookings
                     if (this.entity.type === "vessel") {
                         const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
@@ -167,6 +171,7 @@ from '@/utils/hooks'
                             this.bookings.push(booking);
                         }
                     }
+                    */
                     // DCV
                     this.dataLoading = false;
                 });

@@ -892,6 +892,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     approval_type_dict = serializers.SerializerMethodField()
     submitter_phone_number = serializers.SerializerMethodField()
     vessel_data = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -903,7 +904,12 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             'issue_date',
             'submitter_phone_number',
             'vessel_data',
+            'url',
         )
+
+    def get_url(self, obj):
+        #return '<a href=/internal/approval/{}>View</a>'.format(obj.id)
+        return '/internal/approval/{}'.format(obj.id)
 
     def get_status(self, obj):
         return obj.get_status_display()
