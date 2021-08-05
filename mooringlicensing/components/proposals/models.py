@@ -1377,7 +1377,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             if fee_item_additional:
                                 application_fee.fee_items.add(fee_item_additional)
 
-                            self.process_after_approval(request)
+                            self.process_after_approval(request, self.invoice.payment_status)
 
                             self.send_emails_for_payment_required(request, invoice)
 
@@ -1643,7 +1643,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_payment_success(request)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status=None):
         self.child_obj.process_after_approval(request)
         self.refresh_from_db()  # Somehow this is needed...
 
@@ -2250,7 +2250,7 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status):
         print('process_after_approved() in AuthorisedUserApplication')
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New proposal
@@ -2388,11 +2388,17 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status):
         print('in process_after_approved')
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        self.save()
+        if payment_status == 'unpaid':
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            self.save()
+        else:
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            self.save()
+            approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
         # self.proposal.refresh_from_db()
         # print('refresh_from_db2')
         # TODO: Send email (payment required)
@@ -2570,7 +2576,12 @@ class PrivateMooringManager(models.Manager):
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
-        lookups = Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current'))
+        # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
+        lookups = (
+                Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current')) 
+                & (Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) | Q(ria_generated_proposal=None))
+                )
+        #return super(AvailableMooringManager, self).get_queryset().filter(lookups).filter(mooring_application_lookups)
         return super(AvailableMooringManager, self).get_queryset().filter(lookups)
 
 
@@ -2597,7 +2608,9 @@ class Mooring(models.Model):
     private_moorings = PrivateMooringManager()
     available_moorings = AvailableMooringManager()
     # Used for WLAllocation create MLApplication check
-    mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
+    #mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
+    # mooring licence can onl,y have one Mooring
+    mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring")
 
     def __str__(self):
         return self.name
@@ -2619,7 +2632,7 @@ class Mooring(models.Model):
         status = ''
         ## check for Mooring Licences
         if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
-            status = 'Licenced'
+            status = 'Licensed'
         if not status:
             # check for Mooring Applications
             proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
