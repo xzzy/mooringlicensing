@@ -87,6 +87,7 @@
                   id="proposalStartVessels" 
                   ref="vessels"
                   :readonly="readonlyMLA"
+                  :is_internal="is_internal"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">

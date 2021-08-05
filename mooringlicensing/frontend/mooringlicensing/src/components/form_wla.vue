@@ -92,6 +92,7 @@
                   id="proposalStartVessels" 
                   ref="vessels"
                   :readonly="readonly"
+                  :is_internal="is_internal"
                   />
               </div>
               <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
