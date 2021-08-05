@@ -2595,7 +2595,9 @@ class Mooring(models.Model):
     private_moorings = PrivateMooringManager()
     available_moorings = AvailableMooringManager()
     # Used for WLAllocation create MLApplication check
-    mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
+    #mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
+    # mooring licence can onl,y have one Mooring
+    mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring")
 
     def __str__(self):
         return self.name
