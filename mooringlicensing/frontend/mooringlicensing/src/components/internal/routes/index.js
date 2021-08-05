@@ -16,6 +16,7 @@ import Search from '@/components/internal/search/dashboard.vue'
 import PersonDetail from '@/components/internal/person/person_detail.vue'
 import Compliance from '../compliances/access.vue'
 import Reports from '@/components/reports/reports.vue'
+import Approval from '@/components/internal/approvals/approval.vue'
 /*
 import User from '../users/manage.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
@@ -44,13 +45,11 @@ export default
             component: ApprovalDash,
             name:"internal-approvals-dash"
         },
-        /*
         {
             path: 'approval/:approval_id',
             component: Approval,
 
         },
-        */
         {
             path: 'compliances',
             component: ComplianceDash,

@@ -48,6 +48,7 @@ from mooringlicensing.components.approvals.serializers import (
     EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer,
 )
+from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW
@@ -399,6 +400,30 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     #         application_types=application_types,
     #     )
     #     return Response(data)
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def get_moorings(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #serializer = ApprovalMooringSerializer(instance.mooringonapproval_set.all(), many=True)
+        #return Response(serializer.data)
+        #moorings_on_approval = instance.mooringonapproval_set.all()
+        moorings = []
+        for moa in instance.mooringonapproval_set.all():
+            #mooring_name = moa.mooring.name
+            licence_holder_data = {}
+            if moa.mooring.mooring_licence:
+                licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+            moorings.append({
+                "id": moa.id,
+                "mooring_name": moa.mooring.name,
+                #"licence_holder": licence_holder_data,
+                "licensee": licence_holder_data.get('full_name') if licensee else '',
+                "mobile": licence_holder_data.get('mobile_number') if licensee else '',
+                "email": licence_holder_data.get('email') if licensee else '',
+                })
+        return Response(moorings)
 
     @detail_route(methods=['GET'])
     @renderer_classes((JSONRenderer,))

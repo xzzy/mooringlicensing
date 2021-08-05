@@ -243,15 +243,14 @@ export default {
                     'Id',
                     'Number',
                     'Type',
-                    'Sticker number',
+                    'Sticker number/s',
                     'Status',
                     'Issue Date',
                     'Expiry Date',
                     'Vessel',
                     'Action',
-                    'Mooring Licence Vessels',
-                    'Authorised User Permit Moorings',
-                    //'Approval History',
+                    //'Mooring Licence Vessels',
+                    //'Authorised User Permit Moorings',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -275,33 +274,18 @@ export default {
                     'Id',
                     'Number',
                     'Type',
-                    'Sticker Number',
+                    'Sticker Number/s',
                     'Holder',
                     'Status',
                     'Issue Date',
                     'Expiry Date',
                     'Approval letter',
                     'Action',
-                    'Mooring Licence Vessels',
-                    'Authorised User Permit Moorings',
-                    //'Approval History',
+                    //'Mooring Licence Vessels',
+                    //'Authorised User Permit Moorings',
                 ]
             }
         },
-        /*
-        columnApprovalHistory: function() {
-            return {
-                        // 1. ID
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.id
-                        }
-                    }
-        },
-        */
         columnId: function() {
             return {
                         // 1. ID
@@ -326,20 +310,6 @@ export default {
                         }
                     }
         },
-        /*
-        columnBay: function() {
-            return {
-                        // 3. Bay
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    }
-        },
-        */
         columnApplicationNumberInBay: function() {
             return {
                         // 4. Application number in Bay
@@ -440,8 +410,6 @@ export default {
                             } else
                             */
                             if (vm.is_external && full.can_reissue) {
-                                // approval has no view
-                                //links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
                                 if(full.can_action || vm.debug){
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                     if(full.amend_or_renew === 'amend' || vm.debug){
@@ -453,6 +421,7 @@ export default {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
                             } else if (!vm.is_external){
+                                links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
                                 links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
                                 /*
                                 if(full.can_approver_reissue && full.current_proposal){
@@ -595,6 +564,7 @@ export default {
                         }
                     }
         },
+        /*
         columnMooringLicenceVessels: function() {
             return {
                         data: "id",
@@ -617,6 +587,7 @@ export default {
                         }
                     }
         },
+        */
 
         datatable_options: function() {
             let vm = this;
@@ -647,9 +618,10 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnVesselRegistration,
                     vm.columnAction,
+                    /*
                     vm.columnMooringLicenceVessels,
                     vm.columnAuthorisedUserMoorings,
-                    //vm.columnApprovalHistory,
+                    */
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -679,9 +651,10 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnApprovalLetter,
                     vm.columnAction,
+                    /*
                     vm.columnMooringLicenceVessels,
                     vm.columnAuthorisedUserMoorings,
-                    //vm.columnApprovalHistory,
+                    */
                 ]
             }
 
