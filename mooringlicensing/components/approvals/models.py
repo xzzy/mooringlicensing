@@ -239,6 +239,7 @@ class Approval(RevisionedMixin):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     ## change to "moorings" field with ManyToManyField - can come from site_licensee or ria Authorised User Application..
     ## intermediate table records ria or site_licensee
+    ## Please note, MooringLicence mooring should be accessed via approval.child_obj.mooring
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     # should be simple fk to VesselOwnership?
     #vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
@@ -1102,7 +1103,12 @@ class MooringLicence(Approval):
     def vessel_list(self):
         vessels = []
         for proposal in self.proposal_set.all():
-            if proposal.final_status and proposal.vessel_details and proposal.vessel_details.vessel not in vessels:
+            if (
+                    proposal.final_status and 
+                    proposal.vessel_details and 
+                    proposal.vessel_details.vessel not in vessels and
+                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    ):
                 vessels.append(proposal.vessel_details.vessel)
         return vessels
 

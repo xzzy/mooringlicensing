@@ -140,6 +140,27 @@
             <div class="row" v-if="approval && approval.id && mooringLicence">
                 <FormSection 
                     :formCollapse="false" 
+                    label="Authorised Users" 
+                    Index="mooringLicenceAuthorisedUsers"
+                >
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <input type="checkbox" id="checkbox_show_expired" v-model="showExpired">
+                            <label for="checkbox_show_expired">Show expired and/or surrendered authorised user permits</label>
+                        </div>
+                    </div>
+                    <datatable
+                        ref="ml_authorised_users_datatable"
+                        :id="ml_authorised_users_datatable_id"
+                        :dtOptions="ml_authorised_users_datatable_options"
+                        :dtHeaders="ml_authorised_users_datatable_headers"
+                    />
+                </FormSection>
+            </div>
+
+            <div class="row" v-if="approval && approval.id && mooringLicence">
+                <FormSection 
+                    :formCollapse="false" 
                     label="Vessels" 
                     Index="mooringLicenceVessels"
                 >
@@ -175,8 +196,10 @@ export default {
   data() {
     let vm = this;
     return {
+        showExpired: false,
         moorings_datatable_id: 'moorings-datatable-' + vm._uid,
         ml_vessels_datatable_id: 'ml-vessels-datatable-' + vm._uid,
+        ml_authorised_users_datatable_id: 'ml-authorised-users-datatable-' + vm._uid,
         loading: [],
         approval: {
             applicant_id: null
@@ -234,7 +257,7 @@ export default {
                     data: "vessel_name",
                 },
                 {
-                    data: "sticker_name",
+                    data: "sticker_numbers",
                 },
                 {
                     data: "owner",
@@ -247,10 +270,49 @@ export default {
                 },
             ],
         },
+        ml_authorised_users_datatable_headers: [
+                'Number',
+                'Vessel',
+                'Holder',
+                'Mobile',
+                'Email',
+                'Status',
+            ],
+
+        ml_authorised_users_datatable_options: {
+            columns: [
+                {
+                    data: "lodgement_number",
+                },
+                {
+                    data: "vessel_name",
+                },
+                {
+                    data: "holder",
+                },
+                {
+                    data: "mobile",
+                },
+                {
+                    data: "email",
+                },
+                {
+                    data: "status",
+                },
+            ],
+        },
 
     }
   },
-  watch: {},
+  watch: {
+      showExpired: function(value){
+          console.log(value)
+          //this.$refs.approvals_datatable.vmDataTable.ajax.reload()
+          this.$nextTick(() => {
+              this.constructMLAuthorisedUsersTable()
+          });
+      },
+  },
   filters: {
     formatDate: function(data){
         return moment(data).format('DD/MM/YYYY');
@@ -272,6 +334,7 @@ export default {
           }
           if (this.approval && this.approval.id && this.mooringLicence) {
               this.constructMLVesselsTable();
+              this.constructMLAuthorisedUsersTable();
           }
       })
   },
@@ -321,7 +384,7 @@ export default {
         let vm = this;
         this.$refs.moorings_datatable.vmDataTable.clear().draw();
 
-        for(let aum of vm.approval.authorised_user_moorings_detail) {
+        for (let aum of vm.approval.authorised_user_moorings_detail) {
             this.$refs.moorings_datatable.vmDataTable.row.add(
                 {
                     'mooring_name': aum.mooring_name,
@@ -336,16 +399,35 @@ export default {
         let vm = this;
         this.$refs.ml_vessels_datatable.vmDataTable.clear().draw();
 
-        for(let mlv of vm.approval.mooring_licence_vessels_detail) {
+        for (let mlv of vm.approval.mooring_licence_vessels_detail) {
             this.$refs.ml_vessels_datatable.vmDataTable.row.add(
                 {
                     'vessel_name': mlv.vessel_name,
-                    'sticker_name': mlv.sticker_name,
+                    'sticker_numbers': mlv.sticker_numbers,
                     'owner': mlv.owner,
                     'mobile': mlv.mobile,
                     'email': mlv.email,
                 }
             ).draw();
+        }
+    },
+    constructMLAuthorisedUsersTable: function() {
+        let vm = this;
+        this.$refs.ml_authorised_users_datatable.vmDataTable.clear().draw();
+
+        for (let mlau of vm.approval.mooring_licence_authorised_users) {
+            if (this.showExpired || (!this.showExpired && ['current'].includes(mlau.status))) {
+                this.$refs.ml_authorised_users_datatable.vmDataTable.row.add(
+                    {
+                        'lodgement_number': mlau.lodgement_number,
+                        'vessel_name': mlau.vessel_name,
+                        'holder': mlau.holder,
+                        'mobile': mlau.mobile,
+                        'email': mlau.email,
+                        'status': mlau.status,
+                    }
+                ).draw();
+            }
         }
     },
 
