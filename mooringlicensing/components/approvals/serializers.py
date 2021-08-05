@@ -694,8 +694,17 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'licence_document',
         )
 
+    #def get_stickers(self, obj):
+     #   return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
+
     def get_stickers(self, obj):
-        return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
+        numbers = ""
+        for sticker in obj.stickers.filter(status__in=['current', 'awaiting_printing']):
+            if numbers:
+                numbers += ',\n' + sticker.number
+            else:
+                numbers += sticker.number
+        return numbers
 
     def get_renewal_document(self,obj):
         if obj.renewal_document and obj.renewal_document._file:
