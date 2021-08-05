@@ -1798,6 +1798,7 @@ class StickerPrintingResponse(Document):
     email_body = models.TextField(null=True, blank=True)
     email_date = models.CharField(max_length=255, blank=True, null=True)
     email_from = models.CharField(max_length=255, blank=True, null=True)
+    email_message_id = models.CharField(max_length=255, blank=True, null=True)
     processed = models.BooleanField(default=False)
 
     class Meta:
