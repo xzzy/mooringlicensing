@@ -6,10 +6,15 @@ from confy import env
 from django.core.management.base import BaseCommand
 import base64
 from email.header import decode_header, make_header
+from django.core.files.base import File, ContentFile
+
 
 from mooringlicensing.components.main.utils import sticker_export, email_stickers_document
 
 import logging
+
+from mooringlicensing.components.proposals.models import StickerPrintingResponse
+
 logger = logging.getLogger(__name__)
 
 
@@ -72,11 +77,22 @@ class Command(BaseCommand):
                     continue
                 fileName = part.get_filename()
                 if bool(fileName):
-                    filePath = os.path.join('./tmp/', fileName)
-                    if not os.path.isfile(filePath):
-                        fp = open(filePath, 'wb')
-                        fp.write(part.get_payload(decode=True))
-                        fp.close()
+                    my_bytes = part.get_payload(decode=True)
+                    content_file = ContentFile(my_bytes)
+                    sticker_printing_response = StickerPrintingResponse.objects.create()
+                    sticker_printing_response._file.save(fileName, content_file)
+                    aho = 'baka'
+
+
+
+                    # filePath = os.path.join('./tmp/', fileName)
+                    # if not os.path.isfile(filePath):
+
+                        # fp = open(filePath, 'wb')
+                        # fp.write(part.get_payload(decode=True))
+                        # file_imported = File(fp)
+                        # my_obj = Model_Type(obj_name=name, my_file=File(outfile))
+                        # fp.close()
                     subject = str(email_message).split("Subject: ", 1)[1].split("\nTo:", 1)[0]
 
             # mail = email.message_from_string(data[0][1].decode('utf-8'))

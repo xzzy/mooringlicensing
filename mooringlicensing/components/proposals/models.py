@@ -1793,6 +1793,7 @@ class StickerPrintingBatch(Document):
 class StickerPrintingResponse(Document):
     _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
     received_datetime = models.DateTimeField(blank=True, null=True)
+    imported_datetime = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
