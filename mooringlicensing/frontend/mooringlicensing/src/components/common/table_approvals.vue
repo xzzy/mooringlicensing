@@ -440,8 +440,6 @@ export default {
                             } else
                             */
                             if (vm.is_external && full.can_reissue) {
-                                // approval has no view
-                                //links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
                                 if(full.can_action || vm.debug){
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                     if(full.amend_or_renew === 'amend' || vm.debug){
@@ -453,6 +451,7 @@ export default {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
                             } else if (!vm.is_external){
+                                links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
                                 links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
                                 /*
                                 if(full.can_approver_reissue && full.current_proposal){
