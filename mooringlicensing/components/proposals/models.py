@@ -1794,6 +1794,11 @@ class StickerPrintingResponse(Document):
     _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
     received_datetime = models.DateTimeField(blank=True, null=True)
     imported_datetime = models.DateTimeField(blank=True, null=True)
+    email_subject = models.CharField(max_length=255, blank=True, null=True)
+    email_body = models.TextField(null=True, blank=True)
+    email_date = models.CharField(max_length=255, blank=True, null=True)
+    email_from = models.CharField(max_length=255, blank=True, null=True)
+    processed = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
