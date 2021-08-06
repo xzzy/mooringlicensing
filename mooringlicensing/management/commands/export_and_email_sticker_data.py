@@ -10,9 +10,6 @@ class Command(BaseCommand):
     help = 'Export and email sticker data'
 
     def handle(self, *args, **options):
-        errors = []
-        updates = []
-
         updates, errors = sticker_export()
         success_filenames, error_filenames = email_stickers_document()
 
