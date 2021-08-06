@@ -262,6 +262,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     mooring_licence_vessels = serializers.SerializerMethodField()
     mooring_licence_vessels_detail = serializers.SerializerMethodField()
     mooring_licence_authorised_users = serializers.SerializerMethodField()
+    mooring_licence_mooring = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
     authorised_user_moorings_detail = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
@@ -302,6 +303,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'mooring_licence_vessels',
             'mooring_licence_vessels_detail',
             'mooring_licence_authorised_users',
+            'mooring_licence_mooring',
             'authorised_user_moorings',
             'authorised_user_moorings_detail',
             'can_reissue',
@@ -316,6 +318,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'stickers',
             'licence_document',
         )
+
+    def get_mooring_licence_mooring(self, obj):
+        if type(obj.child_obj) == MooringLicence:
+            return obj.child_obj.mooring.name
+        else:
+            return None
 
     def get_stickers(self, obj):
         return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
