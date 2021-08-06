@@ -1,0 +1,22 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+Dear {{ recipient.first_name }} {{ recipient.last_name}},
+
+{% if decision == 'approved' %}
+<p>Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
+<p>The sticker for your vessel will be mailed to you in the coming days.</p>
+    {% if details %}
+    <p>Details: {{ details }}</p>
+    {% endif %}
+{% endif %}
+
+{% if decision == 'declined' %}
+<p>Your annual admission application {{ proposal.lodgement_number }} has been declined.</p>
+    {% if details %}
+    <p>Details: {{ details }}</p>
+    {% endif %}
+{% endif %}
+
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}
