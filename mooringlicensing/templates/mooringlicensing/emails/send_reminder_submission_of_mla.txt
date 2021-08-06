@@ -1,0 +1,11 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{%  block content_body %}
+Dear {{ recipient.first_name }} {{ recipient.last_name }},
+You are reminded of the invitation to apply for a mooring licence based on your current Waiting List Allocation {{ proposal.lodgement_number }}. Your opportunity to apply for a mooring licence will be discarded if you do not submit your mooring licence application before this date.
+You are required to submit your application within {{ number_of_days }} number before {{ due_date }}.
+
+Please access {{ url }} to access the application.
+
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{%  endblock %}

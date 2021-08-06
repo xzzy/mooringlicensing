@@ -36,8 +36,8 @@ from ledger.payments.invoice.utils import CreateInvoiceBasket
 
 # from mooringlicensing.components.payments_ml.models import FeeItem
 from mooringlicensing.components.proposals.email import (
-    send_proposal_decline_email_notification,
-    send_proposal_approval_email_notification,
+    # send_proposal_decline_email_notification,
+    send_application_processed_email,
     # send_proposal_awaiting_payment_approval_email_notification,
     send_amendment_email_notification,
     send_confirmation_email_upon_submit,
@@ -1053,7 +1053,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if self.application_type.code == MooringLicence.code and self.waiting_list_allocation:
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
-                send_proposal_decline_email_notification(self,request, proposal_decline)
+                # send_proposal_decline_email_notification(self,request, proposal_decline)
+                send_application_processed_email(self, 'declined', False, request)
             except:
                 raise
 
@@ -1302,7 +1303,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.approval = approval
 
                 # send Proposal approval email with attachment
-                send_proposal_approval_email_notification(self, request)
+                send_application_processed_email(self, 'approved', False, request)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
@@ -1792,6 +1793,13 @@ class StickerPrintingBatch(Document):
 class StickerPrintingResponse(Document):
     _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
     received_datetime = models.DateTimeField(blank=True, null=True)
+    imported_datetime = models.DateTimeField(blank=True, null=True)
+    email_subject = models.CharField(max_length=255, blank=True, null=True)
+    email_body = models.TextField(null=True, blank=True)
+    email_date = models.CharField(max_length=255, blank=True, null=True)
+    email_from = models.CharField(max_length=255, blank=True, null=True)
+    email_message_id = models.CharField(max_length=255, blank=True, null=True)
+    processed = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
