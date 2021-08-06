@@ -107,6 +107,99 @@ class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
         self.subject = '{} - {} created.'.format(settings.RIA_NAME, approval.child_obj.description)
 
 
+class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
+    subject = 'No moorings remaining'  # This is default and should be overwitten
+    html_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.html'
+    txt_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.txt'
+
+    def __init__(self, approval):
+        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
+class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
+    subject = 'Mooring removed'  # This is default and should be overwitten
+    html_template = 'mooringlicensing/emails/auth_user_mooring_removed_notification.html'
+    txt_template = 'mooringlicensing/emails/auth_user_mooring_removed_notification.txt'
+
+    def __init__(self, approval):
+        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
+def send_auth_user_no_moorings_notification(approval):
+    email = AuthorisedUserNoMooringsNotificationEmail(approval)
+    proposal = approval.current_proposal
+
+    url=settings.SITE_URL if settings.SITE_URL else ''
+    url += reverse('external')
+
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+        'url': url
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+    	sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+def send_auth_user_mooring_removed_notification(approval, mooring_licence):
+    email = AuthorisedUserMooringRemovedNotificationEmail(approval)
+    proposal = approval.current_proposal
+
+    url=settings.SITE_URL if settings.SITE_URL else ''
+    url += reverse('external')
+
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+        'mooring_licence': mooring_licence,
+        'url': url
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+    	sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+
+
 def send_approval_expire_email_notification(approval):
     # if approval.is_lawful_authority:
     #     email = FilmingLawfulAuthorityApprovalExpireNotificationEmail()

@@ -30,6 +30,7 @@ from mooringlicensing.components.proposals.models import (
 )
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from rest_framework import serializers
 from django.db.models import Q
@@ -767,7 +768,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    submitter = EmailUserAppViewSerializer()
+    #submitter = EmailUserAppViewSerializer()
+    submitter = UserSerializer()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
