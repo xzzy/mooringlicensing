@@ -71,14 +71,17 @@
                   </div>
                   <div v-if="loading.length == 0" class="panel-body collapse" :id="oBody">
                       <form class="form-horizontal" action="index.html" method="post">
+                          <div v-if="mooringLicence" class="form-group">
+                            <label for="" class="col-sm-3 control-label">Mooring</label>
+                            <div class="col-sm-6">
+                                <label for="" class="control-label pull-left">{{approval.mooring_licence_mooring}}</label>
+                            </div>
+                          </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Issue Date</label>
                             <div class="col-sm-6">
                                 <label for="" class="control-label pull-left">{{approval.issue_date | formatDate}}</label>
                             </div>
-                        <!---    <div class="col-sm-6">
-                                <p>{{approval.issue_date | formatDate}}</p>
-                            </div> -->
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Start Date</label>
