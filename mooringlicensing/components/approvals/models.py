@@ -632,6 +632,10 @@ class Approval(RevisionedMixin):
                 else:
                     self.set_to_cancel = True
                 self.save()
+                if type(self.child_obj) == MooringLicence:
+                    ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
+                    #self.child_obj.update_auth_user_permits('cancelled')
+                    self.child_obj.update_auth_user_permits()
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
                 # Log entry for organisation
@@ -667,6 +671,10 @@ class Approval(RevisionedMixin):
                 else:
                     self.set_to_suspend = True
                 self.save()
+                if type(self.child_obj) == MooringLicence:
+                    ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
+                    #self.child_obj.update_auth_user_permits('suspended')
+                    self.child_obj.update_auth_user_permits()
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -892,6 +900,25 @@ class AuthorisedUserPermit(Approval):
             self.save()
         self.approval.refresh_from_db()
 
+    def update_moorings(self, mooring_licence):
+        if not obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
+            send_auth_user_no_moorings_notification(self.approval)
+        for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            ## notify authorised user permit holder that the mooring is no longer available
+            if moa.mooring == mooring_licence.mooring:
+                ## send email to auth user
+                send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+        ## Note that new stickers need to be issued for the current authorised user permits where the mooring is removed.
+        old_sticker = obj.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
+        old_sticker.status = 'to_be_returned'
+        old_sticker.save()
+        new_sticker = Sticker.objects.create(
+                approval=old_sticker.approval,
+                vessel_ownership=old_sticker.vessel_ownership,
+                fee_constructor=old_sticker.fee_constructor,
+                )
+
     def manage_stickers(self, proposal):
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
 
@@ -992,6 +1019,15 @@ class MooringLicence(Approval):
             self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
             self.save()
         self.approval.refresh_from_db()
+
+    def update_auth_user_permits(self):
+        moa_set = MooringOnApproval.objects.filter(
+                mooring=self.mooring,
+                approval__status='current'
+                )
+        for moa in moa_set:
+            type(moa.approval.child_obj) == AuthorisedUserPermit:
+                moa.approval.child_obj.update_moorings(self)
 
     def manage_stickers(self, proposal):
         if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:

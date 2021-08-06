@@ -437,15 +437,13 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_authorised_user_moorings_detail(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
-            for moa in obj.mooringonapproval_set.all():
-                #mooring_name = moa.mooring.name
-                licence_holder_data = {}
+            #for moa in obj.mooringonapproval_set.all():
+            for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
                 if moa.mooring.mooring_licence:
                     licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
                 moorings.append({
                     "id": moa.id,
                     "mooring_name": moa.mooring.name,
-                    #"licence_holder": licence_holder_data,
                     "licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
                     "mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
                     "email": licence_holder_data.get('email') if licence_holder_data else '',
@@ -457,11 +455,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
         links = ''
         request = self.context['request']
         if type(obj.child_obj) == AuthorisedUserPermit:
-            for mooring in obj.moorings.all():
+            #for mooring in obj.moorings.all():
+            for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
                 if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
-                            mooring.id,
-                            str(mooring),
+                            moa.mooring.id,
+                            str(moa.mooring),
                             )
                 else:
                     links += '{}\n'.format(str(mooring))
