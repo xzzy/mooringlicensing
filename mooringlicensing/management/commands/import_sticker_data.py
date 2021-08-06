@@ -63,8 +63,12 @@ class Command(BaseCommand):
             raw_email_string = raw_email.decode('utf-8')
             email_message = email.message_from_string(raw_email_string)
 
-            email_subject = str(make_header(decode_header(email_message["Subject"])))
             email_message_id = str(make_header(decode_header(email_message["Message-ID"])))
+            if StickerPrintingResponse.objects.filter(email_message_id=email_message_id):
+                # This email has been saved in the database already.  Skip this email
+                continue
+
+            email_subject = str(make_header(decode_header(email_message["Subject"])))
             email_from = email_message['From']
             body = get_text(email_message)
             email_body = body.decode()
