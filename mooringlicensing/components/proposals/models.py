@@ -2031,7 +2031,7 @@ class AnnualAdmissionApplication(Proposal):
         created = None
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             approval = self.approval
-            approval.current_proposal=self
+            approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
             approval.expiry_date = self.end_date
