@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from django.core.mail import send_mail
+#from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, EmailMessage
 from pathlib import Path
 import subprocess
 
@@ -43,9 +44,15 @@ class Command(BaseCommand):
         self.send_email()
 
     def send_email(self):
+        email_instance = env('EMAIL_INSTANCE','DEV')
         log_txt = Path(LOGFILE).read_text()
         subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
         body = ''
         to = settings.CRON_NOTIFICATION_EMAIL if isinstance(settings.NOTIFICATION_EMAIL, list) else [settings.CRON_NOTIFICATION_EMAIL]
-        send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt)
+        msg = EmailMultiAlternatives(self.subject, log_txt, settings.EMAIL_FROM, to,
+                #attachments=_attachments, cc=cc, bcc=bcc, 
+                #reply_to=reply_to, 
+                headers={'System-Environment': email_instance}
+                )
+        #send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt,)
 
