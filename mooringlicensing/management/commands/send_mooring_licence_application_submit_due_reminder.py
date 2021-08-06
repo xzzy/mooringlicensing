@@ -60,7 +60,8 @@ class Command(BaseCommand):
 
         for a in MooringLicenceApplication.objects.filter(queries):
             try:
-                send_invitee_reminder_email(a)
+                due_date = a.lodgement_date + timedelta(days=days_setting_period.number_of_days)
+                send_invitee_reminder_email(a, due_date, days_setting_before.number_of_days)
                 a.invitee_reminder_sent = True
                 a.save()
                 logger.info('Reminder to invitee sent for Proposal {}'.format(a.lodgement_number))
