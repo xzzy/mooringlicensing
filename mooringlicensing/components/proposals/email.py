@@ -1028,14 +1028,16 @@ def send_application_processed_email(proposal, decision, with_payment, request):
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
-        send_wla_processed_email(proposal, decision, with_payment, request)
+        send_wla_processed_email(proposal, decision, with_payment, request)  # with_payment should be always False for WLA
+    elif proposal.application_type.code == AnnualAdmissionApplication.code:
+        send_aaa_processed_email(proposal, decision, with_payment, request)  # with_payment should be always False for AAA
     else:
-        html_template = 'mooringlicensing/emails/send_wla_processed.html',
-        txt_template = 'mooringlicensing/emails/send_wla_processed.txt',
+        html_template = 'mooringlicensing/emails/send_wla_processed.html'
+        txt_template = 'mooringlicensing/emails/send_wla_processed.txt'
         if decision == 'approved':
-            subject='Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+            subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
         elif decision == 'declined':
-            subject='Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
+            subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
 
         email = TemplateEmailBase(
             subject=subject,
@@ -1093,6 +1095,7 @@ def send_application_processed_email(proposal, decision, with_payment, request):
 
 
 def send_wla_processed_email(proposal, decision, with_payment, request):
+    # 17
     if decision == 'approved':
         subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details'),
@@ -1101,12 +1104,13 @@ def send_wla_processed_email(proposal, decision, with_payment, request):
         subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
 
-    html_template = 'mooringlicensing/emails/send_wla_processed_email.html',
-    txt_template = 'mooringlicensing/emails/send_wla_processed_email.txt',
+    html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
+    txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
 
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
+        'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
     }
@@ -1130,15 +1134,55 @@ def send_wla_processed_email(proposal, decision, with_payment, request):
 
 
 def send_aaa_processed_email(proposal, decision, with_payment, request):
+    # 18 new/renewal, approval/decline
+    # 19 amendment, approval/decline
     if decision == 'approved':
         subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
+        details = proposal.proposed_issuance_approval.get('details'),
     elif decision == 'declined':
         subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
-    html_template = 'mooringlicensing/emails/send_aaa_processed_email.html',
-    txt_template = 'mooringlicensing/emails/send_aaa_processed_email.txt',
+        details = proposal.proposaldeclineddetails.reason
+
+    if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
+        # New / Renewal
+        html_template = 'mooringlicensing/emails/send_processed_email_for_aaa.html'
+        txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa.txt'
+    else:
+        # Amendment
+        html_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.html'
+        txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.txt'
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'sticker_to_be_replaced': {'number': '(TODO)'},  # TODO: if existing sticker needs to be replaced, assigne sticker object here.
+    }
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_aua_processed_email(proposal, decision, with_payment, request):
+    # 20 AUA new/renewal, approval/decline
+    # 21 AUA amendment(no payment), approval/decline
+    # 22 AUA amendment(payment), approval/decline
     if decision == 'approved':
         subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
     elif decision == 'declined':
@@ -1148,6 +1192,9 @@ def send_aua_processed_email(proposal, decision, with_payment, request):
 
 
 def send_mla_processed_email(proposal, decision, with_payment, request):
+    # 23 ML new/renewal, approval/decline
+    # 24 ML amendment(no payment), approval/decline
+    # 25 ML amendment(payment), approval/decline
     if decision == 'approved':
         subject = 'Your mooring licence application {} has been approved'.format(proposal.lodgement_number)
     elif decision == 'declined':
@@ -1156,3 +1203,12 @@ def send_mla_processed_email(proposal, decision, with_payment, request):
     txt_template = 'mooringlicensing/emails/send_mla_processed_email.txt',
 
 
+
+
+    #26DCVPermit
+    #27 DCVAdmission
+
+    #28 Cancelled
+    #29 Suspended
+    #30 Surrendered
+    #31 Reinstated
