@@ -563,6 +563,12 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
 #####
 ### After refactoring ###
 #####
+def get_public_url(request=None):
+    if request:
+        web_url = request.META.get('HTTP_HOST', None)
+    else:
+        web_url = settings.SITE_URL if settings.SITE_URL else ''
+    return web_url
 
 
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
@@ -580,6 +586,7 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'payment_made': payment_made,
         'url': url,
@@ -609,6 +616,7 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'url': url,
     }
@@ -637,6 +645,7 @@ def send_approver_approve_email_notification(request, proposal):
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
     context = {
+        'public_url': get_public_url(request),
         'start_date' : proposal.proposed_issuance_approval.get('start_date'),
         'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
         'details': proposal.proposed_issuance_approval.get('details'),
@@ -660,6 +669,7 @@ def send_approver_decline_email_notification(reason, request, proposal):
     )
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'reason': reason,
         'url': url
@@ -689,6 +699,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         url = ''.join(url.split('-internal'))
 
     context = {
+        'public_url': get_public_url(request),
         'recipient': proposal.submitter,
         'proposal': proposal,
         'reason': reason,
@@ -737,6 +748,7 @@ def send_create_mooring_licence_application_email_notification(request, approval
     days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'proposal': proposal,
         'recipient': proposal.submitter,
@@ -789,6 +801,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'documents_upload_url': document_upload_url,
         'url': url,
@@ -828,6 +841,7 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
     url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'url': url,
@@ -897,6 +911,7 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     mooring_name = proposal.mooring.name if proposal.mooring else ''
 
     context = {
+        'public_url': get_public_url(),
         'proposal': proposal,
         'applicant': proposal.submitter,
         'due_date': due_date,
@@ -937,6 +952,7 @@ def send_endorser_reminder_email(proposal, due_date, request=None):
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'endorser': endorser,
         'applicant': proposal.submitter,
@@ -969,6 +985,7 @@ def send_approval_renewal_email_notification(approval):
     dashboard_url = url + reverse('external')
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'proposal': approval.current_proposal,
         'url': dashboard_url,
@@ -1055,6 +1072,7 @@ def send_application_processed_email(proposal, decision, with_payment, request):
         # else:
         #     handbook_url= settings.COLS_HANDBOOK_URL
         context = {
+            'public_url': get_public_url(request),
             'proposal': proposal,
             'num_requirement_docs': len(attachments) - 1,
             'url': url,
@@ -1087,6 +1105,7 @@ def send_wla_processed_email(proposal, decision, with_payment, request):
     txt_template = 'mooringlicensing/emails/send_wla_processed_email.txt',
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'decision': decision,
         'details': details,
