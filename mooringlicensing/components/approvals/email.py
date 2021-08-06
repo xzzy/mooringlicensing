@@ -161,7 +161,7 @@ def send_auth_user_no_moorings_notification(approval):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
-def send_auth_user_mooring_removed_notification(approval, mooring_licence)
+def send_auth_user_mooring_removed_notification(approval, mooring_licence):
     email = AuthorisedUserMooringRemovedNotificationEmail(approval)
     proposal = approval.current_proposal
 

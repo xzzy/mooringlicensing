@@ -1026,7 +1026,7 @@ class MooringLicence(Approval):
                 approval__status='current'
                 )
         for moa in moa_set:
-            type(moa.approval.child_obj) == AuthorisedUserPermit:
+            if type(moa.approval.child_obj) == AuthorisedUserPermit:
                 moa.approval.child_obj.update_moorings(self)
 
     def manage_stickers(self, proposal):
