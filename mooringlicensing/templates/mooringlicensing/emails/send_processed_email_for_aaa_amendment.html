@@ -4,19 +4,20 @@
 Dear {{ recipient.first_name }} {{ recipient.last_name}},
 
 {% if decision == 'approved' %}
-<p>Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
-{% if sticker_to_be_replaced %}
-<p>Please return sticker {{ sticker_to_be_replaced.number }} of your old vessel to the Rottnest Island Authority.</p>
-{% endif %}
-<p>The new sticker for your vessel will be mailed to you in the coming days.</p>
+    <p>Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
+    {% if sticker_to_be_replaced %}
+    <p>Please return sticker {{ sticker_to_be_replaced.number }} of your old vessel to the Rottnest Island Authority.</p>
+    {% endif %}
+    <p>The new sticker for your vessel will be mailed to you in the coming days.</p>
 
-{% if details %}
+    {% if details %}
     <p>Details: {{ details }}</p>
     {% endif %}
 {% endif %}
 
 {% if decision == 'declined' %}
-<p>Your annual admission application {{ proposal.lodgement_number }} has been declined.</p>
+    <p>Your annual admission application {{ proposal.lodgement_number }} has been declined.</p>
+
     {% if details %}
     <p>Details: {{ details }}</p>
     {% endif %}
