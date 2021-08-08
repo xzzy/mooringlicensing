@@ -1,6 +1,5 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
-        aho
         <div class="row">
             <h3>Application: {{ proposal.lodgement_number }}</h3>
             <h4>Application Type: {{ proposal.proposal_type.description }}</h4>
@@ -8,10 +7,10 @@
                 <h4>Approval Level: {{ proposal.approval_level }}</h4>
             </div-->
             <div class="col-md-3">
-                <CommsLogs 
-                    :comms_url="comms_url" 
-                    :logs_url="logs_url" 
-                    :comms_add_url="comms_add_url" 
+                <CommsLogs
+                    :comms_url="comms_url"
+                    :logs_url="logs_url"
+                    :comms_add_url="comms_add_url"
                     :disable_add_entry="false"
                 />
 
@@ -45,8 +44,8 @@
             <div class="col-md-8">
                 <!-- Main contents -->
                 <template v-if="display_approval_screen">
-                    <ApprovalScreen 
-                        :proposal="proposal" 
+                    <ApprovalScreen
+                        :proposal="proposal"
                         @refreshFromResponse="refreshFromResponse"
                     />
                 </template>
@@ -54,10 +53,10 @@
                 <template v-if="canSeeSubmission || (!canSeeSubmission && showingProposal)">
                     <WaitingListApplication
                         v-if="proposal && proposal.application_type_dict.code==='wla'"
-                        :proposal="proposal" 
+                        :proposal="proposal"
                         :show_application_title="false"
-                        :is_external="false" 
-                        :is_internal="true" 
+                        :is_external="false"
+                        :is_internal="true"
                         ref="waiting_list_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
@@ -67,10 +66,10 @@
 
                     <AnnualAdmissionApplication
                         v-if="proposal && proposal.application_type_dict.code==='aaa'"
-                        :proposal="proposal" 
+                        :proposal="proposal"
                         :show_application_title="false"
-                        :is_external="false" 
-                        :is_internal="true" 
+                        :is_external="false"
+                        :is_internal="true"
                         ref="annual_admission_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
@@ -78,20 +77,20 @@
                     />
                     <AuthorisedUserApplication
                         v-if="proposal && proposal.application_type_dict.code==='aua'"
-                        :proposal="proposal" 
+                        :proposal="proposal"
                         :show_application_title="false"
-                        :is_external="false" 
-                        :is_internal="true" 
+                        :is_external="false"
+                        :is_internal="true"
                         ref="authorised_user_application"
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
                     />
                     <MooringLicenceApplication
                         v-if="proposal && proposal.application_type_dict.code==='mla'"
-                        :proposal="proposal" 
+                        :proposal="proposal"
                         :show_application_title="false"
-                        :is_external="false" 
-                        :is_internal="true" 
+                        :is_external="false"
+                        :is_internal="true"
                         ref="mooring_licence_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
@@ -99,36 +98,36 @@
                     />
                 </template>
                 <template v-if="display_requirements">
-                    <Requirements 
-                        :proposal="proposal" 
+                    <Requirements
+                        :proposal="proposal"
                         @refreshRequirements="refreshRequirements"
                     />
                 </template>
             </div>
         </div>
 
-        <ProposedApproval 
+        <ProposedApproval
             v-if="proposal"
-            :proposal="proposal" 
-            ref="proposed_approval" 
-            :processing_status="proposal.processing_status" 
-            :proposal_id="proposal.id" 
-            :proposal_type='proposal.proposal_type.code' 
-            :isApprovalLevelDocument="isApprovalLevelDocument" 
-            :submitter_email="proposal.submitter.email" 
-            :applicant_email="applicant_email" 
+            :proposal="proposal"
+            ref="proposed_approval"
+            :processing_status="proposal.processing_status"
+            :proposal_id="proposal.id"
+            :proposal_type='proposal.proposal_type.code'
+            :isApprovalLevelDocument="isApprovalLevelDocument"
+            :submitter_email="proposal.submitter.email"
+            :applicant_email="applicant_email"
             @refreshFromResponse="refreshFromResponse"
             :key="proposedApprovalKey"
         />
-        <ProposedDecline 
-            ref="proposed_decline" 
-            :processing_status="proposal.processing_status" 
-            :proposal="proposal" 
+        <ProposedDecline
+            ref="proposed_decline"
+            :processing_status="proposal.processing_status"
+            :proposal="proposal"
             @refreshFromResponse="refreshFromResponse"
         />
-        <AmendmentRequest 
-            ref="amendment_request" 
-            :proposal="proposal" 
+        <AmendmentRequest
+            ref="amendment_request"
+            :proposal="proposal"
             @refreshFromResponse="refreshFromResponse"
         />
     </div>
@@ -268,16 +267,16 @@ export default {
             }
         },
         display_approval_screen: function(){
-            let ret_val = 
-                this.proposal.processing_status == constants.WITH_APPROVER || 
+            let ret_val =
+                this.proposal.processing_status == constants.WITH_APPROVER ||
                 this.proposal.processing_status == constants.AWAITING_STICKER ||
                 this.proposal.processing_status == constants.AWAITING_PAYMENT ||
                 this.isFinalised
             return ret_val
         },
         display_requirements: function(){
-            let ret_val = 
-                this.proposal.processing_status == constants.WITH_ASSESSOR_REQUIREMENTS || 
+            let ret_val =
+                this.proposal.processing_status == constants.WITH_ASSESSOR_REQUIREMENTS ||
                 ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
             return ret_val
         },
@@ -328,30 +327,30 @@ export default {
             //return false  // TODO: implement this.  This is just temporary solution
 
             if (this.proposal.processing_status == 'With Approver'){
-                return 
-                    this.proposal 
+                return
+                    this.proposal
                     && (
-                        this.proposal.processing_status == 'With Assessor' || 
-                        //this.proposal.processing_status == 'With Referral' || 
+                        this.proposal.processing_status == 'With Assessor' ||
+                        //this.proposal.processing_status == 'With Referral' ||
                         this.proposal.processing_status == 'With Assessor (Requirements)'
-                    ) 
-                    && !this.isFinalised && !this.proposal.can_user_edit 
+                    )
+                    && !this.isFinalised && !this.proposal.can_user_edit
                     && (
-                        this.proposal.current_assessor.id == this.proposal.assigned_approver || 
-                        this.proposal.assigned_approver == null 
+                        this.proposal.current_assessor.id == this.proposal.assigned_approver ||
+                        this.proposal.assigned_approver == null
                     ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
             else{
-                return 
-                    this.proposal 
+                return
+                    this.proposal
                     && (
-                        this.proposal.processing_status == 'With Assessor' || 
-                        //this.proposal.processing_status == 'With Referral' || 
+                        this.proposal.processing_status == 'With Assessor' ||
+                        //this.proposal.processing_status == 'With Referral' ||
                         this.proposal.processing_status == 'With Assessor (Requirements)'
-                    ) && !this.isFinalised && !this.proposal.can_user_edit 
+                    ) && !this.isFinalised && !this.proposal.can_user_edit
                     && (
-                        this.proposal.current_assessor.id == this.proposal.assigned_officer || 
-                        this.proposal.assigned_officer == null 
+                        this.proposal.current_assessor.id == this.proposal.assigned_officer ||
+                        this.proposal.assigned_officer == null
                     ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
