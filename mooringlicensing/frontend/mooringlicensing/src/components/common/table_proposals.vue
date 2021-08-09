@@ -256,6 +256,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log(full)
                     let links = '';
                     if (vm.is_internal){
                         if (vm.debug){
@@ -278,7 +279,9 @@ export default {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
                         for (let invoice of full.invoices){
-                            if (invoice.payment_status === 'unpaid'){
+                            console.log('--invoice--')
+                            console.log(invoice)
+                            if (invoice.payment_status.toLowerCase() === 'unpaid'){
                                 links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
                             }
                         }
