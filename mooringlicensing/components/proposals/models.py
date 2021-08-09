@@ -1644,7 +1644,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.refresh_from_db()  # Somehow this is needed...
 
     def process_after_approval(self, request, payment_status=None):
-        self.child_obj.process_after_approval(request)
+        self.child_obj.process_after_approval(request, payment_status)
         self.refresh_from_db()  # Somehow this is needed...
 
     def get_fee_amount_adjusted(self, fee_item):
@@ -1925,7 +1925,7 @@ class WaitingListApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status):
         self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
@@ -2070,7 +2070,7 @@ class AnnualAdmissionApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request, payment_status):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
         self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
