@@ -1131,6 +1131,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 # 26DCVPermit
 # 27 DCVAdmission
 
+# Followings are in the approval/email
 # 28 Cancelled
 # 29 Suspended
 # 30 Surrendered
