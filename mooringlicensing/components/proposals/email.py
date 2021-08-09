@@ -23,62 +23,10 @@ logger = logging.getLogger(__name__)
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
 
-class PaymentRequiredEmail(TemplateEmailBase):
-    subject = 'Payment required for approval of the application: {}'
-    html_template = 'mooringlicensing/emails/proposals/payment_required_email.html'
-    txt_template = 'mooringlicensing/emails/proposals/payment_required_email.txt'
-
-    def __init__(self, proposal):
-        self.subject = self.subject.format(proposal.lodgement_number)
-
-
-class ExternalSubmitSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Confirmation - Application submitted.'.format(settings.DEP_NAME)
-    html_template = 'mooringlicensing/emails/proposals/send_external_submit_notification.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_external_submit_notification.txt'
-
-
 class ApproverSendBackNotificationEmail(TemplateEmailBase):
     subject = 'An Application has been sent back by approver.'
     html_template = 'mooringlicensing/emails/proposals/send_approver_sendback_notification.html'
     txt_template = 'mooringlicensing/emails/proposals/send_approver_sendback_notification.txt'
-
-
-def log_proposal_email(msg, proposal, sender):
-    try:
-        sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
-    except:
-        sender_user = EmailUser.objects.create(email=sender, password='')
-
-    _log_proposal_email(msg, proposal, sender=sender_user)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user)
-
-
-def send_emails_for_payment_required(request, proposal, attachments=[]):
-    email = PaymentRequiredEmail(proposal)
-    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    # if "-internal" not in url:
-        # add it. This email is for internal staff (assessors)
-        # url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
-
-    # Configure recipients, contents, etc
-    context = {
-        'proposal': proposal,
-        # 'url': url
-    }
-    to_address = proposal.submitter.email
-    cc = proposal.child_obj.approver_recipients
-    bcc = []
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
-
-    return msg
 
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
@@ -101,6 +49,19 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
     return msg
+
+
+def log_proposal_email(msg, proposal, sender):
+    try:
+        sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
+    except:
+        sender_user = EmailUser.objects.create(email=sender, password='')
+
+    _log_proposal_email(msg, proposal, sender=sender_user)
+    if proposal.org_applicant:
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user)
 
 
 def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, filename=None):
