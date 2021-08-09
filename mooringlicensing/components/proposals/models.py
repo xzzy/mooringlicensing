@@ -10,7 +10,7 @@ from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError, ObjectDoesNotExist, ImproperlyConfigured
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
@@ -25,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType, GlobalSettings,
+    Document, ApplicationType, GlobalSettings, NumberOfDaysType, NumberOfDaysSetting,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -45,7 +45,7 @@ from mooringlicensing.components.proposals.email import (
     send_approver_decline_email_notification,
     send_approver_approve_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
-    send_documents_upload_for_mooring_licence_application_email, send_emails_for_payment_required,
+    send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
 )
 # from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
@@ -60,7 +60,7 @@ from rest_framework import serializers
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_ID, \
-    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW
+    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
 logger_for_payment = logging.getLogger('payment_checkout')
@@ -1405,7 +1405,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
-        ret_value = send_emails_for_payment_required(request, self, attachments)
+        # ret_value = send_emails_for_payment_required(request, self, attachments)
+        ret_value = send_application_processed_email(self, 'approved', True, request)
         return ret_value
 
     def final_approval(self, request, details):
@@ -2110,6 +2111,15 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_due_date_for_endorsement_by_target_date(self, target_date=timezone.localtime(timezone.now()).date()):
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
+        days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, target_date)
+        if not days_setting:
+            # No number of days found
+            raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, target_date))
+        due_date = self.lodgement_date + datetime.timedelta(days=days_setting.number_of_days)
+        return due_date
 
     @property
     def assessor_group(self):
