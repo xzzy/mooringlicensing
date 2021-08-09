@@ -45,7 +45,7 @@ from mooringlicensing.components.proposals.email import (
     send_approver_decline_email_notification,
     send_approver_approve_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
-    send_documents_upload_for_mooring_licence_application_email, send_emails_for_payment_required,
+    send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
 )
 # from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
@@ -1405,7 +1405,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
-        ret_value = send_emails_for_payment_required(request, self, attachments)
+        # ret_value = send_emails_for_payment_required(request, self, attachments)
+        ret_value = send_application_processed_email(self, 'approved', True, request)
         return ret_value
 
     def final_approval(self, request, details):
