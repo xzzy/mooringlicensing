@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+import pytz
 from urllib.parse import urljoin
 from os.path import join
 
@@ -742,7 +743,7 @@ def send_create_mooring_licence_application_email_notification(request, approval
         # remove '-internal'. This email is for external submitters
         url = ''.join(url.split('-internal'))
 
-    today = timezone.localtime(timezone.now()).date()
+    today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_PERIOD_MLA)
     days_setting_application_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
@@ -794,7 +795,8 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     )
     document_upload_url = proposal.get_document_upload_url(request)
 
-    today = timezone.localtime(timezone.now()).date()
+    # today = localtime(timezone.now()).date()
+    today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
     days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
 
@@ -1029,12 +1031,15 @@ def send_application_processed_email(proposal, decision, require_payment, reques
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
-        send_wla_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for WLA
+        send_wla_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for WLA because it should be paid at this stage.
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
-        send_aaa_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA
+        send_aaa_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
-        send_aua_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA
+        send_aua_processed_email(proposal, decision, require_payment, request)
+    elif proposal.application_type.code == MooringLicenceApplication.code:
+        send_mla_processed_email(proposal, decision, require_payment, request)
     else:
+        # Should not reach here
         html_template = 'mooringlicensing/emails/send_wla_processed.html'
         txt_template = 'mooringlicensing/emails/send_wla_processed.txt'
         if decision == 'approved':
@@ -1099,13 +1104,22 @@ def send_application_processed_email(proposal, decision, require_payment, reques
 
 def send_wla_processed_email(proposal, decision, require_payment, request):
     # 17
+    all_ccs = []
+    all_bccs = []
+
     if decision == 'approved':
         subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details'),
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
 
     elif decision == 'declined':
         subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
 
     html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
     txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
@@ -1123,13 +1137,12 @@ def send_wla_processed_email(proposal, decision, require_payment, request):
         html_template=html_template,
         txt_template=txt_template,
     )
+     # TODO: attachments???
 
     to_address = proposal.submitter.email
-    cc = []
-    bcc = []
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
@@ -1139,12 +1152,20 @@ def send_wla_processed_email(proposal, decision, require_payment, request):
 def send_aaa_processed_email(proposal, decision, require_payment, request):
     # 18 new/renewal, approval/decline
     # 19 amendment, approval/decline
+    all_ccs = []
+    all_bccs = []
     if decision == 'approved':
         subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details'),
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
     elif decision == 'declined':
         subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
 
     if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
         # New / Renewal
@@ -1169,13 +1190,12 @@ def send_aaa_processed_email(proposal, decision, require_payment, request):
         html_template=html_template,
         txt_template=txt_template,
     )
+    # TODO: attachments???
 
     to_address = proposal.submitter.email
-    cc = []
-    bcc = []
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
@@ -1186,12 +1206,20 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
     # 20 AUA new/renewal, approval/decline
     # 21 AUA amendment(no payment), approval/decline
     # 22 AUA amendment(payment), approval/decline
+    all_ccs = []
+    all_bccs = []
     if decision == 'approved':
         subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details'),
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
     elif decision == 'declined':
         subject = 'Your authorised user application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
 
     if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
         # New / Renewal
@@ -1234,13 +1262,12 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
         html_template=html_template,
         txt_template=txt_template,
     )
+    # TODO: attachments???
 
     to_address = proposal.submitter.email
-    cc = []
-    bcc = []
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     log_proposal_email(msg, proposal, sender)
@@ -1251,14 +1278,68 @@ def send_mla_processed_email(proposal, decision, require_payment, request):
     # 23 ML new/renewal, approval/decline
     # 24 ML amendment(no payment), approval/decline
     # 25 ML amendment(payment), approval/decline
+    all_ccs = []
+    all_bccs = []
     if decision == 'approved':
         subject = 'Your mooring licence application {} has been approved'.format(proposal.lodgement_number)
+        details = proposal.proposed_issuance_approval.get('details'),
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
     elif decision == 'declined':
         subject = 'Your mooring licence application {} has been declined'.format(proposal.lodgement_number)
-    html_template = 'mooringlicensing/emails/send_mla_processed_email.html',
-    txt_template = 'mooringlicensing/emails/send_mla_processed_email.txt',
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
 
+    if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
+        # New / Renewal
+        # There must be always payment
+        html_template = 'mooringlicensing/emails/send_processed_email_for_mla.html'
+        txt_template = 'mooringlicensing/emails/send_processed_email_for_mla.txt'
+    else:
+        # Amendment
+        html_template = 'mooringlicensing/emails/send_processed_email_for_mla_amendment.html'
+        txt_template = 'mooringlicensing/emails/send_processed_email_for_mla_amendment.txt'
 
+    # Generate payment_url if needed
+    payment_url = ''
+    if decision == 'approved' and proposal.application_fees.all():
+        application_fee = proposal.application_fees.first()
+        invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+        if invoice.payment_status in ('paid', 'over_paid'):
+            pass
+        else:
+            # Payment required
+            payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+
+        context = {
+            'public_url': get_public_url(request),
+            'proposal': proposal,
+            'proposal_type_code': proposal.proposal_type.code,
+            'decision': decision,
+            'details': details,
+            'sticker_to_be_replaced': {'number': '(TODO)'},
+            # TODO: if existing sticker needs to be replaced, assign sticker object here.
+            'payment_url': payment_url,
+        }
+
+        email = TemplateEmailBase(
+            subject=subject,
+            html_template=html_template,
+            txt_template=txt_template,
+        )
+        # TODO: attachments???
+
+        to_address = proposal.submitter.email
+
+        # Send email
+        msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
+
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        log_proposal_email(msg, proposal, sender)
+        return msg
 
 
     #26DCVPermit
