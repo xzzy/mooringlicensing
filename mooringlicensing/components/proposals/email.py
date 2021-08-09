@@ -1032,6 +1032,8 @@ def send_application_processed_email(proposal, decision, require_payment, reques
         send_wla_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for WLA
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
         send_aaa_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA
+    elif proposal.application_type.code == AuthorisedUserApplication.code:
+        send_aua_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA
     else:
         html_template = 'mooringlicensing/emails/send_wla_processed.html'
         txt_template = 'mooringlicensing/emails/send_wla_processed.txt'
