@@ -4,15 +4,15 @@
 Dear {{ recipient.first_name }} {{ recipient.last_name}},
 
 {% if decision == 'approved' %}
-    <p>Your authorised user application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.</p>
-    <p>The sticker(s) for your vessel will be mailed to you once your payment has been received. Please click <a href="payment_url">here</a> to pay the fees for your authorised user permit.</p>
+    <p>Your mooring licence application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.</p>
+    <p>The sticker(s) for your vessel will be mailed to you once your payment has been received. Please click <a href="{{ payment_url }}">here</a> to pay the fees for your mooring licence permit.</p>
     {% if details %}
         <p>Details: {{ details }}</p>
     {% endif %}
 {% endif %}
 
 {% if decision == 'declined' %}
-    <p>Your authorised user application {{ proposal.lodgement_number }} has been declined.</p>
+    <p>Your mooring licence application {{ proposal.lodgement_number }} has been declined.</p>
     {% if details %}
         <p>Details: {{ details }}</p>
     {% endif %}

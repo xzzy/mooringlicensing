@@ -10,7 +10,7 @@ from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError, ObjectDoesNotExist, ImproperlyConfigured
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
@@ -25,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType, GlobalSettings,
+    Document, ApplicationType, GlobalSettings, NumberOfDaysType, NumberOfDaysSetting,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -60,7 +60,7 @@ from rest_framework import serializers
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_ID, \
-    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW
+    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
 logger_for_payment = logging.getLogger('payment_checkout')
@@ -2110,6 +2110,15 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_due_date_for_endorsement_by_target_date(self, target_date=timezone.localtime(timezone.now()).date()):
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
+        days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, target_date)
+        if not days_setting:
+            # No number of days found
+            raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, target_date))
+        due_date = self.lodgement_date + datetime.timedelta(days=days_setting.number_of_days)
+        return due_date
 
     @property
     def assessor_group(self):
