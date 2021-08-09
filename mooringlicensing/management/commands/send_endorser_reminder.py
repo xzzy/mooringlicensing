@@ -55,8 +55,7 @@ class Command(BaseCommand):
 
         for a in AuthorisedUserApplication.objects.filter(queries):
             try:
-                due_date = a.lodgement_date + timedelta(days=days_setting.number_of_days)
-                send_endorser_reminder_email(a, due_date)
+                send_endorser_reminder_email(a)
                 a.endorser_reminder_sent = True
                 a.save()
                 logger.info('Reminder to endorser sent for Proposal {}'.format(a.lodgement_number))
