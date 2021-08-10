@@ -156,7 +156,6 @@ from '@/utils/hooks'
                             this.approvals.push(approval);
                         }
                     }
-                    /*
                     // Bookings
                     if (this.entity.type === "vessel") {
                         const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
@@ -171,7 +170,6 @@ from '@/utils/hooks'
                             this.bookings.push(booking);
                         }
                     }
-                    */
                     // DCV
                     this.dataLoading = false;
                 });

@@ -137,7 +137,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_postal_address(self, obj):
         address = {}
         if obj.postal_address:
-            address = UserAddressSerializer(obj.postal_address)
+            address = UserAddressSerializer(obj.postal_address).data
         return address
 
     def get_personal_details(self,obj):
