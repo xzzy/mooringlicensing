@@ -2162,9 +2162,14 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         if selected_date:
-            approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
+            #approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
+            approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
         else:
-            approval_list = mooring.approval_set.filter(status='current')
+            #approval_list = mooring.approval_set.filter(status='current')
+            approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
+            approval_list.append(mooring.mooring_licence)
+        #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)
