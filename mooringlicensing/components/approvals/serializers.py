@@ -451,6 +451,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         return moorings
 
     def get_authorised_user_moorings(self, obj):
+        #import ipdb; ipdb.set_trace()
         #return_list = []
         links = ''
         request = self.context['request']
@@ -463,7 +464,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                             str(moa.mooring),
                             )
                 else:
-                    links += '{}\n'.format(str(mooring))
+                    links += '{}\n'.format(str(moa.mooring))
         return links
 
     def get_ria_generated_proposals(self, obj):
