@@ -188,7 +188,8 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
 #####
 def get_public_url(request=None):
     if request:
-        web_url = request.META.get('HTTP_HOST', None)
+        # web_url = request.META.get('HTTP_HOST', None)
+        web_url = '{}://{}'.format(request.scheme, request.get_host())
     else:
         web_url = settings.SITE_URL if settings.SITE_URL else ''
     return web_url
