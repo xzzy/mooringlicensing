@@ -23,34 +23,6 @@ logger = logging.getLogger(__name__)
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
 
-class ApproverSendBackNotificationEmail(TemplateEmailBase):
-    subject = 'An Application has been sent back by approver.'
-    html_template = 'mooringlicensing/emails/proposals/send_approver_sendback_notification.html'
-    txt_template = 'mooringlicensing/emails/proposals/send_approver_sendback_notification.txt'
-
-
-def send_proposal_approver_sendback_email_notification(request, proposal):
-    email = ApproverSendBackNotificationEmail()
-    url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
-
-    if 'test-emails' in request.path_info:
-        approver_comment = 'This is my test comment'
-    else:
-        approver_comment = proposal.approver_comment
-
-
-    context = {
-        'proposal': proposal,
-        'url': url,
-        'approver_comment': approver_comment
-    }
-
-    msg = email.send(proposal.assessor_recipients, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
-    return msg
-
-
 def log_proposal_email(msg, proposal, sender):
     try:
         sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
@@ -1129,10 +1101,37 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
     return msg
 
 
+def send_proposal_approver_sendback_email_notification(request, proposal):
+    email = TemplateEmailBase(
+        subject='An Application has been sent back by approver.',
+        html_template='mooringlicensing/emails/send_approver_sendback_notification.html',
+        txt_template='mooringlicensing/emails/send_approver_sendback_notification.txt',
+    )
+    url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+
+    if 'test-emails' in request.path_info:
+        approver_comment = 'This is my test comment'
+    else:
+        approver_comment = proposal.approver_comment
+
+    context = {
+        'proposal': proposal,
+        'url': url,
+        'approver_comment': approver_comment
+    }
+
+    msg = email.send(proposal.assessor_recipients, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+
 
 # 26DCVPermit
 # 27 DCVAdmission
 
+# Followings are in the approval/email
 # 28 Cancelled
 # 29 Suspended
 # 30 Surrendered
