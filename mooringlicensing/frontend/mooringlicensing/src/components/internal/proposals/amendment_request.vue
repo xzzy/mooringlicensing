@@ -170,6 +170,8 @@ export default {
             //formData.append('data', JSON.stringify(amendment));
             // vm.$http.post('/api/amendment_request.json',JSON.stringify(amendment),{
             //vm.$http.post('/api/amendment_request.json', formData, { emulateJSON: true, }).then(
+            console.log('vm.amendment')
+            console.log(vm.amendment)
             vm.$http.post('/api/amendment_request.json', vm.amendment).then(
                 response => {
                     //vm.$parent.loading.splice('processing contact',1);
