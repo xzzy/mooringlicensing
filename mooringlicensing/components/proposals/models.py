@@ -2582,6 +2582,12 @@ class PrivateMooringManager(models.Manager):
         return super(PrivateMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2)
 
 
+class AuthorisedUserMooringManager(models.Manager):
+    def get_queryset(self):
+        #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status='current')
+
+
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
         #import ipdb; ipdb.set_trace()
@@ -2628,6 +2634,7 @@ class Mooring(models.Model):
     # model managers
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
+    authorised_user_moorings = AuthorisedUserMooringManager()
     available_moorings = AvailableMooringManager()
     # Used for WLAllocation create MLApplication check
     #mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
