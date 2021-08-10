@@ -46,7 +46,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
     EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
-    ApprovalHistorySerializer,
+    ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer,
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
@@ -890,6 +890,41 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
 
         return add_cache_control(Response(dcv_vessel_data))
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_admissions(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        selected_date_str = request.data.get("selected_date")
+        selected_date = None
+        if selected_date_str:
+            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+        #if selected_date:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
+        #else:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        #import ipdb; ipdb.set_trace()
+        admissions = DcvAdmission.objects.filter(dcv_vessel=vessel)
+        serializer = LookupDcvAdmissionSerializer(admissions, many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_permits(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        selected_date_str = request.data.get("selected_date")
+        selected_date = None
+        if selected_date_str:
+            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+        #if selected_date:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
+        #else:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        #import ipdb; ipdb.set_trace()
+        admissions = DcvPermit.objects.filter(dcv_vessel=vessel)
+        serializer = LookupDcvPermitSerializer(admissions, many=True)
+        return Response(serializer.data)
+
 
 
 class DcvAdmissionFilterBackend(DatatablesFilterBackend):

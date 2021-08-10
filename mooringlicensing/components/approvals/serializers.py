@@ -162,6 +162,43 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
         )
 
 
+class LookupDcvVesselSerializer(serializers.ModelSerializer):
+    #dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
+    #dcv_permits = DcvPermitSerializer(many=True, read_only=True)
+    class Meta:
+        model = DcvVessel
+        fields = (
+                'id',
+                'rego_no',
+                'vessel_name',
+                )
+
+
+class LookupDcvAdmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DcvAdmission
+        fields = (
+                'id',
+                'lodgement_number',
+                )
+
+    #submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
+    #lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    #lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
+    #skipper = models.CharField(max_length=50, blank=True, null=True)
+    #contact_number = models.CharField(max_length=50, blank=True, null=True)
+    #dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions')
+
+
+class LookupDcvPermitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DcvPermit
+        fields = (
+                'id',
+                'lodgement_number',
+                )
+
+
 class DcvVesselSerializer(serializers.ModelSerializer):
     dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
     dcv_permits = DcvPermitSerializer(many=True, read_only=True)
