@@ -2584,14 +2584,27 @@ class PrivateMooringManager(models.Manager):
 
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
+        #import ipdb; ipdb.set_trace()
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
         # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
-        lookups = (
-                Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current')) 
-                & (Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) | Q(ria_generated_proposal=None))
-                )
-        #return super(AvailableMooringManager, self).get_queryset().filter(lookups).filter(mooring_application_lookups)
-        return super(AvailableMooringManager, self).get_queryset().filter(lookups)
+        #lookups = (
+         #       Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current')) 
+          #      & (Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) | Q(ria_generated_proposal=None))
+           #     )
+        available_ids = []
+        for mooring in Mooring.private_moorings.all():
+            # first check mooring_licence status
+            if not mooring.mooring_licence or mooring.mooring_licence.status != 'current':
+                # now check whether there are any blocking proposals
+                blocking_proposal = False
+                for proposal in mooring.ria_generated_proposal.all():
+                    if proposal.processing_status not in ['approved', 'declined', 'discarded']:
+                        blocking_proposal = True
+                if not blocking_proposal:
+                    available_ids.append(mooring.id)
+
+        #return super(AvailableMooringManager, self).get_queryset().filter(lookups)
+        return super(AvailableMooringManager, self).get_queryset().filter(id__in=available_ids)
 
 
 # not for admin - data comes from Mooring Bookings
