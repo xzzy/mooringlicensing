@@ -207,6 +207,7 @@ class GetMooringPerBay(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         search_term = request.GET.get('term', '')
@@ -219,7 +220,8 @@ class GetMooringPerBay(views.APIView):
                     data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
                 if mooring_bay_id:
-                    data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                    #data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                    data = Mooring.authorised_user_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
                 else:
                     data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
