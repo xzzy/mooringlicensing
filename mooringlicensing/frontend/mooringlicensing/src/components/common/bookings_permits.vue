@@ -90,6 +90,8 @@ from '@/utils/hooks'
             return {
                 approvals: [],
                 bookings: [],
+                dcvAdmissions: [],
+                dcvPermits: [],
                 selectedDate: null,
                 dataLoading: false,
              }
@@ -157,6 +159,7 @@ from '@/utils/hooks'
                         }
                     }
                     // Bookings
+                    // TODO: separate vue component may be required
                     if (this.entity.type === "vessel") {
                         const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
                         this.bookings = [];
@@ -170,7 +173,24 @@ from '@/utils/hooks'
                             this.bookings.push(booking);
                         }
                     }
+                    /*
                     // DCV
+                    // TODO: needs to go in separate vue component
+                    if (this.entity.type === "vessel") {
+                        const admissionRes = await this.$http.post(`/api/dcv_vessel/${this.entity.id}/find_related_admissions.json`, payload);
+                        this.dcvAdmissions = [];
+                        for (let admission of admissionRes.body) {
+                            this.dcvAdmissions.push(admission);
+                        }
+                        const permitRes = await this.$http.post(`/api/dcv_vessel/${this.entity.id}/find_related_permits.json`, payload);
+                        this.dcvPermits = [];
+                        for (let permit of permitRes.body) {
+                            this.dcvPermits.push(permit);
+                        }
+                    }
+                    */
+
+
                     this.dataLoading = false;
                 });
             },
