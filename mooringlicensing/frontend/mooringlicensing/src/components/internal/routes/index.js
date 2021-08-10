@@ -48,7 +48,7 @@ export default
         {
             path: 'approval/:approval_id',
             component: Approval,
-
+            name: 'internal-approval-detail',
         },
         {
             path: 'compliances',
