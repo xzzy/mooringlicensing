@@ -129,7 +129,15 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
 
 @admin.register(StickerPrintingResponse)
 class StickersPrintingResponseAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', '_file', 'uploaded_date', 'received_datetime',]
+    list_display = [
+        'id',
+        'name',
+        '_file',
+        'uploaded_date',
+        'received_datetime',
+        'email_subject',
+        'processed',
+    ]
 
     def get_actions(self, request):
         actions = super(StickersPrintingResponseAdmin, self).get_actions(request)
