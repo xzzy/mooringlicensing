@@ -12,7 +12,7 @@
             </div>
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Year</label>
+                    <label for="">Season</label>
                     <select class="form-control" v-model="filterYear">
                         <option value="All">All</option>
                         <option v-for="season in fee_seasons" :value="season.id">{{ season.name }}</option>
