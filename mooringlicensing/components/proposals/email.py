@@ -223,8 +223,8 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
     # in send() method, self.html_template is rendered by context and attached as alternative
     # In other words, self.html_template should be full html-email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
 
     return msg
 
@@ -252,8 +252,8 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     # in send() method, self.html_template is rendered by context and attached as alternative
     # In other words, self.html_template should be full html-email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
 
     return msg
 
@@ -278,8 +278,8 @@ def send_approver_approve_email_notification(request, proposal):
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -300,8 +300,8 @@ def send_approver_decline_email_notification(reason, request, proposal):
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -339,12 +339,12 @@ def send_amendment_email_notification(amendment_request, request, proposal):
             all_ccs = [cc_list]
 
     msg = email.send(to, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_email(msg, proposal, sender=msg.from_email)
     if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=msg.from_email)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=msg.from_email)
 
 
 def send_create_mooring_licence_application_email_notification(request, approval):
@@ -439,12 +439,12 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
 
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_proposal_email(msg, proposal, sender=sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_proposal_email(msg, proposal, sender=msg.from_email)
     if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=msg.from_email)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=msg.from_email)
 
     return msg
 
@@ -479,8 +479,8 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -520,8 +520,8 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -549,8 +549,8 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -594,8 +594,8 @@ def send_endorser_reminder_email(proposal, request=None):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -640,7 +640,6 @@ def send_approval_renewal_email_notification(approval):
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
     _log_approval_email(msg, approval, sender=sender_user)
     #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
     if approval.org_applicant:
@@ -713,7 +712,7 @@ def send_application_processed_email(proposal, decision, require_payment, reques
         }
 
         msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
-        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        sender = msg.from_email
 
         email_entry =_log_proposal_email(msg, proposal, sender=sender)
         path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
@@ -767,8 +766,8 @@ def send_wla_processed_email(proposal, decision, require_payment, request):
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -820,8 +819,8 @@ def send_aaa_processed_email(proposal, decision, require_payment, request):
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -892,8 +891,8 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
@@ -960,8 +959,8 @@ def send_mla_processed_email(proposal, decision, require_payment, request):
         # Send email
         msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
 
-        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-        log_proposal_email(msg, proposal, sender)
+        # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        log_proposal_email(msg, proposal, msg.from_email)
         return msg
 
 
@@ -1000,7 +999,8 @@ def send_other_documents_submitted_notification_email(request, proposal):
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
 
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = msg.from_email
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
@@ -1096,8 +1096,8 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
 
     return msg
 
@@ -1122,8 +1122,8 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    log_proposal_email(msg, proposal, sender)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    log_proposal_email(msg, proposal, msg.from_email)
     return msg
 
 
