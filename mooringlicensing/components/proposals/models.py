@@ -1415,7 +1415,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             return self.final_approval_for_AUA_MLA(request, details)
 
-
     def generate_compliances(self,approval, request):
         today = timezone.now().date()
         timedelta = datetime.timedelta
