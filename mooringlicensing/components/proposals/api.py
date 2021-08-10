@@ -207,6 +207,7 @@ class GetMooringPerBay(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         search_term = request.GET.get('term', '')
@@ -219,7 +220,8 @@ class GetMooringPerBay(views.APIView):
                     data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
                 if mooring_bay_id:
-                    data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                    #data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                    data = Mooring.authorised_user_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
                 else:
                     data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
@@ -2162,9 +2164,14 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         if selected_date:
-            approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
+            #approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
+            approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
         else:
-            approval_list = mooring.approval_set.filter(status='current')
+            #approval_list = mooring.approval_set.filter(status='current')
+            approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
+            approval_list.append(mooring.mooring_licence)
+        #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)
