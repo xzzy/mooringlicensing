@@ -13,23 +13,15 @@ from django.core.files.base import ContentFile
 
 from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email, _log_user_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.components.emails.utils import get_user_as_email_user
 from mooringlicensing.settings import CODE_DAYS_BEFORE_PERIOD_MLA, CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
-
-
-def get_user_as_email_user(sender):
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    return sender_user
 
 
 def log_proposal_email(msg, proposal, sender):
