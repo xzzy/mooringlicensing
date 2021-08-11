@@ -137,7 +137,15 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented';
+                    let links = ''
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                            links += '</div>'
+                        }
+                    }
+                    return links
                 }
             }
         },
@@ -223,27 +231,17 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    /*
                     let links = '';
-                    if (!vm.is_external){
-                        if(full.assessor_process){
-                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                        } else {
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            links += '</div>'
                         }
                     }
-                    else{
-                        if (full.can_user_edit) {
-                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                        }
-                        else if (full.can_user_view) {
-                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                        }
-                    }
-                    return links;
-                    */
-                    return 'not implemented';
+                    return links
                 }
             }
         },
