@@ -1,17 +1,17 @@
 {%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {%  block content_body %}
-Dear {{ recipient.first_name }} {{ recipient.last_name }},
-Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.
-{% if reason %}
-Details:
-    Amendment Reason: {{ reason }}
-    {% if amendment_request_text %}
-    Amendment details:
-    {{ amendment_request_text }}
+    Dear {{ recipient.first_name }} {{ recipient.last_name }},
+    Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.
+    {% if reason %}
+    Details:
+        Amendment Reason: {{ reason }}
+        {% if amendment_request_text %}
+        Amendment details:
+        {{ amendment_request_text }}
+        {% endif %}
     {% endif %}
-{% endif %}
-Please access {{ url }} to assess the application.
+    Please access {{ url }} to assess the application.
 
-{% include "mooringlicensing/emails/signature-rottnest.txt %}
+    {% include 'mooringlicensing/emails/signature-rottnest.txt' %}
 {% endblock %}
