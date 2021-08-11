@@ -1298,6 +1298,28 @@ class DcvAdmission(RevisionedMixin):
     def __str__(self):
         return self.lodgement_number
 
+    @property
+    def fee_paid(self):
+        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+            return True
+        return False
+
+    @property
+    def invoice(self):
+        if self.dcv_admission_fees.count() < 1:
+            return None
+        elif self.dcv_admission_fees.count() == 1:
+            dcv_admission_fee = self.dcv_admission_fees.first()
+            try:
+                invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
+            except:
+                invoice = None
+            return invoice
+        else:
+            msg = 'DcvAdmission: {} has {} DcvAdmissionFees.  There should be 0 or 1.'.format(self, self.dcv_admission_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
     @classmethod
     def get_next_id(cls):
         ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])

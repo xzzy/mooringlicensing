@@ -137,7 +137,15 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented';
+                    let links = ''
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                            links += '</div>'
+                        }
+                    }
+                    return links
                 }
             }
         },
@@ -247,7 +255,17 @@ export default {
                     }
                     return links;
                     */
-                    return 'not implemented';
+                    let links = '';
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            links += '</div>'
+                        }
+                    }
+                    return links
                 }
             }
         },
