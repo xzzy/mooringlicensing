@@ -259,6 +259,7 @@ from '@/utils/hooks'
               default: false
             },
         },
+        /*
         watch: {
             individualOwner: async function() {
                 if (this.individualOwner) {
@@ -267,6 +268,7 @@ from '@/utils/hooks'
                 }
             },
         },
+        */
         computed: {
             mooringLicenceCurrentVesselDisplayText: function() {
                 let displayText = '';
@@ -555,37 +557,20 @@ from '@/utils/hooks'
                             console.log("fetch existing vessel");
                             // fetch draft/approved vessel
                             await vm.lookupVessel(data);
-                            console.log("individual")
-                            if (this.proposal && this.proposal.id) {
+                            // retrieve list of Vessel Owners
+                            const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
+                            console.log(res);
+                            await vm.parseVesselOwnershipList(res);
+                            /*
+                            if (vm.proposal && vm.proposal.id) {
                                 await vm.retrieveIndividualOwner();
                             } else {
                                 // retrieve list of Vessel Owners
                                 const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
                                 console.log(res);
                                 vm.parseVesselOwnershipList(res);
-                                /*
-                                let individualOwner = false;
-                                let companyOwner = false;
-                                for (let vo of res.body) {
-                                    if (vo.individual_owner) {
-                                        individualOwner = true;
-                                    } else if (vo.company_ownership) {
-                                        companyOwner = true;
-                                    }
-                                }
-                                if (individualOwner) {
-                                    // read individual ownership data
-                                    vm.vessel.vessel_ownership.individual_owner = true;
-                                } else if (companyOwner) {
-                                    // read first company ownership data
-                                    vm.vessel.vessel_ownership.individual_owner = false;
-                                    const vo = res.body[0]
-                                    const companyId = vo.company_ownership.company.id;
-                                    await vm.lookupCompanyOwnership(companyId);
-                                    vm.readCompanyName();
-                                }
-                                */
                             }
+                            */
                         } else {
                             console.log("new vessel");
                             data = vm.validateRegoNo(data);
@@ -651,6 +636,7 @@ from '@/utils/hooks'
                 if (individualOwner) {
                     // read individual ownership data
                     vm.vessel.vessel_ownership.individual_owner = true;
+                    await this.retrieveIndividualOwner();
                 } else if (companyOwner) {
                     // read first company ownership data
                     vm.vessel.vessel_ownership.individual_owner = false;
