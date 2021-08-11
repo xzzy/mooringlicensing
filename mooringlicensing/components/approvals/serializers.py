@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from ledger.accounts.models import EmailUser
+from ledger.payments.models import Invoice
 from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
@@ -22,7 +23,7 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.components.organisations.models import (
     Organisation
 )
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer #EmailUserAppViewSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
@@ -1046,6 +1047,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     dcv_organisation_name = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     fee_season = serializers.SerializerMethodField()
+    fee_invoice_url = serializers.SerializerMethodField()
+    invoices = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
@@ -1059,6 +1062,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'dcv_vessel_uiv', 
             'dcv_organisation_name',
             'status',
+            'fee_invoice_url',
+            'invoices',
             )
         datatables_always_serialize = (
             'id',
@@ -1070,7 +1075,22 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'dcv_vessel_uiv', 
             'dcv_organisation_name',
             'status',
+            'fee_invoice_url',
+            'invoices',
             )
+
+    def get_invoices(self, obj):
+        invoice_references = [item.invoice_reference for item in obj.dcv_permit_fees.all()]
+        invoices = Invoice.objects.filter(reference__in=invoice_references)
+        if not invoices:
+            return ''
+        else:
+            serializer = InvoiceSerializer(invoices, many=True)
+            return serializer.data
+
+    def get_fee_invoice_url(self, obj):
+        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        return url
 
     def get_dcv_vessel_uiv(self, obj):
         if obj.dcv_vessel:
