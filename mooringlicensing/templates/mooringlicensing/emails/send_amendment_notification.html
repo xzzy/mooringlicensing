@@ -1,43 +1,16 @@
 {%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {%  block content_body %}
-Dear {{ recipient.first_name }} {{ recipient.last_name }},
-Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.
-{% if reason %}
-Details:
-    <p>Amendment Reason: {{ reason }}</p>
-    {% if amendment_request_text %}
-    <p>Amendment details: <br> {{ amendment_request_text }}</p>
-    {% endif %}
-{% endif %}
-Please click <a href="{{ url }}">here</a> to access the application.
-
-{% include "mooringlicensing/emails/signature-rottnest.html" %}
-{% endblock %}
-
-
-
-
-
-
-{% comment %}
-    {% if proposal.is_filming_application %}
-	   <p>Your Application {{ proposal.lodgement_number }} for a commercial filming authority has been returned to you for further information.<p>
-    {% else %}
-        <p>Your Application {{ proposal.lodgement_number }} for a commercial operations licence has been returned to you for further information.<p>
-    {% endif %}
-
+    Dear {{ recipient.first_name }} {{ recipient.last_name }},
+    Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.
     {% if reason %}
-        <p>
-            <span>Amendment Reason: {{ reason }}</span>
-        </p>
+    Details:
+        <p>Amendment Reason: {{ reason }}</p>
+        {% if amendment_request_text %}
+        <p>Amendment details: <br> {{ amendment_request_text }}</p>
+        {% endif %}
     {% endif %}
+    Please click <a href="{{ url }}">here</a> to access the application.
 
-    {% if amendment_request_text %}
-        <p><span> Amendment details: <br> {{ amendment_request_text }}</span></p>
-    {% endif %}
-    <p>
-    Please <a href="{{url}}"> login</a> to your account to complete the application.
-    </p>
-    <p>You will receive a notification email if there is any incomplete information or documents missing from the application.</p>
-{% endcomment %}
+    {% include 'mooringlicensing/emails/signature-rottnest.html' %}
+{% endblock %}
