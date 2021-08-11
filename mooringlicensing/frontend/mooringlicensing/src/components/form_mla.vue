@@ -83,7 +83,7 @@
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                   <Vessels 
                   :proposal="proposal" 
-                  :profile="profile" 
+                  :profile="profileVar" 
                   id="proposalStartVessels" 
                   ref="vessels"
                   :readonly="readonlyMLA"
@@ -216,6 +216,13 @@
             */
         },
         computed:{
+            profileVar: function() {
+                if (this.is_external) {
+                    return this.profile;
+                } else if (this.proposal) {
+                    return this.proposal.submitter;
+                }
+            },
             readonlyMLA: function() {
                 let readonly = false;
                 if (this.readonly || (this.proposal.proposal_type.code === 'new')) {
