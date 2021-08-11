@@ -23,10 +23,11 @@ RUN pip install --upgrade pip
 FROM builder_base_mooringlicensing as python_libs_mooringlicensing
 WORKDIR /app
 
-#COPY .git/refs/heads/main /app/git_hash
-
 COPY requirements.txt ./
-RUN touch /app/git_hash
+COPY ml_git_history ./
+RUN touch /app/rand_hash
+#RUN touch /app/git_history
+
 RUN pip install --no-cache-dir -r requirements.txt \
   # Update the Django <1.11 bug in django/contrib/gis/geos/libgeos.py
   # Reference: https://stackoverflow.com/questions/18643998/geodjango-geosexception-error
