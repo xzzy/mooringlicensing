@@ -246,13 +246,29 @@ def _is_gst_exempt(invoice):
     '''
     Return False if there is at least one item which incur gst.  Need to rethinkt
     '''
-    from mooringlicensing.components.payments_ml.models import ApplicationFee
-    application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
-    for fee_item in application_fee.fee_items.all():
-        if fee_item.fee_constructor.incur_gst:
-            return False
+    from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, DcvAdmissionFee
+
+    fees = None
+    application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
+    if application_fee:
+        fees = application_fee
     else:
-        return True
+        dcv_permit_fees = DcvPermitFee.objects.filter(invoice_reference=invoice.reference)
+        if dcv_permit_fees:
+            fees = dcv_permit_fees
+        else:
+            dcv_admission_fees = DcvAdmissionFee.objects.filter(invoice_reference=invoice.reference)
+            if dcv_admission_fees:
+                fees = dcv_admission_fees
+
+    if fees:
+        for fee_item in fees[0].fee_items.all():
+            if fee_item.fee_constructor.incur_gst:
+                return False
+        else:
+            return True
+    else:
+        raise Exception('No Fee object found')
 
 
 def _create_invoice(invoice_buffer, invoice, proposal):
