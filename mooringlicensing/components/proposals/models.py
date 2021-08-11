@@ -1654,6 +1654,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def application_type_code(self):
         return self.child_obj.code
 
+    @property
+    def description(self):
+        return self.child_obj.description
+
     @classmethod
     def application_type_descriptions(cls):
         type_list = []
