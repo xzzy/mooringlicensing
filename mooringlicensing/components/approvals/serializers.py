@@ -1123,6 +1123,8 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
     #status = serializers.SerializerMethodField()
     lodgement_date = serializers.SerializerMethodField()
     #fee_season = serializers.SerializerMethodField()
+    fee_invoice_url = serializers.SerializerMethodField()
+    invoices = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
@@ -1130,19 +1132,17 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'lodgement_date',            
-            #'fee_season',            
-            'dcv_vessel_uiv', 
-            #'dcv_organisation_name',
-            #'status',
+            'dcv_vessel_uiv',
+            'fee_invoice_url',
+            'invoices',
             )
         datatables_always_serialize = (
             'id',
             'lodgement_number',
             'lodgement_date',            
-            #'fee_season',            
-            'dcv_vessel_uiv', 
-            #'dcv_organisation_name',
-            #'status',
+            'dcv_vessel_uiv',
+            'fee_invoice_url',
+            'invoices',
             )
 
     def get_dcv_vessel_uiv(self, obj):
@@ -1150,6 +1150,19 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             return obj.dcv_vessel.uvi_vessel_identifier
         else:
             return ''
+
+    def get_invoices(self, obj):
+        invoice_references = [item.invoice_reference for item in obj.dcv_admission_fees.all()]
+        invoices = Invoice.objects.filter(reference__in=invoice_references)
+        if not invoices:
+            return ''
+        else:
+            serializer = InvoiceSerializer(invoices, many=True)
+            return serializer.data
+
+    def get_fee_invoice_url(self, obj):
+        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        return url
 
     #def get_dcv_organisation_name(self, obj):
     #    if obj.dcv_organisation:
