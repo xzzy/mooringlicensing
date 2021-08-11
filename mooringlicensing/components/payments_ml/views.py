@@ -6,7 +6,6 @@ from ledger.settings_base import TIME_ZONE
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
 import dateutil.parser
-from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -20,8 +19,7 @@ from oscar.apps.order.models import Order
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission
 from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.payments_ml.email import send_dcv_permit_fee_invoice, \
-    send_application_submit_confirmation_email, send_dcv_admission_fee_invoice, send_dcv_permit_notification
+from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_fee_invoice, send_dcv_permit_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
@@ -385,7 +383,7 @@ class DcvPermitFeeSuccessView(TemplateView):
                     logger.error('{} tried paying an dcv_permit fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user'))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
                 # if inv.system not in ['0517']:
-                if inv.system != fee_item.fee_constructor.application_type.oracle_code:
+                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
                     logger.error('{} tried paying an dcv_permit fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
 
@@ -406,10 +404,11 @@ class DcvPermitFeeSuccessView(TemplateView):
                 request.session[self.LAST_DCV_PERMIT_FEE_ID] = dcv_permit_fee.id
                 delete_session_dcv_permit_invoice(request.session)
 
-                DcvPermitFeeSuccessView.send_invoice_mail(dcv_permit, invoice, request)
-                DcvPermitFeeSuccessView.send_notification_mail(dcv_permit, invoice, request)
-                # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
-                #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
+                # DcvPermitFeeSuccessView.send_invoice_mail(dcv_permit, invoice, request)
+                # DcvPermitFeeSuccessView.send_notification_mail(dcv_permit, invoice, request)
+
+                send_dcv_permit_mail(dcv_permit, invoice, request)
+
                 context = {
                     'dcv_permit': dcv_permit,
                     'submitter': submitter,
@@ -442,40 +441,40 @@ class DcvPermitFeeSuccessView(TemplateView):
         dcv_permit.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
         dcv_permit.save()
 
-    @staticmethod
-    def send_notification_mail(dcv_permit, invoice, request):
-        dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
-        users = dcv_group.user_set.all()
-        if not users:
-            logger.warn('No members found in the group: {}, whom the DCV permit notification: {} is sent to'.format(dcv_group.name, dcv_permit.lodgement_number))
-        else:
-            to_email_addresses = [user.email for user in users]
-            email_data = send_dcv_permit_notification(dcv_permit, invoice, to_email_addresses)
-
-            # Add comms log
-            # TODO: Add comms log
-
-    @staticmethod
-    def send_invoice_mail(dcv_permit, invoice, request):
-        # Send invoice
-        to_email_addresses = dcv_permit.submitter.email
-        email_data = send_dcv_permit_fee_invoice(dcv_permit, invoice, [to_email_addresses, ])
-
-        # Add comms log
-        # TODO: Add comms log
-        # email_data['approval'] = u'{}'.format(dcv_permit_fee.approval.id)
-        # serializer = ApprovalLogEntrySerializer(data=email_data)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-
-        # Check if the request.user can access the invoice
-        can_access_invoice = False
-        if not request.user.is_anonymous():
-            # if request.user == dcv_permit_fee.submitter or dcv_permit_fee.approval.applicant in request.user.disturbance_organisations.all():
-            if request.user == dcv_permit.submitter:
-                can_access_invoice = True
-
-        return can_access_invoice, to_email_addresses
+#    @staticmethod
+#    def send_notification_mail(dcv_permit, invoice, request):
+#        dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
+#        users = dcv_group.user_set.all()
+#        if not users:
+#            logger.warn('No members found in the group: {}, whom the DCV permit notification: {} is sent to'.format(dcv_group.name, dcv_permit.lodgement_number))
+#        else:
+#            to_email_addresses = [user.email for user in users]
+#            email_data = send_dcv_permit_notification(dcv_permit, invoice, to_email_addresses)
+#
+#            # Add comms log
+#            # TODO: Add comms log
+#
+#    @staticmethod
+#    def send_invoice_mail(dcv_permit, invoice, request):
+#        # Send invoice
+#        to_email_addresses = dcv_permit.submitter.email
+#        email_data = send_dcv_permit_fee_invoice(dcv_permit, invoice, [to_email_addresses, ])
+#
+#        # Add comms log
+#        # TODO: Add comms log
+#        # email_data['approval'] = u'{}'.format(dcv_permit_fee.approval.id)
+#        # serializer = ApprovalLogEntrySerializer(data=email_data)
+#        # serializer.is_valid(raise_exception=True)
+#        # serializer.save()
+#
+#        # Check if the request.user can access the invoice
+#        can_access_invoice = False
+#        if not request.user.is_anonymous():
+#            # if request.user == dcv_permit_fee.submitter or dcv_permit_fee.approval.applicant in request.user.disturbance_organisations.all():
+#            if request.user == dcv_permit.submitter:
+#                can_access_invoice = True
+#
+#        return can_access_invoice, to_email_addresses
 
 
 class ApplicationFeeSuccessView(TemplateView):
