@@ -385,7 +385,7 @@ class DcvPermitFeeSuccessView(TemplateView):
                     logger.error('{} tried paying an dcv_permit fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user'))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
                 # if inv.system not in ['0517']:
-                if inv.system != fee_item.fee_constructor.application_type.oracle_code:
+                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
                     logger.error('{} tried paying an dcv_permit fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
 
