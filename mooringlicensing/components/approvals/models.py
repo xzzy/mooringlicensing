@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
 from ledger.accounts.models import EmailUser, RevisionedMixin
+from ledger.payments.invoice.models import Invoice
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.organisations.models import Organisation
@@ -1297,6 +1298,28 @@ class DcvAdmission(RevisionedMixin):
     def __str__(self):
         return self.lodgement_number
 
+    @property
+    def fee_paid(self):
+        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+            return True
+        return False
+
+    @property
+    def invoice(self):
+        if self.dcv_admission_fees.count() < 1:
+            return None
+        elif self.dcv_admission_fees.count() == 1:
+            dcv_admission_fee = self.dcv_admission_fees.first()
+            try:
+                invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
+            except:
+                invoice = None
+            return invoice
+        else:
+            msg = 'DcvAdmission: {} has {} DcvAdmissionFees.  There should be 0 or 1.'.format(self, self.dcv_admission_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
     @classmethod
     def get_next_id(cls):
         ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
@@ -1402,6 +1425,28 @@ class DcvPermit(RevisionedMixin):
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits')
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
+
+    def get_target_date(self, applied_date):
+        return applied_date
+
+    @property
+    def fee_paid(self):
+        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+            return True
+        return False
+
+    @property
+    def invoice(self):
+        if self.dcv_permit_fees.count() < 1:
+            return None
+        elif self.dcv_permit_fees.count() == 1:
+            dcv_permit_fee = self.dcv_permit_fees.first()
+            invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
+            return invoice
+        else:
+            msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self, self.dcv_permit_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
 
     @classmethod
     def get_next_id(cls):
