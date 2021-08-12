@@ -6,17 +6,17 @@
 
 {% for arrival in summary %}
     <p>Arrival date: {{ arrival.arrival_date }}</p>
-    Number of adults (12 and over):
-    - Landing: {{ arrival.adult.landing }}
-    - Extended stay: {{ arrival.adult.extended_stay }}
-    - Not landing: {{ arrival.adult.not_landing }}
-    - Approved events: {{ arrival.adult.approved_events }}
+    <p>Number of adults (12 and over):</p>
+    <p>- Landing: {{ arrival.adult.landing }}</p>
+    <p>- Extended stay: {{ arrival.adult.extended_stay }}</p>
+    <p>- Not landing: {{ arrival.adult.not_landing }}</p>
+    <p>- Approved events: {{ arrival.adult.approved_events }}</p>
 
-    Number of children (4-12)
-    - Landing: {{ arrival.child.landing }}
-    - Extended stay: {{ arrival.child.extended_stay }}
-    - Not landing: {{ arrival.child.not_landing }}
-    - Approved events: {{ arrival.child.approved_events }}
+    <p>Number of children (4-12)</p>
+    <p>- Landing: {{ arrival.child.landing }}</p>
+    <p>- Extended stay: {{ arrival.child.extended_stay }}</p>
+    <p>- Not landing: {{ arrival.child.not_landing }}</p>
+    <p>- Approved events: {{ arrival.child.approved_events }}</p>
 {% endfor %}
     <p>Please find attached the DCV permit and the invoice for the payment.</p>
 
