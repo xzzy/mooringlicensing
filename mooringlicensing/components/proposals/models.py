@@ -1656,7 +1656,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def description(self):
-        return self.child_obj.description
+        if hasattr(self, 'child_obj'):
+            return self.child_obj.description
+        return ''
 
     @classmethod
     def application_type_descriptions(cls):

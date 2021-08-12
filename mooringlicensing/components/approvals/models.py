@@ -254,6 +254,12 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
+    @property
+    def description(self):
+        if hasattr(self, 'child_obj'):
+            return self.child_obj.description
+        return ''
+
     def write_approval_history(self, reason=None):
         history_count = self.approvalhistory_set.count()
         if reason:
@@ -1334,6 +1340,12 @@ class DcvAdmission(RevisionedMixin):
     def generate_dcv_admission_doc(self):
         permit_document = create_dcv_admission_document(self)
 
+    def get_summary(self):
+        summary = []
+        for arrival in self.dcv_admission_arrivals.all():
+            summary.append(arrival.get_summary())
+        return summary
+
 
 class DcvAdmissionArrival(RevisionedMixin):
     dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals')
@@ -1349,6 +1361,18 @@ class DcvAdmissionArrival(RevisionedMixin):
 
     def __str__(self):
         return '{} ({})'.format(self.dcv_admission, self.arrival_date)
+
+    def get_summary(self):
+        summary_dict = {'arrival_date': self.arrival_date}
+        for age_group_choice in AgeGroup.NAME_CHOICES:
+            age_group = AgeGroup.objects.get(code=age_group_choice[0])
+            dict_type = {}
+            for admission_type_choice in AdmissionType.TYPE_CHOICES:
+                admission_type = AdmissionType.objects.get(code=admission_type_choice[0])
+                num_of_people = self.numberofpeople_set.get(age_group=age_group, admission_type=admission_type)
+                dict_type[admission_type_choice[0]] = num_of_people.number
+            summary_dict[age_group_choice[0]] = dict_type
+        return summary_dict
 
 
 class AgeGroup(models.Model):

@@ -1,8 +1,4 @@
-import datetime
 from io import BytesIO
-from pathlib import Path
-from django.db.models import Q
-from django.core.files.base import File, ContentFile
 from ledger.settings_base import TIME_ZONE
 from django.utils import timezone
 
@@ -12,22 +8,17 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from ledger.accounts.models import EmailUser
 
-from mooringlicensing.components.approvals.models import Sticker, WaitingListAllocation
+from mooringlicensing.components.approvals.models import Sticker
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
         MooringBay, 
-        Mooring, 
-        Proposal, 
-        StickerPrintingBatch, 
-        MooringLicenceApplication
-        )
+        Mooring,
+        StickerPrintingBatch
+)
 from rest_framework import serializers
 from openpyxl import Workbook
-from openpyxl.writer.excel import save_virtual_workbook
 from copy import deepcopy
-import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -410,4 +401,5 @@ def email_stickers_document():
         errors.append(err_msg)
 
     return updates, errors
+
 
