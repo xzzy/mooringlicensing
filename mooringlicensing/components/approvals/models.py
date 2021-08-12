@@ -29,6 +29,8 @@ from mooringlicensing.components.approvals.email import (
     send_approval_suspend_email_notification,
     send_approval_reinstate_email_notification,
     send_approval_surrender_email_notification
+    send_auth_user_no_moorings_notification,
+    send_auth_user_mooring_removed_notification,
 )
 #from mooringlicensing.utils import search_keys, search_multiple_keys
 from mooringlicensing.helpers import is_customer
