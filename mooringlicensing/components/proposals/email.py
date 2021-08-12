@@ -753,7 +753,7 @@ def send_wla_processed_email(proposal, decision, require_payment, request):
 
     if decision == 'approved':
         subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details'),
+        details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
@@ -802,7 +802,7 @@ def send_aaa_processed_email(proposal, decision, require_payment, request):
     all_bccs = []
     if decision == 'approved':
         subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details'),
+        details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
@@ -858,7 +858,7 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
     all_bccs = []
     if decision == 'approved':
         subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details'),
+        details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
@@ -932,7 +932,7 @@ def send_mla_processed_email(proposal, decision, require_payment, request):
     all_bccs = []
     if decision == 'approved':
         subject = 'Your mooring licence application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details'),
+        details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
