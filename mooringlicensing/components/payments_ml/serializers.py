@@ -115,6 +115,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
     dcv_organisation_id = serializers.IntegerField(required=True)
     fee_season_id = serializers.IntegerField(required=True)
+    # permits = serializers.SerializerMethodField()
 
     def validate(self, data):
         field_errors = {}
@@ -157,6 +158,11 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_permits(self, obj):
+        permit_urls = []
+        for doc in obj.permits.all():
+            permit_urls.append(doc._file.url)
+
     class Meta:
         model = DcvPermit
         fields = (
@@ -169,12 +175,14 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'fee_season_id',
             'start_date',
             'end_date',
+            # 'permits',
         )
         read_only_fields = (
             'id',
             'lodgement_number',
             'start_date',
             'end_date',
+            # 'permits',
         )
 
 
