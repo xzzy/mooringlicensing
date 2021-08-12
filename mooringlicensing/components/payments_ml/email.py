@@ -105,15 +105,18 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     attachments = []
 
     # attach invoice
-    contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
-    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+    if invoice:
+        contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
+        attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
 
     # attach DcvPermit
-    dcv_admission_doc = dcv_admission.admissions.first()
-    filename = str(dcv_admission_doc)
-    content = dcv_admission_doc._file.read()
-    mime = mimetypes.guess_type(dcv_admission_doc.filename)[0]
-    attachments.append((filename, content, mime))
+    if dcv_admission.admissions:
+        dcv_admission_doc = dcv_admission.admissions.first()
+        if dcv_admission_doc:
+            filename = str(dcv_admission_doc)
+            content = dcv_admission_doc._file.read()
+            mime = mimetypes.guess_type(dcv_admission_doc.filename)[0]
+            attachments.append((filename, content, mime))
 
     to = dcv_admission.submitter.email
     cc = []

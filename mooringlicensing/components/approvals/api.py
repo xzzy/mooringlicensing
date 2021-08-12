@@ -744,6 +744,9 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                 serializer_num.is_valid(raise_exception=True)
                 number_of_people = serializer_num.save()
 
+        from mooringlicensing.components.payments_ml.email import send_dcv_admission_mail
+        email_data = send_dcv_admission_mail(dcv_admission, None, request)
+
         return Response(serializer.data)
 
 
