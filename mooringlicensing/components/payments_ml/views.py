@@ -479,10 +479,6 @@ class ApplicationFeeSuccessView(TemplateView):
             recipient = proposal.applicant_email
             submitter = proposal.submitter
 
-            ### This is for debug
-            send_other_documents_submitted_notification_email(request, proposal)
-            ###
-
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
             else:
