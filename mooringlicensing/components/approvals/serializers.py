@@ -1049,6 +1049,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     fee_season = serializers.SerializerMethodField()
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
+    permits = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
@@ -1064,6 +1065,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'status',
             'fee_invoice_url',
             'invoices',
+            'permits',
             )
         datatables_always_serialize = (
             'id',
@@ -1077,7 +1079,14 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'status',
             'fee_invoice_url',
             'invoices',
+            'permits',
             )
+
+    def get_permits(self, obj):
+        permit_urls = []
+        for permit in obj.permits.all():
+            permit_urls.append(permit._file.url)
+        return permit_urls
 
     def get_invoices(self, obj):
         invoice_references = [item.invoice_reference for item in obj.dcv_permit_fees.all()]
@@ -1125,9 +1134,10 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
     #fee_season = serializers.SerializerMethodField()
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
+    admission_urls = serializers.SerializerMethodField()
 
     class Meta:
-        model = DcvPermit
+        model = DcvAdmission
         fields = (
             'id',
             'lodgement_number',
@@ -1135,6 +1145,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'dcv_vessel_uiv',
             'fee_invoice_url',
             'invoices',
+            'admission_urls',
             )
         datatables_always_serialize = (
             'id',
@@ -1143,7 +1154,14 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'dcv_vessel_uiv',
             'fee_invoice_url',
             'invoices',
+            'admission_urls',
             )
+
+    def get_admission_urls(self, obj):
+        admission_urls = []
+        for admission in obj.admissions.all():
+            admission_urls.append(admission._file.url)
+        return admission_urls
 
     def get_dcv_vessel_uiv(self, obj):
         if obj.dcv_vessel:
