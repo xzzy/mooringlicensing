@@ -1465,8 +1465,11 @@ class DcvPermit(RevisionedMixin):
             return None
         elif self.dcv_permit_fees.count() == 1:
             dcv_permit_fee = self.dcv_permit_fees.first()
-            invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
-            return invoice
+            try:
+                invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
+                return invoice
+            except:
+                return None
         else:
             msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self, self.dcv_permit_fees.count())
             logger.error(msg)
