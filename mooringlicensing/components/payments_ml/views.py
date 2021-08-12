@@ -27,7 +27,8 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice
-from mooringlicensing.components.proposals.email import send_application_processed_email
+from mooringlicensing.components.proposals.email import send_application_processed_email, \
+    send_other_documents_submitted_notification_email
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
@@ -477,6 +478,10 @@ class ApplicationFeeSuccessView(TemplateView):
             proposal = application_fee.proposal
             recipient = proposal.applicant_email
             submitter = proposal.submitter
+
+            ### This is for debug
+            send_other_documents_submitted_notification_email(request, proposal)
+            ###
 
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
