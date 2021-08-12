@@ -112,7 +112,6 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
-                    console.log(full)
                     return full.id
                 }
             }
@@ -140,9 +139,12 @@ export default {
                     let links = ''
                     if (full.invoices){
                         for (let invoice of full.invoices){
-                            links += '<div>'
                             links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
-                            links += '</div>'
+                        }
+                    }
+                    if (full.admission_urls){
+                        for (let admission_url of full.admission_urls){
+                            links +=  `<div><a href='${admission_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation</a></div>`;
                         }
                     }
                     return links

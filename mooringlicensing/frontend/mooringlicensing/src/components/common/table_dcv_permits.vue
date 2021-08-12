@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Approval', 'Organisation', 'UIV Vessel Identifier', 'Status', 'Year', 'Action']
+            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'UIV Vessel Identifier', 'Status', 'Year', 'Action']
         },
         column_id: function(){
             return {
@@ -112,7 +112,6 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
-                    console.log(full)
                     return full.id
                 }
             }
@@ -137,12 +136,17 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log('invoice_approval')
+                    console.log(full)
                     let links = ''
                     if (full.invoices){
                         for (let invoice of full.invoices){
-                            links += '<div>'
                             links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
-                            links += '</div>'
+                        }
+                    }
+                    if (full.permits){
+                        for (let permit_url of full.permits){
+                            links +=  `<div><a href='${permit_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Permit</a></div>`;
                         }
                     }
                     return links
@@ -324,8 +328,6 @@ export default {
             }).then(() => {
                 vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
                 .then((response) => {
-                    console.log('response: ')
-                    console.log(response)
                     swal(
                         'Discarded',
                         'Your proposal has been discarded',
