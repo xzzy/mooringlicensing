@@ -19,7 +19,7 @@ from oscar.apps.order.models import Order
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission
 from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_fee_invoice, send_dcv_permit_mail
+from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
@@ -276,7 +276,8 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 request.session[self.LAST_DCV_ADMISSION_FEE_ID] = dcv_admission_fee.id
                 delete_session_dcv_admission_invoice(request.session)
 
-                DcvAdmissionFeeSuccessView.send_invoice_mail(dcv_admission, invoice, request)
+                # DcvAdmissionFeeSuccessView.send_invoice_mail(dcv_admission, invoice, request)
+                email_data = send_dcv_admission_mail(dcv_admission, invoice, request)
                 # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
                 #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
                 context = {
@@ -306,28 +307,6 @@ class DcvAdmissionFeeSuccessView(TemplateView):
     def adjust_db_operations(dcv_admission, db_operations):
         dcv_admission.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
         dcv_admission.save()
-
-    @staticmethod
-    def send_invoice_mail(dcv_admission, invoice, request):
-        # Send invoice
-        to_email_addresses = dcv_admission.submitter.email
-        email_data = send_dcv_admission_fee_invoice(dcv_admission, invoice, [to_email_addresses, ])
-
-        # Add comms log
-        # TODO: Add comms log
-        # email_data['approval'] = u'{}'.format(dcv_admission_fee.approval.id)
-        # serializer = ApprovalLogEntrySerializer(data=email_data)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-
-        # Check if the request.user can access the invoice
-        can_access_invoice = False
-        if not request.user.is_anonymous():
-            # if request.user == dcv_admission_fee.submitter or dcv_admission_fee.approval.applicant in request.user.disturbance_organisations.all():
-            if request.user == dcv_admission.submitter:
-                can_access_invoice = True
-
-        return can_access_invoice, to_email_addresses
 
 
 class DcvPermitFeeSuccessView(TemplateView):

@@ -996,7 +996,7 @@ def send_mla_processed_email(proposal, decision, require_payment, request):
 
 def send_other_documents_submitted_notification_email(request, proposal):
     email = TemplateEmailBase(
-        subject='Application: {} is ready for assessment.  Other documents have been submitted.',
+        subject='Application: {} is ready for assessment.  Other documents have been submitted.'.format(proposal.description),
         html_template='mooringlicensing/emails/send_documents_submitted_for_mla.html',
         txt_template='mooringlicensing/emails/send_documents_submitted_for_mla.txt',
     )
@@ -1029,9 +1029,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
 
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_user_as_email_user(msg.from_email)
-    # sender = msg.from_email
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
