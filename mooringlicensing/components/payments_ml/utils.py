@@ -220,7 +220,7 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
 
 
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str):
-    proposal_type_text = '({}}'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
+    proposal_type_text = '({})'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
     return {
         'ledger_description': '{}({}) Fee: {} (Season: {} to {}) @{}'.format(
             fee_constructor.application_type.description,
