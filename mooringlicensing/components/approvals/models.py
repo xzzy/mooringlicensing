@@ -908,16 +908,16 @@ class AuthorisedUserPermit(Approval):
         self.approval.refresh_from_db()
 
     def update_moorings(self, mooring_licence):
-        if not obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
             send_auth_user_no_moorings_notification(self.approval)
-        for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+        for moa in self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             ## notify authorised user permit holder that the mooring is no longer available
             if moa.mooring == mooring_licence.mooring:
                 ## send email to auth user
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         ## Note that new stickers need to be issued for the current authorised user permits where the mooring is removed.
-        old_sticker = obj.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
+        old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
         old_sticker.status = 'to_be_returned'
         old_sticker.save()
         new_sticker = Sticker.objects.create(
