@@ -24,40 +24,21 @@
                             <tr>
                                 <th>Entity type</th>
                                 <th>Number</th>
-                                <th>Action</th>
-                                <th>Contact number</th>
+                                <!--th>Action</th-->
+                                <!--th>Contact number</th-->
                                 <th>View</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="approval in approvals">
-                                <td>{{ approval.approval_type_dict.description }}</td>
+                            <tr v-for="admission in dcvAdmissions">
+                                <td>{{ admission.entity_type }}</td>
                                 <td>{{ approval.lodgement_number }}</td>
-                                <!--td>View</td-->
                                 <td></td>
-                                <td>{{ approval.submitter_phone_number }}</td>
-                                <td><a :href=approval.url>View</a></td>
-                                <!--td>{{approval.url}}</td-->
-                                <td>
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Registration number</th>
-                                                <th>Vessel Name</th>
-                                            </tr>
-                                        </thead>
-                                        <tr v-for="vessel in approval.vessel_data">
-                                            <td>{{ vessel.rego_no }}</td>
-                                            <td>{{ vessel.vessel_name }}</td>
-                                        </tr>
-                                    </table>
-                                </td>
                             </tr>
-                            <tr v-for="booking in bookings">
-                                <td>Booking</td>
-                                <td>{{ booking.booking_id_pf }}</td>
+                            <tr v-for="permit in dcvPermits">
+                                <td>{{ permit.entity_type }}</td>
+                                <td>{{ permit.lodgement_number }}</td>
                                 <td></td>
-                                <td>{{ booking.customer_phone_number }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -75,7 +56,7 @@ import {
 }
 from '@/utils/hooks'
     export default {
-        name:'BookingsPermits',
+        name:'DcvAdmissionsPermits',
         components:{
             FormSection,
         },
@@ -88,22 +69,12 @@ from '@/utils/hooks'
         data:function () {
             let vm = this;
             return {
-                approvals: [],
-                bookings: [],
+                dcvAdmissions: [],
+                dcvPermits: [],
                 selectedDate: null,
                 dataLoading: false,
              }
         },
-        /*
-        watch: {
-            selectedDate: async function() {
-                if (this.selectedDate) {
-                    console.log("watch date")
-                    //await this.retrieveIndividualOwner();
-                }
-            },
-        },
-        */
         computed: {
         },
         methods:{
@@ -142,37 +113,20 @@ from '@/utils/hooks'
                     let payload = {
                         "selected_date": this.selectedDate,
                     }
-                    // Approvals
+                    // DCV
+                    // TODO: needs to go in separate vue component
                     if (this.entity.type === "vessel") {
-                        const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_approvals.json`, payload);
-                        this.approvals = [];
-                        for (let approval of res.body) {
-                            this.approvals.push(approval);
+                        const admissionRes = await this.$http.post(`/api/dcv_vessel/${this.entity.id}/find_related_admissions.json`, payload);
+                        this.dcvAdmissions = [];
+                        for (let admission of admissionRes.body) {
+                            this.dcvAdmissions.push(admission);
                         }
-                    } else if (this.entity.type === "mooring") {
-                        const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_approvals.json`, payload);
-                        this.approvals = [];
-                        for (let approval of res.body) {
-                            this.approvals.push(approval);
+                        const permitRes = await this.$http.post(`/api/dcv_vessel/${this.entity.id}/find_related_permits.json`, payload);
+                        this.dcvPermits = [];
+                        for (let permit of permitRes.body) {
+                            this.dcvPermits.push(permit);
                         }
                     }
-                    /*
-                    // Bookings
-                    // TODO: separate vue component may be required
-                    if (this.entity.type === "vessel") {
-                        const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
-                        this.bookings = [];
-                        for (let booking of res.body) {
-                            this.bookings.push(booking);
-                        }
-                    } else if (this.entity.type === "mooring") {
-                        const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_bookings.json`, payload);
-                        this.bookings = [];
-                        for (let booking of res.body) {
-                            this.bookings.push(booking);
-                        }
-                    }
-                    */
                     this.dataLoading = false;
                 });
             },

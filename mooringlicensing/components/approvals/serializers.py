@@ -163,6 +163,49 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
         )
 
 
+class LookupDcvVesselSerializer(serializers.ModelSerializer):
+    #dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
+    #dcv_permits = DcvPermitSerializer(many=True, read_only=True)
+    class Meta:
+        model = DcvVessel
+        fields = (
+                'id',
+                'rego_no',
+                'vessel_name',
+                )
+
+
+
+class LookupDcvAdmissionSerializer(serializers.ModelSerializer):
+    entity_type = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = DcvAdmission
+        fields = (
+                'id',
+                'lodgement_number',
+                'entity_type',
+                )
+
+    def get_entity_type(self, obj):
+        return 'Admission'
+
+
+class LookupDcvPermitSerializer(serializers.ModelSerializer):
+    entity_type = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = DcvPermit
+        fields = (
+                'id',
+                'lodgement_number',
+                'entity_type',
+                )
+
+    def get_entity_type(self, obj):
+        return 'Permit'
+
+
 class DcvVesselSerializer(serializers.ModelSerializer):
     dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
     dcv_permits = DcvPermitSerializer(many=True, read_only=True)

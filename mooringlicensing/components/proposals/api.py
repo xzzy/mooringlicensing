@@ -172,17 +172,34 @@ class GetVessel(views.APIView):
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         if search_term:
-            data = VesselDetails.filtered_objects.filter(
+            data_transform = []
+
+            ml_data = VesselDetails.filtered_objects.filter(
                     Q(vessel__rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
                     )[:10]
-            data_transform = []
-            for vd in data:
+            for vd in ml_data:
                 data_transform.append({
                     'id': vd.vessel.id, 
+                    'rego_no': vd.vessel.rego_no,
                     'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    'entity_type': 'ml',
                     })
+            dcv_data = DcvVessel.objects.filter(
+                    Q(rego_no__icontains=search_term) | 
+                    Q(vessel_name__icontains=search_term)
+                    )[:10]
+            for dcv in dcv_data:
+                data_transform.append({
+                    'id': dcv.id, 
+                    'rego_no': dcv.rego_no,
+                    'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    'entity_type': 'dcv',
+                    })
+            ## order results
+            data_transform.sort(key=lambda item: item.get("id"))
             return Response({"results": data_transform})
+            #return Response({"results": dcv_data_transform})
         return Response()
 
 
