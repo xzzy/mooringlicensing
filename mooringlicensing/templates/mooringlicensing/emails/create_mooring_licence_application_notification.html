@@ -1,28 +1,14 @@
 {%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {%  block content_body %}
-Dear {{ recipient.first_name }} {{ recipient.last_name }},
-You are invited to apply for a mooring licence based on your current Waiting List Allocation {{ approval.lodgement_number }}.
-
-You are required to submit your application within {{ application_period }} number of days and submit any additional documents within {{ documents_period }} number of days thereafter.
-
+<p>Dear {{ recipient.first_name }} {{ recipient.last_name }},</p>
+<p>You are invited to apply for a mooring licence based on your current Waiting List Allocation {{ approval.lodgement_number }}.</p>
+<p>You are required to submit your application within {{ application_period }} number of days and submit any additional documents within {{ documents_period }} number of days thereafter.</p>
 {% if message_details %}
 Details:
 {{ message_details }}
 {% endif %}
-
-Please click <a href="{{ url }}">here</a> to access the application.
+<p>Please click <a href="{{ url }}">here</a> to access the application.</p>
 
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}
-
-
-
-
-{% comment %}
-    <p>Mooring Licence Application
-    <strong> {{ mla_proposal.lodgement_number}} has been created</strong>.</p>
-    
-    <p>To continue your application, please click <a href="{{url}}">here</a>.</p>
-    <p><label>Message details:</label>{{ message_details }}</p>
-{% endcomment %}
