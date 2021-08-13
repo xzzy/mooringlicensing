@@ -1415,7 +1415,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             return self.final_approval_for_AUA_MLA(request, details)
 
-
     def generate_compliances(self,approval, request):
         today = timezone.now().date()
         timedelta = datetime.timedelta
@@ -1654,6 +1653,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def application_type_code(self):
         return self.child_obj.code
+
+    @property
+    def description(self):
+        if hasattr(self, 'child_obj'):
+            return self.child_obj.description
+        return ''
 
     @classmethod
     def application_type_descriptions(cls):
@@ -2583,6 +2588,12 @@ class PrivateMooringManager(models.Manager):
         return super(PrivateMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2)
 
 
+class AuthorisedUserMooringManager(models.Manager):
+    def get_queryset(self):
+        #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status='current')
+
+
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
         #import ipdb; ipdb.set_trace()
@@ -2629,6 +2640,7 @@ class Mooring(models.Model):
     # model managers
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
+    authorised_user_moorings = AuthorisedUserMooringManager()
     available_moorings = AvailableMooringManager()
     # Used for WLAllocation create MLApplication check
     #mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)

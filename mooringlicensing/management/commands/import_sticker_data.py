@@ -44,10 +44,11 @@ class Command(BaseCommand):
         """
         Retrieve messages
         """
-        imapclient.select()  # Select mail box
+        imapclient.select('INBOX')  # Select mail box
+        # imapclient.select('KatsuTest')  # Select mail box
         typ, data = imapclient.search(None, "ALL")  # data = [b"1 2 3 4 ..."]
         datas = data[0].split()
-        fetch_num = 5  # The number of messages to fetch
+        fetch_num = 5000  # The number of messages to fetch
 
         if (len(datas) - fetch_num) < 0:
             fetch_num = len(datas)
@@ -82,7 +83,7 @@ class Command(BaseCommand):
                 if part.get('Content-Disposition') is None:
                     continue
                 fileName = part.get_filename()
-                if bool(fileName):
+                if bool(fileName) and fileName.lower().endswith('.xlsx'):
                     now = timezone.localtime(timezone.now())
 
                     # Create sticker_printing_response object. File is not saved yet
@@ -127,10 +128,13 @@ def get_text(msg):
 
 
 def make_sure_datetime(dt_obj):
-    if isinstance(dt_obj, datetime.datetime):
-        return dt_obj
+    if dt_obj:
+        if isinstance(dt_obj, datetime.datetime):
+            return dt_obj
+        else:
+            return datetime.datetime.strptime(dt_obj, '%d/%m/%Y')
     else:
-        return datetime.datetime.strptime(dt_obj, '%d/%m/%Y')
+        return None
 
 
 def make_sure_sticker_number(sticker_number):
@@ -138,6 +142,10 @@ def make_sure_sticker_number(sticker_number):
         return '{0:07d}'.format(sticker_number)
     else:
         return sticker_number
+
+
+def is_empty(cell):
+    return cell.value is None or not str(cell.value).strip()
 
 
 def process_sticker_printing_response():
@@ -148,7 +156,13 @@ def process_sticker_printing_response():
     for response in responses:
         if response._file:
             # Load file
-            wb = openpyxl.load_workbook(response._file)
+            try:
+                wb = openpyxl.load_workbook(response._file)
+            except Exception as e:
+                err_msg = 'Error loading the file {}'.format(response._file.name)
+                logger.error('{}\n{}'.format(err_msg, str(e)))
+                errors.append(err_msg)
+                continue
 
             # Retrieve the first worksheet
             ws = wb.worksheets[0]
@@ -172,6 +186,9 @@ def process_sticker_printing_response():
 
             # Loop rows after the header row and retrieve values
             for row in ws.iter_rows(min_row=header_row + 1):
+                if all(is_empty(c) for c in row):
+                    # Found empty row, finish processing rows
+                    break
                 batch_date_value = row[batch_date_column - 1].value  # [] is index, therefore minus 1
                 sticker_number_value = row[sticker_number_column - 1].value
                 printing_date_value = row[printing_date_column - 1].value
@@ -183,6 +200,7 @@ def process_sticker_printing_response():
                 mailing_date_value = make_sure_datetime(mailing_date_value)
 
                 try:
+                    # Find a sticker from the Database and change its attributes
                     sticker = Sticker.objects.get(number=sticker_number_value)
                     sticker.printing_date = printing_date_value
                     sticker.mailing_date = mailing_date_value

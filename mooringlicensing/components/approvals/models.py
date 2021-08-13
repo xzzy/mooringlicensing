@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
 from ledger.accounts.models import EmailUser, RevisionedMixin
+from ledger.payments.invoice.models import Invoice
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.organisations.models import Organisation
@@ -27,7 +28,9 @@ from mooringlicensing.components.approvals.email import (
     send_approval_cancel_email_notification,
     send_approval_suspend_email_notification,
     send_approval_reinstate_email_notification,
-    send_approval_surrender_email_notification
+    send_approval_surrender_email_notification,
+    send_auth_user_no_moorings_notification,
+    send_auth_user_mooring_removed_notification,
 )
 #from mooringlicensing.utils import search_keys, search_multiple_keys
 from mooringlicensing.helpers import is_customer
@@ -252,6 +255,12 @@ class Approval(RevisionedMixin):
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    @property
+    def description(self):
+        if hasattr(self, 'child_obj'):
+            return self.child_obj.description
+        return ''
 
     def write_approval_history(self, reason=None):
         history_count = self.approvalhistory_set.count()
@@ -901,23 +910,24 @@ class AuthorisedUserPermit(Approval):
         self.approval.refresh_from_db()
 
     def update_moorings(self, mooring_licence):
-        if not obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
             send_auth_user_no_moorings_notification(self.approval)
-        for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+        for moa in self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             ## notify authorised user permit holder that the mooring is no longer available
             if moa.mooring == mooring_licence.mooring:
                 ## send email to auth user
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         ## Note that new stickers need to be issued for the current authorised user permits where the mooring is removed.
-        old_sticker = obj.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
-        old_sticker.status = 'to_be_returned'
-        old_sticker.save()
-        new_sticker = Sticker.objects.create(
-                approval=old_sticker.approval,
-                vessel_ownership=old_sticker.vessel_ownership,
-                fee_constructor=old_sticker.fee_constructor,
-                )
+        old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
+        if old_sticker:
+            old_sticker.status = 'to_be_returned'
+            old_sticker.save()
+            new_sticker = Sticker.objects.create(
+                    approval=old_sticker.approval,
+                    vessel_ownership=old_sticker.vessel_ownership,
+                    fee_constructor=old_sticker.fee_constructor,
+                    )
 
     def manage_stickers(self, proposal):
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
@@ -1297,6 +1307,28 @@ class DcvAdmission(RevisionedMixin):
     def __str__(self):
         return self.lodgement_number
 
+    @property
+    def fee_paid(self):
+        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+            return True
+        return False
+
+    @property
+    def invoice(self):
+        if self.dcv_admission_fees.count() < 1:
+            return None
+        elif self.dcv_admission_fees.count() == 1:
+            dcv_admission_fee = self.dcv_admission_fees.first()
+            try:
+                invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
+            except:
+                invoice = None
+            return invoice
+        else:
+            msg = 'DcvAdmission: {} has {} DcvAdmissionFees.  There should be 0 or 1.'.format(self, self.dcv_admission_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
     @classmethod
     def get_next_id(cls):
         ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
@@ -1310,6 +1342,12 @@ class DcvAdmission(RevisionedMixin):
 
     def generate_dcv_admission_doc(self):
         permit_document = create_dcv_admission_document(self)
+
+    def get_summary(self):
+        summary = []
+        for arrival in self.dcv_admission_arrivals.all():
+            summary.append(arrival.get_summary())
+        return summary
 
 
 class DcvAdmissionArrival(RevisionedMixin):
@@ -1326,6 +1364,18 @@ class DcvAdmissionArrival(RevisionedMixin):
 
     def __str__(self):
         return '{} ({})'.format(self.dcv_admission, self.arrival_date)
+
+    def get_summary(self):
+        summary_dict = {'arrival_date': self.arrival_date}
+        for age_group_choice in AgeGroup.NAME_CHOICES:
+            age_group = AgeGroup.objects.get(code=age_group_choice[0])
+            dict_type = {}
+            for admission_type_choice in AdmissionType.TYPE_CHOICES:
+                admission_type = AdmissionType.objects.get(code=admission_type_choice[0])
+                num_of_people = self.numberofpeople_set.get(age_group=age_group, admission_type=admission_type)
+                dict_type[admission_type_choice[0]] = num_of_people.number
+            summary_dict[age_group_choice[0]] = dict_type
+        return summary_dict
 
 
 class AgeGroup(models.Model):
@@ -1402,6 +1452,31 @@ class DcvPermit(RevisionedMixin):
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits')
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
+
+    def get_target_date(self, applied_date):
+        return applied_date
+
+    @property
+    def fee_paid(self):
+        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+            return True
+        return False
+
+    @property
+    def invoice(self):
+        if self.dcv_permit_fees.count() < 1:
+            return None
+        elif self.dcv_permit_fees.count() == 1:
+            dcv_permit_fee = self.dcv_permit_fees.first()
+            try:
+                invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
+                return invoice
+            except:
+                return None
+        else:
+            msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self, self.dcv_permit_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
 
     @classmethod
     def get_next_id(cls):
