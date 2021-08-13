@@ -45,6 +45,7 @@ class Command(BaseCommand):
         Retrieve messages
         """
         imapclient.select('INBOX')  # Select mail box
+        # imapclient.select('KatsuTest')  # Select mail box
         typ, data = imapclient.search(None, "ALL")  # data = [b"1 2 3 4 ..."]
         datas = data[0].split()
         fetch_num = 5000  # The number of messages to fetch
@@ -82,7 +83,7 @@ class Command(BaseCommand):
                 if part.get('Content-Disposition') is None:
                     continue
                 fileName = part.get_filename()
-                if bool(fileName):
+                if bool(fileName) and fileName.lower().endswith('.xlsx'):
                     now = timezone.localtime(timezone.now())
 
                     # Create sticker_printing_response object. File is not saved yet
@@ -155,7 +156,13 @@ def process_sticker_printing_response():
     for response in responses:
         if response._file:
             # Load file
-            wb = openpyxl.load_workbook(response._file)
+            try:
+                wb = openpyxl.load_workbook(response._file)
+            except Exception as e:
+                err_msg = 'Error loading the file {}'.format(response._file.name)
+                logger.error('{}\n{}'.format(err_msg, str(e)))
+                errors.append(err_msg)
+                continue
 
             # Retrieve the first worksheet
             ws = wb.worksheets[0]
