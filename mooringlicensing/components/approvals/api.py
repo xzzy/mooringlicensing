@@ -911,6 +911,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def find_related_permits(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
         vessel = self.get_object()
         selected_date_str = request.data.get("selected_date")
         selected_date = None

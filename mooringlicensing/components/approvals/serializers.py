@@ -175,29 +175,35 @@ class LookupDcvVesselSerializer(serializers.ModelSerializer):
                 )
 
 
+
 class LookupDcvAdmissionSerializer(serializers.ModelSerializer):
+    entity_type = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = DcvAdmission
         fields = (
                 'id',
                 'lodgement_number',
+                'entity_type',
                 )
 
-    #submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
-    #lodgement_number = models.CharField(max_length=10, blank=True, default='')
-    #lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
-    #skipper = models.CharField(max_length=50, blank=True, null=True)
-    #contact_number = models.CharField(max_length=50, blank=True, null=True)
-    #dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions')
+    def get_entity_type(self, obj):
+        return 'Admission'
 
 
 class LookupDcvPermitSerializer(serializers.ModelSerializer):
+    entity_type = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = DcvPermit
         fields = (
                 'id',
                 'lodgement_number',
+                'entity_type',
                 )
+
+    def get_entity_type(self, obj):
+        return 'Permit'
 
 
 class DcvVesselSerializer(serializers.ModelSerializer):
