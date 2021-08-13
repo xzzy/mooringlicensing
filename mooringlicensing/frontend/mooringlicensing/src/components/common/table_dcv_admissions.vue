@@ -112,7 +112,6 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
-                    console.log(full)
                     return full.id
                 }
             }
@@ -137,7 +136,18 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented';
+                    let links = ''
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                        }
+                    }
+                    if (full.admission_urls){
+                        for (let admission_url of full.admission_urls){
+                            links +=  `<div><a href='${admission_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation</a></div>`;
+                        }
+                    }
+                    return links
                 }
             }
         },
@@ -247,7 +257,17 @@ export default {
                     }
                     return links;
                     */
-                    return 'not implemented';
+                    let links = '';
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            links += '</div>'
+                        }
+                    }
+                    return links
                 }
             }
         },

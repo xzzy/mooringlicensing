@@ -1,0 +1,10 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+<p>Dear {{ recipient.first_name }} {{ recipient.last_name }},</p>
+<p>Your {{ approval.description }} {{ approval.lodgement_number }} has been suspended as per {{ from_date }} {% if to_date %}until {{ to_date }}.{% endif %}
+    {% if details %}
+    <p>Details: {{ details }}
+    {% endif %}
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}

@@ -74,8 +74,8 @@ class GetSticker(views.APIView):
             data = Sticker.objects.filter(number__icontains=search_term)[:10]
             data_transform = []
             for sticker in data:
-                approval_history = sticker.approvalhistory_set.order_by('id').first()
-                if approval_history.approval:
+                approval_history = sticker.approvalhistory_set.order_by('id').first()  # Should not be None, but could be None for the data generated at the early stage of development.
+                if approval_history and approval_history.approval:
                     data_transform.append({
                         'id': sticker.id,
                         'text': sticker.number,

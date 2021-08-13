@@ -106,15 +106,22 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
 # Use git commit hash for purging cache in browser for deployment changes
-GIT_COMMIT_HASH = ''
-GIT_COMMIT_DATE = ''
+#GIT_COMMIT_HASH = ''
+#GIT_COMMIT_DATE = ''
+#if  os.path.isdir(BASE_DIR+'/.git/') is True:
+ #   GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
+  #  GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+#if len(GIT_COMMIT_HASH) == 0: 
+#    GIT_COMMIT_HASH = os.popen('cat /app/rand_hash').read()
+#    if len(GIT_COMMIT_HASH) == 0:
+#       print ("ERROR: No rand hash provided")
+RAND_HASH = ''
 if  os.path.isdir(BASE_DIR+'/.git/') is True:
-    GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
-    GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
-if len(GIT_COMMIT_HASH) == 0: 
-    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
-    if len(GIT_COMMIT_HASH) == 0:
-       print ("ERROR: No git hash provided")
+    RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+if not len(RAND_HASH):
+    RAND_HASH = os.popen('cat /app/rand_hash').read()
+if len(RAND_HASH) == 0:
+    print ("ERROR: No rand hash provided")
 
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Mooring Licensing')

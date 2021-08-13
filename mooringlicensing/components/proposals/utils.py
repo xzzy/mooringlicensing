@@ -352,6 +352,7 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
+
 def save_proponent_data_aaa(instance, request, viewset):
     print(request.data)
     # vessel
@@ -371,7 +372,15 @@ def save_proponent_data_aaa(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    serializer.save()
+    instance = serializer.save()
+    if viewset.action == 'submit':
+        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+            # Save + Submit + Paid ==> We have to update the status
+            # Probably this is the case that assessor put back this application to external and then external submit this.
+            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            instance.save()
+
 
 def save_proponent_data_wla(instance, request, viewset):
     print(request.data)
@@ -392,9 +401,14 @@ def save_proponent_data_wla(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    serializer.save()
-    # if instance.pending_amendment_request:
-    #     proposal_submit(instance, request)
+    instance = serializer.save()
+    if viewset.action == 'submit':
+        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+            # Save + Submit + Paid ==> We have to update the status
+            # Probably this is the case that assessor put back this application to external and then external submit this.
+            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            instance.save()
 
 
 def save_proponent_data_mla(instance, request, viewset):
