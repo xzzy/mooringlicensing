@@ -51,13 +51,19 @@ from '@/utils/hooks'
                 console.log("open vessel");
                 this.$nextTick(() => {
                     if (this.selectedVessel) {
-                        this.$router.push({
-                            name: 'internal-vessel-detail',
-                            params: {"vessel_id": this.selectedVessel},
-                        });
+                        if (this.selectedVessel.entity_type === 'ml') {
+                            this.$router.push({
+                                name: 'internal-vessel-detail',
+                                params: {"vessel_id": this.selectedVessel.id},
+                            });
+                        } else if (this.selectedVessel.entity_type === 'dcv') {
+                            this.$router.push({
+                                name: 'internal-dcv-vessel-detail',
+                                params: {"dcv_vessel_id": this.selectedVessel.id},
+                            });
+                        }
                     }
                 });
-
             },
             initialiseVesselLookup: function(){
                 let vm = this;
@@ -81,8 +87,12 @@ from '@/utils/hooks'
                 }).
                 on("select2:select", function (e) {
                     var selected = $(e.currentTarget);
+                    /*
                     let data = e.params.data.id;
                     vm.selectedVessel = data;
+                    */
+                    let data = e.params.data;
+                    vm.selectedVessel = Object.assign({}, data);
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
