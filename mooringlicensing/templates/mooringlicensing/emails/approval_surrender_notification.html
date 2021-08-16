@@ -2,9 +2,11 @@
 
 {%  block content_body %}
 <p>Dear {{ recipient.first_name }} {{ recipient.last_name }},</p>
-<p>Your {{ approval.description }} {{ approval.lodgement_number }} has been surrendered as per {{ surrender_date }}.
+
+<p>Your {{ approval.description }} {{ approval.lodgement_number }} has been surrendered as per {{ surrender_date }}.</p>
     {% if details %}
-    <p>Details: {{ details }}
+    <p>Details: {{ details }}</p>
     {% endif %}
+
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}
