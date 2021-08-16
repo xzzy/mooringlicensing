@@ -594,7 +594,7 @@ class Approval(RevisionedMixin):
                     ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
             except:
                 raise
-
+    ## TODO: remove method?
     def approval_extend(self,request,details):
         with transaction.atomic():
             try:
@@ -618,7 +618,6 @@ class Approval(RevisionedMixin):
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_EXTEND_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
-
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
