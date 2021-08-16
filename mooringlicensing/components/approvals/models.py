@@ -919,15 +919,15 @@ class AuthorisedUserPermit(Approval):
                 ## send email to auth user
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         ## Note that new stickers need to be issued for the current authorised user permits where the mooring is removed.
-        old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
-        if old_sticker:
-            old_sticker.status = 'to_be_returned'
-            old_sticker.save()
-            new_sticker = Sticker.objects.create(
-                    approval=old_sticker.approval,
-                    vessel_ownership=old_sticker.vessel_ownership,
-                    fee_constructor=old_sticker.fee_constructor,
-                    )
+        #old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
+        #if old_sticker:
+        #    old_sticker.status = 'to_be_returned'
+        #    old_sticker.save()
+        #    new_sticker = Sticker.objects.create(
+        #            approval=old_sticker.approval,
+        #            vessel_ownership=old_sticker.vessel_ownership,
+        #            fee_constructor=old_sticker.fee_constructor,
+        #            )
 
     def manage_stickers(self, proposal):
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
