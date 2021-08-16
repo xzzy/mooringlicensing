@@ -418,7 +418,7 @@ from '@/utils/hooks'
                 $(vm.$refs.company_name).select2({
                     minimumInputLength: 2,
                     "theme": "bootstrap",
-                    allowClear: true,
+                    //allowClear: true,
                     //placeholder:"Select Vessel Registration",
                     placeholder:"",
                     tags: true,
@@ -517,7 +517,7 @@ from '@/utils/hooks'
                 $(vm.$refs.vessel_rego_nos).select2({
                     minimumInputLength: 2,
                     "theme": "bootstrap",
-                    allowClear: true,
+                    //allowClear: true,
                     //placeholder:"Select Vessel Registration",
                     placeholder:"",
                     tags: true,
