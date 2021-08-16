@@ -423,11 +423,9 @@ export default {
                             } else if (!vm.is_external){
                                 links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
                                 links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
-                                /*
-                                if(full.can_approver_reissue && full.current_proposal){
+                                if(full.can_reissue && full.current_proposal_id){
                                         links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal_id}'>Reissue</a><br/>`;
                                 }
-                                */
                                 if (vm.is_internal && vm.wlaDash) {
                                     links += full.offer_link;
                                 }
