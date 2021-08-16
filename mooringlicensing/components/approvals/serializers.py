@@ -1083,7 +1083,6 @@ class StickerSerializer(serializers.ModelSerializer):
 
 
 class ListDcvPermitSerializer(serializers.ModelSerializer):
-    dcv_vessel_uiv = serializers.SerializerMethodField()
     dcv_organisation_name = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     fee_season = serializers.SerializerMethodField()
@@ -1100,7 +1099,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'fee_season',            
             'start_date',
             'end_date', 
-            'dcv_vessel_uiv', 
             'dcv_organisation_name',
             'status',
             'fee_invoice_url',
@@ -1114,7 +1112,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'fee_season',            
             'start_date',
             'end_date', 
-            'dcv_vessel_uiv', 
             'dcv_organisation_name',
             'status',
             'fee_invoice_url',
@@ -1161,7 +1158,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
 
 
 class ListDcvAdmissionSerializer(serializers.ModelSerializer):
-    dcv_vessel_uiv = serializers.SerializerMethodField()
     #dcv_organisation_name = serializers.SerializerMethodField()
     #status = serializers.SerializerMethodField()
     lodgement_date = serializers.SerializerMethodField()
@@ -1176,7 +1172,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'lodgement_date',            
-            'dcv_vessel_uiv',
             'fee_invoice_url',
             'invoices',
             'admission_urls',
@@ -1185,7 +1180,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'lodgement_date',            
-            'dcv_vessel_uiv',
             'fee_invoice_url',
             'invoices',
             'admission_urls',
