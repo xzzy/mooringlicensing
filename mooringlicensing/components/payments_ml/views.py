@@ -27,8 +27,7 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice
-from mooringlicensing.components.proposals.email import send_application_processed_email, \
-    send_other_documents_submitted_notification_email
+from mooringlicensing.components.proposals.email import send_application_processed_email
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
