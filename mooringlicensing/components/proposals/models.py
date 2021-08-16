@@ -2664,16 +2664,18 @@ class Mooring(models.Model):
     @property
     def status(self):
         from mooringlicensing.components.approvals.models import MooringOnApproval
-        status = ''
+        status = 'Unallocated'
         ## check for Mooring Licences
         if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
-            status = 'Licensed'
+            #status = 'Licensed'
+            status = 'Allocated'
         if not status:
             # check for Mooring Applications
             proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
             for proposal in proposals:
                 if proposal.child_obj.code == 'mla':
-                    status = 'Licence Application'
+                    #status = 'Licence Application'
+                    status = 'Offered'
         return status
 
 
