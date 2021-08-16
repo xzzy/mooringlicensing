@@ -6,7 +6,8 @@ from ledger.payments.models import Invoice
 from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer
+from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer, \
+    DcvAdmissionArrivalSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -1165,6 +1166,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
     admission_urls = serializers.SerializerMethodField()
+    arrivals = DcvAdmissionArrivalSerializer(source='dcv_admission_arrivals', many=True)
 
     class Meta:
         model = DcvAdmission
@@ -1175,6 +1177,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'fee_invoice_url',
             'invoices',
             'admission_urls',
+            'arrivals',
             )
         datatables_always_serialize = (
             'id',
@@ -1183,6 +1186,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'fee_invoice_url',
             'invoices',
             'admission_urls',
+            'arrivals',
             )
 
     def get_admission_urls(self, obj):
