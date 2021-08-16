@@ -37,7 +37,7 @@ import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 
 export default {
-    name: 'TableDcvPermits',
+    name: 'TableDcvAdmissions',
     props: {
         level:{
             type: String,

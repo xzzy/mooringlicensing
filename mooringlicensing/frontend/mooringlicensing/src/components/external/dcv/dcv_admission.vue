@@ -47,6 +47,7 @@
                     :key="arrival.uuid"
                     :dcv_vessel="dcv_admission.dcv_vessel"
                     :fee_configurations="fee_configurations"
+                    :column_approved_events_shown=false
                 />
             </template>
 
