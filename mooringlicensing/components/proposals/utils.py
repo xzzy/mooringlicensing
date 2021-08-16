@@ -534,6 +534,11 @@ def submit_vessel_data(instance, request, vessel_data):
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
         elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
+        elif instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and (
+                instance.vessel_details.vessel_applicable_length > instance.approval.mooring.vessel_size_limit or
+                instance.vessel_details.vessel_draft > instance.approval.mooring.vessel_draft_limit
+                ):
+            raise serializers.ValidationError("Vessel unsuitable for mooring")
 
     # record ownership data
     #submit_vessel_ownership(instance, request)
@@ -588,6 +593,14 @@ def submit_vessel_data(instance, request, vessel_data):
     # apply rules
     if (type(instance.child_obj) == WaitingListApplication and (proposals_wla or approvals_wla or
             proposals_mla or approvals_ml_sus)):
+        association_fail = True
+    # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
+    elif (type(instance.child_obj) == WaitingListApplication and (
+        WaitingListApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+        WaitingListAllocation.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['cancelled', 'expired', 'surrendered']) or
+        MooringLicenceApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+        MooringLicence.objects.filter(submitter=instance.submitter, processing_status__in=['current', 'suspended']))
+        ):
         association_fail = True
     elif (type(instance.child_obj) == AnnualAdmissionApplication and (proposals_aaa or approvals_aap or
             proposals_aua or approvals_aup_sus or proposals_mla or approvals_ml_sus)):
