@@ -7,12 +7,6 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">UVI Vessel Identifier</label>
-                <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.dcv_vessel.uvi_vessel_identifier">
-                </div>
-            </div>
-            <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
@@ -47,6 +41,7 @@
                     :key="arrival.uuid"
                     :dcv_vessel="dcv_admission.dcv_vessel"
                     :fee_configurations="fee_configurations"
+                    :column_approved_events_shown=false
                 />
             </template>
 
@@ -69,8 +64,8 @@
                             <div class="navbar-inner">
                                 <div class="container">
                                     <p class="pull-right" style="margin-top:5px">
-                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>Pay and Submit&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit" :disabled="paySubmitting"/>
+                                    <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>{{ pay_submit_button_text }}<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
+                                        <input v-else type="button" @click.prevent="pay_and_submit" class="btn btn-primary" :value="pay_submit_button_text" :disabled="paySubmitting"/>
                                     </p>
                                 </div>
                             </div>
@@ -164,6 +159,15 @@ export default {
         dcv_admission_fee_url: function() {
           return `/dcv_admission_fee/${this.dcv_admission.id}/`
         },
+        pay_submit_button_text: function() {
+            let button_text = 'Submit'
+            for (let arrival of this.dcv_admission.arrivals){
+                if (!arrival.private_visit){
+                    button_text = 'Pay and Submit'
+                }
+            }
+            return button_text
+        }
     },
     methods: {
         lookupDcvVessel: async function(id) {

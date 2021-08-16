@@ -23,12 +23,6 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">UVI vessel identifier</label>
-                <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_permit.dcv_vessel.uvi_vessel_identifier">
-                </div>
-            </div>
-            <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
@@ -91,7 +85,7 @@ export default {
                 //vessel_name: '',
                 dcv_vessel: {
                     id: null,
-                    uvi_vessel_identifier: '',
+                    //uvi_vessel_identifier: '',
                     rego_no: '',
                     vessel_name: '',
                 },
@@ -187,7 +181,7 @@ export default {
                         vm.dcv_permit.dcv_vessel =
                         {
                             id: id,
-                            uvi_vessel_identifier: '',
+                            //uvi_vessel_identifier: '',
                             rego_no: id,
                             vessel_name: '',
                         }
@@ -204,7 +198,7 @@ export default {
                 vm.dcv_permit.dcv_vessel = Object.assign({},
                     {
                         id: null,
-                        uvi_vessel_identifier: '',
+                        //uvi_vessel_identifier: '',
                         rego_no: '',
                         vessel_name: '',
                     }
