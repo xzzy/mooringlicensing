@@ -20,10 +20,10 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="application_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="datatable_options" 
+                <datatable
+                    ref="application_datatable"
+                    :id="datatable_id"
+                    :dtOptions="datatable_options"
                     :dtHeaders="datatable_headers"
                 />
             </div>
@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'UIV Vessel Identifier', 'Status', 'Year', 'Action']
+            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Year', 'Action']
         },
         column_id: function(){
             return {
@@ -161,18 +161,6 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     return full.dcv_organisation_name;
-                    //return '';
-                }
-            }
-        },
-        column_uiv: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.dcv_vessel_uiv;
                     //return '';
                 }
             }
@@ -257,7 +245,6 @@ export default {
                 vm.column_lodgement_number,
                 vm.column_invoice_approval,
                 vm.column_organisation,
-                vm.column_uiv,
                 vm.column_status,
                 vm.column_year,
                 vm.column_action,
