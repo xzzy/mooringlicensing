@@ -314,6 +314,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     amend_or_renew = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     stickers = serializers.SerializerMethodField()
+    is_approver = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -358,6 +359,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'stickers',
             'licence_document',
+            'is_approver',
         )
 
     def get_mooring_licence_mooring(self, obj):
@@ -391,6 +393,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     #def get_can_renew(self,obj):
     #    return obj.can_renew
+
+    def get_is_approver(self, obj):
+        #return_list = []
+        request = self.context['request']
+        return obj.is_approver(request.user)
 
     def get_mooring_licence_vessels(self, obj):
         #return_list = []
@@ -651,6 +658,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     preferred_mooring_bay = serializers.SerializerMethodField()
     preferred_mooring_bay_id = serializers.SerializerMethodField()
     current_proposal_number = serializers.SerializerMethodField()
+    current_proposal_approved = serializers.SerializerMethodField()
     vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
@@ -665,6 +673,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     amend_or_renew = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     stickers = serializers.SerializerMethodField()
+    is_approver = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -683,6 +692,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'preferred_mooring_bay',
             'preferred_mooring_bay_id',
             'current_proposal_number',
+            'current_proposal_approved',
             'current_proposal_id',
             'vessel_registration',
             'vessel_name',
@@ -703,6 +713,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'stickers',
             'licence_document',
+            'is_approver',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -721,6 +732,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'preferred_mooring_bay',
             'preferred_mooring_bay_id',
             'current_proposal_number',
+            'current_proposal_approved',
             'current_proposal_id',
             'vessel_registration',
             'vessel_name',
@@ -741,10 +753,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'stickers',
             'licence_document',
+            'is_approver',
         )
 
     #def get_stickers(self, obj):
      #   return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
+
+    def get_current_proposal_approved(self, obj):
+        return obj.current_proposal.processing_status == 'approved'
+
+    def get_is_approver(self, obj):
+        #return_list = []
+        request = self.context['request']
+        return obj.is_approver(request.user)
 
     def get_stickers(self, obj):
         numbers = ""
