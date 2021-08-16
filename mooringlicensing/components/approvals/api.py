@@ -681,15 +681,12 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
     def _handle_dcv_vessel(dcv_vessel, org_id=None):
         data = dcv_vessel
         rego_no_requested = data.get('rego_no', '')
-        uvi_requested = data.get('uvi_vessel_identifier', '')
         vessel_name_requested = data.get('vessel_name', '')
         try:
-            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
+            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
         except DcvVessel.DoesNotExist:
             data['rego_no'] = rego_no_requested
-            data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
-            # data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
@@ -774,13 +771,11 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     def _handle_dcv_vessel(request, org_id=None):
         data = request.data
         rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
-        uvi_requested = request.data.get('dcv_vessel').get('uvi_vessel_identifier', '')
         vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
         try:
-            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
+            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
         except DcvVessel.DoesNotExist:
             data['rego_no'] = rego_no_requested
-            data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
             data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
