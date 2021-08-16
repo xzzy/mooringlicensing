@@ -3033,6 +3033,30 @@ class WrittenProofDocument(Document):
         verbose_name = "Written Proof Document"
 
 
+class SignedLicenceAgreementDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True)
+    can_hide = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Signed Licence Agreement"
+
+
+class ProofOfIdentityDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True)
+    can_hide = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Proof Of Identity"
 
 # Vessel details per Proposal
 # - allows for customer to edit vessel details during application process
