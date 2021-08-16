@@ -46,7 +46,7 @@
                         <div class="col-sm-2 text-center"><label>Landing</label></div>
                         <div class="col-sm-2 text-center"><label>Extended stay</label></div>
                         <div class="col-sm-2 text-center"><label>Not landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
+                        <div v-show="column_approved_events_shown" class="col-sm-2 text-center"><label>Approved events</label></div>
                         <div class="col-sm-2 text-center"><label>Fee (AU$)</label></div>
                     </div>
                     <div class="row form-group">
@@ -60,7 +60,7 @@
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
                         </div>
-                        <div class="col-sm-2">
+                        <div v-show="column_approved_events_shown" class="col-sm-2">
                             <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
                         </div>
                         <div class="col-sm-2">
@@ -74,13 +74,13 @@
                         <div class="col-sm-2">
                             <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
                         </div>
-                        <div class="col-sm-2">
-                            <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                        <div v-show="column_extended_stay_enabled" class="col-sm-2">
+                            <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
                         </div>
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
                         </div>
-                        <div class="col-sm-2">
+                        <div v-show="column_approved_events_shown" class="col-sm-2">
                             <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
                         </div>
                         <div class="col-sm-2">
@@ -131,6 +131,10 @@ export default {
             default: false,
         },
         column_approved_events_enabled: {
+            type: Boolean,
+            default: true,
+        },
+        column_approved_events_shown: {
             type: Boolean,
             default: true,
         },
