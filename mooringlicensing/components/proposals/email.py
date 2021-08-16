@@ -17,7 +17,7 @@ from datetime import datetime
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user
-from mooringlicensing.settings import CODE_DAYS_BEFORE_PERIOD_MLA, CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
+from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA
 
 logger = logging.getLogger(__name__)
 
@@ -377,7 +377,7 @@ def send_create_mooring_licence_application_email_notification(request, approval
         url = ''.join(url.split('-internal'))
 
     today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
-    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_PERIOD_MLA)
+    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
     days_setting_application_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
     days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)

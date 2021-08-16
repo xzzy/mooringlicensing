@@ -1279,12 +1279,11 @@ class DcvOrganisation(models.Model):
 
 class DcvVessel(models.Model):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
-    uvi_vessel_identifier = models.CharField(max_length=10, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
 
     def __str__(self):
-        return self.uvi_vessel_identifier
+        return self.rego_no
 
     class Meta:
         app_label = 'mooringlicensing'

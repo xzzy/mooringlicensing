@@ -218,8 +218,6 @@ class DcvVesselSerializer(serializers.ModelSerializer):
             field_errors['rego_no'] = ['Please enter vessel registration number.',]
         if not data['vessel_name']:
             field_errors['vessel_name'] = ['Please enter vessel name.',]
-        if not data['uvi_vessel_identifier']:
-            field_errors['uvi_vessel_identifier'] = ['Please enter UVI vessel identifier.',]
         if 'dcv_organisation_id' in data and not data['dcv_organisation_id']:
             field_errors['dcv_organisation_id'] = ['Please enter organisation and/or ABN / ACN.',]
 
@@ -237,7 +235,6 @@ class DcvVesselSerializer(serializers.ModelSerializer):
             'id',
             'vessel_name',
             'rego_no',
-            'uvi_vessel_identifier',
             'dcv_organisation_id',
             'dcv_permits',
         )
@@ -1107,7 +1104,6 @@ class StickerSerializer(serializers.ModelSerializer):
 
 
 class ListDcvPermitSerializer(serializers.ModelSerializer):
-    dcv_vessel_uiv = serializers.SerializerMethodField()
     dcv_organisation_name = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     fee_season = serializers.SerializerMethodField()
@@ -1124,7 +1120,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'fee_season',            
             'start_date',
             'end_date', 
-            'dcv_vessel_uiv', 
             'dcv_organisation_name',
             'status',
             'fee_invoice_url',
@@ -1138,7 +1133,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'fee_season',            
             'start_date',
             'end_date', 
-            'dcv_vessel_uiv', 
             'dcv_organisation_name',
             'status',
             'fee_invoice_url',
@@ -1165,12 +1159,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
         url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
         return url
 
-    def get_dcv_vessel_uiv(self, obj):
-        if obj.dcv_vessel:
-            return obj.dcv_vessel.uvi_vessel_identifier
-        else:
-            return ''
-
     def get_dcv_organisation_name(self, obj):
         if obj.dcv_organisation:
             return obj.dcv_organisation.name
@@ -1191,7 +1179,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
 
 
 class ListDcvAdmissionSerializer(serializers.ModelSerializer):
-    dcv_vessel_uiv = serializers.SerializerMethodField()
     #dcv_organisation_name = serializers.SerializerMethodField()
     #status = serializers.SerializerMethodField()
     lodgement_date = serializers.SerializerMethodField()
@@ -1206,7 +1193,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'lodgement_date',            
-            'dcv_vessel_uiv',
             'fee_invoice_url',
             'invoices',
             'admission_urls',
@@ -1215,7 +1201,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'lodgement_date',            
-            'dcv_vessel_uiv',
             'fee_invoice_url',
             'invoices',
             'admission_urls',
@@ -1226,12 +1211,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         for admission in obj.admissions.all():
             admission_urls.append(admission._file.url)
         return admission_urls
-
-    def get_dcv_vessel_uiv(self, obj):
-        if obj.dcv_vessel:
-            return obj.dcv_vessel.uvi_vessel_identifier
-        else:
-            return ''
 
     def get_invoices(self, obj):
         invoice_references = [item.invoice_reference for item in obj.dcv_admission_fees.all()]
