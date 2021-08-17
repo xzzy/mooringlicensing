@@ -156,7 +156,6 @@ from '@/utils/hooks'
                             this.approvals.push(approval);
                         }
                     }
-                    /*
                     // Bookings
                     // TODO: separate vue component may be required
                     if (this.entity.type === "vessel") {
@@ -172,7 +171,6 @@ from '@/utils/hooks'
                             this.bookings.push(booking);
                         }
                     }
-                    */
                     this.dataLoading = false;
                 });
             },
