@@ -1,19 +1,13 @@
 from django.contrib import admin
-from django.contrib.admin.utils import flatten_fieldsets
-
-from ledger.accounts.models import EmailUser
+from django.utils.html import mark_safe
 
 from mooringlicensing.components.proposals import models
 from mooringlicensing.components.proposals import forms
 from mooringlicensing.components.main.models import (
     SystemMaintenance,
-    Question,
     GlobalSettings,
 )
 from reversion.admin import VersionAdmin
-from django.conf.urls import url
-from django.template.response import TemplateResponse
-from django.http import HttpResponse, HttpResponseRedirect
 from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse, \
     StickerPrintingContact
 
@@ -21,6 +15,7 @@ from mooringlicensing.components.proposals.models import StickerPrintingBatch, S
 class ProposalDocumentInline(admin.TabularInline):
     model = models.ProposalDocument
     extra = 0
+
 
 @admin.register(models.AmendmentReason)
 class AmendmentReasonAdmin(admin.ModelAdmin):
@@ -131,13 +126,23 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
 class StickersPrintingResponseAdmin(admin.ModelAdmin):
     list_display = [
         'id',
-        'name',
-        '_file',
+        # 'name',
+        # '_file',
+        'get_attached_file',
         'uploaded_date',
-        'received_datetime',
         'email_subject',
+        'email_date',
+        # 'received_datetime',
+        # 'email_subject',
         'processed',
+        'no_errors_when_process',
     ]
+
+    def get_attached_file(self, obj):
+        if obj._file:
+            return mark_safe('<a href="{}">{}</a>'.format(obj._file.url, obj.name))
+        return ''
+    get_attached_file.short_description = 'File attached'
 
     def get_actions(self, request):
         actions = super(StickersPrintingResponseAdmin, self).get_actions(request)
@@ -157,13 +162,13 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
         return [
             'id',
             'name',
-            'received_datetime',
+            # 'received_datetime',
             'uploaded_date',
             '_file',
         ]
 
-    def save_model(self, request, obj, form, change):
-        pass
+    # def save_model(self, request, obj, form, change):
+    #     pass
 
     def delete_model(self, request, obj):
         pass
