@@ -494,6 +494,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     "id": moa.id,
                     "mooring_name": moa.mooring.name,
                     "licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
+                    'allocated_by': 'Site Licensee' if moa.site_licensee else 'RIA',
                     "mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
                     "email": licence_holder_data.get('email') if licence_holder_data else '',
                     })
