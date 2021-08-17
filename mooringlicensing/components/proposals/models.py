@@ -963,34 +963,37 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
-        if self.application_type.name==ApplicationType.FILMING and self.filming_approval_type=='lawful_authority':
-            allowed_status=['approved', 'partially_approved']
-            if not self.processing_status in allowed_status and not self.is_lawful_authority_finalised:
-                raise ValidationError('You cannot change the current status at this time')
-            elif self.approval and self.approval.can_reissue:
-                if self.__assessor_group() in request.user.proposalassessorgroup_set.all():
-                    self.processing_status = status
-                    self.save(version_comment='Reissue Approval: {}'.format(self.approval.lodgement_number))
-                    #self.save()
-                    # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
-                else:
-                    raise ValidationError('Cannot reissue Approval. User not permitted.')
-            else:
-                raise ValidationError('Cannot reissue Approval')
-
-        else:
+        with transaction.atomic():
             if not self.processing_status=='approved' :
                 raise ValidationError('You cannot change the current status at this time')
-            elif self.approval and self.approval.can_reissue:
-                if self.__approver_group() in request.user.proposalapprovergroup_set.all():
-                    self.processing_status = status
-                    #self.save()
-                    self.save(version_comment='Reissue Approval: {}'.format(self.approval.lodgement_number))
-                    # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
-                else:
-                    raise ValidationError('Cannot reissue Approval. User not permitted.')
+            #elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
+            #    # track changes to apiary sites and proposal requirements in save() methods instead
+            #    self.processing_status = status
+            #    #self.self_clone = copy.deepcopy(self)
+            #    #self.self_clone.id = None
+            #    #self.self_clone.save()
+            #    self.save()
+            #    #self.proposal_apiary.self_clone = copy.deepcopy(self.proposal_apiary)
+            #    #self.proposal_apiary.self_clone.id = None
+            #    #self.proposal_apiary.self_clone.save()
+            #    self.proposal_apiary.reissue_originating_approval = False
+            #    self.proposal_apiary.reissue_target_approval = False
+            #    self.proposal_apiary.save()
+            #    self.proposal_apiary.originating_approval.reissued = True
+            #    self.proposal_apiary.originating_approval.save()
+            #    self.proposal_apiary.target_approval.reissued = True
+            #    self.proposal_apiary.target_approval.save()
+            elif self.approval and self.approval.can_reissue and self.is_approver(request.user):
+                ## security ???
+                #elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
+                self.processing_status = status
+                self.save()
+                self.approval.reissued=True
+                self.approval.save()
+                # Create a log entry for the proposal
+                self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
+                #else:
+                    #raise ValidationError('Cannot reissue Approval')
             else:
                 raise ValidationError('Cannot reissue Approval')
 
@@ -2664,16 +2667,18 @@ class Mooring(models.Model):
     @property
     def status(self):
         from mooringlicensing.components.approvals.models import MooringOnApproval
-        status = ''
+        status = 'Unallocated'
         ## check for Mooring Licences
         if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
-            status = 'Licensed'
+            #status = 'Licensed'
+            status = 'Allocated'
         if not status:
             # check for Mooring Applications
             proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
             for proposal in proposals:
                 if proposal.child_obj.code == 'mla':
-                    status = 'Licence Application'
+                    #status = 'Licence Application'
+                    status = 'Offered'
         return status
 
 
