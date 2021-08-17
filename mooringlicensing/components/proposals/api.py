@@ -1077,19 +1077,27 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
+        #try:
         instance = self.get_object()
         status = request.data.get('status')
         if not status:
             raise serializers.ValidationError('Status is required')
         else:
-            if instance.application_type.name==ApplicationType.FILMING and instance.filming_approval_type=='lawful_authority':
-                status='with_assessor'
-            else:
-                if not status in ['with_approver']:
-                    raise serializers.ValidationError('The status provided is not allowed')
+            if not status in ['with_approver']:
+                raise serializers.ValidationError('The status provided is not allowed')
         instance.reissue_approval(request,status)
-        serializer = InternalProposalSerializer(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return Response(serializer.data)
+        #except serializers.ValidationError:
+        #    print(traceback.print_exc())
+        #    raise
+        #except ValidationError as e:
+        #    handle_validation_error(e)
+        #except Exception as e:
+        #    print(traceback.print_exc())
+        #    raise serializers.ValidationError(str(e))
 
     # TODO: should be post?
     @detail_route(methods=['GET',])
