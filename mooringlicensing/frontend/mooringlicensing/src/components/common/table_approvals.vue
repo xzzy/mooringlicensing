@@ -267,6 +267,7 @@ export default {
                     'Expiry Date',
                     'Vessel length',
                     'Vessel draft',
+                    'Vessel Rego',
                     'Mooring Licence Applications',
                 ]
             } else if (this.is_internal) {
@@ -280,6 +281,7 @@ export default {
                     'Issue Date',
                     'Expiry Date',
                     'Approval letter',
+                    'Vessel Regos',
                     'Action',
                     //'Mooring Licence Vessels',
                     //'Authorised User Permit Moorings',
@@ -586,7 +588,18 @@ export default {
                     }
         },
         */
-
+        columnVesselRegos: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.vessel_regos;
+                            //return '';
+                        }
+                    }
+        },
         datatable_options: function() {
             let vm = this;
             let selectedColumns = [];
@@ -635,6 +648,7 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnVesselLength,
                     vm.columnVesselDraft,
+                    vm.columnVesselRegos,
                     vm.columnRiaGeneratedProposals,
                 ]
             } else if (vm.is_internal) {
@@ -648,6 +662,7 @@ export default {
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
                     vm.columnApprovalLetter,
+                    vm.columnVesselRegos,
                     vm.columnAction,
                     /*
                     vm.columnMooringLicenceVessels,
