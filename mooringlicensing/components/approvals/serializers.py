@@ -675,6 +675,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     allowed_assessors = EmailUserSerializer(many=True)
     stickers = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
+    vessel_regos = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -715,6 +716,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'stickers',
             'licence_document',
             'is_approver',
+            'vessel_regos',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -755,6 +757,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'stickers',
             'licence_document',
             'is_approver',
+            'vessel_regos',
         )
 
     #def get_stickers(self, obj):
@@ -799,6 +802,15 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     #def get_can_renew(self,obj):
     #    return obj.can_renew
+
+    def get_vessel_regos(self, obj):
+        regos = ''
+        if type(obj.child_obj) == MooringLicence:
+            for vessel_details in obj.child_obj.vessel_details_list:
+                regos += '{}\n'.format(vessel_details.vessel.rego_no)
+        else:
+            regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no)
+        return regos
 
     def get_mooring_licence_vessels(self, obj):
         #return_list = []
