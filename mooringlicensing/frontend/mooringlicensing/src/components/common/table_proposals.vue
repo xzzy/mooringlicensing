@@ -256,7 +256,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
+                    //console.log(full)
                     let links = '';
                     if (vm.is_internal){
                         if (vm.debug){
@@ -334,7 +334,7 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
+                    //console.log(full)
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
