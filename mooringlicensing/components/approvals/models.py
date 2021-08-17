@@ -445,7 +445,7 @@ class Approval(RevisionedMixin):
 
     @property
     def can_reissue(self):
-        return self.status == 'current' or self.status == 'suspended'
+        return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
 
     @property
     def can_reinstate(self):
@@ -594,7 +594,7 @@ class Approval(RevisionedMixin):
                     ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
             except:
                 raise
-
+    ## TODO: remove method?
     def approval_extend(self,request,details):
         with transaction.atomic():
             try:
@@ -618,7 +618,6 @@ class Approval(RevisionedMixin):
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_EXTEND_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
-
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
@@ -919,15 +918,15 @@ class AuthorisedUserPermit(Approval):
                 ## send email to auth user
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         ## Note that new stickers need to be issued for the current authorised user permits where the mooring is removed.
-        old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
-        if old_sticker:
-            old_sticker.status = 'to_be_returned'
-            old_sticker.save()
-            new_sticker = Sticker.objects.create(
-                    approval=old_sticker.approval,
-                    vessel_ownership=old_sticker.vessel_ownership,
-                    fee_constructor=old_sticker.fee_constructor,
-                    )
+        #old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
+        #if old_sticker:
+        #    old_sticker.status = 'to_be_returned'
+        #    old_sticker.save()
+        #    new_sticker = Sticker.objects.create(
+        #            approval=old_sticker.approval,
+        #            vessel_ownership=old_sticker.vessel_ownership,
+        #            fee_constructor=old_sticker.fee_constructor,
+        #            )
 
     def manage_stickers(self, proposal):
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)

@@ -453,7 +453,6 @@ from '@/utils/hooks'
                 on("select2:select", async function (e) {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
-                    console.log(e.params.data)
                     vm.$nextTick(async () => {
                         //if (!isNew) {
                         if (!e.params.data.tag) {
@@ -491,6 +490,13 @@ from '@/utils/hooks'
                     const searchField = $(".select2-search__field")
                     // move focus to select2 field
                     searchField[0].focus();
+                }).
+                on("select2:close",function (e) {
+                    vm.$nextTick(() => {
+                        if (!vm.vessel.vessel_ownership.company_ownership) {
+                            $(vm.$refs.company_name).val('null').trigger('change');
+                        }
+                    });
                 });
                 // read company name if exists on vessel.vue open
                 vm.readCompanyName();
@@ -616,6 +622,13 @@ from '@/utils/hooks'
                         if ([32,].includes(e.which)) {
                             e.preventDefault();
                             return false;
+                        }
+                    });
+                }).
+                on("select2:close",function (e) {
+                    vm.$nextTick(() => {
+                        if (!vm.vessel.rego_no) {
+                            $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
                         }
                     });
                 });
