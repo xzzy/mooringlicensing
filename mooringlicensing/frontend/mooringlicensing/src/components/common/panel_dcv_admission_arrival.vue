@@ -15,6 +15,17 @@
                         </span>
                     </div>
                 </div>
+
+                <div class="row form-group">
+                    <label for="" class="col-sm-2 control-label">Departure</label>
+                    <div class="col-sm-3 input-group date" ref="departureDatePicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="row form-group">
                     <label class="col-sm-2 control-label">Private visit</label>
                     <div class="col-sm-2">
@@ -266,13 +277,16 @@ export default {
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.arrivalDatePicker);
+            let el_to = $(vm.$refs.departureDatePicker);
+
             let options = {
                 format: "DD/MM/YYYY",
                 showClear: true ,
                 useCurrent: false,
             };
 
-            el_fr.datetimepicker(options);
+            el_fr.datetimepicker(options)
+            el_to.datetimepicker(options)
 
             el_fr.on("dp.change", function(e) {
                 let selected_date = null;
@@ -280,11 +294,27 @@ export default {
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
                     vm.arrival.arrival_date = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date)
                 } else {
                     // Date not selected
                     vm.arrival.arrival_date = selected_date;
+                    el_to.data('DateTimePicker').minDate(false)
                 }
-            });
+            })
+
+            el_to.on("dp.change", function(e){
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.arrival.departure_date = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.arrival.departure_date = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(false)
+                }
+            })
         },
     },
     mounted: function () {
