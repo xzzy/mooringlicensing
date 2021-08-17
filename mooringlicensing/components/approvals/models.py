@@ -1351,6 +1351,7 @@ class DcvAdmission(RevisionedMixin):
 class DcvAdmissionArrival(RevisionedMixin):
     dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals')
     arrival_date = models.DateField(null=True, blank=True)
+    departure_date = models.DateField(null=True, blank=True)
     private_visit = models.BooleanField(default=False)
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
