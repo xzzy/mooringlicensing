@@ -97,6 +97,7 @@ class MooringOnApproval(RevisionedMixin):
     mooring = models.ForeignKey(Mooring)
     sticker = models.ForeignKey('Sticker', blank=True, null=True)
     site_licensee = models.BooleanField()
+    end_date = models.DateField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
