@@ -490,7 +490,8 @@ from '@/utils/hooks'
                     const searchField = $(".select2-search__field")
                     // move focus to select2 field
                     searchField[0].focus();
-                }).
+                });
+                /*
                 on("select2:close",function (e) {
                     vm.$nextTick(() => {
                         if (!vm.vessel.vessel_ownership.company_ownership) {
@@ -498,6 +499,7 @@ from '@/utils/hooks'
                         }
                     });
                 });
+                */
                 // read company name if exists on vessel.vue open
                 vm.readCompanyName();
             },
@@ -554,37 +556,32 @@ from '@/utils/hooks'
                         return vm.validateRegoNo(data.text);
                     },
                 }).
-                on("select2:select", function (e) {
-                    var selected = $(e.currentTarget);
-                    let data = e.params.data.id;
+                //on("select2:select", function (e) {
+                on("select2:close", function (e) {
+                    //var selected = $(e.currentTarget);
+                    //let data = e.params.data.id;
+                    if (!e.params.originalSelect2Event) {
+                        $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
+                        return;
+                    }
+                    let data = e.params.originalSelect2Event.data;
                     vm.$nextTick(async () => {
                         //if (!isNew) {
-                        if (!e.params.data.tag) {
+                        if (!data.tag) {
                             console.log("fetch existing vessel");
                             // fetch draft/approved vessel
-                            await vm.lookupVessel(data);
+                            await vm.lookupVessel(data.id);
                             // retrieve list of Vessel Owners
-                            const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
-                            console.log(res);
+                            const res = await vm.$http.get(`${api_endpoints.vessel}${data.id}/lookup_vessel_ownership`);
                             await vm.parseVesselOwnershipList(res);
-                            /*
-                            if (vm.proposal && vm.proposal.id) {
-                                await vm.retrieveIndividualOwner();
-                            } else {
-                                // retrieve list of Vessel Owners
-                                const res = await vm.$http.get(`${api_endpoints.vessel}${data}/lookup_vessel_ownership`);
-                                console.log(res);
-                                vm.parseVesselOwnershipList(res);
-                            }
-                            */
                         } else {
                             console.log("new vessel");
-                            data = vm.validateRegoNo(data);
+                            const validatedRego = vm.validateRegoNo(data.id);
 
                             vm.vessel = Object.assign({},
                                 {
                                     new_vessel: true,
-                                    rego_no: data,
+                                    rego_no: validatedRego,
                                     vessel_details: {
                                         //read_only: false,
                                     },
@@ -624,14 +621,20 @@ from '@/utils/hooks'
                             return false;
                         }
                     });
-                }).
+                });
+                /*
                 on("select2:close",function (e) {
+                    //console.log(e);
+                    console.log(e.params.originalSelect2Event.data);
                     vm.$nextTick(() => {
+                        console.log("close")
+                        console.log(vm.vessel.rego_no)
                         if (!vm.vessel.rego_no) {
                             $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
                         }
                     });
                 });
+                */
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
             },
