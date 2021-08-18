@@ -886,8 +886,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
             for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
                 vessel = vessel_ownership.vessel
                 vessels.append(vessel)
-                #status = 'Current' if not vessel_ownership.mooring_licence_expiry_date and not vessel_ownership.end_date else 'Historical'
-                status = 'Current' if not vessel_ownership.mooring_licence_expiry_date else 'Historical'
+                #status = 'Current' if not vessel_ownership.mooring_licence_end_date and not vessel_ownership.end_date else 'Historical'
+                status = 'Current' if not vessel_ownership.mooring_licence_end_date else 'Historical'
 
                 vessel_details.append({
                     "id": vessel_ownership.id,
@@ -897,7 +897,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     #"mobile": vessel_ownership.owner.emailuser.mobile_number,
                     #"email": vessel_ownership.owner.emailuser.email,
                     "status": status,
-                    "checked": True if not vessel_ownership.mooring_licence_expiry_date else False,
+                    "checked": True if not vessel_ownership.mooring_licence_end_date else False,
                     })
         return vessel_details
 
@@ -1087,6 +1087,16 @@ class ProposedApprovalSerializer(serializers.Serializer):
     mooring_id = serializers.IntegerField(required=False, allow_null=True)
     mooring_bay_id = serializers.IntegerField(required=False, allow_null=True)
     ria_mooring_name = serializers.CharField(required=False, allow_blank=True)
+    mooring_on_approval = serializers.ListField(
+            child=serializers.JSONField(),
+            required=False, 
+            #allow_blank=True,
+            )
+    vessel_ownership = serializers.ListField(
+            child=serializers.JSONField(),
+            required=False, 
+            #allow_blank=True,
+            )
 
 class ProposedDeclineSerializer(serializers.Serializer):
     reason = serializers.CharField()
