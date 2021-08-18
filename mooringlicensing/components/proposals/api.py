@@ -678,11 +678,35 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
+    def process_signed_licence_agreement_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='signed_licence_agreement_document')
+        if returned_data:
+            return add_cache_control(Response(returned_data))
+        else:
+            return add_cache_control(Response())
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_proof_of_identity_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='proof_of_identity_document')
+        if returned_data:
+            return add_cache_control(Response(returned_data))
+        else:
+            return add_cache_control(Response())
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        if not instance.mooring_report_documents.count() or not instance.written_proof_documents.count():
-            # Documents missing
+        if not instance.mooring_report_documents.count() \
+                or not instance.written_proof_documents.count()\
+                or not instance.signed_licence_agreement_documents.count() \
+                or not instance.proof_of_identity_documents.count():  # Documents missing
             raise
 
         instance.process_after_submit_other_documents(request)
