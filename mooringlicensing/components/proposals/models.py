@@ -1155,7 +1155,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'mooring_id': mooring_id,
                     'ria_mooring_name': ria_mooring_name,
                     'details': details.get('details'),
-                    'cc_email': details.get('cc_email')
+                    'cc_email': details.get('cc_email'),
+                    'mooring_on_approval': details.get('mooring_on_approval'),
+                    'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
                 approver_comment = ''
