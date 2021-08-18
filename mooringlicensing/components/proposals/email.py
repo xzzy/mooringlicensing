@@ -1012,19 +1012,13 @@ def send_other_documents_submitted_notification_email(request, proposal):
 
     attachments = []
     for my_file in proposal.mooring_report_documents.all():
-        if my_file._file is not None:
-            file_name = my_file._file.name
-            mime = mimetypes.guess_type(file_name)[0]
-            if mime:
-                attachment = (my_file.name, my_file._file.read(), mime)
-                attachments.append(attachment)
+        extract_file_for_attachment(attachments, my_file)
     for my_file in proposal.written_proof_documents.all():
-        if my_file._file is not None:
-            file_name = my_file._file.name
-            mime = mimetypes.guess_type(file_name)[0]
-            if mime:
-                attachment = (my_file.name, my_file._file.read(), mime)
-                attachments.append(attachment)
+        extract_file_for_attachment(attachments, my_file)
+    for my_file in proposal.signed_licence_agreement_documents.all():
+        extract_file_for_attachment(attachments, my_file)
+    for my_file in proposal.proof_of_identity_documents.all():
+        extract_file_for_attachment(attachments, my_file)
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
@@ -1037,6 +1031,15 @@ def send_other_documents_submitted_notification_email(request, proposal):
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
     return msg
+
+
+def extract_file_for_attachment(attachments, my_file):
+    if my_file._file is not None:
+        file_name = my_file._file.name
+        mime = mimetypes.guess_type(file_name)[0]
+        if mime:
+            attachment = (my_file.name, my_file._file.read(), mime)
+            attachments.append(attachment)
 
 
 def send_sticker_printing_batch_email(batches):
