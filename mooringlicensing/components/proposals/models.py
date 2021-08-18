@@ -1214,7 +1214,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def final_approval_for_WLA_AAA(self, request, details=None, auto_approve=False):
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 # current_date = current_datetime.date()
@@ -1540,7 +1539,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise e
 
     def amend_approval(self,request):
-        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -1730,7 +1728,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return target_date
 
     def auto_approve(self, request):
-        #import ipdb; ipdb.set_trace()
         ## If renewal and no change to vessel
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
         if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
@@ -1945,7 +1942,6 @@ class WaitingListApplication(Proposal):
         return approval, created
 
     def process_after_payment_success(self, request):
-        #import ipdb; ipdb.set_trace()
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
@@ -2524,7 +2520,6 @@ class MooringLicenceApplication(Proposal):
                     self.waiting_list_allocation.set_wla_order()
 
             # updating checkboxes
-            import ipdb; ipdb.set_trace()
             if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
                     for vo2 in self.approval.child_obj.vessel_ownership_list:
@@ -2641,7 +2636,6 @@ class AuthorisedUserMooringManager(models.Manager):
 
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
         # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
         #lookups = (
