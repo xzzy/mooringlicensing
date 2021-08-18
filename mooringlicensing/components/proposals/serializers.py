@@ -882,8 +882,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
             for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
                 vessel = vessel_ownership.vessel
                 vessels.append(vessel)
-                #status = 'Current' if not vessel_ownership.mooring_licence_expiry_date and not vessel_ownership.end_date else 'Historical'
-                status = 'Current' if not vessel_ownership.mooring_licence_expiry_date else 'Historical'
+                #status = 'Current' if not vessel_ownership.mooring_licence_end_date and not vessel_ownership.end_date else 'Historical'
+                status = 'Current' if not vessel_ownership.mooring_licence_end_date else 'Historical'
 
                 vessel_details.append({
                     "id": vessel_ownership.id,
@@ -893,7 +893,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     #"mobile": vessel_ownership.owner.emailuser.mobile_number,
                     #"email": vessel_ownership.owner.emailuser.email,
                     "status": status,
-                    "checked": True if not vessel_ownership.mooring_licence_expiry_date else False,
+                    "checked": True if not vessel_ownership.mooring_licence_end_date else False,
                     })
         return vessel_details
 
