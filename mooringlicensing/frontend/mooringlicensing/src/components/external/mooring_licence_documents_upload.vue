@@ -35,6 +35,32 @@
                     />
                 </div>
             </div>
+
+            <div class="row form-group">
+                <label for="" class="col-sm-5 control-label">Signed licence agreement</label>
+                <div class="col-sm-7">
+                    <FileField 
+                        ref="signed_licence_agreement_documents"
+                        name="signed-licence-agreement-documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="signed_licence_agreement_documents_url"
+                        :replace_button_by_text="true"
+                    />
+                </div>
+            </div>
+
+            <div class="row form-group">
+                <label for="" class="col-sm-5 control-label">Proof of Identity</label>
+                <div class="col-sm-7">
+                    <FileField 
+                        ref="proof_of_identity_documents"
+                        name="proof-of-identity-documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="proof_of_identity_documents_url"
+                        :replace_button_by_text="true"
+                    />
+                </div>
+            </div>
         </FormSection>
 
         <div>
@@ -97,6 +123,26 @@ export default {
                 url = helpers.add_endpoint_join(
                     api_endpoints.proposal_by_uuid,
                     this.uuid + '/process_written_proof_document/'
+                )
+            }
+            return url;
+        },
+        signed_licence_agreement_documents_url: function(){
+            let url = '';
+            if (this.uuid){
+                url = helpers.add_endpoint_join(
+                    api_endpoints.proposal_by_uuid,
+                    this.uuid + '/process_signed_licence_agreement_document/'
+                )
+            }
+            return url;
+        },
+        proof_of_identity_documents_url: function(){
+            let url = '';
+            if (this.uuid){
+                url = helpers.add_endpoint_join(
+                    api_endpoints.proposal_by_uuid,
+                    this.uuid + '/process_proof_of_identity_document/'
                 )
             }
             return url;

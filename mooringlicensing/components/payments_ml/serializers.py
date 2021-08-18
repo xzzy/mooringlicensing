@@ -59,6 +59,7 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
 
 class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
     arrival_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
+    departure_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
 
     def validate(self, data):
         field_errors = {}
@@ -67,6 +68,8 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         if not self.partial:
             if not data.get('arrival_date', None):
                 field_errors['year'] = ['Please enter an arrival date.',]
+            if not data.get('departure_date', None):
+                field_errors['year'] = ['Please enter an departure date.',]
 
             # Raise errors
             if field_errors:
@@ -84,6 +87,7 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'arrival_date',
+            'departure_date',
             'dcv_admission',
             'private_visit',
         )
