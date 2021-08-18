@@ -136,8 +136,6 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log('invoice_approval')
-                    console.log(full)
                     let links = ''
                     if (full.invoices){
                         for (let invoice of full.invoices){
