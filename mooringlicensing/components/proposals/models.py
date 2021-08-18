@@ -1799,19 +1799,37 @@ class StickerPrintingBatch(Document):
         app_label = 'mooringlicensing'
 
 
-class StickerPrintingResponse(Document):
-    _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
-    received_datetime = models.DateTimeField(blank=True, null=True)
-    imported_datetime = models.DateTimeField(blank=True, null=True)
+class StickerPrintingResponseEmail(models.Model):
     email_subject = models.CharField(max_length=255, blank=True, null=True)
     email_body = models.TextField(null=True, blank=True)
     email_date = models.CharField(max_length=255, blank=True, null=True)
     email_from = models.CharField(max_length=255, blank=True, null=True)
     email_message_id = models.CharField(max_length=255, blank=True, null=True)
-    processed = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+class StickerPrintingResponse(Document):
+    _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
+    sticker_printing_response_email = models.ForeignKey(StickerPrintingResponseEmail, blank=True, null=True)
+    processed = models.BooleanField(default=False)  # Processed by a cron to update sticker details
+    no_errors_when_process = models.NullBooleanField(default=None)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    @property
+    def email_subject(self):
+        if self.sticker_printing_response_email:
+            return self.sticker_printing_response_email.email_subject
+        return ''
+
+    @property
+    def email_date(self):
+        if self.sticker_printing_response_email:
+            return self.sticker_printing_response_email.email_date
+        return ''
 
 
 # class StickerMixin(models.Model):
@@ -3039,6 +3057,30 @@ class WrittenProofDocument(Document):
         verbose_name = "Written Proof Document"
 
 
+class SignedLicenceAgreementDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True)
+    can_hide = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Signed Licence Agreement"
+
+
+class ProofOfIdentityDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True)
+    can_hide = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Proof Of Identity"
 
 # Vessel details per Proposal
 # - allows for customer to edit vessel details during application process

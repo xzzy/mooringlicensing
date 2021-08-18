@@ -148,7 +148,8 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             //return 'not implemented';
-                            return full.authorised_user_permits;
+                            let total = full.authorised_user_permits.ria + full.authorised_user_permits.site_licensee
+                            return total + ' (' + full.authorised_user_permits.ria + '/' + full.authorised_user_permits.site_licensee + ')'
                         }
                     }
         },

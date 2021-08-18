@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation', 'Status',*/ 'Date', 'Action']
+            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation', 'Status',*/'Arrival Date', 'Lodgement Date', 'Action']
         },
         column_id: function(){
             return {
@@ -176,7 +176,22 @@ export default {
             }
         },
         */
-        column_date: function(){
+        column_arrival_date: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let ret = ''
+                    for (let arrival of full.arrivals){
+                        ret += '<div>' + arrival.arrival_date + '</div>'
+                    }
+                    return ret
+                }
+            }
+        },
+        column_lodgement_date: function(){
             return {
                 data: "id",
                 orderable: true,
@@ -223,6 +238,8 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log('---')
+                    console.log(full)
                     /*
                     let links = '';
                     if (!vm.is_external){
@@ -266,7 +283,8 @@ export default {
                 vm.column_invoice_confirmation,
                 //vm.column_organisation,
                 //vm.column_status,
-                vm.column_date,
+                vm.column_arrival_date,
+                vm.column_lodgement_date,
                 vm.column_action,
             ]
             let search = true
