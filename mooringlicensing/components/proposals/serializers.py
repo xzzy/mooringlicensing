@@ -865,6 +865,10 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 moorings.append({
                     "id": moa.id,
                     "mooring_name": moa.mooring.name,
+                    "bay": str(moa.mooring.mooring_bay),
+                    "site_licensee": moa.site_licensee,
+                    "status": 'Current' if not moa.end_date else 'Historical',
+                    "checked": True if not moa.end_date else False,
                     #"licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
                     #"mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
                     #"email": licence_holder_data.get('email') if licence_holder_data else '',
@@ -878,13 +882,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
             for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
                 vessel = vessel_ownership.vessel
                 vessels.append(vessel)
+                #status = 'Current' if not vessel_ownership.mooring_licence_expiry_date and not vessel_ownership.end_date else 'Historical'
+                status = 'Current' if not vessel_ownership.mooring_licence_expiry_date else 'Historical'
 
                 vessel_details.append({
-                    "id": vessel.id,
+                    "id": vessel_ownership.id,
+                    "rego": vessel.rego_no,
                     "vessel_name": vessel.latest_vessel_details.vessel_name,
-                    "owner": vessel_ownership.owner.emailuser.get_full_name(),
-                    "mobile": vessel_ownership.owner.emailuser.mobile_number,
-                    "email": vessel_ownership.owner.emailuser.email,
+                    #"owner": vessel_ownership.owner.emailuser.get_full_name(),
+                    #"mobile": vessel_ownership.owner.emailuser.mobile_number,
+                    #"email": vessel_ownership.owner.emailuser.email,
+                    "status": status,
+                    "checked": True if not vessel_ownership.mooring_licence_expiry_date else False,
                     })
         return vessel_details
 
