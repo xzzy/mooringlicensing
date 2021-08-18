@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
@@ -35,6 +37,8 @@ from mooringlicensing.components.users.serializers import UserAddressSerializer,
 from rest_framework import serializers
 from django.db.models import Q
 from reversion.models import Version
+
+logger = logging.getLogger('mooringlicensing')
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -1495,8 +1499,14 @@ class ListMooringSerializer(serializers.ModelSerializer):
         return obj.mooring_bay.name
 
     def get_authorised_user_permits(self, obj):
-        mooring_on_approval_qs = MooringOnApproval.objects.filter(mooring=obj, approval__status='current')
-        return mooring_on_approval_qs.count()
+        # mooring_on_approval_qs = MooringOnApproval.objects.filter(mooring=obj, approval__status='current')  # MooringOnApproval is used only from the AUP
+        preference_count_ria = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=False).count()
+        preference_count_site_licensee = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=True).count()
+        return {
+            'ria': preference_count_ria,
+            'site_licensee': preference_count_site_licensee
+        }
+        # return mooring_on_approval_qs.count()
 
     def get_status(status, obj):
         return obj.status
