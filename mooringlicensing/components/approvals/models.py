@@ -1352,6 +1352,7 @@ class DcvAdmission(RevisionedMixin):
 class DcvAdmissionArrival(RevisionedMixin):
     dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals')
     arrival_date = models.DateField(null=True, blank=True)
+    departure_date = models.DateField(null=True, blank=True)
     private_visit = models.BooleanField(default=False)
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
@@ -1362,10 +1363,10 @@ class DcvAdmissionArrival(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return '{} ({})'.format(self.dcv_admission, self.arrival_date)
+        return '{} ({}-{})'.format(self.dcv_admission, self.arrival_date, self.departure_date)
 
     def get_summary(self):
-        summary_dict = {'arrival_date': self.arrival_date}
+        summary_dict = {'arrival_date': self.arrival_date, 'departure_date': self.departure_date}
         for age_group_choice in AgeGroup.NAME_CHOICES:
             age_group = AgeGroup.objects.get(code=age_group_choice[0])
             dict_type = {}
