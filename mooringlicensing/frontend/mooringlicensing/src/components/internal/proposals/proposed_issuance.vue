@@ -48,7 +48,7 @@
                                 </div>
 
                             </div>
-                            <div class="form-group" v-if="display_bay_field">
+                            <div class="form-group" v-if="displayBayField">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="mooring_bay">Bay</label>
@@ -65,7 +65,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="display_mooring_site_id_field">
+                            <div class="form-group" v-if="displayMooringSiteIdField">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="mooring_site_id">Mooring Site ID</label>
@@ -83,6 +83,12 @@
                                         />
                                     </div>
                                 </div>
+                            </div>
+                            <div class="form-group" v-if="displayAssociatedMoorings">
+                                Associated Moorings
+                            </div>
+                            <div class="form-group" v-if="displayAssociatedVessels">
+                                Associated Vessels
                             </div>
                             <!-- div class="form-group" v-if="display_sticker_number_field">
                                 <div class="row">
@@ -229,17 +235,31 @@ export default {
             return mooring;
         },
         */
-        display_bay_field: function(){
-            if ([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
-                return true
+        mooringLicenceApplication: function() {
+            let app = false;
+            if ([constants.ML_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                app = true;
             }
-            return false
+            return app;
         },
-        display_mooring_site_id_field: function(){
+        authorisedUserApplication: function() {
+            let app = false;
             if ([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
-                return true
+                app = true;
             }
-            return false
+            return app;
+        },
+        displayAssociatedMoorings: function(){
+            return this.authorisedUserApplication;
+        },
+        displayAssociatedVessels: function(){
+            return this.mooringLicenceApplication;
+        },
+        displayBayField: function(){
+            return this.authorisedUserApplication;
+        },
+        displayMooringSiteIdField: function(){
+            return this.authorisedUserApplication;
         },
         display_sticker_number_field: function() {
             if ([constants.WL_PROPOSAL].includes(this.proposal.application_type_dict.code)){
