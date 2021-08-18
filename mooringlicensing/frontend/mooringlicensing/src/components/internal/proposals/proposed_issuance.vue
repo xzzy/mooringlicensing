@@ -225,6 +225,10 @@ export default {
             approval: {
                 mooring_id: null,
                 mooring_bay_id: null,
+                /*
+                mooring_on_approval: [],
+                vessel_ownership: [],
+                */
             },
             state: 'proposed_approval',
             issuingApproval: false,
@@ -592,39 +596,59 @@ export default {
         sendData:function(){
             let vm = this;
             vm.errors = false;
-            let approval = JSON.parse(JSON.stringify(vm.approval));
+            this.$nextTick(()=>{
+                // ensure mooring_on_approval is not null
+                if (!this.approval.mooring_on_approval) {
+                    this.approval.mooring_on_approval = [];
+                }
+                // ensure vessel_ownership is not null
+                if (!this.approval.vessel_ownership) {
+                    this.approval.vessel_ownership = [];
+                }
+                if (this.authorisedUserApplication) {
+                    for (let moa of this.authorisedUserMoorings) {
+                        this.approval.mooring_on_approval.push({"id": moa.id, "checked": moa.checked});
+                    }
+                }
+                if (this.mooringLicenceApplication) {
+                    for (let vo of this.mooringLicenceVessels) {
+                        this.approval.vessel_ownership.push({"id": vo.id, "checked": vo.checked});
+                    }
+                }
+                let approval = JSON.parse(JSON.stringify(vm.approval));
 
-            vm.issuingApproval = true;
-            if (vm.state == 'proposed_approval'){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id + '/proposed_approval'),JSON.stringify(approval),{
-                        emulateJSON:true,
-                    }).then((response)=>{
-                        vm.issuingApproval = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse',response);
-                        vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after Propose issue.
+                vm.issuingApproval = true;
+                if (vm.state == 'proposed_approval'){
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id + '/proposed_approval'),JSON.stringify(approval),{
+                            emulateJSON:true,
+                        }).then((response)=>{
+                            vm.issuingApproval = false;
+                            vm.close();
+                            vm.$emit('refreshFromResponse',response);
+                            vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after Propose issue.
 
-                    },(error)=>{
-                        vm.errors = true;
-                        vm.issuingApproval = false;
-                        vm.errorString = helpers.apiVueResourceError(error);
-                    });
-            }
-            else if (vm.state == 'final_approval'){
-                console.log('final_approval in proposed_issuance.vue')
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id+'/final_approval'),JSON.stringify(approval),{
-                        emulateJSON:true,
-                    }).then((response)=>{
-                        vm.issuingApproval = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse', response);
-                        vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after final approval.
-                    },(error)=>{
-                        vm.errors = true;
-                        vm.issuingApproval = false;
-                        vm.errorString = helpers.apiVueResourceError(error);
-                    });
-            }
+                        },(error)=>{
+                            vm.errors = true;
+                            vm.issuingApproval = false;
+                            vm.errorString = helpers.apiVueResourceError(error);
+                        });
+                }
+                else if (vm.state == 'final_approval'){
+                    console.log('final_approval in proposed_issuance.vue')
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id+'/final_approval'),JSON.stringify(approval),{
+                            emulateJSON:true,
+                        }).then((response)=>{
+                            vm.issuingApproval = false;
+                            vm.close();
+                            vm.$emit('refreshFromResponse', response);
+                            vm.$router.push({ path: '/internal' }); //Navigate to dashboard page after final approval.
+                        },(error)=>{
+                            vm.errors = true;
+                            vm.issuingApproval = false;
+                            vm.errorString = helpers.apiVueResourceError(error);
+                        });
+                }
+            });
 
         },
         addFormValidations: function() {
@@ -663,21 +687,27 @@ export default {
        },
        */
        constructMooringsTable: function() {
-            if (this.$refs.mooringsTable){
-                // Clear table
-                this.$refs.mooringsTable.vmDataTable.clear().draw();
-                // Construct table
-                if (this.authorisedUserMoorings.length > 0){
-                    for(let mooring of this.authorisedUserMoorings){
-                        this.addMooringToTable(mooring);
-                    }
-                    /*
-                    for(let i=0; i< this.authorisedUserMoorings.length; i++){
-                        this.addMooringToTable(this.authorisedUserMoorings[i]);
-                    }
-                    */
-                }
-            }
+           // update checkboxes
+           if (this.authorisedUserMoorings && this.approval.mooring_on_approval && this.approval.mooring_on_approval.length > 0) {
+               for (let moa1 of this.approval.mooring_on_approval) {
+                   for (let moa2 of this.authorisedUserMoorings) {
+                       if (moa1.id === moa2.id) {
+                           moa2.checked = moa1.checked;
+                       }
+                   }
+               }
+           }
+           // now draw table
+           if (this.$refs.mooringsTable){
+               // Clear table
+               this.$refs.mooringsTable.vmDataTable.clear().draw();
+               // Construct table
+               if (this.authorisedUserMoorings.length > 0){
+                   for(let mooring of this.authorisedUserMoorings){
+                       this.addMooringToTable(mooring);
+                   }
+               }
+           }
        },
        addMooringToTable: function(mooring) {
            this.$refs.mooringsTable.vmDataTable.row.add(mooring).draw();
@@ -703,26 +733,32 @@ export default {
                }
            }
            //this.$emit('authorised_user_moorings_updated', this.authorisedUserMoorings)
-           this.$emit('authorised_user_moorings_updated');
+           //this.$emit('authorised_user_moorings_updated');
            //this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
            e.stopPropagation();
        },
        constructVesselsTable: function() {
-            if (this.$refs.vesselsTable){
-                // Clear table
-                this.$refs.vesselsTable.vmDataTable.clear().draw();
-                // Construct table
-                if (this.mooringLicenceVessels.length > 0){
-                    for(let vo of this.mooringLicenceVessels){
-                        this.addVesselToTable(vo);
-                    }
-                    /*
-                    for(let i=0; i< this.authorisedUserMoorings.length; i++){
-                        this.addMooringToTable(this.authorisedUserMoorings[i]);
-                    }
-                    */
-                }
-            }
+           // update checkboxes
+           if (this.mooringLicenceVessels && this.approval.vessel_ownership && this.approval.vessel_ownership.length > 0) {
+               for (let vo1 of this.approval.vessel_ownership) {
+                   for (let vo2 of this.mooringLicenceVessels) {
+                       if (vo1.id === vo2.id) {
+                           vo2.checked = vo1.checked;
+                       }
+                   }
+               }
+           }
+           // now draw table
+           if (this.$refs.vesselsTable){
+               // Clear table
+               this.$refs.vesselsTable.vmDataTable.clear().draw();
+               // Construct table
+               if (this.mooringLicenceVessels.length > 0){
+                   for(let vo of this.mooringLicenceVessels){
+                       this.addVesselToTable(vo);
+                   }
+               }
+           }
        },
        addVesselToTable: function(vo) {
            this.$refs.vesselsTable.vmDataTable.row.add(vo).draw();
@@ -749,7 +785,7 @@ export default {
                }
            }
            //this.$emit('authorised_user_moorings_updated', this.authorisedUserMoorings)
-           this.$emit('mooring_licence_vessels_updated');
+           //this.$emit('mooring_licence_vessels_updated');
            //this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
            e.stopPropagation();
        },
