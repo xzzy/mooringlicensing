@@ -2917,6 +2917,7 @@ class VesselOwnership(models.Model):
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()
     #objects = VesselOwnershipManager()
+    mooring_licence_expiry_date = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"

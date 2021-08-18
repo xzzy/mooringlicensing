@@ -28,7 +28,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalType,
     Company,
     CompanyOwnership,
-    Mooring, MooringLicenceApplication,
+    Mooring, MooringLicenceApplication, AuthorisedUserApplication,
 )
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
@@ -787,6 +787,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     requirements_completed=serializers.SerializerMethodField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
     previous_application_preferred_bay_id = serializers.SerializerMethodField()
+    mooring_licence_vessels = serializers.SerializerMethodField()
+    authorised_user_moorings = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -848,11 +850,56 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'previous_application_id',
                 'previous_application_vessel_details_id',
                 'previous_application_preferred_bay_id',
+                'mooring_licence_vessels',
+                'authorised_user_moorings',
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_authorised_user_moorings(self, obj):
+        moorings = []
+        if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
+            #import ipdb; ipdb.set_trace()
+            #for moa in obj.mooringonapproval_set.all():
+            for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                #if moa.mooring.mooring_licence:
+                 #   licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+                moorings.append({
+                    "id": moa.id,
+                    "mooring_name": moa.mooring.name,
+                    "bay": str(moa.mooring.mooring_bay),
+                    "site_licensee": moa.site_licensee,
+                    "status": 'Current' if not moa.end_date else 'Historical',
+                    "checked": True if not moa.end_date else False,
+                    #"licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
+                    #"mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
+                    #"email": licence_holder_data.get('email') if licence_holder_data else '',
+                    })
+        return moorings
+
+    def get_mooring_licence_vessels(self, obj):
+        vessels = []
+        vessel_details = []
+        if type(obj.child_obj) == MooringLicenceApplication and obj.approval:
+            for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
+                vessel = vessel_ownership.vessel
+                vessels.append(vessel)
+                #status = 'Current' if not vessel_ownership.mooring_licence_expiry_date and not vessel_ownership.end_date else 'Historical'
+                status = 'Current' if not vessel_ownership.mooring_licence_expiry_date else 'Historical'
+
+                vessel_details.append({
+                    "id": vessel_ownership.id,
+                    "rego": vessel.rego_no,
+                    "vessel_name": vessel.latest_vessel_details.vessel_name,
+                    #"owner": vessel_ownership.owner.emailuser.get_full_name(),
+                    #"mobile": vessel_ownership.owner.emailuser.mobile_number,
+                    #"email": vessel_ownership.owner.emailuser.email,
+                    "status": status,
+                    "checked": True if not vessel_ownership.mooring_licence_expiry_date else False,
+                    })
+        return vessel_details
 
     def get_previous_application_vessel_details_id(self, obj):
         vessel_details_id = None
