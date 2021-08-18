@@ -225,6 +225,7 @@ export default {
                 //'Id',
                 'Mooring',
                 'Licensee',
+                'Allocated By',
                 'Mobile',
                 'Email',
             ],
@@ -236,6 +237,9 @@ export default {
                 },
                 {
                     data: "licensee",
+                },
+                {
+                    data: "allocated_by",
                 },
                 {
                     data: "mobile",
@@ -392,6 +396,7 @@ export default {
                 {
                     'mooring_name': aum.mooring_name,
                     'licensee': aum.licensee,
+                    'allocated_by': aum.allocated_by,
                     'mobile': aum.mobile,
                     'email': aum.email,
                 }
