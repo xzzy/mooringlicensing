@@ -61,6 +61,8 @@ class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
         #     raise forms.ValidationError('There must be one null-vessel catergory.  There is {} defined.'.format(null_vessel_count))
         # elif null_vessel_count > 1:
         #     raise forms.ValidationError('There must be one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
+        if null_vessel_count > 1:
+            raise forms.ValidationError('There can be at most one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
 
 
 class VesselSizeCategoryInline(admin.TabularInline):
