@@ -590,16 +590,17 @@ def submit_vessel_data(instance, request, vessel_data):
             approvals_aup.append(approval)
         if type(approval) == AuthorisedUserPermit and approval.status in ['current', 'suspended']:
             approvals_aup_sus.append(approval)
+    #import ipdb; ipdb.set_trace()
     # apply rules
     if (type(instance.child_obj) == WaitingListApplication and (proposals_wla or approvals_wla or
             proposals_mla or approvals_ml_sus)):
         association_fail = True
     # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
     elif (type(instance.child_obj) == WaitingListApplication and (
-        WaitingListApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-        WaitingListAllocation.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['cancelled', 'expired', 'surrendered']) or
+        WaitingListApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']).exclude(id=instance.id) or
+        WaitingListAllocation.objects.filter(submitter=instance.submitter).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
         MooringLicenceApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-        MooringLicence.objects.filter(submitter=instance.submitter, processing_status__in=['current', 'suspended']))
+        MooringLicence.objects.filter(submitter=instance.submitter).filter(status__in=['current', 'suspended']))
         ):
         association_fail = True
     elif (type(instance.child_obj) == AnnualAdmissionApplication and (proposals_aaa or approvals_aap or
