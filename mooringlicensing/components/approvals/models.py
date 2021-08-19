@@ -1505,9 +1505,10 @@ class DcvPermit(RevisionedMixin):
         permit_document = create_dcv_permit_document(self)
         # self.save()
 
-    def get_fee_amount_adjusted(self, fee_item):
+    def get_fee_amount_adjusted(self, fee_item, vessel_length):
         # Adjust fee amount if needed
-        return fee_item.amount
+        # return fee_item.amount
+        return fee_item.get_absolute_amount(vessel_length)
 
     class Meta:
         app_label = 'mooringlicensing'
