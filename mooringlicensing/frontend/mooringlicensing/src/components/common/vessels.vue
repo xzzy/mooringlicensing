@@ -563,38 +563,41 @@ from '@/utils/hooks'
                     //var selected = $(e.currentTarget);
                     //let data = e.params.data.id;
                     if (!e.params.originalSelect2Event) {
+                        console.log("Clear select2");
                         $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
                         return;
-                    }
-                    let data = e.params.originalSelect2Event.data;
-                    vm.$nextTick(async () => {
-                        //if (!isNew) {
-                        if (!data.tag) {
-                            console.log("fetch existing vessel");
-                            // fetch draft/approved vessel
-                            await vm.lookupVessel(data.id);
-                            // retrieve list of Vessel Owners
-                            const res = await vm.$http.get(`${api_endpoints.vessel}${data.id}/lookup_vessel_ownership`);
-                            await vm.parseVesselOwnershipList(res);
-                        } else {
-                            console.log("new vessel");
-                            const validatedRego = vm.validateRegoNo(data.id);
+                    } else {
+                        console.log("Process select2");
+                        let data = e.params.originalSelect2Event.data;
+                        vm.$nextTick(async () => {
+                            //if (!isNew) {
+                            if (!data.tag) {
+                                console.log("fetch existing vessel");
+                                // fetch draft/approved vessel
+                                await vm.lookupVessel(data.id);
+                                // retrieve list of Vessel Owners
+                                const res = await vm.$http.get(`${api_endpoints.vessel}${data.id}/lookup_vessel_ownership`);
+                                await vm.parseVesselOwnershipList(res);
+                            } else {
+                                console.log("new vessel");
+                                const validatedRego = vm.validateRegoNo(data.id);
 
-                            vm.vessel = Object.assign({},
-                                {
-                                    new_vessel: true,
-                                    rego_no: validatedRego,
-                                    vessel_details: {
-                                        //read_only: false,
-                                    },
-                                    vessel_ownership: {
-                                        company_ownership: {
+                                vm.vessel = Object.assign({},
+                                    {
+                                        new_vessel: true,
+                                        rego_no: validatedRego,
+                                        vessel_details: {
+                                            //read_only: false,
+                                        },
+                                        vessel_ownership: {
+                                            company_ownership: {
+                                            }
+                                            //registered_owner: 'current_user',
                                         }
-                                        //registered_owner: 'current_user',
-                                    }
-                                });
-                        }
-                    });
+                                    });
+                            }
+                        });
+                    }
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
