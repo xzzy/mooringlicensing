@@ -279,8 +279,14 @@ def update_electoral_roll_doc_filename(instance, filename):
 
 class VesselSizeCategoryGroup(RevisionedMixin):
     name = models.CharField(max_length=100, null=False, blank=False)
-    # created = models.DateTimeField(auto_now_add=True)
-    # updated = models.DateTimeField(auto_now=True)
+
+    def get_one_smaller_category(self, vessel_size_category):
+        smaller_categories = self.vessel_size_categories.filter(start_size__lt=vessel_size_category.start_size).order_by('-start_size')
+        if smaller_categories:
+            return smaller_categories.first()
+        else:
+            # Probably the vessel_size_category passed as a parameter is the smallest vessel size category in this group
+            return None
 
     def __str__(self):
         num_item = self.vessel_size_categories.count()
@@ -318,11 +324,16 @@ class VesselSizeCategory(RevisionedMixin):
     include_start_size = models.BooleanField(default=True)  # When true, 'start_size' is included.
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True, related_name='vessel_size_categories')
     null_vessel = models.BooleanField(default=False)
-    # created = models.DateTimeField(auto_now_add=True)
-    # updated = models.DateTimeField(auto_now=True)
+
+    def get_one_smaller_category(self):
+        smaller_category = self.vessel_size_category_group.get_one_smaller_category(self)
+        return smaller_category
 
     def __str__(self):
-        return self.name
+        if self.null_vessel:
+            return self.name
+        else:
+            return '{} (>{}m)'.format(self.name, self.start_size)
 
     class Meta:
         verbose_name_plural = "Vessel Size Categories"

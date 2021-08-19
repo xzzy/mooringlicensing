@@ -118,7 +118,8 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
                 fee_item.number_of_people = number_of_people.number
                 fee_items.append(fee_item)
                 number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
-                total_amount += fee_item.amount * number_of_people.number
+                # total_amount += fee_item.amount * number_of_people.number
+                total_amount += fee_item.get_absolute_amount() * number_of_people.number
 
         line_item = {
             'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
@@ -197,8 +198,8 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
     fee_item_additional = fee_constructor_additional.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_additional else None
 
-    fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item)
-    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_additional) if fee_item_additional else None
+    fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)
+    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_additional, vessel_length) if fee_item_additional else None
 
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
