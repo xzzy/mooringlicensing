@@ -414,6 +414,7 @@ class FeeConstructor(RevisionedMixin):
             raise
 
     def reconstruct_fees(self):
+        # When fee_constructor object is created/updated, all the fee_items are recreated unless
         proposal_types = ProposalType.objects.all()
         valid_fee_item_ids = []  # We want to keep these fee items under this fee constructor object.
 
@@ -456,7 +457,9 @@ class FeeConstructor(RevisionedMixin):
                             if vessel_size_category.null_vessel and \
                                     ((self.application_type.code in (AnnualAdmissionApplication.code, AuthorisedUserApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
                                      proposal_type.code == settings.PROPOSAL_TYPE_NEW):
-                                # No null vessel fees
+                                # When null vessel and AAA/AUA and renewal application
+                                # When null vessel and new application
+                                # ==> No fees
                                 continue
                             else:
                                 fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
