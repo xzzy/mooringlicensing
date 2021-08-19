@@ -500,7 +500,7 @@ class FeeItem(RevisionedMixin):
     admission_type = models.ForeignKey('AdmissionType', null=True, blank=True)
 
     def __str__(self):
-        return '${}: ApplicationType: {}, Period: {}, VesselSizeCategory: {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category)
+        return '${}: {}, {}, {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category)
 
     def get_absolute_amount(self, vessel_size=None):
         if not self.incremental_amount or not vessel_size:
