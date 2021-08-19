@@ -998,7 +998,7 @@ def is_payment_officer(user):
 #        booking_email.send_confirmation_tclass_email_notification(request.user, booking, bi, recipients, is_test=True)
 
 
-def get_fee_amount_adjusted(proposal, fee_item_being_applied):
+def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     # This logic might be true to all the four types of application
     # If not, implement the logic specific to a certain application type under that class
     if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
@@ -1009,7 +1009,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
             logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
             logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
 
-            fee_amount_adjusted = fee_item_being_applied.amount
+            # fee_amount_adjusted = fee_item_being_applied.amount
+            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
             # Adjust the fee
             for fee_item in proposal.approval.fee_items:
@@ -1029,7 +1030,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
                     )
 
                     # Applicant already partially paid for this fee item.  Deduct it.
-                    fee_amount_adjusted -= fee_item_considered_paid.amount
+                    # fee_amount_adjusted -= fee_item_considered_paid.amount
+                    fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
                     logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
             fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
@@ -1041,6 +1043,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
                 raise Exception('FeeItem not found.')
     else:
         # This is New/Renewal Application type
-        fee_amount_adjusted = fee_item_being_applied.amount
+        # fee_amount_adjusted = fee_item_being_applied.amount
+        fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
     return fee_amount_adjusted
