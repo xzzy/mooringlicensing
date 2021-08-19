@@ -1652,8 +1652,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_approval(request, payment_status)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def get_fee_amount_adjusted(self, fee_item):
-        return self.child_obj.get_fee_amount_adjusted(fee_item)
+    def get_fee_amount_adjusted(self, fee_item, vessel_length):
+        return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
 
     @property
     def application_type_code(self):
@@ -1963,9 +1963,9 @@ class WaitingListApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -2111,9 +2111,9 @@ class AnnualAdmissionApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -2342,9 +2342,9 @@ class AuthorisedUserApplication(Proposal):
     def does_accept_null_vessel(self):
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -2571,9 +2571,9 @@ class MooringLicenceApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
