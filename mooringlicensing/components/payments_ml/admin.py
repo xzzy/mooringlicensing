@@ -125,9 +125,13 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
-    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type', 'age_group', 'admission_type')
+    readonly_fields = ('fee_period', 'vessel_size_category', 'null_vessel', 'proposal_type', 'age_group', 'admission_type')
     max_num = 0  # This removes 'Add another ...' button
     form = FeeItemForm
+
+    def null_vessel(self, obj):
+        return obj.vessel_size_category.null_vessel
+    null_vessel.boolean = True
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
