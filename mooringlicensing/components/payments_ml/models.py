@@ -492,6 +492,8 @@ class FeeItem(RevisionedMixin):
     vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
     proposal_type = models.ForeignKey('ProposalType', null=True, blank=True)
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
+    # absolute_amount = models.BooleanField(default=True)  # When True, the amount is the price for this item.  When False, self.amount is the price per meter.
+    # incremental_amount = models.BooleanField(default=False)  # When True, the amount is the price for this item.  When False, self.amount is the price per meter.
     # For DcvAdmission
     age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
     admission_type = models.ForeignKey('AdmissionType', null=True, blank=True)
