@@ -33,6 +33,8 @@ class VesselSizeCategoryForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(VesselSizeCategoryForm, self).clean()
+        if cleaned_data['null_vessel'] and cleaned_data['incremental']:
+            raise forms.ValidationError('Vessel size category cannot be both null-vessel and incremental')
 
         return cleaned_data
 
