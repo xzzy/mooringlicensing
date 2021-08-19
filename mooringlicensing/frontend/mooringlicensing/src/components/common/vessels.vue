@@ -558,6 +558,8 @@ from '@/utils/hooks'
                 }).
                 //on("select2:select", function (e) {
                 on("select2:close", function (e) {
+                    console.log(e);
+                    console.log(e.params.originalSelect2Event);
                     //var selected = $(e.currentTarget);
                     //let data = e.params.data.id;
                     if (!e.params.originalSelect2Event) {
