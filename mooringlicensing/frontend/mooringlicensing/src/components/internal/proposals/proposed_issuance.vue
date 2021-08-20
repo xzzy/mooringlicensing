@@ -605,12 +605,12 @@ export default {
                 if (!this.approval.vessel_ownership) {
                     this.approval.vessel_ownership = [];
                 }
-                if (this.authorisedUserApplication) {
+                if (this.authorisedUserApplication && this.authorisedUserMoorings) {
                     for (let moa of this.authorisedUserMoorings) {
                         this.approval.mooring_on_approval.push({"id": moa.id, "checked": moa.checked});
                     }
                 }
-                if (this.mooringLicenceApplication) {
+                if (this.mooringLicenceApplication && this.mooringLicenceVessels) {
                     for (let vo of this.mooringLicenceVessels) {
                         this.approval.vessel_ownership.push({"id": vo.id, "checked": vo.checked});
                     }
