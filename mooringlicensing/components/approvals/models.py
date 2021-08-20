@@ -1615,6 +1615,8 @@ class Sticker(models.Model):
         self.status = Sticker.STICKER_STATUS_LOST
         self.save()
 
+        # TODO: create new sticker
+
     def get_sticker_colour(self):
         colour = self.approval.child_obj.sticker_colour
         colour += '/' + self.get_vessel_size_colour()
