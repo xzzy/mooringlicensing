@@ -568,13 +568,10 @@ from '@/utils/hooks'
                     //var selected = $(e.currentTarget);
                     //let data = e.params.data.id;
                     if (!e.params.originalSelect2Event) {
-                        /*
-                        console.log("Clear select2");
-                        $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
-                        return;
-                        */
                         e.preventDefault();
                         e.stopPropagation();
+                        console.log("Clear select2");
+                        $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
                         return false;
                     }
                     console.log("Process select2");
