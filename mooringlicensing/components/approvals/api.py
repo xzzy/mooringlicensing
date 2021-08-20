@@ -1060,7 +1060,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         details = serializer.save()
 
         # Sticker
-        sticker.request_replacement()
+        new_sticker = sticker.request_replacement()
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
 
