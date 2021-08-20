@@ -556,12 +556,12 @@ from '@/utils/hooks'
                         return vm.validateRegoNo(data.text);
                     },
                 }).
-                    /*
                 on("select2:select", function (e) {
                     console.log("select2 select")
                     e.preventDefault();
+                    e.stopPropagation();
+                    return false;
                 }).
-                    */
                 on("select2:close", function (e) {
                     console.log(e);
                     console.log(e.params.originalSelect2Event);
