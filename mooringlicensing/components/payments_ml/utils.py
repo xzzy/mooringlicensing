@@ -8,6 +8,7 @@ from django.urls import reverse
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
     use_existing_basket_from_invoice
 from ledger.settings_base import TIME_ZONE
+from ledger.accounts.models import EmailUser
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
@@ -50,7 +51,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     if proxy or request.user.is_anonymous():
         #checkout_params['basket_owner'] = booking.customer.id
         # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
-        checkout_params['basket_owner'] = proposal.submitter.id
+        anonymous_user = EmailUser.objects.get_or_create(email='aho1@mail.com')
+        checkout_params['basket_owner'] = anonymous_user.id
 
 
     create_checkout_session(request, checkout_params)
