@@ -446,7 +446,8 @@ class Approval(RevisionedMixin):
 
     @property
     def can_reissue(self):
-        return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
+        #return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
+        return self.status == 'current' or self.status == 'suspended'
 
     @property
     def can_reinstate(self):
@@ -1614,6 +1615,15 @@ class Sticker(models.Model):
     def request_replacement(self):
         self.status = Sticker.STICKER_STATUS_LOST
         self.save()
+
+        # Create replacement sticker
+        new_sticker = Sticker.objects.create(
+            approval=self.approval,
+            vessel_ownership=self.vessel_ownership,
+            fee_constructor=self.fee_constructor,
+        )
+
+        return new_sticker
 
     def get_sticker_colour(self):
         colour = self.approval.child_obj.sticker_colour
