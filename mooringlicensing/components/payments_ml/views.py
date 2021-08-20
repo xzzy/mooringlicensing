@@ -8,6 +8,7 @@ from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_p
 import dateutil.parser
 from django.db import transaction
 from django.http import HttpResponse
+from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
 from django.views.generic import TemplateView
@@ -78,7 +79,8 @@ class DcvPermitFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         dcv_permit = self.get_object()
-        dcv_permit_fee = DcvPermitFee.objects.create(dcv_permit=dcv_permit, created_by=request.user, payment_type=DcvPermitFee.PAYMENT_TYPE_TEMPORARY)
+        created_by = None if request.user.is_anonymous() else request.user
+        dcv_permit_fee = DcvPermitFee.objects.create(dcv_permit=dcv_permit, created_by=created_by, payment_type=DcvPermitFee.PAYMENT_TYPE_TEMPORARY)
 
         try:
             with transaction.atomic():
