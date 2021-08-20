@@ -14,21 +14,34 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel name</label>
+                <label for="vessel_name" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission.dcv_vessel.vessel_name">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Skipper</label>
+                <label for="skipper" class="col-sm-3 control-label">Skipper</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission.skipper">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Contact number</label>
+                <label for="contact_number" class="col-sm-3 control-label">Contact number</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission.contact_number">
+                </div>
+            </div>
+
+            <div v-if="show_email_fields" class="row form-group">
+                <label for="email_address" class="col-sm-3 control-label">Email address</label>
+                <div class="col-sm-6">
+                    <input type="email" class="form-control" name="email_address" placeholder="" v-model="dcv_admission.email_address">
+                </div>
+            </div>
+            <div v-if="show_email_fields" class="row form-group">
+                <label for="email_address_confirmation" class="col-sm-3 control-label">Email address (Confirm)</label>
+                <div class="col-sm-6">
+                    <input type="email" class="form-control" name="email_address_confirmation" placeholder="" v-model="dcv_admission.email_address_confirmation">
                 </div>
             </div>
 
@@ -64,8 +77,8 @@
                             <div class="navbar-inner">
                                 <div class="container">
                                     <p class="pull-right" style="margin-top:5px">
-                                    <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>{{ pay_submit_button_text }}<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="pay_and_submit" class="btn btn-primary" :value="pay_submit_button_text" :disabled="paySubmitting"/>
+                                        <input v-if="pay_submit_button_enabled" type="button" @click.prevent="pay_and_submit" class="btn btn-primary" :value="pay_submit_button_text"/>
+                                        <button v-else type="button" class="btn btn-primary" disabled>{{ pay_submit_button_text }}<i v-if="paySubmitting" class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                     </p>
                                 </div>
                             </div>
@@ -108,10 +121,11 @@ export default {
                 id: null,
                 dcv_vessel: {
                     id: null,
-                    uvi_vessel_identifier: '',
                     rego_no: '',
                     vessel_name: '',
                 },
+                email_address: '',
+                email_address_confirmation: '',
                 skipper: '',
                 contact_number: '',
                 arrivals: [
@@ -150,6 +164,46 @@ export default {
 
     },
     computed: {
+        pay_submit_button_enabled: function(){
+            return this.valid_form
+        },
+        valid_form: function(){
+            let enabled = true
+            if(this.paySubmitting)
+                enabled = false
+            if(!this.dcv_admission.dcv_vessel.rego_no)
+                enabled = false
+            if(!this.dcv_admission.dcv_vessel.vessel_name)
+                enabled = false
+            if(this.is_authenticated){
+                // Authenticated
+
+            } else {
+                // Not authenticated
+                if(!this.dcv_admission.email_address)
+                    enabled = false
+                if(!this.dcv_admission.email_address_confirmation)
+                    enabled = false
+                if(!this.validateEmail(this.dcv_admission.email_address))
+                    enabled = false
+                if(!this.validateEmail(this.dcv_admission.email_address_confirmation))
+                    enabled = false
+                if(this.dcv_admission.email_address != this.dcv_admission.email_address_confirmation)
+                    enabled = false
+                if(!this.dcv_admission.skipper)
+                    enabled = false
+            }
+            return enabled
+        },
+        is_authenticated: function() {
+            if (this.$route.fullPath.includes('external')){
+                return true
+            }
+            return false
+        },
+        show_email_fields: function(){
+            return !this.is_authenticated
+        },
         is_external: function() {
             return this.level == 'external'
         },
@@ -170,6 +224,10 @@ export default {
         }
     },
     methods: {
+        validateEmail: function(email) {
+              const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+              return re.test(email)
+        },
         lookupDcvVessel: async function(id) {
             console.log('in lookupDcvVessel')
             const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
@@ -226,7 +284,6 @@ export default {
                         vm.dcv_admission.dcv_vessel =
                         {
                             id: id,
-                            uvi_vessel_identifier: '',
                             rego_no: id,
                             vessel_name: '',
                         }
@@ -248,7 +305,6 @@ export default {
                 vm.dcv_admission.dcv_vessel = Object.assign({},
                     {
                         id: null,
-                        uvi_vessel_identifier: '',
                         rego_no: '',
                         vessel_name: '',
                     }
