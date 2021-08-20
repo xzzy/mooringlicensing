@@ -556,17 +556,26 @@ from '@/utils/hooks'
                         return vm.validateRegoNo(data.text);
                     },
                 }).
-                //on("select2:select", function (e) {
-                on("select2:close", function (e) {
+                    /*
+                on("select2:select", function (e) {
+                    console.log("select2 select")
                     e.preventDefault();
+                }).
+                    */
+                on("select2:close", function (e) {
                     console.log(e);
                     console.log(e.params.originalSelect2Event);
                     //var selected = $(e.currentTarget);
                     //let data = e.params.data.id;
                     if (!e.params.originalSelect2Event) {
+                        /*
                         console.log("Clear select2");
                         $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
                         return;
+                        */
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
                     }
                     console.log("Process select2");
                     let data = e.params.originalSelect2Event.data;
