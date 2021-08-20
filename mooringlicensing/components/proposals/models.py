@@ -1155,7 +1155,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'mooring_id': mooring_id,
                     'ria_mooring_name': ria_mooring_name,
                     'details': details.get('details'),
-                    'cc_email': details.get('cc_email')
+                    'cc_email': details.get('cc_email'),
+                    'mooring_on_approval': details.get('mooring_on_approval'),
+                    'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
                 approver_comment = ''
@@ -1212,7 +1214,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def final_approval_for_WLA_AAA(self, request, details=None, auto_approve=False):
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 # current_date = current_datetime.date()
@@ -1344,7 +1345,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'mooring_id': mooring_id,
                         'ria_mooring_name': ria_mooring_name,
                         'details': details.get('details'),
-                        'cc_email': details.get('cc_email')
+                        'cc_email': details.get('cc_email'),
+                        'mooring_on_approval': details.get('mooring_on_approval'),
+                        'vessel_ownership': details.get('vessel_ownership'),
                     }
                     self.save()
 
@@ -1536,7 +1539,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise e
 
     def amend_approval(self,request):
-        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -1726,7 +1728,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return target_date
 
     def auto_approve(self, request):
-        #import ipdb; ipdb.set_trace()
         ## If renewal and no change to vessel
         #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
         if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
@@ -1941,7 +1942,6 @@ class WaitingListApplication(Proposal):
         return approval, created
 
     def process_after_payment_success(self, request):
-        #import ipdb; ipdb.set_trace()
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
@@ -2266,11 +2266,20 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
 
         # Create MooringOnApproval records
+        ## TODO: alter this to cater for not adding a mooring - also check dupes!
         existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+        # updating checkboxes
+        if self.approval:
+            for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
+                for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                    # convert proposed_issuance_approval to an end_date
+                    if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
+                        moa2.end_date = current_datetime.date()
+                        moa2.save()
 
         # Manage stickers
         approval.child_obj.manage_stickers(self)
@@ -2509,6 +2518,16 @@ class MooringLicenceApplication(Proposal):
                     self.waiting_list_allocation.wla_order = None
                     self.waiting_list_allocation.save()
                     self.waiting_list_allocation.set_wla_order()
+
+            # updating checkboxes
+            if self.approval:
+                for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
+                    for vo2 in self.approval.child_obj.vessel_ownership_list:
+                    #for vo2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                        # convert proposed_issuance_approval to an end_date
+                        if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
+                            vo2.mooring_licence_end_date = current_datetime.date()
+                            vo2.save()
             # log Mooring action
             ## TODO: rework switch licence logic
             if existing_mooring_licence and existing_mooring_licence != approval:
@@ -2617,7 +2636,6 @@ class AuthorisedUserMooringManager(models.Manager):
 
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
         # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
         #lookups = (
@@ -2917,7 +2935,7 @@ class VesselOwnership(models.Model):
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()
     #objects = VesselOwnershipManager()
-    mooring_licence_expiry_date = models.DateField(blank=True, null=True)
+    mooring_licence_end_date = models.DateField(blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
