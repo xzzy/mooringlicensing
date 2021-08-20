@@ -697,8 +697,11 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
         return dcv_vessel
 
     def create(self, request, *args, **kwargs):
-        data = request.data
+        if not request.user.is_authenticated():
+            email_address = request.data.get('email_address')
+            email_address_confirmation = request.data.get('email_address_confirmation')
 
+        data = request.data
         dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
 
         data['submitter'] = request.user.id
