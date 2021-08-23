@@ -102,11 +102,29 @@ class Document(models.Model):
 class ApplicationType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
-    oracle_code = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
         return '{}'.format(self.description)
+
+
+    @@property
+    def oracle_code(self):
+        from mooringlicensing.components.payments_ml.models import OracleCodeApplication
+        from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
+
+        if self.code == settings.APPLICATION_TYPE_DCV_ADMISSION:
+            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_DCV_ADMISSION)
+        elif self.code == settings.APPLICATION_TYPE_DCV_PERMIT:
+            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_DCV_PERMIT)
+        elif self.code == WaitingListApplication.code:
+            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_WL)
+        elif self.code == AnnualAdmissionApplication.code:
+            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_AA)
+        elif self.code == AuthorisedUserApplication.code:
+            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_AU)
+        elif self.code == MooringLicenceApplication.code:
+            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_ML)
 
     class Meta:
         app_label = 'mooringlicensing'

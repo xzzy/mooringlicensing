@@ -534,14 +534,41 @@ class FeeItem(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
-class OracleCode(models.Model):
+class OracleCodeApplication(models.Model):
     identifier = models.CharField(max_length=50, null=True, blank=True)
     name = models.CharField(max_length=50, null=True, blank=True)
-    value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
-    date_of_enforcement = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        return '{} ({})'.format(self.name, self.value)
+        return self.name
+
+    def get_oracle_code_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.value
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    def get_enforcement_date_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.date_of_enforcement
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    @staticmethod
+    def get_current_oracle_code_by_application(oracle_code_id):
+        oracle_code_application = OracleCodeApplication.objects.get(identifier=oracle_code_id)
+        return oracle_code_application.get_oracle_code_by_date()
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = 'Oracle Codes'
+
+
+class OracleCodeItem(models.Model):
+    oracle_code_application = models.ForeignKey(OracleCodeApplication, related_name='oracle_code_items')
+    value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
+    date_of_enforcement = models.DateField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'

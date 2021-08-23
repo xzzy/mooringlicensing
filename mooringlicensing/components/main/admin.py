@@ -102,7 +102,7 @@ class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
 
 @admin.register(ApplicationType)
 class ApplicationTypeAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'code', 'description', 'oracle_code',]
+    list_display = ['__str__', 'code', 'description',]
     readonly_fields = ['code', 'description',]
 
     def get_actions(self, request):
