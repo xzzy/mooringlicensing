@@ -534,3 +534,14 @@ class FeeItem(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+class OracleCode(models.Model):
+    identifier = models.CharField(max_length=50, null=True, blank=True)
+    name = models.CharField(max_length=50, null=True, blank=True)
+    value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return '{} ({})'.format(self.name, self.value)
+
+    class Meta:
+        app_label = 'mooringlicensing'
