@@ -51,8 +51,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     if proxy or request.user.is_anonymous():
         #checkout_params['basket_owner'] = booking.customer.id
         # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
-        anonymous_user = EmailUser.objects.get_or_create(email='aho1@mail.com')
-        checkout_params['basket_owner'] = anonymous_user.id
+        # anonymous_user = EmailUser.objects.get_or_create(email='aho1@mail.com')
+        checkout_params['basket_owner'] = proposal.submitter.id
 
 
     create_checkout_session(request, checkout_params)
