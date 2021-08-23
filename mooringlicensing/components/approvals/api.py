@@ -15,6 +15,7 @@ from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 from datetime import datetime
 
+from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.main.utils import add_cache_control
@@ -698,10 +699,40 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-
         dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
 
-        data['submitter'] = request.user.id
+        if request.user.is_authenticated():
+            # Logged in user
+            # 1. DcvPermit exists
+            # 2. DcvPermit doesn't exist
+
+            submitter = request.user
+        else:
+            # Anonymous user
+            # 1. DcvPermit exists
+            # 2. DcvPermit doesn't exist
+            if dcv_vessel.dcv_permits.count():
+                # DcvPermit exists
+                submitter = dcv_vessel.dcv_permits.first().submitter
+            else:
+                # DcvPermit doesn't exist
+                email_address = request.data.get('email_address')
+                email_address_confirmation = request.data.get('email_address_confirmation')
+                skipper = request.data.get('skipper')
+                if email_address == email_address_confirmation:
+                    if skipper:
+                        this_user = EmailUser.objects.filter(email=email_address)
+                        if this_user:
+                            new_user = this_user.first()
+                        else:
+                            new_user = EmailUser.objects.create(email=email_address, first_name=skipper)
+                        submitter = new_user
+                    else:
+                        raise forms.ValidationError('Please fill the skipper field')
+                else:
+                    raise forms.ValidationError('Email addresses do not match')
+
+        data['submitter'] = submitter.id
         # data['fee_sid'] = fee_season_requested.get('id')
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
