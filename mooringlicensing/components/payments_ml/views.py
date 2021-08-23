@@ -43,7 +43,7 @@ class DcvAdmissionFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         dcv_admission = self.get_object()
-        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=request.user, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
+        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=dcv_admission.submitter, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
 
         try:
             with transaction.atomic():
@@ -61,7 +61,7 @@ class DcvAdmissionFeeView(TemplateView):
                     invoice_text='DCV Admission Fee',
                 )
 
-                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(request.user, dcv_admission.id))
+                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.submitter, dcv_admission.id))
                 return checkout_response
 
         except Exception as e:
@@ -251,7 +251,7 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 try:
                     inv = Invoice.objects.get(reference=invoice_ref)
                     order = Order.objects.get(number=inv.order_number)
-                    order.user = request.user
+                    order.user = submitter
                     order.save()
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter.get_full_name(), dcv_admission.submitter.id) if dcv_admission.submitter else 'An anonymous user'))

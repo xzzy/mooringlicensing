@@ -160,8 +160,8 @@ class GetDcvVesselRegoNos(views.APIView):
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no', 'dcv_permits')[:10]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no'], 'dcv_permits': rego['dcv_permits']} for rego in data]
             return Response({"results": data_transform})
         return add_cache_control(Response())
 
