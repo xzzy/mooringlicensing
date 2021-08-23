@@ -446,7 +446,8 @@ class Approval(RevisionedMixin):
 
     @property
     def can_reissue(self):
-        return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
+        #return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
+        return self.status == 'current' or self.status == 'suspended'
 
     @property
     def can_reinstate(self):

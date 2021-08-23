@@ -12,6 +12,7 @@
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
                     <select :disabled="readonly || editingVessel" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
+                        <option></option>
                     </select>
                 </div>
             </div>
@@ -550,21 +551,23 @@ from '@/utils/hooks'
                             return query;
                         },
                     },
-                    //templateSelection: vm.validateRegoNo,
-                    //templateResult: vm.validateRegoNo,
                     templateSelection: function(data) {
+                        console.log("templateSelection");
+                        console.log(data);
                         return vm.validateRegoNo(data.text);
                     },
                 }).
-                //on("select2:select", function (e) {
-                on("select2:close", function (e) {
-                    //var selected = $(e.currentTarget);
-                    //let data = e.params.data.id;
-                    if (!e.params.originalSelect2Event) {
-                        $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
-                        return;
+                on("select2:select", function (e) {
+                    console.log("select2:select");
+                    if (!e.params.data.selected) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("No selection");
+                        return false;
                     }
-                    let data = e.params.originalSelect2Event.data;
+                    console.log("Process select2");
+                    //let data = e.params.originalSelect2Event.data;
+                    let data = e.params.data;
                     vm.$nextTick(async () => {
                         //if (!isNew) {
                         if (!data.tag) {
@@ -595,6 +598,7 @@ from '@/utils/hooks'
                     });
                 }).
                 on("select2:unselect",function (e) {
+                    console.log("select2:unselect")
                     var selected = $(e.currentTarget);
                     vm.vessel.rego_no = '';
                     vm.vessel = Object.assign({}, 
@@ -610,31 +614,32 @@ from '@/utils/hooks'
                         });
                 }).
                 on("select2:open",function (e) {
+                    console.log("select2:open")
                     const searchField = $(".select2-search__field")
                     // move focus to select2 field
                     searchField[0].focus();
                     // prevent spacebar from being used
                     searchField.on("keydown",function (e) {
-                        //console.log(e.which);
                         if ([32,].includes(e.which)) {
+                            // space bar
+                            e.preventDefault();
+                            return false;
+                        } 
+                        /*
+                        else if ([9,].includes(e.which)) {
+                            // tab
+                            console.log(e.which);
+                            e.preventDefault();
+                            $(vm.$refs.vessel_rego_nos).val('null').trigger('change.select2');
+                            return false;
+                        } else if (e.which === 13) {
+                            console.log(e.which);
                             e.preventDefault();
                             return false;
                         }
+                        */
                     });
                 });
-                /*
-                on("select2:close",function (e) {
-                    //console.log(e);
-                    console.log(e.params.originalSelect2Event.data);
-                    vm.$nextTick(() => {
-                        console.log("close")
-                        console.log(vm.vessel.rego_no)
-                        if (!vm.vessel.rego_no) {
-                            $(vm.$refs.vessel_rego_nos).val('null').trigger('change');
-                        }
-                    });
-                });
-                */
                 // read vessel.rego_no if exists on vessel.vue open
                 vm.readRegoNo();
             },
