@@ -11,6 +11,7 @@
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
                     </select>
+                    <span v-if="is_valid_rego_no"><i class="fa fa-check-circle"></i></span>
                 </div>
             </div>
             <div class="row form-group">
@@ -167,32 +168,77 @@ export default {
         pay_submit_button_enabled: function(){
             return this.valid_form
         },
+        is_valid_rego_no: function(){
+            if(this.dcv_admission.dcv_vessel.rego_no)
+                return true
+            return false
+        },
+        is_valid_vessel_name: function(){
+            if(this.dcv_admission.dcv_vessel.vessel_name)
+                return true
+            return false
+        },
+        is_valid_skipper: function(){
+            if(this.dcv_admission.skipper)
+                return true
+            return false
+        },
+        is_valid_email_address: function(){
+            if(this.validateEmail(this.dcv_admission.email_address)){
+                console.log('email_address: true')
+                return true
+            }
+            console.log('email_address: false')
+            return false
+        },
+        is_valid_email_address_confirmation: function(){
+            if(this.validateEmail(this.dcv_admission.email_address_confirmation)){
+                console.log('email_address_confirmation: true')
+                return true
+            }
+            console.log('email_address_confirmation: false')
+            return false
+        },
+        is_valid_email_addresses: function(){
+            if(this.dcv_admission.email_address == this.dcv_admission.email_address_confirmation)
+                return true
+            return false
+        },
+        does_dcv_permit_exist: function(){
+            if(this.dcv_admission.dcv_vessel.hasOwnProperty('dcv_permits')){
+                if(this.dcv_admission.dcv_vessel.dcv_permits.length > 0){
+                    return true
+                }
+            }
+            return false
+        },
         valid_form: function(){
+            console.log('start validate')
             let enabled = true
             if(this.paySubmitting)
                 enabled = false
-            if(!this.dcv_admission.dcv_vessel.rego_no)
+            if(!this.is_valid_rego_no)
                 enabled = false
-            if(!this.dcv_admission.dcv_vessel.vessel_name)
+            if(!this.is_valid_vessel_name)
+                enabled = false
+            if(!this.dcv_admission.skipper)
+                enabled = false
+            if(!this.dcv_admission.contact_number)
                 enabled = false
             if(this.is_authenticated){
                 // Authenticated
-
             } else {
                 // Not authenticated
-                if(!this.dcv_admission.email_address)
-                    enabled = false
-                if(!this.dcv_admission.email_address_confirmation)
-                    enabled = false
-                if(!this.validateEmail(this.dcv_admission.email_address))
-                    enabled = false
-                if(!this.validateEmail(this.dcv_admission.email_address_confirmation))
-                    enabled = false
-                if(this.dcv_admission.email_address != this.dcv_admission.email_address_confirmation)
-                    enabled = false
-                if(!this.dcv_admission.skipper)
-                    enabled = false
+                if(!this.does_dcv_permit_exist){
+                    if(!this.is_valid_email_address)
+                        enabled = false
+                    if(!this.is_valid_email_address_confirmation)
+                        enabled = false
+                    if(!this.is_valid_email_addresses)
+                        enabled = false
+                }
             }
+            console.log('end validate')
             return enabled
         },
         is_authenticated: function() {
@@ -202,7 +248,9 @@ export default {
             return false
         },
         show_email_fields: function(){
-            return !this.is_authenticated
+            if (!this.is_authenticated && !this.does_dcv_permit_exist)
+                return true
+            return false
         },
         is_external: function() {
             return this.level == 'external'
