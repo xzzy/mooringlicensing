@@ -295,41 +295,33 @@ ORACLE_CODES = [
     {
         'identifier': ORACLE_CODE_ID_WL,
         'name': 'Waiting list allocation fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_AA,
         'name': 'Annual admission fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_AU,
         'name': 'Authorised user fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_ML,
         'name': 'Mooring licence fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_DCV_PERMIT,
         'name': 'DCV permit fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_DCV_ADMISSION,
         'name': 'DCV admission fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_REPLACEMENT_STICKER,
         'name': 'Replacement sticker fees',
-        'code': 'T1 EXEMPT',
     },
     {
         'identifier': ORACLE_CODE_ID_MOORING_SWAP,
         'name': 'Mooring swap fees',
-        'code': 'T1 EXEMPT',
     },
 ]
