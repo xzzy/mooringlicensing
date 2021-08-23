@@ -8,13 +8,13 @@ from django.urls import reverse
 from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, \
     use_existing_basket_from_invoice
 from ledger.settings_base import TIME_ZONE
-from ledger.accounts.models import EmailUser
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem, OracleCodeApplication
+    DcvAdmissionFee
+
 
 #test
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
@@ -101,7 +101,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
     application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
     vessel_length = 1  # any number greater than 0
     proposal_type = None
-    oracle_code = OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_DCV_ADMISSION)
+    oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)
 
     line_items = []
     for dcv_admission_arrival in dcv_admission.dcv_admission_arrivals.all():
@@ -213,17 +213,18 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     # TODO: Perform db_process for additional component, too???
 
     line_items = []
-    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime_str))
+    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime))
     if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
         # There is also annual admission fee component for the AUA/MLA.
-        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, current_datetime_str))
+        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, current_datetime))
 
     logger.info('{}'.format(line_items))
 
     return line_items, db_processes_after_success
 
 
-def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str):
+def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime):
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
     proposal_type_text = '({})'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
     return {
         'ledger_description': '{}({}) Fee: {} (Season: {} to {}) @{}'.format(
@@ -235,7 +236,7 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
             fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
             target_datetime_str,
         ),
-        'oracle_code': application_type.oracle_code,
+        'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
         'price_incl_tax': fee_amount_adjusted,
         'price_excl_tax': calculate_excl_gst(fee_amount_adjusted) if fee_constructor.incur_gst else fee_amount_adjusted,
         'quantity': 1,

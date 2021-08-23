@@ -3,6 +3,7 @@ from django.contrib import admin
 
 from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
     NumberOfDaysSetting, NumberOfDaysType
+from mooringlicensing.components.payments_ml.models import OracleCodeItem
 
 
 class VesselSizeCategoryForm(forms.ModelForm):
@@ -100,10 +101,24 @@ class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
     form = VesselSizeCategoryGroupForm
 
 
+class OracleCodeItemInline(admin.TabularInline):
+    model = OracleCodeItem
+    extra = 0
+    can_delete = True
+    # formset = FeePeriodFormSet
+    # form = FeePeriodForm
+
+    def has_delete_permission(self, request, obj=None):
+        if obj.oracle_code_items.count() <= 1:
+            return False
+        return True
+
+
 @admin.register(ApplicationType)
 class ApplicationTypeAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'code', 'description',]
+    list_display = ['__str__', 'code', 'description', 'get_value_today', 'get_enforcement_date',]
     readonly_fields = ['code', 'description',]
+    inlines = [OracleCodeItemInline,]
 
     def get_actions(self, request):
         actions = super(ApplicationTypeAdmin, self).get_actions(request)
@@ -116,6 +131,26 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    # def get_fields(self, request, obj=None):
+    #     fields = super(ApplicationTypeAdmin, self).get_fields(request, obj)
+    #     fields.remove('identifier')
+    #     return fields
+
+    def get_value_today(self, obj):
+        try:
+            return obj.get_oracle_code_by_date()
+        except:
+            return '(not found, please add)'
+
+    def get_enforcement_date(self, obj):
+        try:
+            return obj.get_enforcement_date_by_date()
+        except:
+            return '(not found, please add)'
+
+    get_value_today.short_description = 'Oracle code (current)'
+    get_enforcement_date.short_description = 'Since'
 
 
 class NumberOfDaysSettingInline(admin.TabularInline):

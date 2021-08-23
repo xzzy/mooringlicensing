@@ -6,12 +6,9 @@ from django.db.models.query_utils import Q
 from ledger.payments.models import CashTransaction, BpointTransaction, BpayTransaction,Invoice
 from ledger.settings_base import TIME_ZONE
 
-from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvAdmissionFee, DcvPermitFee, \
-    OracleCodeApplication
+from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvAdmissionFee, DcvPermitFee
 from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.proposals.models import Proposal
 
 
 def booking_bpoint_settlement_report(_date):
@@ -32,8 +29,8 @@ def booking_bpoint_settlement_report(_date):
 
         # Retrieve all the oracle codes used in this app
         oracle_codes = []
-        for oracle_code_application in OracleCodeApplication.objects.all():
-            oracle_codes.append(oracle_code_application.get_oracle_code_by_date())
+        for application_type in ApplicationType.objects.all():
+            oracle_codes.append(application_type.get_oracle_code_by_date())
 
         # crn1 starts with one of the oracle codes retrieved
         queries = Q()

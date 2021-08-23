@@ -12,12 +12,10 @@ from mooringlicensing.components.main.models import (
         NumberOfDaysType,
         NumberOfDaysSetting
         )
-from mooringlicensing.components.payments_ml.models import OracleCodeApplication, OracleCodeItem
+from mooringlicensing.components.payments_ml.models import OracleCodeItem
 from mooringlicensing.components.proposals.models import (
         ProposalType, 
         Proposal, 
-        #ProposalAssessorGroup,
-        #ProposalApproverGroup, 
         StickerPrintingContact
         )
 
@@ -155,17 +153,13 @@ class DefaultDataManager(object):
 
         # Oracle account codes
         today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
-        for item in settings.ORACLE_CODES:
-            try:
-                oracle_code_application, created = OracleCodeApplication.objects.get_or_create(identifier=item['identifier'])
-                if created:
-                    oracle_code_application.name = item['name']
-                    oracle_code_application.save()
+        for application_type in ApplicationType.objects.all():
+            if not application_type.oracle_code_items.count() > 0:
+                try:
                     oracle_code_item = OracleCodeItem.objects.create(
-                        oracle_code_application=oracle_code_application,
+                        application_type=application_type,
                         date_of_enforcement=today,
                     )
-                    logger.info("Created oracle code application: {}".format(oracle_code_application))
                     logger.info("Created oracle code item: {}".format(oracle_code_item))
-            except Exception as e:
-                logger.error('{}, Oracle code: {}'.format(e, oracle_code_application))
+                except Exception as e:
+                    logger.error('{}, failed to create oracle code item'.format(application_type))
