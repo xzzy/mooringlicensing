@@ -445,9 +445,14 @@ class Approval(RevisionedMixin):
         return 'L{}'.format(self.id)
 
     @property
-    def can_reissue(self):
+    def can_external_action(self):
         #return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
         return self.status == 'current' or self.status == 'suspended'
+
+    @property
+    def can_reissue(self):
+        return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
+        #return self.status == 'current' or self.status == 'suspended'
 
     @property
     def can_reinstate(self):

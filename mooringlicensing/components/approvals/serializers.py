@@ -308,6 +308,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     authorised_user_moorings = serializers.SerializerMethodField()
     authorised_user_moorings_detail = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
+    can_external_action = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     #can_renew = serializers.SerializerMethodField()
@@ -350,6 +351,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'authorised_user_moorings',
             'authorised_user_moorings_detail',
             'can_reissue',
+            'can_external_action',
             'can_action',
             'can_reinstate',
             #'can_renew',
@@ -376,6 +378,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
         if obj.renewal_document and obj.renewal_document._file:
             return obj.renewal_document._file.url
         return None
+
+    def get_can_external_action(self,obj):
+        return obj.can_external_action
 
     def get_can_reissue(self,obj):
         return obj.can_reissue
@@ -668,6 +673,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     mooring_licence_vessels = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
+    can_external_action = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     #can_renew = serializers.SerializerMethodField()
@@ -706,6 +712,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'mooring_licence_vessels',
             'authorised_user_moorings',
             'can_reissue',
+            'can_external_action',
             'can_action',
             'can_reinstate',
             #'can_renew',
@@ -747,6 +754,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'mooring_licence_vessels',
             'authorised_user_moorings',
             'can_reissue',
+            'can_external_action',
             'can_action',
             'can_reinstate',
             #'can_renew',
@@ -785,6 +793,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         if obj.renewal_document and obj.renewal_document._file:
             return obj.renewal_document._file.url
         return None
+
+    def get_can_external_action(self,obj):
+        return obj.can_external_action
 
     def get_can_reissue(self,obj):
         return obj.can_reissue
