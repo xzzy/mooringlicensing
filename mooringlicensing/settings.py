@@ -189,13 +189,25 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',
     'description': 'DCV Permit',
-    'oracle_code': 'T1 EXEMPT',
 }
 APPLICATION_TYPE_DCV_ADMISSION = {
     'code': 'dcv',
     'description': 'DCV Admission',
-    'oracle_code': 'T1 EXEMPT',
 }
+APPLICATION_TYPE_REPLACEMENT_STICKER = {
+    'code': 'replacement_sticker',
+    'description': 'Replacement sticker fees',
+}
+APPLICATION_TYPE_MOORING_SWAP = {
+    'code': 'mooring_swap',
+    'description': 'Mooring swap fees',
+}
+APPLICATION_TYPES = [
+    APPLICATION_TYPE_DCV_PERMIT,
+    APPLICATION_TYPE_DCV_ADMISSION,
+    APPLICATION_TYPE_REPLACEMENT_STICKER,
+    APPLICATION_TYPE_MOORING_SWAP,
+]
 LOGGING['loggers']['mooringlicensing'] = {
     'handlers': ['file'],
     'level': 'INFO'

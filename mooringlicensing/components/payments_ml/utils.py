@@ -14,7 +14,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem
+    DcvAdmissionFee, FeeItem, OracleCodeApplication
 
 #test
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
@@ -101,6 +101,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
     application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
     vessel_length = 1  # any number greater than 0
     proposal_type = None
+    oracle_code = OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_DCV_ADMISSION)
 
     line_items = []
     for dcv_admission_arrival in dcv_admission.dcv_admission_arrivals.all():
@@ -131,7 +132,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
                 dcv_admission_arrival.private_visit,
                 ', '.join(number_of_people_str),
             ),
-            'oracle_code': application_type.oracle_code,
+            'oracle_code': oracle_code,
             'price_incl_tax': total_amount,
             'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
             'quantity': 1,
