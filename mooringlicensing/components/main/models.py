@@ -107,24 +107,24 @@ class ApplicationType(models.Model):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
         return '{}'.format(self.description)
 
+    def get_oracle_code_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.value
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
 
-    @@property
-    def oracle_code(self):
-        from mooringlicensing.components.payments_ml.models import OracleCodeApplication
-        from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
+    def get_enforcement_date_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.date_of_enforcement
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
 
-        if self.code == settings.APPLICATION_TYPE_DCV_ADMISSION:
-            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_DCV_ADMISSION)
-        elif self.code == settings.APPLICATION_TYPE_DCV_PERMIT:
-            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_DCV_PERMIT)
-        elif self.code == WaitingListApplication.code:
-            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_WL)
-        elif self.code == AnnualAdmissionApplication.code:
-            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_AA)
-        elif self.code == AuthorisedUserApplication.code:
-            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_AU)
-        elif self.code == MooringLicenceApplication.code:
-            return OracleCodeApplication.get_current_oracle_code_by_application(settings.ORACLE_CODE_ID_ML)
+    @staticmethod
+    def get_current_oracle_code_by_application(code):
+        application_type = ApplicationType.objects.get(code=code)
+        return application_type.get_oracle_code_by_date()
 
     class Meta:
         app_label = 'mooringlicensing'

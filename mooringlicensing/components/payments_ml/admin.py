@@ -5,8 +5,7 @@ from django.db.models import Min
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem, \
-    OracleCodeApplication, OracleCodeItem
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
 from mooringlicensing.components.proposals.models import AnnualAdmissionApplication, AuthorisedUserApplication, \
     MooringLicenceApplication
 
@@ -277,31 +276,23 @@ class FeeConstructorAdmin(admin.ModelAdmin):
         return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-class OracleCodeItemInline(admin.TabularInline):
-    model = OracleCodeItem
-    extra = 0
-    can_delete = True
-    # formset = FeePeriodFormSet
-    # form = FeePeriodForm
-
-
-@admin.register(OracleCodeApplication)
-class OracleCodeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'get_value_today', 'get_enforcement_date',]
-    readonly_fields = ('identifier',)
-    inlines = [OracleCodeItemInline,]
-
-    def get_fields(self, request, obj=None):
-        fields = super(OracleCodeAdmin, self).get_fields(request, obj)
-        fields.remove('identifier')
-        return fields
-
-    def get_value_today(self, obj):
-        return obj.get_oracle_code_by_date()
-
-    def get_enforcement_date(self, obj):
-        return obj.get_enforcement_date_by_date()
-
-    get_value_today.short_description = 'Oracle code (current)'
-    get_enforcement_date.short_description = 'Since'
+# @admin.register(OracleCodeApplication)
+# class OracleCodeAdmin(admin.ModelAdmin):
+#     list_display = ['name', 'get_value_today', 'get_enforcement_date',]
+#     readonly_fields = ('identifier',)
+#     inlines = [OracleCodeItemInline,]
+#
+#     def get_fields(self, request, obj=None):
+#         fields = super(OracleCodeAdmin, self).get_fields(request, obj)
+#         fields.remove('identifier')
+#         return fields
+#
+#     def get_value_today(self, obj):
+#         return obj.get_oracle_code_by_date()
+#
+#     def get_enforcement_date(self, obj):
+#         return obj.get_enforcement_date_by_date()
+#
+#     get_value_today.short_description = 'Oracle code (current)'
+#     get_enforcement_date.short_description = 'Since'
 
