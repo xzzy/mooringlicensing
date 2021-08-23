@@ -1848,8 +1848,6 @@ class WaitingListApplication(Proposal):
 
     new_application_text = "I want to be included on the waiting list for a mooring license"
 
-    oracle_code = 'T1 EXEMPT'
-
     apply_page_visibility = True
     description = 'Waiting List Application'
 
@@ -1997,7 +1995,6 @@ class AnnualAdmissionApplication(Proposal):
     code = 'aaa'
     prefix = 'AA'
     new_application_text = "I want to apply for an annual admission permit"
-    oracle_code = 'T1 EXEMPT'
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
@@ -2128,7 +2125,6 @@ class AuthorisedUserApplication(Proposal):
     code = 'aua'
     prefix = 'AU'
     new_application_text = "I want to apply for an an authorised user permit"
-    oracle_code = 'T1 EXEMPT'
     apply_page_visibility = True
     description = 'Authorised User Application'
 
@@ -2361,7 +2357,6 @@ class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
-    oracle_code = 'T1 EXEMPT'
     new_application_text = ""
     apply_page_visibility = False
     description = 'Mooring Licence Application'
