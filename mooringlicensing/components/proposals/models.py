@@ -1375,7 +1375,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
                             #import ipdb; ipdb.set_trace()
 
-                            if self.approval and not self.approval.reissued:
+                            if self.approval and self.approval.reissued:
+                                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                                self.process_after_approval(request)
+                            else:
                                 application_fee = ApplicationFee.objects.create(
                                     proposal=self,
                                     invoice_reference=invoice.reference,
@@ -1386,10 +1389,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                     application_fee.fee_items.add(fee_item_additional)
 
                                 self.send_emails_for_payment_required(request, invoice)
-                            else:
-                                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-
-                            self.process_after_approval(request, self.invoice.payment_status)
+                                self.process_after_approval(request, self.invoice.payment_status)
 
                             # Log proposal action
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
@@ -2271,12 +2271,12 @@ class AuthorisedUserApplication(Proposal):
 
         # Create MooringOnApproval records
         ## TODO: alter this to cater for not adding a mooring - also check dupes!
-        #import ipdb; ipdb.set_trace()
         existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+        #import ipdb; ipdb.set_trace()
         # updating checkboxes
         if self.approval:
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
@@ -2300,7 +2300,7 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request, payment_status):
+    def process_after_approval(self, request, payment_status=None):
         print('process_after_approved() in AuthorisedUserApplication')
         if self.approval and self.approval.reissued:
             # Reissued proposal
@@ -2442,7 +2442,7 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request, payment_status):
+    def process_after_approval(self, request, payment_status=None):
         print('in process_after_approved')
         if self.approval and self.approval.reissued:
             # Reissued proposal
