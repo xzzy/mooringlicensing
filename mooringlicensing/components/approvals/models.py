@@ -20,6 +20,7 @@ from ledger.payments.invoice.models import Invoice
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.organisations.models import Organisation
+from mooringlicensing.components.payments_ml.models import StickerActionFee
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
     StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
@@ -875,17 +876,30 @@ class AnnualAdmissionPermit(Approval):
 
     def manage_stickers(self, proposal):
         stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+
         if stickers_current.count() == 0:
             sticker = Sticker.objects.create(
                 approval=self,
                 fee_constructor=proposal.fee_constructor,
                 vessel_ownership=proposal.vessel_ownership,
+                proposal_initiated=proposal,
             )
             logger.info('Sticker: {} has been created for the application: {}'.format(sticker, self.lodgement_number))
         elif stickers_current.count() == 1:
-            if stickers_current.first().vessel_ownership != proposal.vessel_ownership:
-                stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
-                # TODO: email to the permission holder to notify the existing sticker to be returned
+            sticker_to_be_replaced = stickers_current.first()
+            if sticker_to_be_replaced.vessel_ownership != proposal.vessel_ownership:
+                sticker_to_be_replaced.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker_to_be_replaced.save()
+
+                # TODO: ??? email to the permission holder to notify the existing sticker to be returned
+
+                # Create new replacement sticker
+                new_sticker = Sticker.objects.create(
+                    approval=self,
+                    vessel_ownership=proposal.vessel_ownership,
+                    fee_constructor=proposal.fee_constructor,
+                    proposal_initiated=proposal,
+                )
             else:
                 pass
                 # There is a sticker present already with the same vessel.  We don't have to do anything with stickers..???
@@ -947,6 +961,7 @@ class AuthorisedUserPermit(Approval):
                 approval=self,
                 vessel_ownership=proposal.vessel_ownership,
                 fee_constructor=proposal.fee_constructor,
+                proposal_initiated=proposal,
             )
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
@@ -966,6 +981,7 @@ class AuthorisedUserPermit(Approval):
                         approval=self,
                         vessel_ownership=proposal.vessel_ownership,
                         fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
                     )
                 elif stickers.count() == 1:
                     # Found one sticker which doesn't have 4 moorings on it.
@@ -978,6 +994,7 @@ class AuthorisedUserPermit(Approval):
                         approval=self,
                         vessel_ownership=proposal.vessel_ownership,
                         fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
                     )
 
                     # Update mooringonapprovals
@@ -1007,6 +1024,7 @@ class AuthorisedUserPermit(Approval):
                     approval=self,
                     vessel_ownership=sticker_to_be_replaced.vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
+                    proposal_initiated=proposal,
                 )
 
                 # Update mooring_on_approval
@@ -1054,6 +1072,7 @@ class MooringLicence(Approval):
                 status=Sticker.STICKER_STATUS_READY,
                 vessel_ownership=proposal.vessel_ownership,
                 fee_constructor=proposal.fee_constructor,
+                proposal_initiated=proposal,
             )
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
@@ -1082,6 +1101,7 @@ class MooringLicence(Approval):
                         # vessel_details=vessel_details,
                         vessel_ownership=proposal.vessel_ownership,
                         fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
                     )
                 stickers_required.append(sticker)
 
@@ -1117,6 +1137,7 @@ class MooringLicence(Approval):
                     approval=self,
                     vessel_ownership=sticker_to_be_replaced.vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
+                    proposal_initiated=proposal,
                 )
 
             vessel_ownerships_on_sticker = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_CURRENT,)).values_list('vessel_ownership', flat=True)
@@ -1130,6 +1151,7 @@ class MooringLicence(Approval):
                         approval=self,
                         vessel_ownership=v_ownership,
                         fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
                     )
 
             vessel_ownership_to_be_removed = []
@@ -1603,6 +1625,7 @@ class Sticker(models.Model):
     fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
     #vessel = models.ForeignKey('Vessel', blank=True, null=True)
     vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
+    proposal_initiated = models.ForeignKey('Proposal', blank=True, null=True)  # This propposal created this sticker object.  Can be None when sticker created by RequestNewSticker action or so.
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1719,6 +1742,7 @@ class StickerActionDetail(models.Model):
     date_of_returned_sticker = models.DateField(blank=True, null=True)
     action = models.CharField(max_length=50, null=True, blank=True)
     user = models.ForeignKey(EmailUser, null=True, blank=True)
+    sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
