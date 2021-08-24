@@ -869,6 +869,7 @@ class AnnualAdmissionPermit(Approval):
 
     def manage_stickers(self, proposal):
         stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+
         if stickers_current.count() == 0:
             sticker = Sticker.objects.create(
                 approval=self,
@@ -878,9 +879,20 @@ class AnnualAdmissionPermit(Approval):
             )
             logger.info('Sticker: {} has been created for the application: {}'.format(sticker, self.lodgement_number))
         elif stickers_current.count() == 1:
-            if stickers_current.first().vessel_ownership != proposal.vessel_ownership:
-                stickers_current.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
-                # TODO: email to the permission holder to notify the existing sticker to be returned
+            sticker_to_be_replaced = stickers_current.first()
+            if sticker_to_be_replaced.vessel_ownership != proposal.vessel_ownership:
+                sticker_to_be_replaced.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker_to_be_replaced.save()
+
+                # TODO: ??? email to the permission holder to notify the existing sticker to be returned
+
+                # Create new replacement sticker
+                new_sticker = Sticker.objects.create(
+                    approval=self,
+                    vessel_ownership=proposal.vessel_ownership,
+                    fee_constructor=proposal.fee_constructor,
+                    proposal_initiated=proposal,
+                )
             else:
                 pass
                 # There is a sticker present already with the same vessel.  We don't have to do anything with stickers..???
