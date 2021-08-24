@@ -417,7 +417,8 @@ export default {
                                 links += full.offer_link;
                             } else
                             */
-                            if (vm.is_external && full.can_reissue) {
+                            //if (vm.is_external && full.can_reissue) {
+                            if (vm.is_external && full.can_external_action) {
                                 if(full.can_action || vm.debug){
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                     if(full.amend_or_renew === 'amend' || vm.debug){

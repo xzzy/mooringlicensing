@@ -1374,18 +1374,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
 
-                            application_fee = ApplicationFee.objects.create(
-                                proposal=self,
-                                invoice_reference=invoice.reference,
-                                payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
-                            )
-                            application_fee.fee_items.add(fee_item)
-                            if fee_item_additional:
-                                application_fee.fee_items.add(fee_item_additional)
+                            if self.approval and self.approval.reissued:
+                                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                                self.process_after_approval(request)
+                            else:
+                                application_fee = ApplicationFee.objects.create(
+                                    proposal=self,
+                                    invoice_reference=invoice.reference,
+                                    payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
+                                )
+                                application_fee.fee_items.add(fee_item)
+                                if fee_item_additional:
+                                    application_fee.fee_items.add(fee_item_additional)
 
-                            self.process_after_approval(request, self.invoice.payment_status)
-
-                            self.send_emails_for_payment_required(request, invoice)
+                                self.send_emails_for_payment_required(request, invoice)
+                                self.process_after_approval(request, self.invoice.payment_status)
 
                             # Log proposal action
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
@@ -2214,15 +2217,15 @@ class AuthorisedUserApplication(Proposal):
         if mooring_id_pk:
             ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
 
-        # find any current AUP for this submitter with the same vessel
-        au_list = self.approval_class.objects.filter(
-                status='current', 
-                submitter=self.submitter, 
-                current_proposal__vessel_details__vessel=self.vessel_details.vessel
-                )
-        if au_list:
-            # change proposal to amendment application
-            self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
+        ## find any current AUP for this submitter with the same vessel
+        #au_list = self.approval_class.objects.filter(
+        #        status='current', 
+        #        submitter=self.submitter, 
+        #        current_proposal__vessel_details__vessel=self.vessel_details.vessel,
+        #        )
+        #if au_list:
+        #    # change proposal to amendment application
+        #    self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
 
         # Manage approval
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
@@ -2281,7 +2284,7 @@ class AuthorisedUserApplication(Proposal):
         approval.child_obj.manage_stickers(self)
 
         # Write approval history
-        if existing_mooring_count and approval.mooringonapproval.count() > existing_mooring_count:
+        if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
             approval.write_approval_history('mooring_add')
         elif created:
             approval.write_approval_history('new')
@@ -2291,9 +2294,13 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request, payment_status):
+    def process_after_approval(self, request, payment_status=None):
         print('process_after_approved() in AuthorisedUserApplication')
-        if self.proposal_type.code == PROPOSAL_TYPE_NEW:
+        if self.approval and self.approval.reissued:
+            # Reissued proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New proposal
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -2428,9 +2435,13 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request, payment_status):
+    def process_after_approval(self, request, payment_status=None):
         print('in process_after_approved')
-        if payment_status == 'unpaid':
+        if self.approval and self.approval.reissued:
+            # Reissued proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif payment_status == 'unpaid':
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             self.save()
