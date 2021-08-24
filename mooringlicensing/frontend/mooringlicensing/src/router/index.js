@@ -4,6 +4,8 @@ import Profile from '@/components/user/profile.vue'
 import external_routes from '@/components/external/routes'
 import internal_routes from '@/components/internal/routes'
 import MooringLicenceDocumentsUpload from '@/components/external/mooring_licence_documents_upload'
+import DcvPermitForm from '@/components/external/dcv/dcv_permit'
+import DcvAdmissionForm from '@/components/external/dcv/dcv_admission'
 
 Vue.use(Router)
 
@@ -26,6 +28,11 @@ export default new Router({
             path: '/mla_documents_upload/:uuid',
             name: 'mla-documents-upload',
             component: MooringLicenceDocumentsUpload
+        },
+        {
+            path: '/dcv_admission_form',
+            name: 'dcv-admission-form',
+            component: DcvAdmissionForm
         }
     ]
 })

@@ -102,11 +102,29 @@ class Document(models.Model):
 class ApplicationType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
-    oracle_code = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
         return '{}'.format(self.description)
+
+    def get_oracle_code_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.value
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    def get_enforcement_date_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.date_of_enforcement
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    @staticmethod
+    def get_current_oracle_code_by_application(code):
+        application_type = ApplicationType.objects.get(code=code)
+        return application_type.get_oracle_code_by_date()
 
     class Meta:
         app_label = 'mooringlicensing'

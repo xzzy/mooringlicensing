@@ -154,6 +154,35 @@ class DcvPermitFee(Payment):
         app_label = 'mooringlicensing'
 
 
+class StickerActionFee(Payment):
+    PAYMENT_TYPE_INTERNET = 0
+    PAYMENT_TYPE_RECEPTION = 1
+    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_TEMPORARY = 3
+    PAYMENT_TYPE_CHOICES = (
+        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
+        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
+        (PAYMENT_TYPE_BLACK, 'Black booking'),
+        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
+    )
+
+    # sticker_action_detail = models.ForeignKey('StickerActionDetail', on_delete=models.PROTECT, blank=True, null=True, related_name='sticker_action_fees')
+    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
+    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
+    def __str__(self):
+        if self.sticker_action_detail:
+            return 'Sticker {} : Invoice {}'.format(self.sticker_action_detail.sticker, self.invoice_reference)
+        else:
+            # Should not reach here
+            return 'StickerActionFee: {}'.format(self.id)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
@@ -534,3 +563,42 @@ class FeeItem(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+# class OracleCodeApplication(models.Model):
+#     identifier = models.CharField(max_length=50, null=True, blank=True)
+#     name = models.CharField(max_length=50, null=True, blank=True)
+#
+#     def __str__(self):
+#         return self.name
+#
+#     def get_oracle_code_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+#         try:
+#             oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+#             return oracle_code_item.value
+#         except:
+#             raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+#
+#     def get_enforcement_date_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+#         try:
+#             oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+#             return oracle_code_item.date_of_enforcement
+#         except:
+#             raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+#
+#     @staticmethod
+#     def get_current_oracle_code_by_application(oracle_code_id):
+#         oracle_code_application = OracleCodeApplication.objects.get(identifier=oracle_code_id)
+#         return oracle_code_application.get_oracle_code_by_date()
+#
+#     class Meta:
+#         app_label = 'mooringlicensing'
+#         verbose_name = 'Oracle Codes'
+
+
+class OracleCodeItem(models.Model):
+    # oracle_code_application = models.ForeignKey(OracleCodeApplication, related_name='oracle_code_items')
+    application_type = models.ForeignKey(ApplicationType, blank=True, null=True, related_name='oracle_code_items')
+    value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
