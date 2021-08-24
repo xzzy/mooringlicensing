@@ -937,6 +937,7 @@ class AuthorisedUserPermit(Approval):
         #            )
 
     def manage_stickers(self, proposal):
+        import ipdb; ipdb.set_trace()
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
 
         stickers_current = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
