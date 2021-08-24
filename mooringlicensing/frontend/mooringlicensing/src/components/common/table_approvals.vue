@@ -740,8 +740,7 @@ export default {
             console.log(params)
 
             let vm = this
-            //vm.$http.post('/sticker_replacement_fee/' + params.approval_id + '/', params.details).then(
-            vm.$http.post('/sticker_replacement_fee/' + params.approval_id + '/', {'details': params.details}).then(
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.details.approval_id + '/request_new_stickers'), params.details).then(
                 res => {
                     console.log(res)
                     //vm.updateTableRow(res.body.sticker)
