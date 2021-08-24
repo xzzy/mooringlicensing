@@ -106,6 +106,10 @@
             />
         </div>
         <!--ApprovalHistory ref="approval_history" /-->
+        <RequestNewStickerModal
+            ref="request_new_sticker_modal"
+            @sendData="sendData"
+        />
     </div>
 </template>
 
@@ -116,9 +120,10 @@ import ApprovalCancellation from '../internal/approvals/approval_cancellation.vu
 import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
-//import ApprovalHistory from './approval_history_modal.vue';
+import RequestNewStickerModal from "@/components/common/request_new_sticker_modal.vue"
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
+
 export default {
     name: 'TableApprovals',
     props: {
@@ -176,6 +181,7 @@ export default {
         ApprovalSuspension,
         ApprovalSurrender,
         ApprovalHistory,
+        RequestNewStickerModal,
     },
     watch: {
         show_expired_surrendered: function(value){
@@ -422,6 +428,7 @@ export default {
                                 //if(full.renewal_document && full.renewal_sent && full.can_renew) {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
+                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
                             } else if (!vm.is_external){
                                 links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
                                 links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
@@ -728,7 +735,23 @@ export default {
 
     },
     methods: {
+        sendData: function(params){
+            console.log('params')
+            console.log(params)
 
+            let vm = this
+            //vm.$http.post('/sticker_replacement_fee/' + params.approval_id + '/', params.details).then(
+            vm.$http.post('/sticker_replacement_fee/' + params.approval_id + '/', {'details': params.details}).then(
+                res => {
+                    console.log(res)
+                    //vm.updateTableRow(res.body.sticker)
+                    //vm.$refs.request_new_sticker_modal.close()
+                },
+                err => {
+                    console.log(err)
+                }
+            )
+        },
         fetchProfile: function(){
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
@@ -866,6 +889,13 @@ export default {
                 vm.surrenderApproval(id);
             });
 
+            //External Request New Sticker listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-request-new-sticker]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-request-new-sticker');
+                vm.requestNewSticker(id);
+            });
+
             // External renewal listener
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-renew-approval]', function(e) {
                 e.preventDefault();
@@ -1001,9 +1031,12 @@ export default {
         },
 
         surrenderApproval: function(approval_id){
-
             this.$refs.approval_surrender.approval_id = approval_id;
             this.$refs.approval_surrender.isModalOpen = true;
+        },
+        requestNewSticker: function(approval_id){
+            this.$refs.request_new_sticker_modal.approval_id = approval_id
+            this.$refs.request_new_sticker_modal.isModalOpen = true
         },
         approvalHistory: function(id){
             this.approvalHistoryId = parseInt(id);

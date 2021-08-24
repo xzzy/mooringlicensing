@@ -154,6 +154,35 @@ class DcvPermitFee(Payment):
         app_label = 'mooringlicensing'
 
 
+class StickerActionFee(Payment):
+    PAYMENT_TYPE_INTERNET = 0
+    PAYMENT_TYPE_RECEPTION = 1
+    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_TEMPORARY = 3
+    PAYMENT_TYPE_CHOICES = (
+        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
+        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
+        (PAYMENT_TYPE_BLACK, 'Black booking'),
+        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
+    )
+
+    sticker_action_detail = models.ForeignKey('StickerActionDetail', on_delete=models.PROTECT, blank=True, null=True, related_name='sticker_action_fees')
+    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
+    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
+    def __str__(self):
+        if self.sticker_action_detail:
+            return 'Sticker {} : Invoice {}'.format(self.sticker_action_detail.sticker, self.invoice_reference)
+        else:
+            # Should not reach here
+            return 'StickerActionFee: {}'.format(self.id)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1

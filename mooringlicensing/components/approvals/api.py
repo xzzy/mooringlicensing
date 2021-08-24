@@ -426,6 +426,25 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 })
         return Response(moorings)
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def request_new_stickers(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data
+
+        return Response({'stickers': []})
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def stickers(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # TODO ??? return all the current stickers for this approval
+
+        return Response({'stickers': []})
+
     @detail_route(methods=['GET'])
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
