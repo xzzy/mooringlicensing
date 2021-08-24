@@ -1,11 +1,12 @@
 <template lang="html">
-    <div>
+    <div class="">
 
-        <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
-            <h4>Annual Admission Application: {{proposal.lodgement_number}}</h4>
+        <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
+            <h4>Annual Admission {{ applicationTypeText }} Application: {{proposal.lodgement_number}}</h4>
+            <!--h5>{{ proposal.proposal_type.description }}</h5-->
         </div>
 
-        <div class="col-md-12">
+        <div class="">
             <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
               <li class="nav-item">
                 <a class="nav-link active" id="pills-applicant-tab" data-toggle="pill" href="#pills-applicant" role="tab" aria-controls="pills-applicant" aria-selected="true">
@@ -59,36 +60,39 @@
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
-                    <Profile 
-                    :isApplication="true" 
-                    v-if="applicantType == 'SUB'" 
+                    <Profile
+                    :isApplication="true"
+                    v-if="applicantType == 'SUB'"
                     ref="profile"
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
-                  :readonly="readonly"
+                    :readonly="readonly"
+                    :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
-                    <Applicant 
-                    :proposal="proposal" 
-                    id="proposalStartApplicant"
-                  :readonly="readonly"
+                    <Applicant
+                        :email_user="proposal.submitter" 
+                        :applicantType="proposal.applicant_type" 
+                        id="proposalStartApplicant"
+                        :readonly="readonly"
                     />
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
-                  <Vessels 
-                  :proposal="proposal" 
-                  :profile="profile" 
-                  id="proposalStartVessels" 
+                  <Vessels
+                  :proposal="proposal"
+                  :profile="profileVar"
+                  id="proposalStartVessels"
                   ref="vessels"
                   :readonly="readonly"
+                  :is_internal="is_internal"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
                   <Insurance
-                  :proposal="proposal" 
-                  id="insurance" 
+                  :proposal="proposal"
+                  id="insurance"
                   ref="insurance"
                   :readonly="readonly"
                   />
@@ -138,6 +142,13 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            show_application_title: {
+                type: Boolean,
+                default: true,
+            },
+            submitterId: {
+                type: Number,
             },
             canEditActivities:{
               type: Boolean,
@@ -204,8 +215,22 @@
             */
         },
         computed:{
+            profileVar: function() {
+                if (this.is_external) {
+                    return this.profile;
+                } else if (this.proposal) {
+                    return this.proposal.submitter;
+                }
+            },
             applicantType: function(){
                 return this.proposal.applicant_type;
+            },
+            applicationTypeText: function(){
+                let text = '';
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new') {
+                    text = this.proposal.proposal_type.description;
+                }
+                return text;
             },
             /*
             showElectoralRoll: function() {
@@ -264,7 +289,7 @@
             //indow.addEventListener('onblur', vm.leaving);
 
         }
- 
+
     }
 </script>
 

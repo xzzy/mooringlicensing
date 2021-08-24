@@ -1,0 +1,36 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+Dear {{ endorser.first_name }} {{ endorser.last_name }},
+
+Your endorsement for an Authorised User Permit application submitted by {{ applicant.first_name }} {{ applicant.last_name }} for your mooring {{ mooring_name }} is due by {{ due_date }}.
+
+Please click <a href="{{ endorse_url }}">here</a> if you want to endorse the application.
+Please click <a href="{{ decline_url }}">here2</a> if you want to decline the application.
+
+Please click <a href="{{ proposal_url }}">here</a> if you want to view the application details before endorsing or declining.
+
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}
+
+
+
+
+{% comment %}
+{%  extends 'mooringlicensing/emails/base_email.html' %}
+
+{%  block content %}
+    <p>
+        {{ proposal.submitter }} has submitted an application: {{ proposal.lodgement_number }} for the authorised user of the mooring: {{ mooring.name }} of which you are the site licensee.
+    </p>
+
+    <p>
+        Please click <a href="{{ endorse_url }}">here</a> to endorse or click <a href="{{ decline_url }}">here</a> to decline this application.  You can to do so at <a href="{{ dashboard_url }}">this link</a>, too.
+    </p>
+
+    <p>
+        If you do not know {{ proposal.submitter }} or do not want to endorse the application there is nothing you need to do and you can ignore this email.
+    </p>
+    Regards,
+{%  endblock %}
+{% endcomment %}

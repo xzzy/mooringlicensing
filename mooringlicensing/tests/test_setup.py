@@ -24,7 +24,7 @@ from requests.auth import HTTPBasicAuth
 from mooringlicensing.components.proposals.models import (
         ProposalType,
         ApplicationType,
-        ProposalAssessorGroup,
+        #ProposalAssessorGroup,
         ProposalStandardRequirement,
         MooringBay,
         )

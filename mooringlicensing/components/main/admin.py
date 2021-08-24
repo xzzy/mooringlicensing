@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib import admin
 
-from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType
+from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
+    NumberOfDaysSetting, NumberOfDaysType
 
 
 class VesselSizeCategoryForm(forms.ModelForm):
@@ -32,8 +33,35 @@ class VesselSizeCategoryForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(VesselSizeCategoryForm, self).clean()
-
         return cleaned_data
+
+
+class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
+
+    def clean(self):
+        '''
+        Validate forms as a whole
+        '''
+        null_vessel_count = 0
+        size_list = []
+
+        if not self.instance.is_editable:
+            raise forms.ValidationError('{} cannot be changed once used for payment calculation.'.format(self.instance))
+
+        for form in self.forms:
+            if form.cleaned_data['null_vessel']:
+                null_vessel_count += 1
+            if form.cleaned_data.get('start_size') in size_list:
+                raise forms.ValidationError('There is a duplicate vessel size: {}'.format(form.cleaned_data['start_size']))
+            else:
+                size_list.append(form.cleaned_data['start_size'])
+
+        # if null_vessel_count < 1:
+        #     raise forms.ValidationError('There must be one null-vessel catergory.  There is {} defined.'.format(null_vessel_count))
+        # elif null_vessel_count > 1:
+        #     raise forms.ValidationError('There must be one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
+        if null_vessel_count > 1:
+            raise forms.ValidationError('There can be at most one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
 
 
 class VesselSizeCategoryInline(admin.TabularInline):
@@ -41,6 +69,7 @@ class VesselSizeCategoryInline(admin.TabularInline):
     extra = 0
     can_delete = True
     form = VesselSizeCategoryForm
+    formset = VesselSizeCategoryFormset
 
 
 class VesselSizeCategoryGroupForm(forms.ModelForm):
@@ -87,3 +116,34 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+class NumberOfDaysSettingInline(admin.TabularInline):
+    model = NumberOfDaysSetting
+    extra = 0
+    can_delete = True
+    # form = VesselSizeCategoryForm
+
+
+@admin.register(NumberOfDaysType)
+class NumberOfDaysTypeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'description', 'number_by_date',]
+    list_display_links = ['name',]
+    # readonly_fields = ['name',]
+    fields = ['name', 'description',]
+    inlines = [NumberOfDaysSettingInline,]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+# @admin.register(NumberOfDaysSetting)
+# class NumberOfDaysSettingAdmin(admin.ModelAdmin):
+#     list_display = [
+#         'number_of_days',
+#         'date_of_enforcement',
+#         'number_of_days_type',
+#     ]
