@@ -1373,7 +1373,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice = Invoice.objects.get(order_number=order.number)
 
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                            #import ipdb; ipdb.set_trace()
 
                             if self.approval and self.approval.reissued:
                                 approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
@@ -2222,15 +2221,15 @@ class AuthorisedUserApplication(Proposal):
         if mooring_id_pk:
             ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
 
-        # find any current AUP for this submitter with the same vessel
-        au_list = self.approval_class.objects.filter(
-                status='current', 
-                submitter=self.submitter, 
-                current_proposal__vessel_details__vessel=self.vessel_details.vessel
-                )
-        if au_list:
-            # change proposal to amendment application
-            self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
+        ## find any current AUP for this submitter with the same vessel
+        #au_list = self.approval_class.objects.filter(
+        #        status='current', 
+        #        submitter=self.submitter, 
+        #        current_proposal__vessel_details__vessel=self.vessel_details.vessel,
+        #        )
+        #if au_list:
+        #    # change proposal to amendment application
+        #    self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
 
         # Manage approval
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
@@ -2276,7 +2275,6 @@ class AuthorisedUserApplication(Proposal):
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
             approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
-        #import ipdb; ipdb.set_trace()
         # updating checkboxes
         if self.approval:
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
