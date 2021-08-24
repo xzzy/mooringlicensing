@@ -1373,19 +1373,23 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice = Invoice.objects.get(order_number=order.number)
 
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                            #import ipdb; ipdb.set_trace()
 
-                            application_fee = ApplicationFee.objects.create(
-                                proposal=self,
-                                invoice_reference=invoice.reference,
-                                payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
-                            )
-                            application_fee.fee_items.add(fee_item)
-                            if fee_item_additional:
-                                application_fee.fee_items.add(fee_item_additional)
+                            if self.approval and not self.approval.reissued:
+                                application_fee = ApplicationFee.objects.create(
+                                    proposal=self,
+                                    invoice_reference=invoice.reference,
+                                    payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
+                                )
+                                application_fee.fee_items.add(fee_item)
+                                if fee_item_additional:
+                                    application_fee.fee_items.add(fee_item_additional)
+
+                                self.send_emails_for_payment_required(request, invoice)
+                            else:
+                                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                             self.process_after_approval(request, self.invoice.payment_status)
-
-                            self.send_emails_for_payment_required(request, invoice)
 
                             # Log proposal action
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
@@ -2267,6 +2271,7 @@ class AuthorisedUserApplication(Proposal):
 
         # Create MooringOnApproval records
         ## TODO: alter this to cater for not adding a mooring - also check dupes!
+        #import ipdb; ipdb.set_trace()
         existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
@@ -2285,7 +2290,7 @@ class AuthorisedUserApplication(Proposal):
         approval.child_obj.manage_stickers(self)
 
         # Write approval history
-        if existing_mooring_count and approval.mooringonapproval.count() > existing_mooring_count:
+        if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
             approval.write_approval_history('mooring_add')
         elif created:
             approval.write_approval_history('new')
@@ -2297,7 +2302,11 @@ class AuthorisedUserApplication(Proposal):
 
     def process_after_approval(self, request, payment_status):
         print('process_after_approved() in AuthorisedUserApplication')
-        if self.proposal_type.code == PROPOSAL_TYPE_NEW:
+        if self.approval and self.approval.reissued:
+            # Reissued proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New proposal
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -2435,7 +2444,11 @@ class MooringLicenceApplication(Proposal):
 
     def process_after_approval(self, request, payment_status):
         print('in process_after_approved')
-        if payment_status == 'unpaid':
+        if self.approval and self.approval.reissued:
+            # Reissued proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif payment_status == 'unpaid':
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             self.save()
