@@ -520,7 +520,6 @@ class Approval(RevisionedMixin):
 
     @property
     def amend_or_renew(self):
-        #import ipdb; ipdb.set_trace()
         try:
             amend_renew = 'amend'
             ## test whether any renewal or amendment applications have been created
@@ -926,19 +925,13 @@ class AuthorisedUserPermit(Approval):
             if moa.mooring == mooring_licence.mooring:
                 ## send email to auth user
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
-        ## Note that new stickers need to be issued for the current authorised user permits where the mooring is removed.
-        #old_sticker = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence).sticker
-        #if old_sticker:
-        #    old_sticker.status = 'to_be_returned'
-        #    old_sticker.save()
-        #    new_sticker = Sticker.objects.create(
-        #            approval=old_sticker.approval,
-        #            vessel_ownership=old_sticker.vessel_ownership,
-        #            fee_constructor=old_sticker.fee_constructor,
-        #            )
+        ## now reissue approval
+        #self.current_proposal.processing_status = 'with_approver'
+        #self.current_proposal.save()
+        #self.reissued=True
+        #self.save()
 
     def manage_stickers(self, proposal):
-        import ipdb; ipdb.set_trace()
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
 
         stickers_current = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
