@@ -20,6 +20,7 @@ from ledger.payments.invoice.models import Invoice
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.organisations.models import Organisation
+from mooringlicensing.components.payments_ml.models import StickerActionFee
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
     StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
@@ -1734,6 +1735,7 @@ class StickerActionDetail(models.Model):
     date_of_returned_sticker = models.DateField(blank=True, null=True)
     action = models.CharField(max_length=50, null=True, blank=True)
     user = models.ForeignKey(EmailUser, null=True, blank=True)
+    sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'

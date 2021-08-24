@@ -9,6 +9,7 @@ from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_p
 import dateutil.parser
 from django.db import transaction
 from django.http import HttpResponse
+from django import forms
 from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
@@ -185,7 +186,8 @@ class StickerReplacementFeeView(TemplateView):
         data = request.body
         data = json.loads(data)
 
-        # TODO:
+        raise forms.ValidationError('Validation error')
+
         # 1. Validate data
         # 2. Store detais in the session
         # 3. Once successfully paid, update DB from the data stored in the DB
