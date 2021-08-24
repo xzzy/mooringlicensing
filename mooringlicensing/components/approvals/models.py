@@ -252,6 +252,7 @@ class Approval(RevisionedMixin):
     #ria_selected_mooring_bay = models.ForeignKey(MooringBay, null=True, blank=True, on_delete=models.SET_NULL)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
     vessel_nomination_reminder_sent = models.BooleanField(default=False)
+    reissued= models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -446,9 +447,14 @@ class Approval(RevisionedMixin):
         return 'L{}'.format(self.id)
 
     @property
-    def can_reissue(self):
+    def can_external_action(self):
         #return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
         return self.status == 'current' or self.status == 'suspended'
+
+    @property
+    def can_reissue(self):
+        return type(self.child_obj) in [MooringLicence, AuthorisedUserPermit] and (self.status == 'current' or self.status == 'suspended')
+        #return self.status == 'current' or self.status == 'suspended'
 
     @property
     def can_reinstate(self):
@@ -945,6 +951,7 @@ class AuthorisedUserPermit(Approval):
         #            )
 
     def manage_stickers(self, proposal):
+        import ipdb; ipdb.set_trace()
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
 
         stickers_current = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
