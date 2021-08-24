@@ -1386,6 +1386,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                     application_fee.fee_items.add(fee_item_additional)
 
                                 self.send_emails_for_payment_required(request, invoice)
+                            else:
+                                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                             self.process_after_approval(request, self.invoice.payment_status)
 
@@ -2269,6 +2271,7 @@ class AuthorisedUserApplication(Proposal):
 
         # Create MooringOnApproval records
         ## TODO: alter this to cater for not adding a mooring - also check dupes!
+        #import ipdb; ipdb.set_trace()
         existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
@@ -2287,7 +2290,7 @@ class AuthorisedUserApplication(Proposal):
         approval.child_obj.manage_stickers(self)
 
         # Write approval history
-        if existing_mooring_count and approval.mooringonapproval.count() > existing_mooring_count:
+        if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
             approval.write_approval_history('mooring_add')
         elif created:
             approval.write_approval_history('new')
