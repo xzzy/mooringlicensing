@@ -15,6 +15,17 @@
                         </span>
                     </div>
                 </div>
+
+                <div class="row form-group">
+                    <label for="" class="col-sm-2 control-label">Departure</label>
+                    <div class="col-sm-3 input-group date" ref="departureDatePicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="row form-group">
                     <label class="col-sm-2 control-label">Private visit</label>
                     <div class="col-sm-2">
@@ -35,7 +46,7 @@
                     </div>
                     <div v-else class="row">
                         <div class="col-sm-12">
-                            <div><strong>You do not have an annual admission permit, authorised user permit or mooring licence for the vessel.  Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
+                            <div><strong>Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
                             <div><strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong></div>
                         </div>
                     </div>
@@ -46,7 +57,8 @@
                         <div class="col-sm-2 text-center"><label>Landing</label></div>
                         <div class="col-sm-2 text-center"><label>Extended stay</label></div>
                         <div class="col-sm-2 text-center"><label>Not landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
+                        <div v-show="column_approved_events_shown" class="col-sm-2 text-center"><label>Approved events</label></div>
+                        <div class="col-sm-2 text-center"><label>Fee (AU$)</label></div>
                     </div>
                     <div class="row form-group">
                         <div class="col-sm-2"><label>Number of Adults</label><br />(12 and over)</div>
@@ -59,8 +71,13 @@
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
                         </div>
-                        <div class="col-sm-2">
+                        <div v-show="column_approved_events_shown" class="col-sm-2">
                             <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="total_fee text-right">
+                                {{ total_fee_adults }}
+                            </div>
                         </div>
                     </div>
                     <div class="row form-group">
@@ -68,14 +85,19 @@
                         <div class="col-sm-2">
                             <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
                         </div>
-                        <div class="col-sm-2">
-                            <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                        <div v-show="column_extended_stay_enabled" class="col-sm-2">
+                            <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
                         </div>
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
                         </div>
-                        <div class="col-sm-2">
+                        <div v-show="column_approved_events_shown" class="col-sm-2">
                             <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="total_fee text-right">
+                                {{ total_fee_children }}
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -95,7 +117,7 @@ require('eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-  
+
 export default {
     name: 'DcvAdmissionArrivalPanel',
     props: {
@@ -106,6 +128,7 @@ export default {
         uuid: null,
         arrival: null,
         dcv_vessel: null,
+        fee_configurations: null,
         column_landing_enabled: {
             type: Boolean,
             default: true,
@@ -119,6 +142,10 @@ export default {
             default: false,
         },
         column_approved_events_enabled: {
+            type: Boolean,
+            default: true,
+        },
+        column_approved_events_shown: {
             type: Boolean,
             default: true,
         },
@@ -159,16 +186,10 @@ export default {
         has_dcv_permit: function() {
             if (this.arrival && this.arrival.arrival_date){
                 let arrival_date = moment(this.arrival.arrival_date, 'DD/MM/YYYY')
-                console.log('arrival_date')
-                console.log(arrival_date)
                 if (this.dcv_vessel && this.dcv_vessel.dcv_permits){
                     for (let dcv_permit of this.dcv_vessel.dcv_permits){
                         let start_date = moment(dcv_permit.start_date, 'YYYY-MM-DD')
-                        console.log('start_date')
-                        console.log(start_date)
                         let end_date = moment(dcv_permit.end_date, 'YYYY-MM-DD')
-                        console.log('end_date')
-                        console.log(end_date)
                         if (start_date <= arrival_date && arrival_date <= end_date){
                             return true
                         }
@@ -189,6 +210,64 @@ export default {
 
             return false
         },
+        total_fee_adults: function() {
+            let total_fee = 0
+            let target_fee_configuration = null
+            if (this.arrival.arrival_date && !this.arrival.private_visit){
+                let arrival_date = moment(this.arrival.arrival_date, 'DD/MM/YYYY')
+                for (let fee_configuration of this.fee_configurations){
+                    let start_date = moment(fee_configuration.start_date, 'YYYY-MM-DD')
+                    let end_date = moment(fee_configuration.end_date, 'YYYY-MM-DD')
+                    if (start_date <= arrival_date && arrival_date <= end_date){
+                        target_fee_configuration = fee_configuration
+                        break
+                    }
+                }
+                if (!target_fee_configuration){
+                    return '---'
+                } else {
+                    for(let key in this.arrival.adults) {
+                        if(this.arrival.adults.hasOwnProperty(key) ) {
+                            console.log(key + ': ' + this.arrival.adults[key] );
+                            console.log(target_fee_configuration.fee_items.adult[key])
+                            total_fee += this.arrival.adults[key] * target_fee_configuration.fee_items.adult[key]
+                        }
+                    }
+                    return (Math.round(total_fee * 100) / 100).toFixed(2);
+                }
+            } else {
+                return '---'
+            }
+        },
+        total_fee_children: function() {
+            let total_fee = 0
+            let target_fee_configuration = null
+            if (this.arrival.arrival_date && !this.arrival.private_visit){
+                let arrival_date = moment(this.arrival.arrival_date, 'DD/MM/YYYY')
+                for (let fee_configuration of this.fee_configurations){
+                    let start_date = moment(fee_configuration.start_date, 'YYYY-MM-DD')
+                    let end_date = moment(fee_configuration.end_date, 'YYYY-MM-DD')
+                    if (start_date <= arrival_date && arrival_date <= end_date){
+                        target_fee_configuration = fee_configuration
+                        break
+                    }
+                }
+                if (!target_fee_configuration){
+                    return '---'
+                } else {
+                    for(let key in this.arrival.children) {
+                        if(this.arrival.children.hasOwnProperty(key) ) {
+                            console.log(key + ': ' + this.arrival.children[key] );
+                            console.log(target_fee_configuration.fee_items.child[key])
+                            total_fee += this.arrival.children[key] * target_fee_configuration.fee_items.child[key]
+                        }
+                    }
+                    return (Math.round(total_fee * 100) / 100).toFixed(2);
+                }
+            } else {
+                return '---'
+            }
+        },
     },
     methods: {
         delete_arrival_icon_clicked: function() {
@@ -198,13 +277,16 @@ export default {
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.arrivalDatePicker);
+            let el_to = $(vm.$refs.departureDatePicker);
+
             let options = {
                 format: "DD/MM/YYYY",
                 showClear: true ,
                 useCurrent: false,
             };
 
-            el_fr.datetimepicker(options);
+            el_fr.datetimepicker(options)
+            el_to.datetimepicker(options)
 
             el_fr.on("dp.change", function(e) {
                 let selected_date = null;
@@ -212,17 +294,34 @@ export default {
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
                     vm.arrival.arrival_date = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date)
                 } else {
                     // Date not selected
                     vm.arrival.arrival_date = selected_date;
+                    el_to.data('DateTimePicker').minDate(false)
                 }
-            });
+            })
+
+            el_to.on("dp.change", function(e){
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.arrival.departure_date = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.arrival.departure_date = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(false)
+                }
+            })
         },
     },
     mounted: function () {
         this.shown = true  // Show the panel once
     },
     created: function() {
+
         this.$nextTick(() => {
             this.addEventListeners();
         });
@@ -254,5 +353,8 @@ export default {
 }
 .v-enter-to, .v-leave {
     opacity: 1;
+}
+.total_fee {
+    padding-right: 1em;
 }
 </style>

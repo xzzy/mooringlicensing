@@ -1,11 +1,11 @@
 <template lang="html">
-    <div>
+    <div class="">
 
-        <div v-if="proposal" id="scrollspy-heading" class="col-lg-12" >
-            <h4>Mooring Licence Application: {{proposal.lodgement_number}}</h4>
+        <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
+            <h4>Mooring Licence {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
         </div>
 
-        <div class="col-md-12">
+        <div class="">
             <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
               <li class="nav-item">
                 <a class="nav-link active" id="pills-applicant-tab" data-toggle="pill" href="#pills-applicant" role="tab" aria-controls="pills-applicant" aria-selected="true">
@@ -68,23 +68,26 @@
                     :storedSilentElector="silentElector"
                     :proposalId="proposal.id"
                     :readonly="readonly"
+                    :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
                     <Applicant 
-                    :proposal="proposal" 
-                    id="proposalStartApplicant"
-                    :readonly="readonly"
+                        :email_user="proposal.submitter" 
+                        :applicantType="proposal.applicant_type" 
+                        id="proposalStartApplicant"
+                        :readonly="readonly"
                     />
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                   <Vessels 
                   :proposal="proposal" 
-                  :profile="profile" 
+                  :profile="profileVar" 
                   id="proposalStartVessels" 
                   ref="vessels"
-                  :readonly="readonly"
+                  :readonly="readonlyMLA"
+                  :is_internal="is_internal"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -140,6 +143,13 @@
             proposal:{
                 type: Object,
                 required:true
+            },
+            show_application_title: {
+                type: Boolean,
+                default: true,
+            },
+            submitterId: {
+                type: Number,
             },
             canEditActivities:{
               type: Boolean,
@@ -206,6 +216,20 @@
             */
         },
         computed:{
+            profileVar: function() {
+                if (this.is_external) {
+                    return this.profile;
+                } else if (this.proposal) {
+                    return this.proposal.submitter;
+                }
+            },
+            readonlyMLA: function() {
+                let readonly = false;
+                if (this.readonly || (this.proposal.proposal_type.code === 'new')) {
+                    readonly = true;
+                }
+                return readonly;
+            },
             silentElector: function() {
                 if (this.proposal) {
                     return this.proposal.silent_elector;
@@ -215,6 +239,13 @@
                 if (this.proposal) {
                     return this.proposal.applicant_type;
                 }
+            },
+            applicationTypeText: function(){
+                let text = '';
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new') {
+                    text = this.proposal.proposal_type.description;
+                }
+                return text;
             },
             /*
             showElectoralRoll: function() {

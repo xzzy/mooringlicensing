@@ -1,0 +1,17 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+<p>Dear {{ recipient.first_name }} {{ recipient.last_name }},</p>
+<p>Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.</p>
+    {% if reason %}
+    <p>Details:
+        <p>Amendment Reason: {{ reason }}</p>
+        {% if amendment_request_text %}
+        <p>Amendment details: <br> {{ amendment_request_text }}</p>
+        {% endif %}
+    </p>
+    {% endif %}
+    Please click <a href="{{ url }}">here</a> to access the application.
+
+    {% include 'mooringlicensing/emails/signature-rottnest.html' %}
+{% endblock %}

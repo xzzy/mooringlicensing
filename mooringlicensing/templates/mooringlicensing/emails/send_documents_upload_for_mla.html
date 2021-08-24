@@ -1,0 +1,42 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+<p>Dear {{ recipient.first_name }} {{ recipient.last_name }},</p>
+<p>You are required to upload the following documents supporting your submitted mooring licence application {{ proposal.lodgement_number }}:</p>
+<p>1.  A copy of a current mooring report</p>
+<p>2.  Written proof of finalisation concerning the ownership of the mooring apparatus between you and the previous licensee</p>
+
+<p>You are required to submit these documents within {{ number_of_days }} number of days.</p>
+
+<p>Please click <a href="{{ documents_upload_url }}">here</a> to submit these documents and complete your application.</p>
+<p>Please click <a href="{{ url }}">here</a> to access the application.</p>
+
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}
+
+
+
+
+
+{% comment %}
+{%  extends 'mooringlicensing/emails/base_email.html' %}
+
+{%  block content %}
+    {{ proposal.submitter }},
+    <p>
+        Your mooring licence application: {{ proposal.lodgement_number }} has been submitted successfully.  You will now need to submit<br />
+        - a current mooring inspection report (in your name) from your chosen mooring contractor<br />
+        - written proof of the finalisation of negotiations concerning the ownership of the mooring apparatus between you and the previous licensee
+    </p>
+
+    <p>
+        These documents need to be submitted before <28 days of offer>.
+    </p>
+
+    <p>
+        Please click <a href="{{ documents_upload_url }}">here</a> to submit these documents and complete your application.
+    </p>
+
+    Regards,
+{%  endblock %}
+{% endcomment %}
