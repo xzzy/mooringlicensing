@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pytz
+import json
 from ledger.settings_base import TIME_ZONE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
@@ -18,7 +19,7 @@ from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission
+from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
@@ -173,6 +174,35 @@ class ApplicationFeeExistingView(TemplateView):
         except Exception as e:
             logger.error('Error Creating Application Fee: {}'.format(e))
             raise
+
+
+class StickerReplacementFeeView(TemplateView):
+    def get_object(self):
+        return get_object_or_404(Approval, id=self.kwargs['approval_pk'])
+
+    def post(self, request, *args, **kwargs):
+        approval = self.get_object()
+        data = request.body
+        data = json.loads(data)
+
+        # TODO:
+        # 1. Validate data
+        # 2. Store detais in the session
+        # 3. Once successfully paid, update DB from the data stored in the DB
+
+        # data['sticker'] = sticker.id
+        # data['action'] = 'Record returned'
+        # data['user'] = request.user.id
+        # serializer = StickerActionDetailSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # details = serializer.save()
+
+
+class StickerReplacementFeeSuccessView(TemplateView):
+    template_name = 'mooringlicensing/payments_ml/success_sticker_replacement.html'
+
+    def get(self, request, *args, **kwargs):
+        pass
 
 
 class ApplicationFeeView(TemplateView):
