@@ -328,7 +328,8 @@ export default {
                         //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
-                            return full.site_licensee ? 'User requested' : 'RIA allocated';
+                            //return full.site_licensee ? 'User requested' : 'RIA allocated';
+                            return full.site_licensee;
                             //return '';
                         }
                     },
@@ -723,12 +724,12 @@ export default {
            let vm = this;
            //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
            let mooringOnApprovalId = this.getMooringOnApprovalIdFromEvent(e);
-           console.log(mooringOnApprovalId);
+           //console.log(mooringOnApprovalId);
            let checked_status = e.target.checked;
            //for (let i=0; i<this.apiary_sites_local.length; i++) {
            for (let mooring of this.authorisedUserMoorings) {
                if (mooring.id == mooringOnApprovalId) {
-                   console.log(e.target.checked)
+                   //console.log(e.target.checked)
                    mooring.checked = checked_status;
                }
            }
