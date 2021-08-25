@@ -866,13 +866,16 @@ class InternalProposalSerializer(BaseProposalSerializer):
             for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
                 #if moa.mooring.mooring_licence:
                  #   licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+                suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
                 moorings.append({
                     "id": moa.id,
-                    "mooring_name": moa.mooring.name,
-                    "bay": str(moa.mooring.mooring_bay),
-                    "site_licensee": moa.site_licensee,
-                    "status": 'Current' if not moa.end_date else 'Historical',
+                    "mooring_name": '<span style="color:#FF0000">{}</span>'.format(moa.mooring.name),
+                    "bay": '<span style="color:#FF0000">{}</span>'.format(str(moa.mooring.mooring_bay)),
+                    #"site_licensee": moa.site_licensee,
+                    "site_licensee": '<span style="color:#FF0000">RIA Allocated</span>' if not moa.site_licensee else '<span style="color:#FF0000">User Requested</span>',
+                    "status": '<span style="color:#FF0000">Current</span>' if not moa.end_date else '<span style="color:#FF0000">Historical</span>',
                     "checked": True if not moa.end_date else False,
+                    "suitable_for_mooring": moa.mooring.suitable_vessel(obj.vessel_details),
                     #"licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
                     #"mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
                     #"email": licence_holder_data.get('email') if licence_holder_data else '',
