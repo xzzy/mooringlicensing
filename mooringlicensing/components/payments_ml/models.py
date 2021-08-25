@@ -173,11 +173,10 @@ class StickerActionFee(Payment):
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     def __str__(self):
-        if self.sticker_action_detail:
-            return 'Sticker {} : Invoice {}'.format(self.sticker_action_detail.sticker, self.invoice_reference)
-        else:
-            # Should not reach here
-            return 'StickerActionFee: {}'.format(self.id)
+        stickers = []
+        for sticker_action_detail in self.sticker_action_details.all():
+            stickers. append(sticker_action_detail.sticker.number)
+        return 'Sticker(s): [{}] : Invoice {}'.format(','.join(stickers), self.invoice_reference)
 
     class Meta:
         app_label = 'mooringlicensing'

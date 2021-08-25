@@ -13,8 +13,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
-    DcvAdmissionFee
-
+    DcvAdmissionFee, StickerActionFee
 
 #test
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
@@ -23,7 +22,7 @@ from mooringlicensing.components.proposals.models import Proposal, AuthorisedUse
 logger = logging.getLogger('payment_checkout')
 
 
-def checkout(request, proposal, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
+def checkout(request, email_user, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
     basket_params = {
         'products': lines,
         'vouchers': vouchers,
@@ -52,7 +51,7 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
         #checkout_params['basket_owner'] = booking.customer.id
         # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
         # anonymous_user = EmailUser.objects.get_or_create(email='aho1@mail.com')
-        checkout_params['basket_owner'] = proposal.submitter.id
+        checkout_params['basket_owner'] = email_user.id
 
 
     create_checkout_session(request, checkout_params)
@@ -246,6 +245,33 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
 NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
 NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
 NAME_SESSION_DCV_ADMISSION_INVOICE = 'mooringlicensing_dcv_admission_invoice'
+NAME_SESSION_STICKER_ACTION_INVOICE = 'mooringlicensing_sticker_action_invoice'
+
+
+def set_session_sticker_action_invoice(session, application_fee):
+    """ Application Fee session ID """
+    session[NAME_SESSION_STICKER_ACTION_INVOICE] = application_fee.id
+    session.modified = True
+
+
+def get_session_sticker_action_invoice(session):
+    """ Application Fee session ID """
+    if NAME_SESSION_STICKER_ACTION_INVOICE in session:
+        application_fee_id = session[NAME_SESSION_STICKER_ACTION_INVOICE]
+    else:
+        raise Exception('Application not in Session')
+
+    try:
+        return StickerActionFee.objects.get(id=application_fee_id)
+    except StickerActionFee.DoesNotExist:
+        raise Exception('StickerActionFee not found for id: {}'.format(application_fee_id))
+
+
+def delete_session_sticker_action_invoice(session):
+    """ Application Fee session ID """
+    if NAME_SESSION_STICKER_ACTION_INVOICE in session:
+        del session[NAME_SESSION_STICKER_ACTION_INVOICE]
+        session.modified = True
 
 
 def set_session_application_invoice(session, application_fee):
