@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pytz
+import json
 from ledger.settings_base import TIME_ZONE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
@@ -8,6 +9,8 @@ from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_p
 import dateutil.parser
 from django.db import transaction
 from django.http import HttpResponse
+from django import forms
+from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
 from django.views.generic import TemplateView
@@ -17,7 +20,7 @@ from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission
+from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
@@ -42,7 +45,7 @@ class DcvAdmissionFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         dcv_admission = self.get_object()
-        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=request.user, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
+        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=dcv_admission.submitter, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
 
         try:
             with transaction.atomic():
@@ -60,7 +63,7 @@ class DcvAdmissionFeeView(TemplateView):
                     invoice_text='DCV Admission Fee',
                 )
 
-                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(request.user, dcv_admission.id))
+                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.submitter, dcv_admission.id))
                 return checkout_response
 
         except Exception as e:
@@ -78,7 +81,8 @@ class DcvPermitFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         dcv_permit = self.get_object()
-        dcv_permit_fee = DcvPermitFee.objects.create(dcv_permit=dcv_permit, created_by=request.user, payment_type=DcvPermitFee.PAYMENT_TYPE_TEMPORARY)
+        created_by = None if request.user.is_anonymous() else request.user
+        dcv_permit_fee = DcvPermitFee.objects.create(dcv_permit=dcv_permit, created_by=created_by, payment_type=DcvPermitFee.PAYMENT_TYPE_TEMPORARY)
 
         try:
             with transaction.atomic():
@@ -173,6 +177,36 @@ class ApplicationFeeExistingView(TemplateView):
             raise
 
 
+class StickerReplacementFeeView(TemplateView):
+    def get_object(self):
+        return get_object_or_404(Approval, id=self.kwargs['approval_pk'])
+
+    def post(self, request, *args, **kwargs):
+        approval = self.get_object()
+        data = request.body
+        data = json.loads(data)
+
+        raise forms.ValidationError('Validation error')
+
+        # 1. Validate data
+        # 2. Store detais in the session
+        # 3. Once successfully paid, update DB from the data stored in the DB
+
+        # data['sticker'] = sticker.id
+        # data['action'] = 'Record returned'
+        # data['user'] = request.user.id
+        # serializer = StickerActionDetailSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # details = serializer.save()
+
+
+class StickerReplacementFeeSuccessView(TemplateView):
+    template_name = 'mooringlicensing/payments_ml/success_sticker_replacement.html'
+
+    def get(self, request, *args, **kwargs):
+        pass
+
+
 class ApplicationFeeView(TemplateView):
     # template_name = 'disturbance/payment/success.html'
 
@@ -249,7 +283,7 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 try:
                     inv = Invoice.objects.get(reference=invoice_ref)
                     order = Order.objects.get(number=inv.order_number)
-                    order.user = request.user
+                    order.user = submitter
                     order.save()
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter.get_full_name(), dcv_admission.submitter.id) if dcv_admission.submitter else 'An anonymous user'))
