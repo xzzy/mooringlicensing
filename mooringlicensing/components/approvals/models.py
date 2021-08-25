@@ -294,7 +294,8 @@ class Approval(RevisionedMixin):
             )
 
         #stickers = self.stickers.all()
-        stickers = self.stickers.filter(status__in=['current', 'awaiting_printing'])
+        #stickers = self.stickers.filter(status__in=['current', 'awaiting_printing'])
+        stickers = self.stickers.filter(status__in=['ready', 'current', 'awaiting_printing'])
         for sticker in stickers:
             new_approval_history_entry.stickers.add(sticker)
 
