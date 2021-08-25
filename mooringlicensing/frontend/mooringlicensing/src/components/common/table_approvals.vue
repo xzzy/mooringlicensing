@@ -761,7 +761,7 @@ export default {
                this function allows redirect by mimicking a form submit.
                usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
             */
-            var postFormStr = "<form method='POST' target='_blank' name='Preview Licence' action='" + url + "'>";
+            var postFormStr = "<form method='POST' name='Preview Licence' action='" + url + "'>";
             for (var key in postData) {
                 if (postData.hasOwnProperty(key)) {
                     postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
