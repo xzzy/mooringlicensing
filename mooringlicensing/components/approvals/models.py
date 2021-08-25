@@ -1640,8 +1640,12 @@ class Sticker(models.Model):
         self.status = Sticker.STICKER_STATUS_RETURNED
         self.save()
 
-    def request_replacement(self):
-        self.status = Sticker.STICKER_STATUS_LOST
+    def replace_me(self):
+        new_sticker = self.request_replacement(Sticker.STICKER_STATUS_LOST)
+        return new_sticker
+
+    def request_replacement(self, new_status):
+        self.status = new_status
         self.save()
 
         # Create replacement sticker
@@ -1740,7 +1744,7 @@ class StickerActionDetail(models.Model):
     date_of_returned_sticker = models.DateField(blank=True, null=True)
     action = models.CharField(max_length=50, null=True, blank=True)
     user = models.ForeignKey(EmailUser, null=True, blank=True)
-    sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True)
+    sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details')
 
     class Meta:
         app_label = 'mooringlicensing'
