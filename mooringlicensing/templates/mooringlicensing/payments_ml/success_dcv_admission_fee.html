@@ -5,7 +5,7 @@
         <div class="well">
             <div class="row"><div class="col-sm-12">
                 <h2>Success!</h2>
-                <strong>A confirmation email has been sent to {{ submitter }}. </strong>
+                <strong>A confirmation email has been sent to {{ dcv_admission.submitter.email }}. </strong>
             </div></div>
             <br/>
 
@@ -57,7 +57,7 @@
                     <a href="{% url 'home' %}" class="btn btn-info btn-lg">Log in</a><p>You must be logged in to see your invoice online.</p>
                 {% endif %}
             {% else %}
-                <p style="font-size: 1.5rem; font-weight: bold;">You do not have permission to access the confirmation or invoice for this application.<br>Please check your email or contact DBCA Apiary directly.</p>
+                <p style="font-size: 1.5rem; font-weight: bold;">You do not have permission to access the confirmation or invoice for this application.<br>Please check your email or contact RIA Apiary directly.</p>
             {% endif %}
         </div>
     </div>
