@@ -189,13 +189,25 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',
     'description': 'DCV Permit',
-    'oracle_code': 'T1 EXEMPT',
 }
 APPLICATION_TYPE_DCV_ADMISSION = {
     'code': 'dcv',
     'description': 'DCV Admission',
-    'oracle_code': 'T1 EXEMPT',
 }
+APPLICATION_TYPE_REPLACEMENT_STICKER = {
+    'code': 'replacement_sticker',
+    'description': 'Replacement sticker fees',
+}
+APPLICATION_TYPE_MOORING_SWAP = {
+    'code': 'mooring_swap',
+    'description': 'Mooring swap fees',
+}
+APPLICATION_TYPES = [
+    APPLICATION_TYPE_DCV_PERMIT,
+    APPLICATION_TYPE_DCV_ADMISSION,
+    APPLICATION_TYPE_REPLACEMENT_STICKER,
+    APPLICATION_TYPE_MOORING_SWAP,
+]
 LOGGING['loggers']['mooringlicensing'] = {
     'handlers': ['file'],
     'level': 'INFO'
@@ -282,3 +294,46 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     },
 ]
 
+# Oracle codes
+ORACLE_CODE_ID_WL = 'oracle_code_wl'
+ORACLE_CODE_ID_AA = 'oracle_code_aa'
+ORACLE_CODE_ID_AU = 'oracle_code_au'
+ORACLE_CODE_ID_ML = 'oracle_code_ml'
+ORACLE_CODE_ID_DCV_PERMIT = 'oracle_code_dcv_permit'
+ORACLE_CODE_ID_DCV_ADMISSION = 'oracle_code_dcv_admission'
+ORACLE_CODE_ID_REPLACEMENT_STICKER = 'oracle_code_replacement_sticker'
+ORACLE_CODE_ID_MOORING_SWAP = 'oracle_code_mooring_swap'
+ORACLE_CODES = [
+    {
+        'identifier': ORACLE_CODE_ID_WL,
+        'name': 'Waiting list allocation fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_AA,
+        'name': 'Annual admission fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_AU,
+        'name': 'Authorised user fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_ML,
+        'name': 'Mooring licence fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_DCV_PERMIT,
+        'name': 'DCV permit fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_DCV_ADMISSION,
+        'name': 'DCV admission fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_REPLACEMENT_STICKER,
+        'name': 'Replacement sticker fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_MOORING_SWAP,
+        'name': 'Mooring swap fees',
+    },
+]
