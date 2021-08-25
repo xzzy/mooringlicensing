@@ -516,21 +516,23 @@ class FeeConstructor(RevisionedMixin):
 
 
 class FeeItemStickerReplacement(RevisionedMixin):
-    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='unit [$AU/Sticker]')
     date_of_enforcement = models.DateField(blank=True, null=True)
     enabled = models.BooleanField(default=True)
+    incur_gst = models.BooleanField(default=True)
 
     @staticmethod
-    def get_amount_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+    def get_fee_item_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
         try:
             fee_item = FeeItemStickerReplacement.objects.filter(date_of_enforcement__lte=target_date, enabled=True).order_by('-date_of_enforcement').first()
-            return fee_item.amount
+            return fee_item
         except Exception as e:
             raise ValueError('Sticker replacement fee not found for the date: {}'.format(target_date))
 
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = 'Fee (sticker replacement)'
+        verbose_name_plural = 'Fee (sticker replacement)'
 
 
 class FeeItem(RevisionedMixin):
