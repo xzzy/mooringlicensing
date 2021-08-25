@@ -2723,6 +2723,12 @@ class Mooring(models.Model):
                     status = 'Offered'
         return status
 
+    #@property
+    def suitable_vessel(self, vessel_details):
+        suitable = True
+        if vessel_details.vessel_applicable_length > self.vessel_size_limit or vessel_details.vessel_draft > self.vessel_draft_limit:
+            suitable = False
+        return suitable
 
 class MooringLogDocument(Document):
     log_entry = models.ForeignKey('MooringLogEntry',related_name='documents')
