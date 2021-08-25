@@ -202,6 +202,9 @@ export default {
         },
     },
     computed: {
+        csrf_token: function() {
+          return helpers.getCookie('csrftoken')
+        },
         debug: function(){
             if (this.$route.query.debug){
                 return this.$route.query.debug === 'Tru3'
@@ -417,8 +420,7 @@ export default {
                                 links += full.offer_link;
                             } else
                             */
-                            //if (vm.is_external && full.can_reissue) {
-                            if (vm.is_external && full.can_external_action) {
+                            if (vm.is_external && full.can_reissue) {
                                 if(full.can_action || vm.debug){
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                     if(full.amend_or_renew === 'amend' || vm.debug){
@@ -737,20 +739,38 @@ export default {
     },
     methods: {
         sendData: function(params){
-            console.log('params')
-            console.log(params)
-
             let vm = this
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.details.approval_id + '/request_new_stickers'), params.details).then(
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params.details).then(
                 res => {
-                    console.log(res)
-                    //vm.updateTableRow(res.body.sticker)
-                    //vm.$refs.request_new_sticker_modal.close()
+                    console.log('res.body')
+                    console.log(res.body)
+                    let temp = JSON.stringify(res.body)
+                    console.log(temp)
+
+                    // TODO: post_and_redirect
+                    //vm.post_and_redirect('/sticker_replacement_fee/' + params.approval_id + '/', {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(res.body)});
+                    vm.post_and_redirect('/sticker_replacement_fee/' + params.approval_id + '/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
                 },
                 err => {
                     console.log(err)
                 }
             )
+        },
+        post_and_redirect: function(url, postData) {
+            /* http.post and ajax do not allow redirect from Django View (post method),
+               this function allows redirect by mimicking a form submit.
+               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+            */
+            var postFormStr = "<form method='POST' target='_blank' name='Preview Licence' action='" + url + "'>";
+            for (var key in postData) {
+                if (postData.hasOwnProperty(key)) {
+                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                }
+            }
+            postFormStr += "</form>";
+            var formElement = $(postFormStr);
+            $('body').append(formElement);
+            $(formElement).submit();
         },
         fetchProfile: function(){
             let vm = this;

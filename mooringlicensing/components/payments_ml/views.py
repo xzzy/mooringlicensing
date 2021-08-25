@@ -1,9 +1,12 @@
 import datetime
 import logging
+from decimal import Decimal
+
 import pytz
 import json
 from ledger.settings_base import TIME_ZONE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
+from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
 import dateutil.parser
@@ -20,16 +23,17 @@ from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval
+from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem
+    DcvAdmissionFee, FeeItem, StickerActionFee
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
-    checkout_existing_invoice
+    checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
+    delete_session_sticker_action_invoice
 from mooringlicensing.components.proposals.email import send_application_processed_email
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
@@ -56,7 +60,7 @@ class DcvAdmissionFeeView(TemplateView):
                 request.session['db_processes'] = db_processes_after_success
                 checkout_response = checkout(
                     request,
-                    dcv_admission,
+                    dcv_admission.submitter,
                     lines,
                     return_url_ns='dcv_admission_fee_success',
                     return_preload_url_ns='dcv_admission_fee_success',
@@ -93,7 +97,7 @@ class DcvPermitFeeView(TemplateView):
                 request.session['db_processes'] = db_processes_after_success
                 checkout_response = checkout(
                     request,
-                    dcv_permit,
+                    dcv_permit.submitter,
                     lines,
                     return_url_ns='dcv_permit_fee_success',
                     return_preload_url_ns='dcv_permit_fee_success',
@@ -183,13 +187,59 @@ class StickerReplacementFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         approval = self.get_object()
-        data = request.body
+        data = request.POST.get('data')
         data = json.loads(data)
-
-        raise forms.ValidationError('Validation error')
+        ids = data['sticker_action_detail_ids']
 
         # 1. Validate data
+        # raise forms.ValidationError('Validation error')
+
         # 2. Store detais in the session
+        sticker_action_fee = StickerActionFee.objects.create(created_by=request.user, payment_type=StickerActionFee.PAYMENT_TYPE_TEMPORARY)
+        current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+
+        try:
+            with transaction.atomic():
+                sticker_action_details = StickerActionDetail.objects.filter(id__in=ids)
+                sticker_action_details.update(sticker_action_fee=sticker_action_fee)
+
+                set_session_sticker_action_invoice(request.session, sticker_action_fee)
+
+                # lines, db_processes_after_success = create_fee_lines(proposal)
+                target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+                application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_REPLACEMENT_STICKER['code'])
+
+                lines = []
+                for sticker_action_detail in sticker_action_details:
+                    line = {
+                        'ledger_description': 'Sticker Replacement Fee, stickker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
+                        'oracle_code': application_type.get_oracle_code_by_date(current_datetime.date()),
+                        'price_incl_tax': Decimal(100),
+                        'price_excl_tax': Decimal(100),
+                        'quantity': 1,
+                    }
+                    lines.append(line)
+
+                # request.session['db_processes'] = db_processes_after_success
+                checkout_response = checkout(
+                    request,
+                    request.user,
+                    lines,
+                    return_url_ns='sticker_replacement_fee_success',
+                    return_preload_url_ns='sticker_replacement_fee_success',
+                    invoice_text='{}'.format(application_type.description),
+                )
+
+                logger.info('{} built payment line item(s) {} for Sticker Replacement Fee and handing over to payment gateway'.format('User {} with id {}'.format(request.user.get_full_name(), request.user.id), sticker_action_fee))
+                return checkout_response
+
+        except Exception as e:
+            logger.error('Error handling StickerActionFee: {}'.format(e))
+            if sticker_action_fee:
+                sticker_action_fee.delete()
+            raise
+
+
         # 3. Once successfully paid, update DB from the data stored in the DB
 
         # data['sticker'] = sticker.id
@@ -201,10 +251,83 @@ class StickerReplacementFeeView(TemplateView):
 
 
 class StickerReplacementFeeSuccessView(TemplateView):
-    template_name = 'mooringlicensing/payments_ml/success_sticker_replacement.html'
+    template_name = 'mooringlicensing/payments_ml/success_sticker_action_fee.html'
+    LAST_STICKER_ACTION_FEE_ID = 'mooringlicensing_last_dcv_admission_invoice'
 
     def get(self, request, *args, **kwargs):
-        pass
+
+        try:
+            print('1')
+            sticker_action_fee = get_session_sticker_action_invoice(request.session)  # This raises an exception when accessed 2nd time?
+            print('2')
+            sticker_action_details = sticker_action_fee.sticker_action_details
+
+            if self.request.user.is_authenticated():
+                owner = request.user
+            else:
+                owner = sticker_action_details.first().sticker.approval.submitter
+            basket = Basket.objects.filter(status='Submitted', owner=owner).order_by('-id')[:1]
+
+            order = Order.objects.get(basket=basket[0])
+            invoice = Invoice.objects.get(order_number=order.number)
+
+            sticker_action_fee.invoice_reference = invoice.reference
+            sticker_action_fee.save()
+
+            if sticker_action_fee.payment_type == StickerActionFee.PAYMENT_TYPE_TEMPORARY:
+                print('3')
+                try:
+                    inv = Invoice.objects.get(reference=invoice.reference)
+                    order = Order.objects.get(number=inv.order_number)
+                    order.user = request.user
+                    order.save()
+                except Invoice.DoesNotExist:
+                    logger.error('{} tried paying an application fee with an incorrect invoice'.format(
+                        'User {} with id {}'.format(owner.get_full_name(), owner.id)
+                    ))
+                    return redirect('external')
+                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
+                    logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format(
+                        'User {} with id {}'.format(owner.get_full_name(), owner.id),
+                        inv.reference
+                    ))
+                    return redirect('external')
+
+                # if fee_inv:
+                sticker_action_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
+                sticker_action_fee.expiry_time = None
+                update_payments(invoice.reference)
+
+                for sticker_action_detail in sticker_action_details.all():
+                    new_sticker = sticker_action_detail.sticker.replace_me()
+
+                sticker_action_fee.save()
+                request.session[self.LAST_STICKER_ACTION_FEE_ID] = sticker_action_fee.id
+                delete_session_sticker_action_invoice(request.session)  # This leads to raise an exception at the get_session_sticker_action_invoice() above
+
+                # TODO: Email???
+
+                context = {
+                    'submitter': owner,
+                    'fee_invoice': sticker_action_fee,
+                }
+                print('render1')
+                return render(request, self.template_name, context)
+
+        except Exception as e:
+            print('4')
+            if (self.LAST_STICKER_ACTION_FEE_ID in request.session) and StickerActionFee.objects.filter(id=request.session[self.LAST_STICKER_ACTION_FEE_ID]).exists():
+                sticker_action_fee = StickerActionFee.objects.get(id=request.session[self.LAST_STICKER_ACTION_FEE_ID])
+                owner = sticker_action_fee.sticker_action_details.first().sticker.approval.submitter
+            else:
+                return redirect('home')
+
+            context = {
+                'submitter': owner,
+                'fee_invoice': sticker_action_fee,
+            }
+            print('render2')
+            return render(request, self.template_name, context)
 
 
 class ApplicationFeeView(TemplateView):
@@ -226,7 +349,7 @@ class ApplicationFeeView(TemplateView):
                 request.session['db_processes'] = db_processes_after_success
                 checkout_response = checkout(
                     request,
-                    proposal,
+                    proposal.submitter,
                     lines,
                     return_url_ns='fee_success',
                     return_preload_url_ns='fee_success',
@@ -453,41 +576,6 @@ class DcvPermitFeeSuccessView(TemplateView):
         dcv_permit.end_date = datetime.datetime.strptime(db_operations['season_end_date'], '%Y-%m-%d').date()
         dcv_permit.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
         dcv_permit.save()
-
-#    @staticmethod
-#    def send_notification_mail(dcv_permit, invoice, request):
-#        dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
-#        users = dcv_group.user_set.all()
-#        if not users:
-#            logger.warn('No members found in the group: {}, whom the DCV permit notification: {} is sent to'.format(dcv_group.name, dcv_permit.lodgement_number))
-#        else:
-#            to_email_addresses = [user.email for user in users]
-#            email_data = send_dcv_permit_notification(dcv_permit, invoice, to_email_addresses)
-#
-#            # Add comms log
-#            # TODO: Add comms log
-#
-#    @staticmethod
-#    def send_invoice_mail(dcv_permit, invoice, request):
-#        # Send invoice
-#        to_email_addresses = dcv_permit.submitter.email
-#        email_data = send_dcv_permit_fee_invoice(dcv_permit, invoice, [to_email_addresses, ])
-#
-#        # Add comms log
-#        # TODO: Add comms log
-#        # email_data['approval'] = u'{}'.format(dcv_permit_fee.approval.id)
-#        # serializer = ApprovalLogEntrySerializer(data=email_data)
-#        # serializer.is_valid(raise_exception=True)
-#        # serializer.save()
-#
-#        # Check if the request.user can access the invoice
-#        can_access_invoice = False
-#        if not request.user.is_anonymous():
-#            # if request.user == dcv_permit_fee.submitter or dcv_permit_fee.approval.applicant in request.user.disturbance_organisations.all():
-#            if request.user == dcv_permit.submitter:
-#                can_access_invoice = True
-#
-#        return can_access_invoice, to_email_addresses
 
 
 class ApplicationFeeSuccessView(TemplateView):
