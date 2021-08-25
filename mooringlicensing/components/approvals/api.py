@@ -430,10 +430,25 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
-        instance = self.get_object()
+        approval = self.get_object()
         data = request.data
 
-        return Response({'stickers': []})
+        # TODO: Validation
+
+        sticker_action_details = []
+        # stickers = Sticker.objects.filter(status=Sticker.STICKER_STATUS_CURRENT, approval=approval)
+        stickers = Sticker.objects.filter(approval=approval)
+        for sticker in stickers:
+            # Update Sticker actsticker_action_details = {list: 1} [{'id': 73, 'sticker': 88, 'reason': 'fgfgsad', 'date_created': '2021-08-24T08:52:29.049638Z', 'date_updated': '2021-08-24T08:52:29.049715Z', 'date_of_lost_sticker': None, 'date_of_returned_sticker': None, 'action': 'Request new sticker', 'user': 132580, '… Viewion
+            data['sticker'] = sticker.id
+            data['action'] = 'Request new sticker'
+            data['user'] = request.user.id
+            serializer = StickerActionDetailSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            new_sticker_action_detail = serializer.save()
+            sticker_action_details.append(new_sticker_action_detail.id)
+
+        return Response({'sticker_action_detail_ids': sticker_action_details})
 
     @detail_route(methods=['GET'])
     @renderer_classes((JSONRenderer,))
@@ -1110,7 +1125,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         details = serializer.save()
 
         # Sticker
-        new_sticker = sticker.request_replacement()
+        new_sticker = sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
 
