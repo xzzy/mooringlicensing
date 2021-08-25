@@ -82,6 +82,16 @@ class GetSticker(views.APIView):
                         'text': sticker.number,
                         'approval_id': approval_history.approval.id,
                     })
+                elif sticker.approval:
+                    data_transform.append({
+                        'id': sticker.id,
+                        'text': sticker.number,
+                        'approval_id': sticker.approval.id,
+                    })
+                else:
+                    # Should not reach here
+                    pass
+
             return Response({"results": data_transform})
         return Response()
 
