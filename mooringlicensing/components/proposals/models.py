@@ -818,8 +818,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #return self.__assessor_group() in user.proposalassessorgroup_set.all()
                 return self.child_obj.is_assessor(user)
 
-    def log_user_action(self, action, request):
-        return ProposalUserAction.log_action(self, action, request.user)
+    #def log_user_action(self, action, request):
+     #   return ProposalUserAction.log_action(self, action, request.user)
+
+    def log_user_action(self, action, request=None):
+        if request:
+            return ProposalUserAction.log_action(self, action, request.user)
+        else:
+            return ProposalUserAction.log_action(self, action)
 
     @property
     def is_submitted(self):
@@ -1316,7 +1322,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def final_approval_for_AUA_MLA(self, request, details):
+    def final_approval_for_AUA_MLA(self, request=None, details=None):
+    #def final_approval_for_AUA_MLA(self, details, request=None):
         with transaction.atomic():
             try:
                 self.proposed_decline_status = False
@@ -1327,42 +1334,44 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
                 else:
-                    if not self.can_assess(request.user):
+                    if request and not self.can_assess(request.user):
                         raise exceptions.ProposalNotAuthorized()
-                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
+                    if request and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
                     if not self.applicant_address:
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                    ria_mooring_name = ''
-                    mooring_id = details.get('mooring_id')
-                    if mooring_id:
-                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
-                    self.proposed_issuance_approval = {
-                        # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'mooring_bay_id': details.get('mooring_bay_id'),
-                        'mooring_id': mooring_id,
-                        'ria_mooring_name': ria_mooring_name,
-                        'details': details.get('details'),
-                        'cc_email': details.get('cc_email'),
-                        'mooring_on_approval': details.get('mooring_on_approval'),
-                        'vessel_ownership': details.get('vessel_ownership'),
-                    }
-                    self.save()
+                    if request:
+                        ria_mooring_name = ''
+                        mooring_id = details.get('mooring_id')
+                        if mooring_id:
+                            ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        self.proposed_issuance_approval = {
+                            # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'mooring_bay_id': details.get('mooring_bay_id'),
+                            'mooring_id': mooring_id,
+                            'ria_mooring_name': ria_mooring_name,
+                            'details': details.get('details'),
+                            'cc_email': details.get('cc_email'),
+                            'mooring_on_approval': details.get('mooring_on_approval'),
+                            'vessel_ownership': details.get('vessel_ownership'),
+                        }
+                        self.save()
 
-                from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
-                from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
-                line_items, db_operations = create_fee_lines(self)
-                # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                from mooringlicensing.components.payments_ml.models import FeeItem
-                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-                try:
-                    fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
-                except:
-                    fee_item_additional = None
+                if request:
+                    from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
+                    from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
+                    line_items, db_operations = create_fee_lines(self)
+                    # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                    from mooringlicensing.components.payments_ml.models import FeeItem
+                    fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+                    try:
+                        fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                    except:
+                        fee_item_additional = None
 
-                if line_items:
+                if request:
                     with transaction.atomic():
                         try:
                             logger.info('Creating invoice for the application: {}'.format(self))
@@ -1373,35 +1382,39 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice = Invoice.objects.get(order_number=order.number)
 
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-
-                            if self.approval and self.approval.reissued:
-                                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-                                self.process_after_approval(request)
-                            else:
-                                application_fee = ApplicationFee.objects.create(
-                                    proposal=self,
-                                    invoice_reference=invoice.reference,
-                                    payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
-                                )
-                                application_fee.fee_items.add(fee_item)
-                                if fee_item_additional:
-                                    application_fee.fee_items.add(fee_item_additional)
-
-                                self.send_emails_for_payment_required(request, invoice)
-                                self.process_after_approval(request, self.invoice.payment_status)
-
-                            # Log proposal action
-                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
-                            # Log entry for organisation
-                            applicant_field = getattr(self, self.applicant_field)
-                            applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
-
-                            self.save()
-
                         except Exception as e:
                             err_msg = 'Failed to create annual site fee confirmation'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
+                if self.approval and self.approval.reissued:
+                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                    self.process_after_approval()
+                elif request:
+                    application_fee = ApplicationFee.objects.create(
+                        proposal=self,
+                        invoice_reference=invoice.reference,
+                        payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
+                    )
+                    application_fee.fee_items.add(fee_item)
+                    if fee_item_additional:
+                        application_fee.fee_items.add(fee_item_additional)
+
+                    self.send_emails_for_payment_required(request, invoice)
+                    self.process_after_approval(request, self.invoice.payment_status)
+
+                # Log proposal action
+                if request:
+                    self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
+                else:
+                    self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+                # Log entry for organisation
+                applicant_field = getattr(self, self.applicant_field)
+                if request:
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
+                else:
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+
+                self.save()
 
                 return self
 
@@ -1418,7 +1431,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         ret_value = send_application_processed_email(self, 'approved', True, request)
         return ret_value
 
-    def final_approval(self, request, details):
+    def final_approval(self, request=None, details=None):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
             self.final_approval_for_WLA_AAA(request, details)
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
@@ -1651,7 +1664,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_payment_success(request)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def process_after_approval(self, request, payment_status=None):
+    def process_after_approval(self, request=None, payment_status=None):
         self.child_obj.process_after_approval(request, payment_status)
         self.refresh_from_db()  # Somehow this is needed...
 
@@ -2294,7 +2307,7 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request, payment_status=None):
+    def process_after_approval(self, request=None, payment_status=None):
         print('process_after_approved() in AuthorisedUserApplication')
         if self.approval and self.approval.reissued:
             # Reissued proposal
@@ -2435,7 +2448,7 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request, payment_status=None):
+    def process_after_approval(self, request=None, payment_status=None):
         print('in process_after_approved')
         if self.approval and self.approval.reissued:
             # Reissued proposal
@@ -2449,7 +2462,10 @@ class MooringLicenceApplication(Proposal):
             self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
             self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             self.save()
-            approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+            if request:
+                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+            else:
+                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
         # self.proposal.refresh_from_db()
         # print('refresh_from_db2')
         # TODO: Send email (payment required)
@@ -2468,7 +2484,7 @@ class MooringLicenceApplication(Proposal):
         self.save()
         send_documents_upload_for_mooring_licence_application_email(request, self)
 
-    def update_or_create_approval(self, current_datetime, request):
+    def update_or_create_approval(self, current_datetime, request=None):
         try:
             existing_mooring_licence = self.allocated_mooring.mooring_licence
             existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
@@ -3374,13 +3390,16 @@ class ProposalUserAction(UserAction):
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, proposal, action, user):
+    def log_action(cls, proposal, action, user=None):
         return cls.objects.create(
             proposal=proposal,
             who=user,
             what=str(action)
         )
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
     proposal = models.ForeignKey(Proposal, related_name='action_logs')
 
 
