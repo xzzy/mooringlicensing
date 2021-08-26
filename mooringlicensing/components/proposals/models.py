@@ -2321,7 +2321,8 @@ class AuthorisedUserApplication(Proposal):
         return approval, created
 
     def process_after_approval(self, request=None, payment_status=None, total_amount=None):
-        print('process_after_approved() in AuthorisedUserApplication')
+        from mooringlicensing.components.approvals.models import Sticker
+
         if self.approval and self.approval.reissued:
             # Reissued proposal
             self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -2332,17 +2333,19 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             # Amendment --> Approval already exists
-
-            # TODO: Reconsider the case there are no payments...?
-            for moa in self.approval.mooringonapproval_set.all():
-                print(moa)
-
+            # TODO: Reconsider the logic...  Do we have to worry about moorings?
             if total_amount:
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
                 self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             else:
-                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                if stickers_awaiting.count():
+                    # There is at lease one sticker awaiting printing
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
 
         #if self.approval.moorings.all().count() % 4 == 0:
             #    # Each existing sticker filled with 4 moorings --> Just creating new sticker.  No need to return.
@@ -2355,11 +2358,23 @@ class AuthorisedUserApplication(Proposal):
             #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-            # TODO: Reconsider the case there are no payments...?
+            # TODO: Reconsider the logic...  Do we have to worry about moorings?
             # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
             # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            if total_amount:
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            else:
+                stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                if stickers_awaiting.count():
+                    # There is at lease one sticker awaiting printing
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         else:
             raise  # Should not reach here
 
