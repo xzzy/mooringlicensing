@@ -956,6 +956,8 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.final_approval()
 
     def manage_stickers(self, proposal):
+        vessel_changed = True
+
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
 
         stickers_current = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
@@ -971,10 +973,30 @@ class AuthorisedUserPermit(Approval):
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             new_mooring_on_approval = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True)
 
+            # Debug code
+            count = new_mooring_on_approval.count()
+            for item in new_mooring_on_approval:
+                print(item)
+
             if new_mooring_on_approval.count() == 0:
-                # No new moorings --> Do nothing
-                pass
+                if vessel_changed:
+                    # Stickers in printing status, we don't touch as they don't need to be returned
+                    stickers = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT,)).annotate(num_of_moorings=Count('mooringonapproval'))
+                    stickers.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
+                    for old in stickers:
+                        new_sticker = Sticker.objects.create(
+                            approval=self,
+                            vessel_ownership=old.vessel_ownership,
+                            fee_constructor=old.fee_constructor,
+                            proposal_initiated=proposal,
+                        )
+                else:
+                    # No new moorings and no new vessel--> Do nothing
+                    pass
             elif new_mooring_on_approval.count() == 1:
+                # if (vessel chang)
+                #     do sticker stuff: invalidate all old sticker(s) and generate new sticker(s)
+                # else
                 # There is a new mooring which is not on the sticker
 
                 # Find stickers which doesn't have 4 moorings on it
