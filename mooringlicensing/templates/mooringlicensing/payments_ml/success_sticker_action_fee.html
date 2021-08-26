@@ -8,40 +8,6 @@
                 <strong>A confirmation email has been sent to {{ submitter }}. </strong>
             </div></div>
             <br/>
-
-
-            {% if proposal and proposal.id %}
-                <div>
-                    <strong>Your application {{proposal.lodgement_number}} has been successfully submitted.</strong>
-                    <br/><br/>
-                    <table>
-                        <tr>
-                            <td><strong>Application: </strong></td>
-                            <td><strong> {{proposal.lodgement_number}}</strong></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Date/Time: </strong></td>
-                            <td><strong>{{proposal.lodgement_date}}</strong></td>
-                        </tr>
-                    </table>
-                    <br/>
-                    <!-- label>Please note that it may take up to 21 business days to process your application.<br/><br/>If there is any missing information, the Department may assign this application back to you to complete. In that case you will be notified by email.</label -->
-                    <span>If there is any missing information, Rottnest Island Authority (RIA) may assign this application back to you to complete. In that case you will be notified by email.</span>
-                    {% if request.user == submitter or request.user.is_staff %}
-                        {% if request.user.is_authenticated %}
-                        <div class="row" style="margin-top:2em;">
-                            <div class="col-sm-6">
-                                <div><strong>Invoice</strong>: <a href="{% url 'invoice-pdf' fee_invoice.invoice_reference %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="col-sm-offset-3 col-sm-6 borderDecoration">
-                    <strong>Sorry it looks like there isn't any proposal currently in your session.</strong>
-                </div>
-            {% endif %}
         </div>
 
         <div class="row"><div class="col-sm-12" style="margin-top: 1em">

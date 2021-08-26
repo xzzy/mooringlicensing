@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Year', 'Action']
+            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Action']
         },
         column_id: function(){
             return {
