@@ -1363,6 +1363,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
                     line_items, db_operations = create_fee_lines(self)
+
+                    # TODO: check the amount, if zero no function calls to handle stickers or so.
+
                     # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                     from mooringlicensing.components.payments_ml.models import FeeItem
                     fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
@@ -2283,7 +2286,8 @@ class AuthorisedUserApplication(Proposal):
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
-            approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+            if approval.current_proposal.mooring:
+                approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
         # updating checkboxes
         if self.approval:
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
@@ -2326,12 +2330,16 @@ class AuthorisedUserApplication(Proposal):
                 self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             else:
                 # One of the existing stickers should be replaced by a new sticker
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+                # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+                # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # TODO: Reconsider the case there are no payments...?
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+            # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+            # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         else:
             raise  # Should not reach here
 
@@ -2348,10 +2356,10 @@ class AuthorisedUserApplication(Proposal):
             # User had to make payment
             self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
-            # User had to make payment and also return sticker
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
+        #if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
+        #    # User had to make payment and also return sticker
+        #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
+        #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
         self.save()
 
     @property
