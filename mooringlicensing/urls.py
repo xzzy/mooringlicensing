@@ -148,7 +148,9 @@ urlpatterns = [
     # payment related urls
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
     url(r'^application_fee_existing/(?P<proposal_pk>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
-    url(r'^sticker_replacement_fee/(?P<approval_pk>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
+    # url(r'^sticker_replacement_fee/(?P<approval_pk>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
+    # url(r'^sticker_replacement_fee_by_sticker_id/(?P<sticker_id>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee_by_sticker_id'),
+    url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
     url(r'^sticker_replacement_fee_success/fee/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
     url(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),

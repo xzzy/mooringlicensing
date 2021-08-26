@@ -4,13 +4,13 @@
             <div class="container-fluid">
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                 <div class="row form-group">
-                    <label class="col-sm-3 control-label" for="reason">Reason</label>
-                    <div class="col-sm-9">
+                    <label class="col-sm-2 control-label" for="reason">Reason</label>
+                    <div class="col-sm-10">
                         <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
                     </div>
                 </div>
                 <div v-show="showDateOfLost" class="row form-group">
-                    <label class="col-sm-3 control-label">Date of Lost</label>
+                    <label class="col-sm-2 control-label">Date of Lost</label>
                     <div class="col-sm-3">
                         <div class="input-group date" ref="lostDatePicker">
                             <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="lost_date_elem"/>
@@ -21,7 +21,7 @@
                     </div>
                 </div>
                 <div v-show="showDateOfReturned" class="row form-group">
-                    <label class="col-sm-3 control-label">Date of Returned</label>
+                    <label class="col-sm-2 control-label">Date of Returned</label>
                     <div class="col-sm-3">
                         <div class="input-group date" ref="returnedDatePicker">
                             <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="returned_date_elem"/>
@@ -34,7 +34,7 @@
             </div>
             <div slot="footer">
                 <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -73,12 +73,40 @@ export default {
         }
     },
     computed: {
+        okButtonEnabled: function(){
+            if (this.action === 'record_lost'){
+               if(this.details.reason && this.details.date_of_lost_sticker){
+                  return true
+               }
+               return false
+            } else if (this.action === 'record_returned'){
+               if(this.details.reason && this.details.date_of_returned_sticker){
+                  return true
+               }
+               return false
+            } else if (this.action === 'request_replacement'){
+               if(this.details.reason){
+                  return true
+               }
+               return false
+            } else {
+                return false
+            }
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
         },
         title: function() {
-            return this.action
+            if (this.action === 'record_lost'){
+                return 'Record Sticker Lost'
+            } else if (this.action === 'record_returned'){
+                return 'Record Sticker Returned'
+            } else if (this.action === 'request_replacement'){
+                return 'Request Sticker Replacement'
+            } else {
+                return '---'
+            }
         },
         showDateOfLost: function(){
             if (this.action === 'record_lost'){
