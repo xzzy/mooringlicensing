@@ -553,7 +553,6 @@ from '@/utils/hooks'
                     },
                     templateSelection: function(data) {
                         console.log("templateSelection");
-                        console.log(data);
                         return vm.validateRegoNo(data.text);
                     },
                 }).
@@ -876,6 +875,7 @@ from '@/utils/hooks'
                         const payload = {
                             id: this.vessel.id,
                             tag: false,
+                            selected: true,
                         }
                         $(vm.$refs.vessel_rego_nos).trigger({
                             type: 'select2:select',
