@@ -5,7 +5,8 @@ from django.db.models import Min
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem, \
+    FeeItemStickerReplacement
 from mooringlicensing.components.proposals.models import AnnualAdmissionApplication, AuthorisedUserApplication, \
     MooringLicenceApplication
 
@@ -252,6 +253,11 @@ class FeeConstructorForm(forms.ModelForm):
                             existing_fc.fee_season.end_date))
 
         return cleaned_data
+
+
+@admin.register(FeeItemStickerReplacement)
+class FeeItemStickerReplacementAdmin(admin.ModelAdmin):
+    list_display = ['amount', 'date_of_enforcement', 'enabled', 'incur_gst']
 
 
 @admin.register(FeeSeason)

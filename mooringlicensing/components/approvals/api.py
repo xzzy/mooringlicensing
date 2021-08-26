@@ -440,6 +440,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
+        # external
         approval = self.get_object()
         data = request.data
 
@@ -1123,6 +1124,7 @@ class StickerViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def request_replacement(self, request, *args, **kwargs):
+        # internal
         sticker = self.get_object()
         data = request.data
 
@@ -1135,9 +1137,9 @@ class StickerViewSet(viewsets.ModelViewSet):
         details = serializer.save()
 
         # Sticker
-        new_sticker = sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
-        serializer = StickerSerializer(sticker)
-        return Response({'sticker': serializer.data})
+        # new_sticker = sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+        # serializer = StickerSerializer(sticker)
+        return Response({'sticker_action_detail_ids': [details.id,]})
 
 
 class StickerPaginatedViewSet(viewsets.ModelViewSet):

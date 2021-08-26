@@ -415,6 +415,9 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             let links = '';
+                            if(vm.debug){
+                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
+                            }
                             /*
                             if (vm.is_internal && vm.wlaDash) {
                                 links += full.offer_link;
@@ -742,36 +745,29 @@ export default {
             let vm = this
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params.details).then(
                 res => {
-                    console.log('res.body')
-                    console.log(res.body)
-                    let temp = JSON.stringify(res.body)
-                    console.log(temp)
-
-                    // TODO: post_and_redirect
-                    //vm.post_and_redirect('/sticker_replacement_fee/' + params.approval_id + '/', {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(res.body)});
-                    vm.post_and_redirect('/sticker_replacement_fee/' + params.approval_id + '/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
+                    helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
                 },
                 err => {
                     console.log(err)
                 }
             )
         },
-        post_and_redirect: function(url, postData) {
-            /* http.post and ajax do not allow redirect from Django View (post method),
-               this function allows redirect by mimicking a form submit.
-               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-            */
-            var postFormStr = "<form method='POST' target='_blank' name='Preview Licence' action='" + url + "'>";
-            for (var key in postData) {
-                if (postData.hasOwnProperty(key)) {
-                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
-                }
-            }
-            postFormStr += "</form>";
-            var formElement = $(postFormStr);
-            $('body').append(formElement);
-            $(formElement).submit();
-        },
+        //post_and_redirect: function(url, postData) {
+        //    /* http.post and ajax do not allow redirect from Django View (post method),
+        //       this function allows redirect by mimicking a form submit.
+        //       usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+        //    */
+        //    var postFormStr = "<form method='POST' name='Preview Licence' action='" + url + "'>";
+        //    for (var key in postData) {
+        //        if (postData.hasOwnProperty(key)) {
+        //            postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+        //        }
+        //    }
+        //    postFormStr += "</form>";
+        //    var formElement = $(postFormStr);
+        //    $('body').append(formElement);
+        //    $(formElement).submit();
+        //},
         fetchProfile: function(){
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
