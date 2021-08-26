@@ -219,7 +219,7 @@ class StickerReplacementFeeView(TemplateView):
                 lines = []
                 for sticker_action_detail in sticker_action_details:
                     line = {
-                        'ledger_description': 'Sticker Replacement Fee, stickker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
+                        'ledger_description': 'Sticker Replacement Fee, sticker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
                         'oracle_code': application_type.get_oracle_code_by_date(current_datetime.date()),
                         'price_incl_tax': fee_item.amount,
                         'price_excl_tax': calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
