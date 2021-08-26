@@ -957,7 +957,7 @@ class AuthorisedUserPermit(Approval):
         ## final approval
         self.current_proposal.final_approval()
 
-    def manage_stickers(self, proposal):
+    def manage_stickers(self, proposal, mooring_on_approval_created):
         vessel_changed = True
 
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
@@ -971,6 +971,8 @@ class AuthorisedUserPermit(Approval):
                 fee_constructor=proposal.fee_constructor,
                 proposal_initiated=proposal,
             )
+            mooring_on_approval_created.sticker = sticker  # At this point, mooring_on_approval_created should not be None.  It must have been created by add_mooring() function.
+            mooring_on_approval_created.save()
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             new_mooring_on_approval = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True)
@@ -982,9 +984,13 @@ class AuthorisedUserPermit(Approval):
 
             if new_mooring_on_approval.count() == 0:
                 if vessel_changed:
-                    # Stickers in printing status, we don't touch as they don't need to be returned
-                    stickers = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT,)).annotate(num_of_moorings=Count('mooringonapproval'))
-                    stickers.update(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
+                    # Stickers in awaiting printing status, we don't touch as they don't need to be returned
+                    # Stickers in awaiting printing will be printed and posted at the printing company.  They need to be returned...?
+                    stickers = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING)).annotate(num_of_moorings=Count('mooringonapproval'))
+                    for sticker in stickers:
+                        sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                        sticker.save()
+
                     for old in stickers:
                         new_sticker = Sticker.objects.create(
                             approval=self,

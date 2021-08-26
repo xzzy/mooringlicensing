@@ -2284,10 +2284,10 @@ class AuthorisedUserApplication(Proposal):
         ## also see logic in approval.add_mooring()
         existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
-            approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
+            moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
             if approval.current_proposal.mooring:
-                approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+                moa, created = approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
         # updating checkboxes
         if self.approval:
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
@@ -2298,7 +2298,8 @@ class AuthorisedUserApplication(Proposal):
                         moa2.save()
 
         # Manage stickers
-        approval.child_obj.manage_stickers(self)
+        moa_created = moa if created else None
+        approval.child_obj.manage_stickers(self, moa_created)
 
         # Write approval history
         if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
