@@ -331,12 +331,14 @@ class Approval(RevisionedMixin):
     #    return vessel_on_approval, created
 
     def add_mooring(self, mooring, site_licensee):
-        mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
-                mooring=mooring,
-                approval=self,
-                site_licensee=site_licensee
-                )
-        return mooring_on_approval, created
+        # do not add if this mooring already exists for the approval & the associated mooring_licence is current
+        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current').filter(mooring=mooring):
+            mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
+                    mooring=mooring,
+                    approval=self,
+                    site_licensee=site_licensee
+                    )
+            return mooring_on_approval, created
 
     def set_wla_order(self):
         place = 1
