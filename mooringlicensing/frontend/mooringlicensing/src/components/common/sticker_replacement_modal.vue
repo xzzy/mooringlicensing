@@ -34,7 +34,7 @@
             </div>
             <div slot="footer">
                 <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -73,6 +73,21 @@ export default {
         }
     },
     computed: {
+        okButtonEnabled: function(){
+            if (this.action === 'record_lost'){
+               if(this.details.reason && this.details.date_of_lost_sticker){
+                  return true
+               }
+               return false
+            } else if (this.action === 'record_returned'){
+               if(this.details.reason && this.details.date_of_returned_sticker){
+                  return true
+               }
+               return false
+            } else {
+                return false
+            }
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
