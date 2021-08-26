@@ -23,7 +23,7 @@ from ledger.payments.utils import update_payments
 from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail
+from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
@@ -183,10 +183,16 @@ class ApplicationFeeExistingView(TemplateView):
 
 class StickerReplacementFeeView(TemplateView):
     def get_object(self):
-        return get_object_or_404(Approval, id=self.kwargs['approval_pk'])
+        if 'approval_pk' in self.kwargs:
+            return get_object_or_404(Approval, id=self.kwargs['approval_pk'])
+        elif 'sticker_id' in self.kwargs:
+            return get_object_or_404(Sticker, id=self.kwargs['sticker_id'])
+        else:
+            # Should not reach here
+            pass
 
     def post(self, request, *args, **kwargs):
-        approval = self.get_object()
+        # approval = self.get_object()
         data = request.POST.get('data')
         data = json.loads(data)
         ids = data['sticker_action_detail_ids']
@@ -300,7 +306,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
                 update_payments(invoice.reference)
 
                 for sticker_action_detail in sticker_action_details.all():
-                    new_sticker = sticker_action_detail.sticker.replace_me()
+                    new_sticker = sticker_action_detail.sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
 
                 sticker_action_fee.save()
                 request.session[self.LAST_STICKER_ACTION_FEE_ID] = sticker_action_fee.id

@@ -1641,10 +1641,6 @@ class Sticker(models.Model):
         self.status = Sticker.STICKER_STATUS_RETURNED
         self.save()
 
-    def replace_me(self):
-        new_sticker = self.request_replacement(Sticker.STICKER_STATUS_LOST)
-        return new_sticker
-
     def request_replacement(self, new_status):
         self.status = new_status
         self.save()
