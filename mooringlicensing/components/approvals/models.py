@@ -438,6 +438,10 @@ class Approval(RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Approval, self).save(*args, **kwargs)
+        if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled']:
+        #if self.status != 'current':
+            ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
+            self.child_obj.update_auth_user_permits()
         self.child_obj.refresh_from_db()
 
     def __str__(self):
@@ -942,9 +946,14 @@ class AuthorisedUserPermit(Approval):
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         ## now reissue approval
         #self.current_proposal.processing_status = 'with_approver'
-        #self.current_proposal.save()
-        #self.reissued=True
-        #self.save()
+        self.current_proposal.processing_status = 'printing_sticker'
+        self.current_proposal.save()
+        self.reissued=True
+        self.save()
+        # Create a log entry for the proposal
+        self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
+        ## final approval
+        self.current_proposal.final_approval()
 
     def manage_stickers(self, proposal):
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
@@ -1049,10 +1058,6 @@ class MooringLicence(Approval):
         if self.lodgement_number == '':
             self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
             self.save()
-        if self.status in ['expired', 'cancelled']:
-        #if self.status != 'current':
-            ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
-            self.update_auth_user_permits()
         self.approval.refresh_from_db()
 
     def update_auth_user_permits(self):
