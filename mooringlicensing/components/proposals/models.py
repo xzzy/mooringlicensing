@@ -2278,7 +2278,7 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
 
         # Create MooringOnApproval records
-        ## TODO: alter this to cater for not adding a mooring - also check dupes!
+        ## also see logic in approval.add_mooring()
         existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
             approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
