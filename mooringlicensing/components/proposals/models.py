@@ -3022,7 +3022,7 @@ class VesselOwnership(models.Model):
 
     def save(self, *args, **kwargs):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
-        existing_record = True if VesselOwnership.objects.filter(id=self.id) else false
+        existing_record = True if VesselOwnership.objects.filter(id=self.id) else False
         if existing_record:
             prev_end_date = VesselOwnership.objects.get(id=self.id).end_date
         super(VesselOwnership, self).save(*args,**kwargs)
