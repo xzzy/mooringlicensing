@@ -957,7 +957,9 @@ class AuthorisedUserPermit(Approval):
         ## final approval
         self.current_proposal.final_approval()
 
-    def manage_stickers(self, proposal):
+    def manage_stickers(self, proposal, mooring_on_approval_created):
+        vessel_changed = True
+
         # This function should be called after processing relations between Approval and Mooring (through MooringOnApproval)
 
         stickers_current = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
@@ -969,14 +971,40 @@ class AuthorisedUserPermit(Approval):
                 fee_constructor=proposal.fee_constructor,
                 proposal_initiated=proposal,
             )
+            mooring_on_approval_created.sticker = sticker  # At this point, mooring_on_approval_created should not be None.  It must have been created by add_mooring() function.
+            mooring_on_approval_created.save()
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             new_mooring_on_approval = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True)
 
+            # Debug code
+            count = new_mooring_on_approval.count()
+            for item in new_mooring_on_approval:
+                print(item)
+
             if new_mooring_on_approval.count() == 0:
-                # No new moorings --> Do nothing
-                pass
+                if vessel_changed:
+                    # Stickers in awaiting printing status, we don't touch as they don't need to be returned
+                    # Stickers in awaiting printing will be printed and posted at the printing company.  They need to be returned...?
+                    stickers = self.stickers.filter(status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING)).annotate(num_of_moorings=Count('mooringonapproval'))
+                    for sticker in stickers:
+                        sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                        sticker.save()
+
+                    for old in stickers:
+                        new_sticker = Sticker.objects.create(
+                            approval=self,
+                            vessel_ownership=old.vessel_ownership,
+                            fee_constructor=old.fee_constructor,
+                            proposal_initiated=proposal,
+                        )
+                else:
+                    # No new moorings and no new vessel--> Do nothing
+                    pass
             elif new_mooring_on_approval.count() == 1:
+                # if (vessel chang)
+                #     do sticker stuff: invalidate all old sticker(s) and generate new sticker(s)
+                # else
                 # There is a new mooring which is not on the sticker
 
                 # Find stickers which doesn't have 4 moorings on it
@@ -1647,10 +1675,6 @@ class Sticker(models.Model):
     def record_returned(self):
         self.status = Sticker.STICKER_STATUS_RETURNED
         self.save()
-
-    def replace_me(self):
-        new_sticker = self.request_replacement(Sticker.STICKER_STATUS_LOST)
-        return new_sticker
 
     def request_replacement(self, new_status):
         self.status = new_status

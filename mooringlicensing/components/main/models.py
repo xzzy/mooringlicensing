@@ -128,6 +128,7 @@ class ApplicationType(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
+        verbose_name = 'Oracle code'
 
 
 
