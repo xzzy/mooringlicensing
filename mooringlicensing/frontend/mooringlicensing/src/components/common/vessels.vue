@@ -851,7 +851,7 @@ from '@/utils/hooks'
                     !this.proposal.vessel_details_id && (this.proposal.proposal_type.code !=='new' || this.proposal.application_type_code === 'mla') &&
                     !this.vessel.rego_no
                 ) {
-                    console.log("Amendment/Renewal");
+                    console.log("Amendment/Renewal/Reissue & MLA");
                     let vm = this;
                     let res = null;
                     // if mla, get vessel from waiting list
