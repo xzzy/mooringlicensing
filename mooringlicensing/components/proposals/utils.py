@@ -1033,8 +1033,9 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
 
                     # Applicant already partially paid for this fee item.  Deduct it.
                     # fee_amount_adjusted -= fee_item_considered_paid.amount
-                    fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-                    logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+                    if fee_item_considered_paid:
+                        fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+                        logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
             fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
         else:

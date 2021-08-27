@@ -300,7 +300,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
     name = models.CharField(max_length=100, null=False, blank=False)
 
     def get_one_smaller_category(self, vessel_size_category):
-        smaller_categories = self.vessel_size_categories.filter(start_size__lt=vessel_size_category.start_size).order_by('-start_size')
+        smaller_categories = self.vessel_size_categories.filter(start_size__lt=vessel_size_category.start_size, null_vessel=False).order_by('-start_size')
         if smaller_categories:
             return smaller_categories.first()
         else:
