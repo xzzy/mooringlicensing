@@ -2971,6 +2971,7 @@ class CompanyOwnership(models.Model):
         return "{}: {}".format(self.company, self.percentage)
 
     def save(self, *args, **kwargs):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
         if not self.pk:
@@ -2980,7 +2981,7 @@ class CompanyOwnership(models.Model):
                     raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
                 elif vd.status == "approved" and self.status == "approved":
                     raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
-        prev_end_date = self.end_date
+        prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
         super(CompanyOwnership, self).save(*args,**kwargs)
         ## Reissue associated ML and AUPs if end-dated
         if not self.prev_end_date and self.end_date:
@@ -3020,11 +3021,13 @@ class VesselOwnership(models.Model):
         return "{}: {}".format(self.owner, self.vessel)
 
     def save(self, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        prev_end_date = self.end_date
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
+        existing_record = True if VesselOwnership.objects.filter(id=self.id) else false
+        if existing_record:
+            prev_end_date = VesselOwnership.objects.get(id=self.id).end_date
         super(VesselOwnership, self).save(*args,**kwargs)
         ## Reissue associated ML and AUPs if end-dated
-        if not prev_end_date and self.end_date:
+        if existing_record and not prev_end_date and self.end_date:
             aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership=self)
             for aup in aup_set:
                 aup.internal_reissue()
