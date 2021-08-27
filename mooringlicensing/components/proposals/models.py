@@ -2981,11 +2981,23 @@ class CompanyOwnership(models.Model):
                     raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
                 elif vd.status == "approved" and self.status == "approved":
                     raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
-        prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
+        existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
+        if existing_record:
+            prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
         super(CompanyOwnership, self).save(*args,**kwargs)
         ## Reissue associated ML and AUPs if end-dated
-        if not self.prev_end_date and self.end_date:
+        if existing_record and not self.prev_end_date and self.end_date:
             aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership__company_ownership=self)
+            for aup in aup_set:
+                #if aup.status in ['current', 'suspended']:
+                if aup.status == 'current':
+                    aup.internal_reissue()
+            ## ML
+            #vo_set = self.vesselownership_set.all()
+            #proposal_set = self.proposal_set.all()
+            #for proposal in proposal_set:
+            #    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+            #        proposal.approval.internal_reissue()
 
 
 class VesselOwnershipManager(models.Manager):
@@ -3028,9 +3040,17 @@ class VesselOwnership(models.Model):
         super(VesselOwnership, self).save(*args,**kwargs)
         ## Reissue associated ML and AUPs if end-dated
         if existing_record and not prev_end_date and self.end_date:
+            #import ipdb; ipdb.set_trace()
             aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership=self)
             for aup in aup_set:
-                aup.internal_reissue()
+                #if aup.status in ['current', 'suspended']:
+                if aup.status == 'current':
+                    aup.internal_reissue()
+            ## ML
+            proposal_set = self.proposal_set.all()
+            for proposal in proposal_set:
+                if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                    proposal.approval.internal_reissue()
 
 
 # Non proposal specific

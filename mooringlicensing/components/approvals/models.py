@@ -1094,7 +1094,6 @@ class MooringLicence(Approval):
         self.approval.refresh_from_db()
 
     def internal_reissue(self):
-        import ipdb; ipdb.set_trace()
         ## now reissue approval
         #self.current_proposal.processing_status = 'with_approver'
         self.current_proposal.processing_status = 'printing_sticker'
