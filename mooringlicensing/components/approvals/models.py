@@ -936,16 +936,7 @@ class AuthorisedUserPermit(Approval):
             self.save()
         self.approval.refresh_from_db()
 
-    def update_moorings(self, mooring_licence):
-        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-            ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
-            send_auth_user_no_moorings_notification(self.approval)
-        #for moa in self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-        for moa in self.mooringonapproval_set.all():
-            ## notify authorised user permit holder that the mooring is no longer available
-            if moa.mooring == mooring_licence.mooring:
-                ## send email to auth user
-                send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+    def internal_reissue(self):
         ## now reissue approval
         #self.current_proposal.processing_status = 'with_approver'
         self.current_proposal.processing_status = 'printing_sticker'
@@ -956,6 +947,18 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
         ## final approval
         self.current_proposal.final_approval()
+
+    def update_moorings(self, mooring_licence):
+        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
+            send_auth_user_no_moorings_notification(self.approval)
+        #for moa in self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+        for moa in self.mooringonapproval_set.all():
+            ## notify authorised user permit holder that the mooring is no longer available
+            if moa.mooring == mooring_licence.mooring:
+                ## send email to auth user
+                send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+        self.internal_reissue()
 
     def manage_stickers(self, proposal, mooring_on_approval_created):
         vessel_changed = True
@@ -1089,6 +1092,18 @@ class MooringLicence(Approval):
             self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
             self.save()
         self.approval.refresh_from_db()
+
+    def internal_reissue(self):
+        ## now reissue approval
+        #self.current_proposal.processing_status = 'with_approver'
+        self.current_proposal.processing_status = 'printing_sticker'
+        self.current_proposal.save()
+        self.reissued=True
+        self.save()
+        # Create a log entry for the proposal
+        self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
+        ## final approval
+        self.current_proposal.final_approval()
 
     def update_auth_user_permits(self):
         moa_set = MooringOnApproval.objects.filter(
