@@ -821,7 +821,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             for vessel_details in obj.child_obj.vessel_details_list:
                 regos += '{}\n'.format(vessel_details.vessel.rego_no)
         else:
-            regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no)
+            regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
         return regos
 
     def get_mooring_licence_vessels(self, obj):
