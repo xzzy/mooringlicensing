@@ -436,6 +436,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    @property
+    def vessel_removed(self):
+        # for AUP, AAP manage_stickers
+        #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
+        if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
+            raise ValidationError("Only for AUP, AAA")
+        removed = False
+        if self.previous_application and self.previous_application.vessel_ownership and not self.vessel_ownership:
+            removed = True
+        return removed
+
+    @property
+    def vessel_swapped(self):
+        # for AUP, AAP manage_stickers
+        #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
+        if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
+            raise ValidationError("Only for AUP, AAA")
+        changed = False
+        if (self.vessel_ownership and self.previous_application and self.previous_application.vessel_ownership and 
+                self.vessel_ownership.vessel.rego_no != self.previous_application.vessel_ownership.vessel.rego_no):
+            changed = True
+        return changed
+
+    @property
+    def vessel_amend_new(self):
+        # only for amendment
+        # for AUP, AAP manage_stickers
+        #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
+        if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
+            raise ValidationError("Only for AUP, AAA")
+        new = False
+        if (self.proposal_type is not ProposalType.objects.get(code='new') and self.vessel_ownership and
+                self.previous_application and not self.previous_application.vessel_ownership):
+            new = True
+        return new
+
     def does_have_valid_associations(self):
         # Check if this application has valid associations with other applications and approvals
         return self.child_obj.does_have_valid_associations()
