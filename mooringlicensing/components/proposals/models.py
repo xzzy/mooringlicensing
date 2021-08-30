@@ -2307,7 +2307,8 @@ class AuthorisedUserApplication(Proposal):
 
         # Manage stickers
         moa_created = moa if created else None
-        approval.child_obj.manage_stickers(self, moa_created)
+        # approval.child_obj.manage_stickers(self, moa_created)
+        approval.child_obj.manage_stickers(self)
 
         # Write approval history
         if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
