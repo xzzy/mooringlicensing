@@ -297,7 +297,7 @@ export default {
                             if (vm.readonly){
                                 disabled_str = ' disabled '
                             }
-                            if (full.checked){
+                            if (full.checked && full.suitable_for_mooring){
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + ' checked/>'
                             } else {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + '/>'
