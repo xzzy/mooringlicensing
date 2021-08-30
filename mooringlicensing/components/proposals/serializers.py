@@ -871,14 +871,10 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     "id": moa.id,
                     "mooring_name": '<span style="color:#FF0000">{}</span>'.format(moa.mooring.name),
                     "bay": '<span style="color:#FF0000">{}</span>'.format(str(moa.mooring.mooring_bay)),
-                    #"site_licensee": moa.site_licensee,
                     "site_licensee": '<span style="color:#FF0000">RIA Allocated</span>' if not moa.site_licensee else '<span style="color:#FF0000">User Requested</span>',
                     "status": '<span style="color:#FF0000">Current</span>' if not moa.end_date else '<span style="color:#FF0000">Historical</span>',
                     "checked": True if not moa.end_date else False,
                     "suitable_for_mooring": moa.mooring.suitable_vessel(obj.vessel_details),
-                    #"licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
-                    #"mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
-                    #"email": licence_holder_data.get('email') if licence_holder_data else '',
                     })
         return moorings
 
