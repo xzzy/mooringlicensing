@@ -2957,6 +2957,7 @@ class CompanyOwnership(models.Model):
     vessel = models.ForeignKey(Vessel)
     company = models.ForeignKey('Company')
     percentage = models.IntegerField(null=True, blank=True)
+    ## TODO: delete start and end dates if no longer required
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
     created = models.DateTimeField(default=timezone.now)
@@ -2971,6 +2972,7 @@ class CompanyOwnership(models.Model):
         return "{}: {}".format(self.company, self.percentage)
 
     def save(self, *args, **kwargs):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
         if not self.pk:
@@ -2980,14 +2982,30 @@ class CompanyOwnership(models.Model):
                     raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
                 elif vd.status == "approved" and self.status == "approved":
                     raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
+        existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
+        if existing_record:
+            prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
         super(CompanyOwnership, self).save(*args,**kwargs)
+        ## Reissue associated ML and AUPs if end-dated
+        if existing_record and not prev_end_date and self.end_date:
+            aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership__company_ownership=self)
+            for aup in aup_set:
+                #if aup.status in ['current', 'suspended']:
+                if aup.status == 'current':
+                    aup.internal_reissue()
+            ## ML
+            vo_set = self.vesselownership_set.all()
+            for vo in vo_set:
+                proposal_set = vo.proposal_set.all()
+                for proposal in proposal_set:
+                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                        proposal.approval.internal_reissue()
 
 
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
         latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
-        #return self.first()
 
 
 class VesselOwnership(models.Model):
@@ -3016,21 +3034,25 @@ class VesselOwnership(models.Model):
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
 
-    #def save(self, *args, **kwargs):
-    #    qs = self.vessel.vesselownership_set.all()
-    #    total = 0
-    #    for vo in qs:
-    #        total += vo.percentage if vo.percentage else 0
-    #    if total > 100:
-    #        raise serializers.ValidationError({"Vessel ownership percentage": "Cannot exceed 100%"})
-    #    super(VesselOwnership, self).save(*args,**kwargs)
-
-    #@property
-    #def company_owner(self):
-    #    company = False
-    #    if self.company_ownership and self.company_ownership.id:
-    #        company = True
-    #    return company
+    def save(self, *args, **kwargs):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
+        existing_record = True if VesselOwnership.objects.filter(id=self.id) else False
+        if existing_record:
+            prev_end_date = VesselOwnership.objects.get(id=self.id).end_date
+        super(VesselOwnership, self).save(*args,**kwargs)
+        ## Reissue associated ML and AUPs if end-dated
+        if existing_record and not prev_end_date and self.end_date:
+            #import ipdb; ipdb.set_trace()
+            aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership=self)
+            for aup in aup_set:
+                #if aup.status in ['current', 'suspended']:
+                if aup.status == 'current':
+                    aup.internal_reissue()
+            ## ML
+            proposal_set = self.proposal_set.all()
+            for proposal in proposal_set:
+                if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                    proposal.approval.internal_reissue()
 
 
 # Non proposal specific
