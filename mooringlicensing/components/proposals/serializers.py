@@ -852,6 +852,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'previous_application_preferred_bay_id',
                 'mooring_licence_vessels',
                 'authorised_user_moorings',
+                'dot_name',
                 )
         read_only_fields = (
             'documents',
