@@ -113,3 +113,5 @@ mooringlicensing/static/mooringlicensing_vue/js/vendor.js
 mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
 
 ml_git_history
+
+mooringlicensing/utils/csv/*
