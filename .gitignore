@@ -114,4 +114,4 @@ mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
 
 ml_git_history
 
-#mooringlicensing/utils/csv/*.*
+mooringlicensing/utils/csv/*
