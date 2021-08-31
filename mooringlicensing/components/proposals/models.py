@@ -2566,7 +2566,11 @@ class MooringLicenceApplication(Proposal):
 
     def update_or_create_approval(self, current_datetime, request=None):
         try:
-            existing_mooring_licence = self.allocated_mooring.mooring_licence
+            # renewal/amendment/reissue - associated ML must have a mooring
+            if self.approval and self.approval.child_obj.mooring:
+                existing_mooring_licence = self.approval
+            else:
+                existing_mooring_licence = self.allocated_mooring.mooring_licence
             existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
             # find any current ML for this submitter on the same mooring
@@ -2609,10 +2613,9 @@ class MooringLicenceApplication(Proposal):
                 if created:
                     self.approval = approval
                     self.save()
-                ## TODO: renewal, amendment affected???
-                # associate Mooring with approval
-                self.allocated_mooring.mooring_licence = approval
-                self.allocated_mooring.save()
+                if not self.approval:
+                    self.allocated_mooring.mooring_licence = approval
+                    self.allocated_mooring.save()
                 # Move WLA to status approved
                 if self.waiting_list_allocation:
                     self.waiting_list_allocation.internal_status = 'approved'
