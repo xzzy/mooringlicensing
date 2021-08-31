@@ -849,6 +849,9 @@ class Approval(RevisionedMixin):
                 # Do nothing
                 pass
 
+    def manage_stickers(self, proposal):
+        self.child_obj.manage_stickers(proposal)
+
 
 class WaitingListAllocation(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -917,7 +920,9 @@ class AnnualAdmissionPermit(Approval):
                     Sticker.STICKER_STATUS_TO_BE_RETURNED,),
                 vessel_ownership=vessel_ownership,
             )
-            if not sticker:
+            if sticker:
+                sticker = sticker.first()
+            else:
                 # Sticker not found --> Create it
                 sticker = Sticker.objects.create(
                     approval=self,
@@ -1165,7 +1170,9 @@ class MooringLicence(Approval):
                     Sticker.STICKER_STATUS_TO_BE_RETURNED,),
                 vessel_ownership=vessel_ownership,
             )
-            if not sticker:
+            if sticker:
+                sticker = sticker.first()
+            else:
                 # Sticker not found --> Create it
                 sticker = Sticker.objects.create(
                     approval=self,
