@@ -100,6 +100,12 @@ class MooringOnApproval(RevisionedMixin):
     site_licensee = models.BooleanField()
     end_date = models.DateField(blank=True, null=True)
 
+    def __str__(self):
+        approval = self.approval.lodgement_number if self.approval else ' '
+        mooring = self.mooring.name if self.mooring else ' '
+        sticker = self.sticker.number if self.sticker else ' '
+        return 'ID:{} ({}-{}-{})'.format(self.id, approval, mooring, sticker)
+
     def save(self, *args, **kwargs):
         existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
         if existing_ria_moorings >= 2 and not self.site_licensee:
