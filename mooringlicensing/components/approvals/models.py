@@ -833,6 +833,22 @@ class Approval(RevisionedMixin):
 
         return latest_applied_season
 
+    def _handle_stickers_to_be_removed(self, stickers_to_be_removed):
+        for sticker in stickers_to_be_removed:
+            if sticker.status in (Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING):
+                sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                sticker.save()
+                # TODO: email to the permission holder to notify the existing sticker to be returned
+            elif sticker.status == Sticker.STICKER_STATUS_TO_BE_RETURNED:
+                # Do nothing
+                pass
+            elif sticker.status in (Sticker.STICKER_STATUS_READY,):
+                sticker.status = Sticker.STICKER_STATUS_CANCELLED
+                sticker.save()
+            else:
+                # Do nothing
+                pass
+
 
 class WaitingListAllocation(Approval):
     approval = models.OneToOneField(Approval, parent_link=True)
@@ -855,6 +871,10 @@ class WaitingListAllocation(Approval):
             self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
             self.save()
         self.approval.refresh_from_db()
+
+    def manage_stickers(self, proposal):
+        # No stickers for WL
+        pass
 
 
 class AnnualAdmissionPermit(Approval):
@@ -881,6 +901,39 @@ class AnnualAdmissionPermit(Approval):
         self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
+        # Retrieve all the stickers regardless of the status
+        stickers_present = list(self.stickers.all())
+
+        stickers_required = []  # Store all the stickers we want to keep
+
+        # Loop through all the current vessels
+        # for vessel_ownership in self.vessel_ownership_list:
+        for vessel_ownership in [proposal.vessel_ownership,]:
+            # Look for the sticker for the vessel
+            sticker = self.stickers.filter(
+                status__in=(
+                    Sticker.STICKER_STATUS_CURRENT,
+                    Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                    Sticker.STICKER_STATUS_TO_BE_RETURNED,),
+                vessel_ownership=vessel_ownership,
+            )
+            if not sticker:
+                # Sticker not found --> Create it
+                sticker = Sticker.objects.create(
+                    approval=self,
+                    vessel_ownership=proposal.vessel_ownership,
+                    fee_constructor=proposal.fee_constructor,
+                    proposal_initiated=proposal,
+                )
+            stickers_required.append(sticker)
+
+        # Calculate the stickers which are no longer needed.  Some stickers could be in the 'awaiting_printing'/'to_be_returned' status.
+        stickers_to_be_removed = [sticker for sticker in stickers_present if sticker not in stickers_required]
+
+        # Update sticker status
+        self._handle_stickers_to_be_removed(stickers_to_be_removed)
+
+    def manage_stickers_back(self, proposal):
         stickers_current = self.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
 
         if stickers_current.count() == 0:
@@ -1103,14 +1156,14 @@ class MooringLicence(Approval):
         stickers_required = []  # Store all the stickers we want to keep
 
         # Loop through all the current vessels
-        for vessel in self.vessel_list:
+        for vessel_ownership in self.vessel_ownership_list:
             # Look for the sticker for the vessel
             sticker = self.stickers.filter(
                 status__in=(
                     Sticker.STICKER_STATUS_CURRENT,
                     Sticker.STICKER_STATUS_AWAITING_PRINTING,
                     Sticker.STICKER_STATUS_TO_BE_RETURNED,),
-                vessel=vessel,
+                vessel_ownership=vessel_ownership,
             )
             if not sticker:
                 # Sticker not found --> Create it
@@ -1212,22 +1265,6 @@ class MooringLicence(Approval):
 
             self._handle_stickers_to_be_removed(stickers_to_be_removed)
 
-    def _handle_stickers_to_be_removed(self, stickers_to_be_removed):
-        for sticker in stickers_to_be_removed:
-            if sticker.status in (Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING):
-                sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
-                sticker.save()
-                # TODO: email to the permission holder to notify the existing sticker to be returned
-            elif sticker.status == Sticker.STICKER_STATUS_TO_BE_RETURNED:
-                # Do nothing
-                pass
-            elif sticker.status in (Sticker.STICKER_STATUS_READY,):
-                sticker.status = Sticker.STICKER_STATUS_CANCELLED
-                sticker.save()
-            else:
-                # Do nothing
-                pass
-
     @property
     def vessel_list(self):
         vessels = []
@@ -1236,7 +1273,8 @@ class MooringLicence(Approval):
                     proposal.final_status and 
                     proposal.vessel_details and 
                     proposal.vessel_details.vessel not in vessels and
-                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
                 vessels.append(proposal.vessel_details.vessel)
         return vessels
@@ -1248,7 +1286,8 @@ class MooringLicence(Approval):
             if (
                     proposal.final_status and 
                     proposal.vessel_details not in vessel_details and
-                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
                 vessel_details.append(proposal.vessel_details)
         return vessel_details
@@ -1260,7 +1299,8 @@ class MooringLicence(Approval):
             if (
                     proposal.final_status and 
                     proposal.vessel_ownership not in vessel_ownership and
-                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
                 vessel_ownership.append(proposal.vessel_ownership)
         return vessel_ownership
@@ -1273,7 +1313,8 @@ class MooringLicence(Approval):
                     proposal.final_status and 
                     proposal.vessel_ownership and 
                     proposal.vessel_ownership not in vessels and 
-                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
                 vessels.append({
                     "submitted_vessel_details": proposal.vessel_details, 
@@ -1291,7 +1332,8 @@ class MooringLicence(Approval):
                     proposal.final_status and 
                     proposal.vessel_ownership and 
                     proposal.vessel_ownership not in vessels and 
-                    not proposal.vessel_ownership.end_date # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
                 vessels.append(proposal.vessel_details.vessel.rego_no)
         return vessels

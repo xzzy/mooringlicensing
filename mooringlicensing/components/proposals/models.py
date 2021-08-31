@@ -1348,6 +1348,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 self.approval = approval
 
+                self.approval.child_obj.manage_stickers(self)
+
                 # send Proposal approval email with attachment
                 send_application_processed_email(self, 'approved', False, request)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
@@ -1395,12 +1397,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         }
                         self.save()
 
+                approval = None
                 if request:
                     from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
                     line_items, db_operations = create_fee_lines(self)
 
-                    # TODO: check the amount, if zero no function calls to handle stickers or so.
                     total_amount = 0
                     for line_item in line_items:
                         total_amount += line_item['price_incl_tax']
@@ -1448,6 +1450,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                     self.send_emails_for_payment_required(request, invoice)
                     self.process_after_approval(request, self.invoice.payment_status, total_amount)
+
+                if approval:
+                    approval.manage_stickers(self)
 
                 # Log proposal action
                 if request:
@@ -2141,7 +2146,7 @@ class AnnualAdmissionApplication(Proposal):
                 self.approval = approval
                 self.save()
         # manage stickers
-        approval.child_obj.manage_stickers(self)
+        # approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
         return approval, created
@@ -2344,7 +2349,8 @@ class AuthorisedUserApplication(Proposal):
         # Manage stickers
         moa_created = moa if created else None
         # approval.child_obj.manage_stickers(self, moa_created)
-        approval.child_obj.manage_stickers(self)
+
+        # approval.child_obj.manage_stickers(self)
 
         # Write approval history
         if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
@@ -2518,10 +2524,10 @@ class MooringLicenceApplication(Proposal):
         # Send email to assessors
         send_other_documents_submitted_notification_email(request, self)
 
-    def set_status_after_payment_success(self):
-        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        self.save()
+    # def set_status_after_payment_success(self):
+    #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+    #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+    #     self.save()
 
     def send_emails_after_payment_success(self, request):
         # ret_value = send_submit_email_notification(request, self)
@@ -2655,9 +2661,12 @@ class MooringLicenceApplication(Proposal):
             approval.renewal_sent = False
             approval.save()
             # manage stickers
-            approval.child_obj.manage_stickers(self)
+
+            # TODO: remove comment
+            # approval.child_obj.manage_stickers(self)
+
             # write approval history
-            if existing_mooring_licence_vessel_count and len(approval.vessel_list) > existing_mooring_licence_vessel_count:
+            if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
                 approval.write_approval_history('vessel_add')
             elif created:
                 approval.write_approval_history('new')
@@ -2665,7 +2674,6 @@ class MooringLicenceApplication(Proposal):
                 approval.write_approval_history()
             return approval, created
         except Exception as e:
-            print("error in update_or_create_approval")
             print(e)
             raise e
             msg = 'Payment taken for Proposal: {}, but approval creation has failed'.format(self.lodgement_number)
