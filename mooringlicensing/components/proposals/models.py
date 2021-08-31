@@ -2567,9 +2567,10 @@ class MooringLicenceApplication(Proposal):
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
             if self.approval and self.approval.child_obj.mooring:
-                existing_mooring_licence = self.approval
+                existing_mooring_licence = self.approval.child_obj
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence
+            mooring = existing_mooring_licence.mooring
             existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
             # find any current ML for this submitter on the same mooring
@@ -2635,7 +2636,7 @@ class MooringLicenceApplication(Proposal):
             # log Mooring action
             ## TODO: rework switch licence logic
             if existing_mooring_licence and existing_mooring_licence != approval:
-                approval.current_proposal.allocated_mooring.log_user_action(
+                mooring.log_user_action(
                         MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
                             str(existing_mooring_licence),
                             str(approval),
@@ -2643,7 +2644,7 @@ class MooringLicenceApplication(Proposal):
                         request
                         )
             else:
-                approval.current_proposal.allocated_mooring.log_user_action(
+                mooring.log_user_action(
                         MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
                             str(approval),
                             ),
