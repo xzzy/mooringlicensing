@@ -2617,12 +2617,14 @@ class MooringLicenceApplication(Proposal):
                         'submitter': self.submitter,
                     }
                 )
-                if created:
-                    self.approval = approval
-                    self.save()
+                # associate mooring licence with mooring, only on NEW proposal_type
                 if not self.approval:
                     self.allocated_mooring.mooring_licence = approval
                     self.allocated_mooring.save()
+                # always associate proposal with approval
+                if created:
+                    self.approval = approval
+                    self.save()
                 # Move WLA to status approved
                 if self.waiting_list_allocation:
                     self.waiting_list_allocation.internal_status = 'approved'
