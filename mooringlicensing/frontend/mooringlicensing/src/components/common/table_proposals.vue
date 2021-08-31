@@ -338,7 +338,8 @@ export default {
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
+                            //ret_str += '<div>' + item.payment_status + '</div>'
+                            ret_str += '<span>' + item.payment_status + '</span>'
                         }
                         return ret_str
                     } else {
