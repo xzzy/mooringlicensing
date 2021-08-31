@@ -821,6 +821,7 @@ export default {
                             term: params.term,
                             type: 'public',
                             mooring_bay_id: vm.approval.mooring_bay_id,
+                            vessel_details_id: vm.proposal.vessel_details_id,
                         }
                         return query;
                     },
