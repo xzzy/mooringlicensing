@@ -662,7 +662,6 @@ class ApplicationFeeSuccessView(TemplateView):
                         #     pass
                         # else:
                         #     # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-                        #     approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                         approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
@@ -694,6 +693,9 @@ class ApplicationFeeSuccessView(TemplateView):
                             applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
 
                         proposal.approval = approval
+
+                        # Handle stickers here..???
+                        approval.manage_stickers(self)
 
                         # send Proposal approval email with attachment
                         send_application_processed_email(proposal, 'approved', True, request)
