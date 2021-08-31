@@ -498,6 +498,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                 moorings.append({
                     "id": moa.id,
                     "mooring_name": moa.mooring.name,
+                    "sticker": moa.sticker.number if moa.sticker else '',
                     "licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
                     'allocated_by': 'Site Licensee' if moa.site_licensee else 'RIA',
                     "mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
