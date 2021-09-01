@@ -82,6 +82,8 @@ def write_ml():
     write_file(approval_type, approvals, header_row, rows)
 
 def write_file(approval_type, approvals, header_row, rows):
+    if not os.path.isdir(os.path.join(BASE_DIR, 'mooringlicensing', 'utils', 'csv')):
+        os.mkdir(os.path.join(BASE_DIR, 'mooringlicensing', 'utils', 'csv'))
     filename = os.path.join(BASE_DIR, 'mooringlicensing', 'utils', 'csv', '{}_{}.csv'.format(approval_type, date_now_str))
 
     with open(filename, 'w', newline='') as csvfile:
