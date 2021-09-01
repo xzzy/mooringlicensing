@@ -1046,7 +1046,8 @@ class AuthorisedUserPermit(Approval):
         for sticker in stickers_to_be_replaced:
             stickers_to_be_returned.append(sticker)
             for moa in sticker.mooringonapproval_set.all():
-                moas_to_be_reallocated.append(moa)
+                if moa not in moas_removed:
+                    moas_to_be_reallocated.append(moa)
         moas_to_be_reallocated = list(set(moas_to_be_reallocated))  # Remove duplication
 
         ### Start: Handle vessel changes ###
@@ -1112,8 +1113,8 @@ class AuthorisedUserPermit(Approval):
                     fee_constructor=proposal.fee_constructor if proposal.fee_constructor else moa_to_be_replaced.sticker.fee_constructor if moa_to_be_replaced.sticker else None,
                     proposal_initiated=proposal,
                 )
-                moa_to_be_replaced.sticker = sticker_to_be_filled  # Update moa
-                moa_to_be_replaced.save()
+            moa_to_be_replaced.sticker = sticker_to_be_filled  # Update moa
+            moa_to_be_replaced.save()
 
 
 class MooringLicence(Approval):
