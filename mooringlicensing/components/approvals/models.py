@@ -115,6 +115,7 @@ class MooringOnApproval(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+        unique_together = ("mooring", "approval")
 
 
 class ApprovalHistory(RevisionedMixin):
