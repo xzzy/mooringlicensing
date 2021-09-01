@@ -1717,10 +1717,11 @@ class Sticker(models.Model):
     )
     colour_default = 'green'
     colour_matrix = [
-        {'length': 10, 'colour': 'gray'},
-        {'length': 12, 'colour': 'purple'},
-        {'length': 14, 'colour': 'blue'},
-        {'length': 16, 'colour': 'white'},
+        {'length': 10, 'colour': 'green'},
+        {'length': 12, 'colour': 'grey'},
+        {'length': 14, 'colour': 'purple'},
+        {'length': 16, 'colour': 'blue'},
+        {'length': 1000, 'colour': 'white'},  # This is returned whenever any of the previous doesn't fit the requirement.
     ]
     number = models.CharField(max_length=9, blank=True, default='', unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
@@ -1768,11 +1769,31 @@ class Sticker(models.Model):
         colour += '/' + self.get_vessel_size_colour()
         return colour
 
+    def get_white_info(self):
+        white_info = ''
+        colour = self.get_sticker_colour()
+        if colour in [AuthorisedUserPermit.sticker_colour + '/white', MooringLicence.sticker_colour + '/white',]:
+            if self.vessel_applicable_length > 26:
+                white_info = self.vessel_applicable_length
+            elif self.vessel_applicable_length > 24:
+                white_info = 26
+            elif self.vessel_applicable_length > 22:
+                white_info = 24
+            elif self.vessel_applicable_length > 20:
+                white_info = 22
+            elif self.vessel_applicable_length > 18:
+                white_info = 20
+            elif self.vessel_applicable_length > 16:
+                white_info = 18
+        return white_info
+
     def get_vessel_size_colour(self):
+        last_item = None
         for item in self.colour_matrix:
+            last_item = item
             if self.vessel_applicable_length <= item['length']:
                 return item['colour']
-        return '---'
+        return last_item['colour']  # This returns the last item when reached
 
     @property
     def next_number(self):
