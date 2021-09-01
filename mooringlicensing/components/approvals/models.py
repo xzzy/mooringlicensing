@@ -446,11 +446,11 @@ class Approval(RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Approval, self).save(*args, **kwargs)
-        if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled']:
+        self.child_obj.refresh_from_db()
+        if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled', 'surrendered']:
         #if self.status != 'current':
             ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
             self.child_obj.update_auth_user_permits()
-        self.child_obj.refresh_from_db()
 
     def __str__(self):
         return self.lodgement_number
@@ -1013,6 +1013,11 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.final_approval()
 
     def update_moorings(self, mooring_licence):
+        if mooring_licence.status not in ['current', 'suspended']:
+            # end date relationship between aup and mooring attached to mooring_licence
+            moa = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence)
+            moa.end_date = datetime.datetime.now().date()
+            moa.save()
         if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
             send_auth_user_no_moorings_notification(self.approval)
