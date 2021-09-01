@@ -224,10 +224,12 @@ class GetMooringPerBay(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit
         #import ipdb; ipdb.set_trace()
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
+        aup_id = request.GET.get('aup_id')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
@@ -237,15 +239,20 @@ class GetMooringPerBay(views.APIView):
                 else:
                     data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
+                # aup
                 if mooring_bay_id:
+                    aup_mooring_ids = []
+                    if aup_id:
+                        aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.all()]
                     if vessel_details_id:
                         ## restrict search results to suitable vessels
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id)
                         data = Mooring.authorised_user_moorings.filter(
                                 name__icontains=search_term).filter(
-                                        mooring_bay__id=mooring_bay_id).filter(
-                                                vessel_size_limit__gte=vessel_details.vessel_applicable_length).filter(
-                                                        vessel_draft_limit__gte=vessel_details.vessel_draft).values('id', 'name')[:10]
+                                mooring_bay__id=mooring_bay_id).filter(
+                                vessel_size_limit__gte=vessel_details.vessel_applicable_length).filter(
+                                vessel_draft_limit__gte=vessel_details.vessel_draft).exclude(
+                                id__in=aup_mooring_ids).values('id', 'name')[:10]
                     else:
                         data = []
                 else:
