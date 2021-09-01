@@ -498,39 +498,9 @@ class Approval(RevisionedMixin):
         else:
             return False
 
-
-
-    #@property
-    #def can_renew(self):
-    #    try:
-    #        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
-    #        renew_conditions = {
-    #            'previous_application': self.current_proposal,
-    #            'proposal_type': proposal_type,
-    #        }
-    #        proposal=Proposal.objects.get(**renew_conditions)
-    #        if proposal:
-    #            return False
-    #    except Proposal.DoesNotExist:
-    #        return True
-
-    #@property
-    #def can_amend(self):
-    #    try:
-    #        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-    #        amend_conditions = {
-    #                'previous_application': self.current_proposal,
-    #                'proposal_type': proposal_type,
-    #                }
-    #        proposal=Proposal.objects.get(**amend_conditions)
-    #        if proposal:
-    #            return False
-    #    except Proposal.DoesNotExist:
-    #        if self.can_renew:
-    #            return True
-    #        else:
-    #            return False
-    #    return False
+    @property
+    def code(self):
+        return self.child_obj.code
 
     @property
     def amend_or_renew(self):
