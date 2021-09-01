@@ -800,6 +800,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'application_type',
                 'approval_level',
                 'approval_level_document',
+                'approval_id',
                 'title',
                 'customer_status',
                 'processing_status',
@@ -867,11 +868,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_authorised_user_moorings(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
-            #import ipdb; ipdb.set_trace()
-            #for moa in obj.mooringonapproval_set.all():
-            for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-                #if moa.mooring.mooring_licence:
-                 #   licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+            #for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            for moa in obj.approval.mooringonapproval_set.all():
                 suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
                 color = '#000000' if suitable_for_mooring else '#FF0000'
                 moorings.append({
@@ -882,8 +880,10 @@ class InternalProposalSerializer(BaseProposalSerializer):
                         '<span style="color:{}">User Requested</span>'.format(color),
                     "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else 
                         '<span style="color:{}">Historical</span>'.format(color),
+                    #"checked": True if not moa.end_date else False,
                     "checked": True if not moa.end_date else False,
                     "suitable_for_mooring": suitable_for_mooring,
+                    "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
                     })
         return moorings
 

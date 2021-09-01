@@ -294,10 +294,10 @@ export default {
                         data: 'id',
                         mRender: function (data, type, full) {
                             let disabled_str = ''
-                            if (vm.readonly){
+                            if (vm.readonly || !full.mooring_licence_current || !full.suitable_for_mooring){
                                 disabled_str = ' disabled '
                             }
-                            if (full.checked && full.suitable_for_mooring){
+                            if (full.checked){
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + ' checked/>'
                             } else {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + '/>'
@@ -822,6 +822,7 @@ export default {
                             type: 'public',
                             mooring_bay_id: vm.approval.mooring_bay_id,
                             vessel_details_id: vm.proposal.vessel_details_id,
+                            aup_id: vm.proposal.approval_id,
                         }
                         return query;
                     },
@@ -864,11 +865,11 @@ export default {
         vm.addFormValidations();
         this.$nextTick(()=>{
             //vm.eventListeners();
-            this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
             // AUP reissue
-            if (this.proposal.reissued) {
-                this.approval.mooring_bay_id = null;
+            if (!this.proposal.reissued) {
+                this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
             }
+            //this.approval.mooring_bay_id = null;
             this.initialiseMooringLookup();
             this.addEventListeners();
             if (this.authorisedUserApplication) {
