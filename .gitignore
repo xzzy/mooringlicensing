@@ -40,7 +40,7 @@ var/
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-
+#
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -53,7 +53,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-*,cover
+#*,cover
 .hypothesis/
 
 # Translations
@@ -113,3 +113,6 @@ mooringlicensing/static/mooringlicensing_vue/js/vendor.js
 mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
 
 ml_git_history
+
+#mooringlicensing/utils/csv/ml_20210831.csv
+mooringlicensing/utils/csv/*
