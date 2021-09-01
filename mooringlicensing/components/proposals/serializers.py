@@ -789,6 +789,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     previous_application_preferred_bay_id = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
+    reissued = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -853,11 +854,15 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'mooring_licence_vessels',
                 'authorised_user_moorings',
                 'dot_name',
+                'reissued',
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_reissued(self, obj):
+        return obj.approval.reissued if obj.approval else False
 
     def get_authorised_user_moorings(self, obj):
         moorings = []

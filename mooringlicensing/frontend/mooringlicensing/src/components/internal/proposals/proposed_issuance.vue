@@ -865,6 +865,10 @@ export default {
         this.$nextTick(()=>{
             //vm.eventListeners();
             this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
+            // AUP reissue
+            if (this.proposal.reissued) {
+                this.approval.mooring_bay_id = null;
+            }
             this.initialiseMooringLookup();
             this.addEventListeners();
             if (this.authorisedUserApplication) {
