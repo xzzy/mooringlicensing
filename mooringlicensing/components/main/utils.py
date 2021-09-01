@@ -8,8 +8,10 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
+from django.db.models import Q
 
-from mooringlicensing.components.approvals.models import Sticker
+from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
+    MooringLicence
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
         MooringBay, 
@@ -334,9 +336,27 @@ def sticker_export():
                 try:
                     # column: Moorings
                     mooring_names = []
-                    for mooring in sticker.approval.moorings.all():
-                        mooring_names.append(mooring.name)
+                    if sticker.approval.code == AnnualAdmissionPermit.code:
+                        # No associated moorings
+                        pass
+                    elif sticker.approval.code == AuthorisedUserPermit.code:
+                        valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
+                        for moa in valid_moas:
+                            mooring_names.append(moa.mooring.name)
+
+                        # for mooring in sticker.approval.moorings.all():
+                        #     mooring_names.append(mooring.name)
+                    elif sticker.approval.code == MooringLicence.code:
+                        if hasattr(sticker.approval, 'mooring'):
+                            mooring_names.append(sticker.approval.mooring.name)
+                        else:
+                            # Should not reach here
+                            pass
+                    else:
+                        # Should not reach here
+                        pass
                     mooring_names = ', '.join(mooring_names)
+                    print(mooring_names)
 
                     ws1.append([
                         today.strftime('%d/%m/%Y'),
