@@ -328,6 +328,7 @@ def sticker_export():
                 'Vessel Registration Number',
                 'Moorings',
                 'Colour',
+                'White info',
             ])
             for sticker in stickers:
                 try:
@@ -350,6 +351,7 @@ def sticker_export():
                         sticker.vessel_registration_number,
                         bay_moorings,
                         sticker.get_sticker_colour(),
+                        sticker.get_white_info(),
                     ])
                     logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
                     updates.append(sticker.number)
