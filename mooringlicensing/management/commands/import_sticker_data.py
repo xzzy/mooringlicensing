@@ -228,7 +228,9 @@ def process_sticker_printing_response():
                     sticker.printing_date = printing_date_value
                     sticker.mailing_date = mailing_date_value
                     sticker.sticker_printing_response = response
-                    sticker.status = Sticker.STICKER_STATUS_CURRENT
+                    if sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
+                        # sticker shoudl not be in READY status though.
+                        sticker.status = Sticker.STICKER_STATUS_CURRENT
                     sticker.save()
 
                     updates.append(sticker.number)
