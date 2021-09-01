@@ -333,10 +333,10 @@ def sticker_export():
             for sticker in stickers:
                 try:
                     # column: Moorings
-                    bay_moorings = []
+                    mooring_names = []
                     for mooring in sticker.approval.moorings.all():
-                        bay_moorings.append(mooring.mooring_bay.name + ' ' + mooring.name)
-                    bay_moorings = ', '.join(bay_moorings)
+                        mooring_names.append(mooring.name)
+                    mooring_names = ', '.join(mooring_names)
 
                     ws1.append([
                         today.strftime('%d/%m/%Y'),
@@ -349,7 +349,7 @@ def sticker_export():
                         sticker.postal_address_postcode,
                         sticker.number,
                         sticker.vessel_registration_number,
-                        bay_moorings,
+                        mooring_names,
                         sticker.get_sticker_colour(),
                         sticker.get_white_info(),
                     ])
