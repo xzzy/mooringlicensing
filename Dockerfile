@@ -49,6 +49,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
 #COPY .git ./.git
 COPY mooringlicensing ./mooringlicensing
+RUN rm -r mooringlicensing/utils/csv
 RUN python manage_ml.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
