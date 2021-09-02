@@ -253,6 +253,7 @@ export default {
                     'Number',
                     'Type',
                     'Sticker number/s',
+                    'Sticker mailed date',
                     'Status',
                     'Issue Date',
                     'Expiry Date',
@@ -285,6 +286,7 @@ export default {
                     'Number',
                     'Type',
                     'Sticker Number/s',
+                    'Sticker mailed date',
                     'Holder',
                     'Status',
                     'Issue Date',
@@ -559,8 +561,27 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            //return full.vessel_draft;
-                            return full.stickers;
+                            let ret_str = ''
+                            for (let sticker of full.stickers){
+                                ret_str += sticker.number + '<br />'
+                            }
+                            return ret_str
+                        }
+                    }
+        },
+        columnStickerMailedDate: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            let ret_str = ''
+                            for (let sticker of full.stickers){
+                                console.log(sticker.mailing_date)
+                                ret_str += moment(sticker.mailing_date).format('DD/MM/YYYY') + '<br />'
+                            }
+                            return ret_str
                         }
                     }
         },
@@ -637,6 +658,7 @@ export default {
                     vm.columnLodgementNumber,
                     vm.columnApprovalType,
                     vm.columnStickerNumber,
+                    vm.columnStickerMailedDate,
                     vm.columnStatus,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
@@ -670,6 +692,7 @@ export default {
                     vm.columnLodgementNumber,
                     vm.columnApprovalType,
                     vm.columnStickerNumber,
+                    vm.columnStickerMailedDate,
                     vm.columnHolder,
                     vm.columnStatus,
                     vm.columnIssueDate,
