@@ -1348,7 +1348,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 self.approval = approval
 
-                self.approval.child_obj.manage_stickers(self)
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
 
                 # send Proposal approval email with attachment
                 send_application_processed_email(self, 'approved', False, request)
@@ -1420,7 +1420,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     except:
                         fee_item_additional = None
 
-                if request:
                     with transaction.atomic():
                         try:
                             logger.info('Creating invoice for the application: {}'.format(self))
@@ -1435,6 +1434,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             err_msg = 'Failed to create annual site fee confirmation'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
+
                 if self.approval and self.approval.reissued:
                     approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
                     self.process_after_approval()
@@ -1449,10 +1449,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         application_fee.fee_items.add(fee_item_additional)
 
                     self.send_emails_for_payment_required(request, invoice)
-                    self.process_after_approval(request, self.invoice.payment_status, total_amount)
+                    self.process_after_approval(request, total_amount)
 
                 if approval:
-                    approval.manage_stickers(self)
+                    moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+                    request = request if request else None
+                    total_amount = total_amount if total_amount else 0
+                    # Update status after manage_stickers() just in case
+                    self.process_after_approval(request, total_amount)
 
                 # Log proposal action
                 if request:
@@ -1716,8 +1720,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_payment_success(request)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def process_after_approval(self, request=None, payment_status=None, total_amount=None):
-        self.child_obj.process_after_approval(request, payment_status, total_amount)
+    def process_after_approval(self, request=None, total_amount=None):
+        self.child_obj.process_after_approval(request, total_amount)
         self.refresh_from_db()  # Somehow this is needed...
 
     def get_fee_amount_adjusted(self, fee_item, vessel_length):
@@ -2018,7 +2022,7 @@ class WaitingListApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    def process_after_approval(self, request=None, payment_status=None, total_amount=None):
+    def process_after_approval(self, request=None, total_amount=None):
         self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
@@ -2162,7 +2166,7 @@ class AnnualAdmissionApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    def process_after_approval(self, request=None, payment_status=None, total_amount=None):
+    def process_after_approval(self, request=None, total_amount=None):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
         self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
@@ -2363,7 +2367,7 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request=None, payment_status=None, total_amount=None):
+    def process_after_approval(self, request=None, total_amount=None):
         from mooringlicensing.components.approvals.models import Sticker
 
         if self.approval and self.approval.reissued:
@@ -2389,23 +2393,8 @@ class AuthorisedUserApplication(Proposal):
                 else:
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-
-        #if self.approval.moorings.all().count() % 4 == 0:
-            #    # Each existing sticker filled with 4 moorings --> Just creating new sticker.  No need to return.
-            #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-            #else:
-            #    # One of the existing stickers should be replaced by a new sticker
-            #    # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            #    # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # TODO: Reconsider the logic...  Do we have to worry about moorings?
-            # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             if total_amount:
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
                 self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -2423,10 +2412,6 @@ class AuthorisedUserApplication(Proposal):
 
         self.save()
         # TODO: Send email (payment required)
-        # else:
-        # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-        # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-        # self.save()
         # TODO: Send email (payment required, Sticker to be returned)
 
     def process_after_payment_success(self, request):
@@ -2534,13 +2519,13 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request=None, payment_status=None, total_amount=None):
+    def process_after_approval(self, request=None, total_amount=None):
         print('in process_after_approved')
         if self.approval and self.approval.reissued:
             # Reissued proposal
             self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
             self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        elif payment_status == 'unpaid':
+        elif total_amount > 0:
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             self.save()
