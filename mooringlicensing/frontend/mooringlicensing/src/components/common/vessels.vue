@@ -886,9 +886,15 @@ from '@/utils/hooks'
                     }
                 }
                 // read in dot_name
+                if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.dot_name) {
+                    this.dotName = this.vessel.vessel_ownership.dot_name;
+                }
+                /*
+                // read in dot_name
                 if (this.proposal && this.proposal.dot_name) {
                     this.dotName = this.proposal.dot_name;
                 }
+                */
             });
         },
         created: function() {
