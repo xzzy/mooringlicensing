@@ -22,6 +22,7 @@ module.exports = {
     mooring_statuses_dict:"/api/mooring_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
+    daily_admission_url: "/api/daily_admission_url",
 
     profile: '/api/profile',
     submitter_profile: '/api/submitter_profile',
