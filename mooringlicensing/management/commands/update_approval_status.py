@@ -37,7 +37,6 @@ class Command(BaseCommand):
         queries &= Q(expiry_date__lt=today)
 
         approvals = Approval.objects.filter(queries)
-
         for approval in approvals:
             try:
                 approval.expire_approval(user)
