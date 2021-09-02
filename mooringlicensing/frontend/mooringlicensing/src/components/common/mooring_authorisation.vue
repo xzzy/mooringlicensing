@@ -1,14 +1,5 @@
 <template lang="html">
     <div id="mooring_authorisation">
-        <FormSection label="Current Moorings" Index="current_moorings">
-            <div class="row form-group">
-                <div class="col-sm-9">
-                    <s>Below you can enter the details of a new vessel to be added to the mooring licence if required, otherwise leave the vessel details blank.</s>
-                    <strong>BB note: As discussed, for all renewal/amendments I am currently prefilling the vessel (unless sold) from the last application in the chain of applications linked to an approval.</strong>
-                </div>
-            </div>
-        </FormSection>
-
         <FormSection label="Mooring details" Index="mooring_authorisation">
             <div class="row form-group">
                 <label for="" class="col-sm-9 control-label">Do you want to be authorised
