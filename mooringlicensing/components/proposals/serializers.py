@@ -228,6 +228,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     # fee_invoice_url = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
+    approval_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
     editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
@@ -239,6 +240,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     previous_application_preferred_bay_id = serializers.SerializerMethodField()
     mooring_licence_vessels = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
+    approval_vessel_rego_no = serializers.SerializerMethodField()
     waiting_list_application_id = serializers.SerializerMethodField()
 
     class Meta:
@@ -250,6 +252,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 #'application_type',
                 'application_type_code',
                 'application_type_text',
+                'approval_type_text',
                 'application_type_dict',
                 'proposal_type',
                 # 'activity',
@@ -317,6 +320,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'previous_application_preferred_bay_id',
                 'mooring_licence_vessels',
                 'approval_lodgement_number',
+                'approval_vessel_rego_no',
                 'waiting_list_application_id',
                 )
         read_only_fields=('documents',)
@@ -327,6 +331,14 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             wla_id = obj.waiting_list_allocation.current_proposal.id
         return wla_id
 
+    def get_approval_vessel_rego_no(self, obj):
+        rego_no = None
+        if obj.approval and type(obj.approval) is not MooringLicence:
+            rego_no = (obj.approval.current_proposal.vessel_details.vessel.rego_no if 
+                    obj.approval and obj.approval.current_proposal and obj.approval.current_proposal.vessel_details 
+                    else None)
+        return rego_no
+
     def get_approval_lodgement_number(self, obj):
         lodgement_number = None
         if obj.approval:
@@ -335,7 +347,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
     def get_mooring_licence_vessels(self, obj):
         vessels = []
-        if obj.approval and type(obj.approval.child_obj) == MooringLicence:
+        if obj.approval and type(obj.approval.child_obj) is MooringLicence:
             vessels = obj.approval.child_obj.current_vessels_rego
         return vessels
 
@@ -356,6 +368,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
+
+    def get_approval_type_text(self, obj):
+        return obj.approval.child_obj.description if obj.approval else None
 
     def get_application_type_text(self, obj):
         return obj.child_obj.description

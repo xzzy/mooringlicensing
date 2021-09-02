@@ -1,13 +1,6 @@
 <template lang="html">
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
-            <div v-if="mooringLicenceCurrentVesselDisplayText" class="row form-group">
-                <div class="col-sm-9">
-                    {{ mooringLicenceCurrentVesselDisplayText }}
-                    <s>Below you can enter the details of a new vessel to be added to the mooring licence if required, otherwise leave the vessel details blank.</s>
-                    <strong>BB note: As discussed, for all renewal/amendments I am currently prefilling the vessel (unless sold) from the last application in the chain of applications linked to an approval.</strong>
-                </div>
-            </div>
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
@@ -255,9 +248,12 @@ from '@/utils/hooks'
             editingVessel:{
                 type: Boolean,
             },
-            is_internal:{
+            is_internal: {
               type: Boolean,
               default: false
+            },
+            keep_current_vessel: {
+              type: Boolean,
             },
         },
         /*
@@ -279,6 +275,21 @@ from '@/utils/hooks'
                 }
                 return displayText;
             },
+            currentVesselDisplayText: function() {
+                let displayText = '';
+                if (this.proposal && this.proposal.approval_vessel_rego_no) {
+                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number} 
+                    lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}.`;
+                }
+                /*
+                if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
+                    displayText += `Your Authorised User Permit ${this.proposal.approval_lodgement_number} 
+                    lists the following vessel ${this.proposal.mooring_licence_vessels.toString()}.`;
+                }
+                */
+                return displayText;
+            },
+
             showDotRegistrationPapers: function() {
                 let retVal = false;
                 if (this.proposal && this.proposal.id && this.companyOwner) {
@@ -374,6 +385,8 @@ from '@/utils/hooks'
 
         },
         methods:{
+            resetCurrentVessel: function() {
+            },
             retrieveIndividualOwner: async function() {
                 console.log("retrieve individual owner")
                 if (this.individualOwner && this.vessel.id) {
@@ -843,7 +856,9 @@ from '@/utils/hooks'
                 this.initialiseCompanyNameSelect();
                 this.addEventListeners();
                 // read in Renewal/Amendment vessel details
-                if (this.proposal && this.proposal.pending_amendment_request) {
+                if (!this.keep_current_vessel) {
+                    // pass
+                } else if (this.proposal && this.proposal.pending_amendment_request) {
                     // ensure an Amendment which has been sent back to draft with request amendment does not have the logic applied below
                     console.log("amendment request")
                     // pass
@@ -890,6 +905,8 @@ from '@/utils/hooks'
                     this.dotName = this.vessel.vessel_ownership.dot_name;
                 }
                 /*
+                // keep current vessel
+                this.vessel.keep_current_vessel = true;
                 // read in dot_name
                 if (this.proposal && this.proposal.dot_name) {
                     this.dotName = this.proposal.dot_name;
