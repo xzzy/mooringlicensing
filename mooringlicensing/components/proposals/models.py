@@ -232,7 +232,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # CUSTOMER_STATUS_PARTIALLY_APPROVED = 'partially_approved'
     # CUSTOMER_STATUS_PARTIALLY_DECLINED = 'partially_declined'
     CUSTOMER_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
-    CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
     CUSTOMER_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
     CUSTOMER_STATUS_EXPIRED = 'expired'
     CUSTOMER_STATUS_CHOICES = (
@@ -250,7 +249,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # (CUSTOMER_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
         # (CUSTOMER_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
-        (CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
         (CUSTOMER_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
         (CUSTOMER_STATUS_EXPIRED, 'Expired'),
         )
