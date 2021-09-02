@@ -422,8 +422,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
     waiting_list_allocation = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, related_name="ria_generated_proposal")
-    ## Name as shown on DoT registration papers
-    dot_name = models.CharField(max_length=200, blank=True, null=True)
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
 
@@ -3076,6 +3074,8 @@ class VesselOwnership(models.Model):
     filtered_objects = VesselOwnershipManager()
     #objects = VesselOwnershipManager()
     mooring_licence_end_date = models.DateField(blank=True, null=True)
+    ## Name as shown on DoT registration papers
+    dot_name = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"

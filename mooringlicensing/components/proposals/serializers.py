@@ -312,7 +312,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'mooring_authorisation_preference',
                 'company_ownership_name',
                 'company_ownership_percentage',
-                'dot_name',
                 'previous_application_id',
                 'previous_application_vessel_details_id',
                 'previous_application_preferred_bay_id',
@@ -572,7 +571,6 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'site_licensee_email',
                 'mooring_id',
                 'mooring_authorisation_preference',
-                'dot_name',
                 )
         read_only_fields=('id',)
 
@@ -586,7 +584,6 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 'id',
                 'preferred_bay_id',
                 'silent_elector',
-                'dot_name',
                 )
         read_only_fields=('id',)
 
@@ -617,7 +614,6 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'insurance_choice',
-                'dot_name',
                 )
         read_only_fields=('id',)
 
@@ -646,7 +642,6 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 'silent_elector',
                 'customer_status',
                 'processing_status',
-                'dot_name',
                 )
         read_only_fields=('id',)
 
@@ -689,7 +684,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'mooring_id',
                 'customer_status',
                 'processing_status',
-                'dot_name',
                 )
         read_only_fields=('id',)
 
@@ -742,7 +736,6 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'individual_owner',
                 'company_ownership_percentage',
                 'company_ownership_name',
-                'dot_name',
                 )
 
 
@@ -854,7 +847,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'previous_application_preferred_bay_id',
                 'mooring_licence_vessels',
                 'authorised_user_moorings',
-                'dot_name',
                 'reissued',
                 )
         read_only_fields = (
@@ -1359,6 +1351,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
                 'applicable_percentage',
                 'owner_phone_number',
                 'individual_owner',
+                'dot_name',
                 )
 
     def get_owner_full_name(self, obj):
@@ -1430,6 +1423,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 #'org_name',
                 'start_date',
                 'end_date',
+                'dot_name',
                 )
 
     def validate(self, data):
