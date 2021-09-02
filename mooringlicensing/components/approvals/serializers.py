@@ -491,8 +491,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_authorised_user_moorings_detail(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
-            #for moa in obj.mooringonapproval_set.all():
-            for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            #for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
                 if moa.mooring.mooring_licence:
                     licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
                 moorings.append({
