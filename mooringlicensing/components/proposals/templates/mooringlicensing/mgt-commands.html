@@ -40,18 +40,6 @@
             </div>
 
             <div class="row">
-                <button type="submit" name="script" value="expire_approvals" {% if expire_approvals == 'true' %}style="color:green" {% endif %} title="Expire Approvals">Run Script 'expire_approvals'</button>
-                {% if debug %}
-                    <div class="debug-box">
-                        <div><span>Enter the approval lodgement number and click the button above</span></div>
-                            <div>
-                                Approval lodgement number to expire: <input type="text" name="expire_approvals_lodgement_number" />
-                            </div>
-                    </div>
-                {% endif %}
-            </div>
-
-            <div class="row">
                 <button type="submit" name="script" value="update_approval_status" {% if update_approval_status == 'true' %}style="color:green" {% endif %} title="Update Approval Status">Run Script 'update_approval_status'</button>
 <!--                {% if debug %}-->
 <!--                    <div class="debug-box">-->
