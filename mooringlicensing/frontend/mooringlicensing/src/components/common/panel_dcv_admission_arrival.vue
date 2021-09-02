@@ -46,7 +46,7 @@
                     </div>
                     <div v-else class="row">
                         <div class="col-sm-12">
-                            <div><strong>Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
+                            <div><strong>Please click <a :href="daily_admission_url" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
                             <div><strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong></div>
                         </div>
                     </div>
@@ -159,6 +159,7 @@ export default {
         return {
             shown: false,  // Hidden first to make fade-in work
             paySubmitting: false,
+            daily_admission_url: '',
         }
     },
     components:{
@@ -270,6 +271,12 @@ export default {
         },
     },
     methods: {
+        fetchData: async function(){
+            // Status values
+            const res = await this.$http.get(api_endpoints.daily_admission_url);
+            console.log(res.body.daily_admission_url)
+            this.daily_admission_url = res.body.daily_admission_url
+        },
         delete_arrival_icon_clicked: function() {
             this.shown = false
             this.$emit('delete_arrival', this.arrival.uuid)
@@ -320,8 +327,8 @@ export default {
     mounted: function () {
         this.shown = true  // Show the panel once
     },
-    created: function() {
-
+    created: async function() {
+        await this.fetchData();
         this.$nextTick(() => {
             this.addEventListeners();
         });
