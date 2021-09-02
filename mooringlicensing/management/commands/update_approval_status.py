@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.db.models import Q
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import Approval, ApprovalUserAction
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Change the status of Approvals to Surrender/ Cancelled/ Suspended.'
+    help = 'Change the status of Approvals to Expired/Surrender/ Cancelled/ Suspended.'
 
     def handle(self, *args, **options):
         try:
@@ -30,12 +31,25 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
 
-        # For debug
-        # params = options.get('params')
-        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        # approval_id = int(params.get('update_approval_status_id', 0))
-        # approval = Approval.objects.filter(id=approval_id)
+        # Expiry
+        queries = Q()
+        queries &= (Q(status=Approval.APPROVAL_STATUS_CURRENT) & Q(replaced_by__isnull=True))
+        queries &= Q(expiry_date__lt=today)
 
+        approvals = Approval.objects.filter(queries)
+
+        for approval in approvals:
+            try:
+                approval.expire_approval(user)
+                # a.save()  # Saved in the above function...?
+                logger.info('Updated Approval {} status to {}'.format(approval.id, approval.status))
+                updates.append(approval.lodgement_number)
+            except Exception as e:
+                err_msg = 'Error updating Approval {} status'.format(approval.lodgement_number)
+                logger.error('{}\n{}'.format(err_msg, str(e)))
+                errors.append(err_msg)
+
+        # Current --> suspend, cancel, surrender
         for a in Approval.objects.filter(status=Approval.APPROVAL_STATUS_CURRENT):
             if a.suspension_details and a.set_to_suspend:
                 from_date = datetime.datetime.strptime(a.suspension_details['from_date'], '%d/%m/%Y')
@@ -95,6 +109,7 @@ class Command(BaseCommand):
                         logger.error('{}\n{}'.format(err_msg, str(e)))
                         errors.append(err_msg)
 
+        # Suspended --> current, cancel, surrender
         for a in Approval.objects.filter(status=Approval.APPROVAL_STATUS_SUSPENDED):
             if a.suspension_details and a.suspension_details['to_date']:               
                 to_date = datetime.datetime.strptime(a.suspension_details['to_date'], '%d/%m/%Y')
