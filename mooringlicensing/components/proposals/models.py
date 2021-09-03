@@ -1025,6 +1025,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 ## security ???
                 #elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
                 self.processing_status = status
+                self.proposed_issuance_approval = {}
                 self.save()
                 self.approval.reissued=True
                 self.approval.save()
@@ -2347,6 +2348,7 @@ class AuthorisedUserApplication(Proposal):
                         moa2.save()
 
         # Manage stickers
+        # TODO: do you really need this?
         moa_created = moa if created else None
         # approval.child_obj.manage_stickers(self, moa_created)
 
