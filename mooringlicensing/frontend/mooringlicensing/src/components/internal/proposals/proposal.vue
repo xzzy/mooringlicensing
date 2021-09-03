@@ -641,6 +641,10 @@ export default {
             }
         },
         switchStatus: function(status){
+            console.log('in switchStatus')
+            console.log(this.proposal.processing_status)
+            console.log(status)
+
             let vm = this;
             //vm.save_wo();
             //let vm = this;
