@@ -411,16 +411,7 @@ export default {
             console.log('proposedApproval')
             this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             if(this.proposal.proposed_issuance_approval == null){
-                //var test_approval={
-                //    'cc_email': this.proposal.referral_email_list
-                //};
-                //this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
-                // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
             }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
             this.uuid++;
             this.$nextTick(() => {
                 this.$refs.proposed_approval.isModalOpen = true;
@@ -458,6 +449,7 @@ export default {
                 this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
                 this.$refs.proposed_approval.state = 'final_approval';
                 this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                /*
                 if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
                     var start_date=new Date();
                     start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
@@ -468,6 +460,7 @@ export default {
                     expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
                     $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
                 }
+                */
                 //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
                 // if(this.proposal.applicant.email){
                 //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
