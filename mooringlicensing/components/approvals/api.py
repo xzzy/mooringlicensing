@@ -1,4 +1,5 @@
 import traceback
+from confy import env
 import datetime
 import pytz
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -26,7 +27,7 @@ from mooringlicensing.components.payments_ml.serializers import DcvPermitSeriali
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
+    DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,
 )
 from mooringlicensing.components.main.process_document import (
@@ -35,7 +36,6 @@ from mooringlicensing.components.main.process_document import (
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
     ApprovalCancellationSerializer,
-    ApprovalExtendSerializer,
     ApprovalSuspensionSerializer,
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
@@ -56,6 +56,15 @@ from mooringlicensing.settings import PROPOSAL_TYPE_NEW
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework import filters
+
+
+class GetDailyAdmissionUrl(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        daily_admission_url = env('DAILY_ADMISSION_PAGE_URL', '')
+        data = {'daily_admission_url': daily_admission_url}
+        return Response(data)
 
 
 class GetFeeSeasonsDict(views.APIView):
