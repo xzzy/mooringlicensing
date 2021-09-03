@@ -77,25 +77,33 @@ class Payment(RevisionedMixin):
         return "unpaid"
 
     def __check_payment_status(self):
-        invoices = []
+        # invoices = []
         amount = Decimal('0.0')
-        references = self.invoices.all().values('invoice_reference')
-        for r in references:
-            try:
-                invoices.append(Invoice.objects.get(reference=r.get("invoice_reference")))
-            except Invoice.DoesNotExist:
-                pass
-        for i in invoices:
-            if not i.voided:
-                amount += i.payment_amount
 
-        if amount == 0:
-            return 'unpaid'
-        elif self.cost_total < amount:
-            return 'over_paid'
-        elif self.cost_total > amount:
-            return 'partially_paid'
-        return "paid"
+        # references = self.invoices.all().values('invoice_reference')
+        # for r in references:
+        #     try:
+        #         invoices.append(Invoice.objects.get(reference=r.get("invoice_reference")))
+        #     except Invoice.DoesNotExist:
+        #         pass
+        invoice = Invoice.objects.filter(reference=self.invoice_reference)
+        if invoice:
+            invoice = invoice.first()
+            return invoice.payment_status
+        else:
+            raise Exception('No invoice found for the ApplicationFee: {}'.format(self))
+
+        # for i in invoices:
+        #     if not i.voided:
+        #         amount += i.payment_amount
+
+        # if amount == 0:
+        #     return 'unpaid'
+        # elif self.cost_total < amount:
+        #     return 'over_paid'
+        # elif self.cost_total > amount:
+        #     return 'partially_paid'
+        # return "paid"
 
 
 class DcvAdmissionFee(Payment):
