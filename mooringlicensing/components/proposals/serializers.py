@@ -302,6 +302,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
+                'dot_name',
                 #'org_name',
                 'percentage',
                 'editable_vessel_details',
@@ -751,6 +752,7 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'individual_owner',
                 'company_ownership_percentage',
                 'company_ownership_name',
+                'dot_name',
                 )
 
 
@@ -863,6 +865,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'mooring_licence_vessels',
                 'authorised_user_moorings',
                 'reissued',
+                'dot_name',
                 )
         read_only_fields = (
             'documents',
