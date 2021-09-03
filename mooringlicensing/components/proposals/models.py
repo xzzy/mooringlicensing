@@ -1671,12 +1671,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return approval, created
 
     def process_after_payment_success(self, request):
-        self.child_obj.process_after_payment_success(request)
-        self.refresh_from_db()  # Somehow this is needed...
+        if hasattr(self.child_obj, 'process_after_payment_success'):
+            self.child_obj.process_after_payment_success(request)
+            self.refresh_from_db()  # Somehow this is needed...
 
     def process_after_approval(self, request=None, total_amount=None):
-        self.child_obj.process_after_approval(request, total_amount)
-        self.refresh_from_db()  # Somehow this is needed...
+        if hasattr(self.child_obj, 'process_after_approval'):
+            self.child_obj.process_after_approval(request, total_amount)
+            self.refresh_from_db()  # Somehow this is needed...
 
     def get_fee_amount_adjusted(self, fee_item, vessel_length):
         return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
@@ -1970,18 +1972,9 @@ class WaitingListApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
         ret1 = self.send_emails_after_payment_success(request)
-        if ret1:
-            pass
-            # self.set_status_after_payment_success()
-        else:
+        if not ret1:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
-
-    # def process_after_approval(self, request=None, total_amount=None):
-    #     return
-    #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-    #     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-    #     self.save()
 
     def update_status(self):
         # this works only when called after approved/success-payment
@@ -2155,18 +2148,10 @@ class AnnualAdmissionApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
         ret1 = self.send_emails_after_payment_success(request)
-        if ret1:
-            # self.set_status_after_payment_success()
-            pass
-        else:
+        if not ret1:
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-        self.save()
 
-    # def process_after_approval(self, request=None, total_amount=None):
-    #     return
-    #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-    #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-    #     self.save()
+        self.save()
 
     def update_status(self):
         # this works only when called after approved/success-payment
@@ -2428,66 +2413,6 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
-    def process_after_approval(self, request=None, total_amount=None):
-        return
-        #from mooringlicensing.components.approvals.models import Sticker
-
-        #if self.approval and self.approval.reissued:
-        #    # Reissued proposal
-        #    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-        #    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        #elif self.proposal_type.code == PROPOSAL_TYPE_NEW:
-        #    # New proposal
-        #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        #elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-        #    # Amendment --> Approval already exists
-        #    # TODO: Reconsider the logic...  Do we have to worry about moorings?
-        #    if total_amount:
-        #        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        #        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        #    else:
-        #        stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-        #        if stickers_awaiting.count():
-        #            # There is at lease one sticker awaiting printing
-        #            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        #            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        #        else:
-        #            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-        #            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        #elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-        #    # TODO: Reconsider the logic...  Do we have to worry about moorings?
-        #    if total_amount:
-        #        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        #        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        #    else:
-        #        stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-        #        if stickers_awaiting.count():
-        #            # There is at lease one sticker awaiting printing
-        #            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        #            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        #        else:
-        #            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-        #            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        #else:
-        #    raise  # Should not reach here
-
-        #self.save()
-        ## TODO: Send email (payment required)
-        ## TODO: Send email (payment required, Sticker to be returned)
-
-    def process_after_payment_success(self, request):
-        return
-        # if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
-            # User had to make payment
-            # self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-            # self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        #if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
-        #    # User had to make payment and also return sticker
-        #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
-        #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
-        # self.save()
-
     @property
     def does_accept_null_vessel(self):
         return False
@@ -2605,12 +2530,6 @@ class MooringLicenceApplication(Proposal):
         # self.proposal.refresh_from_db()
         # print('refresh_from_db2')
         # TODO: Send email (payment required)
-
-    def process_after_payment_success(self, request):
-        return
-        # self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        # self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        # self.save()
 
     def update_status(self):
         # this works only when called after approved/success-payment
