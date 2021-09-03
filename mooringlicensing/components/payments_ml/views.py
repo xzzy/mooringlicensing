@@ -733,6 +733,7 @@ class ApplicationFeeSuccessView(TemplateView):
             else:
                 return redirect('home')
 
+        proposal.child_obj.update_status()
         context = {
             'proposal': proposal,
             'submitter': submitter,
