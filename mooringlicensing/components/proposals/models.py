@@ -2430,63 +2430,63 @@ class AuthorisedUserApplication(Proposal):
 
     def process_after_approval(self, request=None, total_amount=None):
         return
-        from mooringlicensing.components.approvals.models import Sticker
+        #from mooringlicensing.components.approvals.models import Sticker
 
-        if self.approval and self.approval.reissued:
-            # Reissued proposal
-            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        elif self.proposal_type.code == PROPOSAL_TYPE_NEW:
-            # New proposal
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            # Amendment --> Approval already exists
-            # TODO: Reconsider the logic...  Do we have to worry about moorings?
-            if total_amount:
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-            else:
-                stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-                if stickers_awaiting.count():
-                    # There is at lease one sticker awaiting printing
-                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                else:
-                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-            # TODO: Reconsider the logic...  Do we have to worry about moorings?
-            if total_amount:
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-            else:
-                stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-                if stickers_awaiting.count():
-                    # There is at lease one sticker awaiting printing
-                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                else:
-                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-        else:
-            raise  # Should not reach here
+        #if self.approval and self.approval.reissued:
+        #    # Reissued proposal
+        #    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        #    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        #elif self.proposal_type.code == PROPOSAL_TYPE_NEW:
+        #    # New proposal
+        #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+        #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        #elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+        #    # Amendment --> Approval already exists
+        #    # TODO: Reconsider the logic...  Do we have to worry about moorings?
+        #    if total_amount:
+        #        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+        #        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        #    else:
+        #        stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+        #        if stickers_awaiting.count():
+        #            # There is at lease one sticker awaiting printing
+        #            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        #            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        #        else:
+        #            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        #            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        #elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+        #    # TODO: Reconsider the logic...  Do we have to worry about moorings?
+        #    if total_amount:
+        #        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+        #        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        #    else:
+        #        stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+        #        if stickers_awaiting.count():
+        #            # There is at lease one sticker awaiting printing
+        #            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        #            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        #        else:
+        #            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        #            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        #else:
+        #    raise  # Should not reach here
 
-        self.save()
-        # TODO: Send email (payment required)
-        # TODO: Send email (payment required, Sticker to be returned)
+        #self.save()
+        ## TODO: Send email (payment required)
+        ## TODO: Send email (payment required, Sticker to be returned)
 
     def process_after_payment_success(self, request):
         return
-        if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+        # if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
             # User had to make payment
-            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+            # self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            # self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         #if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
         #    # User had to make payment and also return sticker
         #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
         #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
-        self.save()
+        # self.save()
 
     @property
     def does_accept_null_vessel(self):
@@ -2586,16 +2586,18 @@ class MooringLicenceApplication(Proposal):
         print('in process_after_approved')
         if self.approval and self.approval.reissued:
             # Reissued proposal
-            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            # self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            # self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            pass
         elif total_amount > 0:
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-            self.save()
+            # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            # self.save()
+            pass
         else:
-            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-            self.save()
+            # self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            # self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            # self.save()
             if request:
                 approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
             else:
@@ -2605,9 +2607,40 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment required)
 
     def process_after_payment_success(self, request):
-        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        self.save()
+        return
+        # self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        # self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        # self.save()
+
+    def update_status(self):
+        # this works only when called after approved/success-payment
+        from mooringlicensing.components.approvals.models import Sticker
+        awaiting_payment = False
+        awaiting_printing = False
+
+        for application_fee in self.application_fees.all():
+            if application_fee.unpaid:
+                awaiting_payment = True
+
+        if self.approval:
+            stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+            if stickers.count() >0:
+                awaiting_printing = True
+
+        if awaiting_payment:
+            self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        elif awaiting_printing:
+            self.proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+        else:
+            self.proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        self.proposal.save()
+        self.refresh_from_db()
+
+        print('Awaiting Payment: ' + str(awaiting_payment))
+        print('Sticker Printing: ' + str(awaiting_printing))
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
