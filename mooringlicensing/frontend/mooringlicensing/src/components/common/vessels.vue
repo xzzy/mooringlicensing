@@ -114,7 +114,14 @@
                 <label for="" class="col-sm-3 control-label">Name as shown on DoT registration papers</label>
                 <!--label for="" class="col-sm-3 control-label">Permanent or usual place</label-->
                 <div class="col-sm-9">
-                    <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="dot_name" placeholder="" v-model="dotName" required=""/>
+                    <!--input :readonly="readonly" type="text" class="col-sm-9 form-control" id="dot_name" placeholder="" v-model="dotName" required=""/-->
+                    <input 
+                    :readonly="readonly" 
+                    type="text" 
+                    class="col-sm-9 form-control" 
+                    id="dot_name" 
+                    placeholder="" 
+                    v-model="vessel.vessel_ownership.dot_name" required=""/>
                 </div>
             </div>
 
@@ -797,6 +804,7 @@ from '@/utils/hooks'
                 let vessel_ownership = {};
                 vessel_ownership.percentage = this.proposal.percentage;
                 vessel_ownership.individual_owner = this.proposal.individual_owner;
+                vessel_ownership.dot_name = this.proposal.dot_name;
                 this.vessel.vessel_ownership = Object.assign({}, vessel_ownership);
                 // company ownership
                 this.vessel.vessel_ownership.company_ownership = {};
