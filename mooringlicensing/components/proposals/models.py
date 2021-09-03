@@ -1388,7 +1388,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if self.approval and self.approval.reissued:
                     approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-                    self.process_after_approval()
+#                    self.process_after_approval()
                 elif request:
                     application_fee = ApplicationFee.objects.create(
                         proposal=self,
@@ -1407,7 +1407,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     request = request if request else None
                     total_amount = total_amount if total_amount else 0
                     # Update status after manage_stickers() just in case
-                    self.process_after_approval(request, total_amount)
+#                    self.process_after_approval(request, total_amount)
 
                 # TEST
                 self.child_obj.update_status()
@@ -2003,6 +2003,10 @@ class WaitingListApplication(Proposal):
                 self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                 self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
+                # Should not reach here
+                # WHen with_assessor to with_assessor_requirements, this function should not be called
+                pass
+            elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
                 # This function is being accessed by the approval
                 self.proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.proposal.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
@@ -2180,6 +2184,10 @@ class AnnualAdmissionApplication(Proposal):
                 self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                 self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
+                # Should not reach here
+                # WHen with_assessor to with_assessor_requirements, this function should not be called
+                pass
+            elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
                 # This function is being accessed by the approval
                 self.proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.proposal.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
@@ -2507,28 +2515,13 @@ class MooringLicenceApplication(Proposal):
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request=None, total_amount=None):
-        print('in process_after_approved')
-        if self.approval and self.approval.reissued:
-            # Reissued proposal
-            # self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            # self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-            pass
-        elif total_amount > 0:
-            # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-            # self.save()
-            pass
-        else:
-            # self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            # self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-            # self.save()
+    def process_after_approval(self, request=None, total_amount=0):
+        if not (self.approval and self.approval.reissued) and not total_amount > 0:
             if request:
                 approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
             else:
                 approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-        # self.proposal.refresh_from_db()
-        # print('refresh_from_db2')
+
         # TODO: Send email (payment required)
 
     def update_status(self):
