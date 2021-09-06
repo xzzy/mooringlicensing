@@ -1,8 +1,4 @@
-import datetime
 from io import BytesIO
-from pathlib import Path
-from django.db.models import Q
-from django.core.files.base import File, ContentFile
 from ledger.settings_base import TIME_ZONE
 from django.utils import timezone
 
@@ -12,22 +8,19 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from ledger.accounts.models import EmailUser
+from django.db.models import Q
 
-from mooringlicensing.components.approvals.models import Sticker, WaitingListAllocation
+from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
+    MooringLicence
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
         MooringBay, 
-        Mooring, 
-        Proposal, 
-        StickerPrintingBatch, 
-        MooringLicenceApplication
-        )
+        Mooring,
+        StickerPrintingBatch
+)
 from rest_framework import serializers
 from openpyxl import Workbook
-from openpyxl.writer.excel import save_virtual_workbook
 from copy import deepcopy
-import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -70,47 +63,46 @@ def check_db_connection():
     except Exception as e:
         connection.connect()
 
-def reset_waiting_list_allocations(wla_list):
-    try:
-        records_updated = []
-        with transaction.atomic():
-            # send email
-            #send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
-            # update waiting_list_allocation
-            for waiting_list_allocation in wla_list:
-                waiting_list_allocation.status = 'current'
-                #current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                now = timezone.localtime(timezone.now())
-                waiting_list_allocation.wla_queue_date = now
-                waiting_list_allocation.save()
-                # discard MLA
-                mla_qs = MooringLicenceApplication.objects.filter(
-                        waiting_list_allocation=waiting_list_allocation,
-                        processing_status='draft').order_by('-lodgement_date')
-                mla = mla_qs[0] if mla_qs else None
-                if mla:
-                    mla.processing_status = 'discarded'
-                    mla.customer_status = 'discarded'
-                    mla.save()
-                    records_updated.append(str(mla))
-            # set wla order per bay
-            for bay in MooringBay.objects.all():
-                place = 1
-                for w in WaitingListAllocation.objects.filter(
-                        wla_queue_date__isnull=False, 
-                        current_proposal__preferred_bay=bay,
-                        status='current').order_by(
-                                '-wla_queue_date'):
-                    w.wla_order = place
-                    w.save()
-                    records_updated.append(str(w))
-                    place += 1
-            return [], records_updated
-    except Exception as e:
-        #raise e
-        logger.error('retrieve_mooring_areas() error', exc_info=True)
-        # email only prints len() of error list
-        return ['check log',], records_updated
+#def reset_waiting_list_allocations(wla_list):
+#    try:
+#        records_updated = []
+#        with transaction.atomic():
+#            # send email
+#            #send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
+#            # update waiting_list_allocation
+#            for waiting_list_allocation in wla_list:
+#                #waiting_list_allocation.status = 'current'
+#                now = timezone.localtime(timezone.now())
+#                waiting_list_allocation.wla_queue_date = now
+#                waiting_list_allocation.save()
+#                # discard MLA
+#                mla_qs = MooringLicenceApplication.objects.filter(
+#                        waiting_list_allocation=waiting_list_allocation,
+#                        processing_status='draft').order_by('-lodgement_date')
+#                mla = mla_qs[0] if mla_qs else None
+#                if mla:
+#                    mla.processing_status = 'discarded'
+#                    mla.customer_status = 'discarded'
+#                    mla.save()
+#                    records_updated.append(str(mla))
+#            # set wla order per bay
+#            for bay in MooringBay.objects.all():
+#                place = 1
+#                for w in WaitingListAllocation.objects.filter(
+#                        wla_queue_date__isnull=False, 
+#                        current_proposal__preferred_bay=bay,
+#                        status='current').order_by(
+#                                '-wla_queue_date'):
+#                    w.wla_order = place
+#                    w.save()
+#                    records_updated.append(str(w))
+#                    place += 1
+#            return [], records_updated
+#    except Exception as e:
+#        #raise e
+#        logger.error('retrieve_mooring_areas() error', exc_info=True)
+#        # email only prints len() of error list
+#        return ['check log',], records_updated
 
 def get_bookings(booking_date, rego_no=None, mooring_id=None):
     url = settings.MOORING_BOOKINGS_API_URL + "bookings/" + settings.MOORING_BOOKINGS_API_KEY + '/' 
@@ -305,6 +297,7 @@ def handle_validation_error(e):
 
 
 def sticker_export():
+    # TODO: Implement below
     # Note: if the user wants to apply for e.g. three new authorisations,
     # then the user needs to submit three applications. The system will
     # combine them onto one sticker if payment is received on one day
@@ -316,6 +309,7 @@ def sticker_export():
 
     errors = []
     updates = []
+    today = timezone.localtime(timezone.now()).date()
 
     if stickers.count():
         try:
@@ -336,28 +330,48 @@ def sticker_export():
                 'Vessel Registration Number',
                 'Moorings',
                 'Colour',
+                'White info',
             ])
             for sticker in stickers:
                 try:
                     # column: Moorings
-                    bay_moorings = []
-                    for mooring in sticker.approval.moorings.all():
-                        bay_moorings.append(mooring.mooring_bay.name + ' ' + mooring.name)
-                    bay_moorings = ', '.join(bay_moorings)
+                    mooring_names = []
+                    if sticker.approval.code == AnnualAdmissionPermit.code:
+                        # No associated moorings
+                        pass
+                    elif sticker.approval.code == AuthorisedUserPermit.code:
+                        valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
+                        for moa in valid_moas:
+                            mooring_names.append(moa.mooring.name)
+
+                        # for mooring in sticker.approval.moorings.all():
+                        #     mooring_names.append(mooring.name)
+                    elif sticker.approval.code == MooringLicence.code:
+                        if hasattr(sticker.approval, 'mooring'):
+                            mooring_names.append(sticker.approval.mooring.name)
+                        else:
+                            # Should not reach here
+                            pass
+                    else:
+                        # Should not reach here
+                        pass
+                    mooring_names = ', '.join(mooring_names)
+                    print(mooring_names)
 
                     ws1.append([
-                        'date',
+                        today.strftime('%d/%m/%Y'),
                         sticker.first_name,
                         sticker.last_name,
                         sticker.postal_address_line1,
                         sticker.postal_address_line2,
-                        'suburb',
+                        sticker.postal_address_suburb,
                         sticker.postal_address_state,
                         sticker.postal_address_postcode,
                         sticker.number,
-                        'v rego',
-                        bay_moorings,
+                        sticker.vessel_registration_number,
+                        mooring_names,
                         sticker.get_sticker_colour(),
+                        sticker.get_white_info(),
                     ])
                     logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
                     updates.append(sticker.number)
@@ -409,4 +423,5 @@ def email_stickers_document():
         errors.append(err_msg)
 
     return updates, errors
+
 

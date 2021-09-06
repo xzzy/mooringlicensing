@@ -1,5 +1,6 @@
 import datetime
 import logging
+import pytz
 
 from django.contrib.auth.models import Group
 
@@ -11,11 +12,10 @@ from mooringlicensing.components.main.models import (
         NumberOfDaysType,
         NumberOfDaysSetting
         )
+from mooringlicensing.components.payments_ml.models import OracleCodeItem
 from mooringlicensing.components.proposals.models import (
         ProposalType, 
         Proposal, 
-        #ProposalAssessorGroup,
-        #ProposalApproverGroup, 
         StickerPrintingContact
         )
 
@@ -44,27 +44,18 @@ class DefaultDataManager(object):
                     type, created = ApplicationType.objects.get_or_create(code=item.code)
                     if created:
                         type.description = item.description
-                        type.oracle_code = item.oracle_code
                         type.save()
                         logger.info("Created ApplicationType: {}".format(item.description))
                 except Exception as e:
                     logger.error('{}, ApplicationType: {}'.format(e, item.code))
         try:
-            # Create record for the DCV Permit
-            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-            if created:
-                type.description = settings.APPLICATION_TYPE_DCV_PERMIT['description']
-                type.oracle_code = settings.APPLICATION_TYPE_DCV_PERMIT['oracle_code']
+            for app_type in settings.APPLICATION_TYPES:
+                type, created = ApplicationType.objects.get_or_create(code=app_type['code'])
+                if created:
+                    type.description = app_type['description']
+                    logger.info("Created ApplicationType: {}".format(type.description))
+                type.fee_by_fee_constructor = app_type['fee_by_fee_constructor']  # In order to configure the data, which have already exist in the DB
                 type.save()
-                logger.info("Created ApplicationType: {}".format(type.description))
-
-            # Create record for the DCV Admission
-            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-            if created:
-                type.description = settings.APPLICATION_TYPE_DCV_ADMISSION['description']
-                type.oracle_code = settings.APPLICATION_TYPE_DCV_ADMISSION['oracle_code']
-                type.save()
-                logger.info("Created ApplicationType: {}".format(type.description))
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
@@ -160,3 +151,16 @@ class DefaultDataManager(object):
 
             except Exception as e:
                 logger.error('{}, Number of days type: {}'.format(e, type.name))
+
+        # Oracle account codes
+        today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+        for application_type in ApplicationType.objects.all():
+            if not application_type.oracle_code_items.count() > 0:
+                try:
+                    oracle_code_item = OracleCodeItem.objects.create(
+                        application_type=application_type,
+                        date_of_enforcement=today,
+                    )
+                    logger.info("Created oracle code item: {}".format(oracle_code_item))
+                except Exception as e:
+                    logger.error('{}, failed to create oracle code item'.format(application_type))

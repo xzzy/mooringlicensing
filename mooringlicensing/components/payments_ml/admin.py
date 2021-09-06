@@ -5,7 +5,8 @@ from django.db.models import Min
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem, \
+    FeeItemStickerReplacement
 from mooringlicensing.components.proposals.models import AnnualAdmissionApplication, AuthorisedUserApplication, \
     MooringLicenceApplication
 
@@ -98,6 +99,17 @@ class FeeSeasonForm(forms.ModelForm):
 
         return data
 
+    def clean_application_type(self):
+        data = self.cleaned_data['application_type']
+
+        if not self.instance.is_editable:
+            if data != self.instance.application_type:
+                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+        if not data:
+            raise forms.ValidationError('Please select an application type.')
+
+        return data
+
     # def clean(self):
     #     cleaned_data = super(FeeSeasonForm, self).clean()
     #     if cleaned_data['name']:
@@ -125,9 +137,13 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
-    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type', 'age_group', 'admission_type')
+    readonly_fields = ('fee_period', 'vessel_size_category', 'null_vessel', 'proposal_type', 'age_group', 'admission_type')
     max_num = 0  # This removes 'Add another ...' button
     form = FeeItemForm
+
+    def null_vessel(self, obj):
+        return obj.vessel_size_category.null_vessel
+    null_vessel.boolean = True
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
@@ -250,6 +266,11 @@ class FeeConstructorForm(forms.ModelForm):
         return cleaned_data
 
 
+@admin.register(FeeItemStickerReplacement)
+class FeeItemStickerReplacementAdmin(admin.ModelAdmin):
+    list_display = ['amount', 'date_of_enforcement', 'enabled', 'incur_gst']
+
+
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
     list_display = ['name', 'start_date', 'end_date',]
@@ -270,3 +291,25 @@ class FeeConstructorAdmin(admin.ModelAdmin):
         if db_field.name == "fee_season":
             kwargs["queryset"] = FeeSeason.objects.annotate(s_date=Min("fee_periods__start_date")).order_by('s_date')
         return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+# @admin.register(OracleCodeApplication)
+# class OracleCodeAdmin(admin.ModelAdmin):
+#     list_display = ['name', 'get_value_today', 'get_enforcement_date',]
+#     readonly_fields = ('identifier',)
+#     inlines = [OracleCodeItemInline,]
+#
+#     def get_fields(self, request, obj=None):
+#         fields = super(OracleCodeAdmin, self).get_fields(request, obj)
+#         fields.remove('identifier')
+#         return fields
+#
+#     def get_value_today(self, obj):
+#         return obj.get_oracle_code_by_date()
+#
+#     def get_enforcement_date(self, obj):
+#         return obj.get_enforcement_date_by_date()
+#
+#     get_value_today.short_description = 'Oracle code (current)'
+#     get_enforcement_date.short_description = 'Since'
+

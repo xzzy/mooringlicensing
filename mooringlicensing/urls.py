@@ -6,9 +6,11 @@ from rest_framework import routers
 
 import mooringlicensing.components.approvals.api
 from mooringlicensing import views
+from mooringlicensing.components.approvals.views import DcvPermitFormView, DcvAdmissionFormView
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
-    DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView
+    DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
+    StickerReplacementFeeSuccessView
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 #from mooringlicensing.components.bookings import views as booking_views
@@ -91,6 +93,8 @@ api_patterns = [
     url(r'^api/mooring_lookup$', proposal_api.GetMooring.as_view(), name='get-mooring'),
     url(r'^api/mooring_lookup_per_bay$', proposal_api.GetMooringPerBay.as_view(), name='get-mooring-per-bay'),
     url(r'^api/vessel_lookup$', proposal_api.GetVessel.as_view(), name='get-vessel'),
+    url(r'^api/sticker_lookup$', approval_api.GetSticker.as_view(), name='get-sticker'),
+    url(r'^api/person_lookup$', users_api.GetPerson.as_view(), name='get-person'),
     url(r'^api/company_names$', proposal_api.GetCompanyNames.as_view(), name='get-company-names'),
     url(r'^api/dcv_vessel_rego_nos$', proposal_api.GetDcvVesselRegoNos.as_view(), name='get-dcv-vessel_rego-nos'),
     url(r'^api/fee_configurations$', payments_api.GetFeeConfigurations.as_view(), name='get-fee-configurations'),
@@ -100,6 +104,7 @@ api_patterns = [
     url(r'^api/approval_types_dict$', approval_api.GetApprovalTypeDict.as_view(), name='get-approval-type-dict'),
     url(r'^api/approval_statuses_dict$', approval_api.GetApprovalStatusesDict.as_view(), name='get-approval-statuses-dict'),
     url(r'^api/fee_seasons_dict$', approval_api.GetFeeSeasonsDict.as_view(), name='get-fee-seasons-dict'),
+    url(r'^api/daily_admission_url$', approval_api.GetDailyAdmissionUrl.as_view(), name='get-daily-admission-url'),
     url(r'^api/seasons_for_dcv_dict$', payments_api.GetSeasonsForDcvPermitDict.as_view(), name='get-approval-statuses-dict'),
     url(r'^api/compliance_statuses_dict$', compliances_api.GetComplianceStatusesDict.as_view(), name='get-compliance-statuses-dict'),
     url(r'^api/mooring_statuses_dict$', proposal_api.GetMooringStatusesDict.as_view(), name='get-mooring-statuses-dict'),
@@ -123,6 +128,7 @@ urlpatterns = [
     #url(r'^admin/', include(mooringlicensing_admin_site.urls)),
     #url(r'^admin/', mooringlicensing_admin_site.urls),
     url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
+    url(r'^chaining/', include('smart_selects.urls')),
     url(r'', include(api_patterns)),
     url(r'^$', views.MooringLicensingRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.MooringLicensingContactView.as_view(), name='ds_contact'),
@@ -144,6 +150,10 @@ urlpatterns = [
     # payment related urls
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
     url(r'^application_fee_existing/(?P<proposal_pk>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
+    # url(r'^sticker_replacement_fee/(?P<approval_pk>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
+    # url(r'^sticker_replacement_fee_by_sticker_id/(?P<sticker_id>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee_by_sticker_id'),
+    url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
+    url(r'^sticker_replacement_fee_success/fee/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
     url(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),
     url(r'^dcv_admission_fee/(?P<dcv_admission_pk>\d+)/$', DcvAdmissionFeeView.as_view(), name='dcv_admission_fee'),
@@ -153,7 +163,10 @@ urlpatterns = [
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
-    #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
+    # url(r'^dcv_permit_form/$', DcvPermitFormView.as_view(), name='dcv_permit_form'),
+    url(r'^dcv_admission_form/$', DcvAdmissionFormView.as_view(), name='dcv_admission_form'),
+
+                  #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
     #url(r'^zero_fee_success/', booking_views.ZeroApplicationFeeView.as_view(), name='zero_fee_success'),
     #url(r'^payment_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingView.as_view(), name='deferred_invoicing'),
     #url(r'^preview_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingPreviewView.as_view(), name='preview_deferred_invoicing'),

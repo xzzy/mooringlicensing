@@ -5,12 +5,9 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
 from django.conf import settings
-from datetime import date, timedelta
+from datetime import timedelta
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-from mooringlicensing.components.proposals.email import (
-        _log_user_email as log_proposal_user_email,
-        )
 from ledger.accounts.models import EmailUser
 
 #from mooringlicensing.components.proposals.models import ProposalApproverGroup
@@ -56,49 +53,13 @@ class ApprovalVesselNominationReminderEmail(TemplateEmailBase):
         self.subject = self.subject.format(approval.lodgement_number)
 
 
-class ApprovalCancelNotificationEmail(TemplateEmailBase):
-    subject = 'Approval cancelled'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/emails/approval_cancel_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_cancel_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} cancelled.'.format(settings.RIA_NAME, approval.child_obj.description)
-
-
-class ApprovalSuspendNotificationEmail(TemplateEmailBase):
-    subject = 'Approval suspended'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/emails/approval_suspend_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_suspend_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} suspended.'.format(settings.RIA_NAME, approval.child_obj.description)
-
-
-class ApprovalSurrenderNotificationEmail(TemplateEmailBase):
-    subject = 'Approval surrendered'
-    html_template = 'mooringlicensing/emails/approval_surrender_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_surrender_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} surrendered.'.format(settings.RIA_NAME, approval.child_obj.description)
-
-
-class ApprovalReinstateNotificationEmail(TemplateEmailBase):
-    subject = 'Approval reinstated'
-    html_template = 'mooringlicensing/emails/approval_reinstate_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_reinstate_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} reinstated.'.format(settings.RIA_NAME, approval.child_obj.description)
-
-
-class ApprovalRenewalNotificationEmail(TemplateEmailBase):
-    subject = 'Approval renewal'
-    html_template = 'mooringlicensing/emails/approval_renewal_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_renewal_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} renewal.'.format(settings.RIA_NAME, approval.child_obj.description)
+# class ApprovalReinstateNotificationEmail(TemplateEmailBase):
+#     subject = 'Approval reinstated'
+#     html_template = 'mooringlicensing/emails/approval_reinstate_notification.html'
+#     txt_template = 'mooringlicensing/emails/approval_reinstate_notification.txt'
+#
+#     def __init__(self, approval):
+#         self.subject = '{} - {} reinstated.'.format(settings.RIA_NAME, approval.child_obj.description)
 
 
 class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
@@ -108,6 +69,99 @@ class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
 
     def __init__(self, approval):
         self.subject = '{} - {} created.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
+class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
+    subject = 'No moorings remaining'  # This is default and should be overwitten
+    html_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.html'
+    txt_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.txt'
+
+    def __init__(self, approval):
+        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
+class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
+    subject = 'Mooring removed'  # This is default and should be overwitten
+    html_template = 'mooringlicensing/emails/auth_user_mooring_removed_notification.html'
+    txt_template = 'mooringlicensing/emails/auth_user_mooring_removed_notification.txt'
+
+    def __init__(self, approval):
+        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+
+
+def send_auth_user_no_moorings_notification(approval):
+    email = AuthorisedUserNoMooringsNotificationEmail(approval)
+    proposal = approval.current_proposal
+
+    url=settings.SITE_URL if settings.SITE_URL else ''
+    url += reverse('external')
+
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+        'url': url
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+    	sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+def send_auth_user_mooring_removed_notification(approval, mooring_licence):
+    email = AuthorisedUserMooringRemovedNotificationEmail(approval)
+    proposal = approval.current_proposal
+
+    url=settings.SITE_URL if settings.SITE_URL else ''
+    url += reverse('external')
+
+    if "-internal" in url:
+        # remove '-internal'. This email is for external submitters
+        url = ''.join(url.split('-internal'))
+
+    context = {
+        'approval': approval,
+        'proposal': proposal,
+        'mooring_licence': mooring_licence,
+        'url': url
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+    	sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
 
 
 def send_approval_expire_email_notification(approval):
@@ -260,225 +314,6 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
     return msg
-
-
-def send_approval_cancel_email_notification(approval):
-    email = ApprovalCancelNotificationEmail(approval)
-    proposal = approval.current_proposal
-
-    context = {
-        'approval': approval,
-
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-
-def send_approval_suspend_email_notification(approval, request=None):
-    email = ApprovalSuspendNotificationEmail(approval)
-    proposal = approval.current_proposal
-
-    if request and 'test-emails' in request.path_info:
-        details = 'This are my test details'
-        from_date = '01/01/1970'
-        to_date = '01/01/2070'
-    else:
-        details = approval.suspension_details['details'],
-        from_date = approval.suspension_details['from_date'],
-        to_date = approval.suspension_details['to_date']
-
-    context = {
-        'approval': approval,
-        'details': details,
-        'from_date': from_date,
-        'to_date': to_date
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-
-def send_approval_surrender_email_notification(approval, request=None):
-    email = ApprovalSurrenderNotificationEmail(approval)
-    proposal = approval.current_proposal
-
-    if request and 'test-emails' in request.path_info:
-        details = 'This are my test details'
-        surrender_date = '01/01/1970'
-    else:
-        details = approval.surrender_details['details'],
-        surrender_date = approval.surrender_details['surrender_date'],
-
-    context = {
-        'approval': approval,
-        'details': details,
-        'surrender_date': surrender_date,
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-
-def send_approval_renewal_email_notification(approval):
-    email = ApprovalRenewalNotificationEmail(approval)
-    proposal = approval.current_proposal
-    url=settings.SITE_URL if settings.SITE_URL else ''
-    url += reverse('external')
-
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
-
-    context = {
-        'approval': approval,
-        'proposal': approval.current_proposal,
-        'url': url,
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    #attach renewal notice
-    if approval.renewal_document and approval.renewal_document._file is not None:
-        renewal_document= approval.renewal_document._file
-        file_name = approval.renewal_document.name
-        attachment = (file_name, renewal_document.file.read(), 'application/pdf')
-        attachment = [attachment]
-    else:
-        attachment = []
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-
-# waiting list allocation notice
-def send_create_mooring_licence_application_email_notification(request, approval):
-    email = CreateMooringLicenceApplicationEmail(approval)
-    proposal = approval.current_proposal
-    ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
-    #url=settings.SITE_URL if settings.SITE_URL else ''
-    #url += reverse('external')
-
-    url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id}))
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
-    context = {
-        'approval': approval,
-        'proposal': proposal,
-        'mla_proposal': ria_generated_proposal,
-        'url': url,
-        'message_details': request.data.get('message_details'),
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-
-    attachments = []
-    if approval.waiting_list_offer_documents.all():
-        for doc in approval.waiting_list_offer_documents.all():
-            #file_name = doc._file.name
-            file_name = doc.name
-            attachment = (file_name, doc._file.file.read())
-            attachments.append(attachment)
-
-    bcc = request.data.get('cc_email')
-    bcc_list = bcc.split(',')
-    msg = email.send(proposal.submitter.email,bcc=bcc_list, attachments=attachments, context=context)
-    #msg = email.send(proposal.submitter.email, attachments=attachments, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    #_log_approval_email(msg, approval, sender=sender_user)
-    log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
-    #_log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-    log_proposal_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user)
-
-
-def send_approval_reinstate_email_notification(approval, request):
-    email = ApprovalReinstateNotificationEmail(approval)
-    proposal = approval.current_proposal
-
-    context = {
-        'approval': approval,
-
-    }
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 
 
@@ -681,5 +516,157 @@ def log_mla_created_proposal_email(email_message, proposal, sender=None):
                     )
 
     return email_entry
+
+
+#####
+### After refactoring ###
+#####
+def send_approval_cancel_email_notification(approval):
+    # 28 Cancelled
+    email = TemplateEmailBase(
+        subject='Cancellation of your {} {}'.format(approval.description, approval.lodgement_number),
+        html_template='mooringlicensing/emails/approval_cancel_notification.html',
+        txt_template='mooringlicensing/emails/approval_cancel_notification.txt',
+    )
+    proposal = approval.current_proposal
+
+    context = {
+        'approval': approval,
+        'cancel_start_date': approval.cancellation_date,
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+
+def send_approval_suspend_email_notification(approval, request=None):
+    # 29 Suspended
+    email = TemplateEmailBase(
+        subject='Suspension of your {} {}'.format(approval.description, approval.lodgement_number),
+        html_template='mooringlicensing/emails/approval_suspend_notification.html',
+        txt_template='mooringlicensing/emails/approval_suspend_notification.txt',
+    )
+    proposal = approval.current_proposal
+
+    if request and 'test-emails' in request.path_info:
+        details = 'This are my test details'
+        from_date = '01/01/1970'
+        to_date = '01/01/2070'
+    else:
+        details = approval.suspension_details['details'],
+        from_date = approval.suspension_details['from_date'],
+        to_date = approval.suspension_details['to_date']
+
+    context = {
+        'approval': approval,
+        'details': details,
+        'from_date': from_date,
+        'to_date': to_date
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender_user)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+
+def send_approval_surrender_email_notification(approval, request=None):
+    # 30 Surrendered
+    email = TemplateEmailBase(
+        subject='Surrender of your {} {}'.format(approval.description, approval.lodgement_number),
+        html_template='mooringlicensing/emails/approval_surrender_notification.html',
+        txt_template='mooringlicensing/emails/approval_surrender_notification.txt',
+    )
+    proposal = approval.current_proposal
+
+    if request and 'test-emails' in request.path_info:
+        details = 'This are my test details'
+        surrender_date = '01/01/1970'
+    else:
+        details = approval.surrender_details['details'],
+        surrender_date = approval.surrender_details['surrender_date'],
+
+    context = {
+        'approval': approval,
+        'details': details,
+        'surrender_date': surrender_date,
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender_user)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+
+
+def send_approval_reinstate_email_notification(approval, request):
+    # 31 Reinstated
+    email = TemplateEmailBase(
+        subject='Reinstation of your {} {}'.format(approval.description, approval.lodgement_number),
+        html_template='mooringlicensing/emails/approval_reinstate_notification.html',
+        txt_template='mooringlicensing/emails/approval_reinstate_notification.txt',
+    )
+    proposal = approval.current_proposal
+
+    context = {
+        'approval': approval,
+
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
+
 
 

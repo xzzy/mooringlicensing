@@ -2,7 +2,7 @@
     <div>
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading">
-            <h4>Authorised User Application: {{proposal.lodgement_number}}</h4>
+            <h4>Authorised User {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
         </div>
 
         <div>
@@ -76,19 +76,31 @@
                   </div>
                   <div v-else>
                     <Applicant 
-                    :proposal="proposal" 
-                    id="proposalStartApplicant"
-                    :readonly="readonly"
+                        :email_user="proposal.submitter" 
+                        :applicantType="proposal.applicant_type" 
+                        id="proposalStartApplicant"
+                        :readonly="readonly"
                     />
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
+                  <div v-if="proposal">
+                      <CurrentVessels 
+                          :proposal=proposal
+                          :readonly=readonly
+                          :is_internal=is_internal
+                          @resetCurrentVessel=resetCurrentVessel
+                          />
+                  </div>
                   <Vessels 
                   :proposal="proposal" 
-                  :profile="profile" 
-                  id="proposalStartVessels" 
+                  :profile="profileVar" 
+                  :id="'proposalStartVessels' + uuid"
+                  :key="'proposalStartVessels' + uuid"
+                  :keep_current_vessel=keep_current_vessel
                   ref="vessels"
                   :readonly="readonly"
+                  :is_internal="is_internal"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -100,9 +112,20 @@
                   />
               </div>
               <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
+                  <div v-if="proposal">
+                      <CurrentMooring 
+                          :proposal=proposal
+                          :readonly=readonly
+                          :is_internal=is_internal
+                          @resetCurrentMooring=resetCurrentMooring
+                          />
+                  </div>
                   <MooringAuthorisation
                   :proposal="proposal" 
                   id="mooring_authorisation" 
+                  :id="'mooringAuthorisation' + mooringAuthorisationUuid"
+                  :key="'mooringAuthorisation' + mooringAuthorisationUuid"
+                  :change_mooring=change_mooring
                   ref="mooring_authorisation"
                   :readonly="readonly"
                   />
@@ -137,6 +160,8 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
+    import CurrentVessels from '@/components/common/current_vessels.vue'
+    import CurrentMooring from '@/components/common/current_mooring.vue'
     import Insurance from '@/components/common/insurance.vue'
     import MooringAuthorisation from '@/components/common/mooring_authorisation.vue'
     /*
@@ -206,12 +231,18 @@
             return{
                 values:null,
                 profile: {},
+                uuid: 0,
+                mooringAuthorisationUuid: 0,
+                keep_current_vessel: true,
+                change_mooring: true,
             }
         },
         components: {
             Applicant,
             Confirmation,
             Vessels,
+            CurrentVessels,
+            CurrentMooring,
             Insurance,
             MooringAuthorisation,
             /*
@@ -227,8 +258,22 @@
             */
         },
         computed:{
+            profileVar: function() {
+                if (this.is_external) {
+                    return this.profile;
+                } else if (this.proposal) {
+                    return this.proposal.submitter;
+                }
+            },
             applicantType: function(){
                 return this.proposal.applicant_type;
+            },
+            applicationTypeText: function(){
+                let text = '';
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new') {
+                    text = this.proposal.proposal_type.description;
+                }
+                return text;
             },
             /*
             showElectoralRoll: function() {
@@ -241,6 +286,14 @@
             */
         },
         methods:{
+            resetCurrentVessel: function(keep) {
+                this.keep_current_vessel = keep;
+                this.uuid++
+            },
+            resetCurrentMooring: function(keep) {
+                this.change_mooring = keep;
+                this.mooringAuthorisationUuid++
+            },
             populateProfile: function(profile) {
                 this.profile = Object.assign({}, profile);
             },

@@ -40,6 +40,11 @@ export default {
                 return options.indexOf(val) != -1 ? true: false;
             }
         },
+        target_email_user_id: {
+            type: Number,
+            required: false,
+            default: 0,
+        },
     },
     data() {
         let vm = this;
@@ -364,7 +369,7 @@ export default {
                 searching: true,
 
                 ajax: {
-                    "url": api_endpoints.compliances_paginated_external + '?format=datatables',
+                    "url": api_endpoints.compliances_paginated_external + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -375,6 +380,22 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+                /*
+
+                buttons:[
                     //{
                     //    extend: 'csv',
                     //    exportOptions: {
@@ -382,6 +403,7 @@ export default {
                     //    }
                     //},
                 ],
+                */
                 columns: vm.applicableColumns,
                 processing: true,
                 initComplete: function() {

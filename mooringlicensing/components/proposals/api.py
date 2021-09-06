@@ -10,7 +10,7 @@ from rest_framework.renderers import JSONRenderer
 from datetime import datetime, date
 # from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
 # from rest_framework.pagination import PageNumberPagination
-# from collections import OrderedDict
+from collections import OrderedDict
 # from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 # from ledger.address.models import Country
@@ -106,7 +106,7 @@ from mooringlicensing.components.proposals.serializers import (
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
-from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation
+from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker
 from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main
 from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 
@@ -160,8 +160,8 @@ class GetDcvVesselRegoNos(views.APIView):
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no', 'dcv_permits')[:10]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no'], 'dcv_permits': rego['dcv_permits']} for rego in data]
             return Response({"results": data_transform})
         return add_cache_control(Response())
 
@@ -172,17 +172,34 @@ class GetVessel(views.APIView):
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         if search_term:
-            data = VesselDetails.filtered_objects.filter(
+            data_transform = []
+
+            ml_data = VesselDetails.filtered_objects.filter(
                     Q(vessel__rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
                     )[:10]
-            data_transform = []
-            for vd in data:
+            for vd in ml_data:
                 data_transform.append({
                     'id': vd.vessel.id, 
+                    'rego_no': vd.vessel.rego_no,
                     'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    'entity_type': 'ml',
                     })
+            dcv_data = DcvVessel.objects.filter(
+                    Q(rego_no__icontains=search_term) | 
+                    Q(vessel_name__icontains=search_term)
+                    )[:10]
+            for dcv in dcv_data:
+                data_transform.append({
+                    'id': dcv.id, 
+                    'rego_no': dcv.rego_no,
+                    'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    'entity_type': 'dcv',
+                    })
+            ## order results
+            data_transform.sort(key=lambda item: item.get("id"))
             return Response({"results": data_transform})
+            #return Response({"results": dcv_data_transform})
         return Response()
 
 
@@ -207,8 +224,12 @@ class GetMooringPerBay(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit
+        #import ipdb; ipdb.set_trace()
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
+        vessel_details_id = request.GET.get('vessel_details_id')
+        aup_id = request.GET.get('aup_id')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
@@ -218,8 +239,22 @@ class GetMooringPerBay(views.APIView):
                 else:
                     data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
+                # aup
                 if mooring_bay_id:
-                    data = Mooring.private_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                    aup_mooring_ids = []
+                    if aup_id:
+                        aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.all()]
+                    if vessel_details_id:
+                        ## restrict search results to suitable vessels
+                        vessel_details = VesselDetails.objects.get(id=vessel_details_id)
+                        data = Mooring.authorised_user_moorings.filter(
+                                name__icontains=search_term).filter(
+                                mooring_bay__id=mooring_bay_id).filter(
+                                vessel_size_limit__gte=vessel_details.vessel_applicable_length).filter(
+                                vessel_draft_limit__gte=vessel_details.vessel_draft).exclude(
+                                id__in=aup_mooring_ids).values('id', 'name')[:10]
+                    else:
+                        data = []
                 else:
                     data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
@@ -473,7 +508,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         request_user = self.request.user
         all = Proposal.objects.all()
 
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+
         if is_internal(self.request):
+            if target_email_user_id:
+                target_user = EmailUser.objects.get(id=target_email_user_id)
+                user_orgs = [org.id for org in target_user.mooringlicensing_organisations.all()]
+                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user) | Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
@@ -653,14 +694,38 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
+    def process_signed_licence_agreement_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='signed_licence_agreement_document')
+        if returned_data:
+            return add_cache_control(Response(returned_data))
+        else:
+            return add_cache_control(Response())
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_proof_of_identity_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='proof_of_identity_document')
+        if returned_data:
+            return add_cache_control(Response(returned_data))
+        else:
+            return add_cache_control(Response())
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        if not instance.mooring_report_documents.count() or not instance.written_proof_documents.count():
-            # Documents missing
+        if not instance.mooring_report_documents.count() \
+                or not instance.written_proof_documents.count()\
+                or not instance.signed_licence_agreement_documents.count() \
+                or not instance.proof_of_identity_documents.count():  # Documents missing
             raise
 
-        instance.process_after_uploading_other_documents(request)
+        instance.process_after_submit_other_documents(request)
         return add_cache_control(Response())
 
 
@@ -1028,19 +1093,27 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
+        #try:
         instance = self.get_object()
         status = request.data.get('status')
         if not status:
             raise serializers.ValidationError('Status is required')
         else:
-            if instance.application_type.name==ApplicationType.FILMING and instance.filming_approval_type=='lawful_authority':
-                status='with_assessor'
-            else:
-                if not status in ['with_approver']:
-                    raise serializers.ValidationError('The status provided is not allowed')
+            if not status in ['with_approver']:
+                raise serializers.ValidationError('The status provided is not allowed')
         instance.reissue_approval(request,status)
-        serializer = InternalProposalSerializer(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        #serializer = InternalProposalSerializer(instance,context={'request':request})
+        serializer_class = self.internal_serializer_class()
+        serializer = serializer_class(instance,context={'request':request})
+        return Response(serializer.data)
+        #except serializers.ValidationError:
+        #    print(traceback.print_exc())
+        #    raise
+        #except ValidationError as e:
+        #    handle_validation_error(e)
+        #except Exception as e:
+        #    print(traceback.print_exc())
+        #    raise serializers.ValidationError(str(e))
 
     # TODO: should be post?
     @detail_route(methods=['GET',])
@@ -1098,6 +1171,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def proposed_approval(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
+        #import ipdb; ipdb.set_trace()
         serializer.is_valid(raise_exception=True)
         instance.proposed_approval(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
@@ -1619,17 +1693,18 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
                 ## change Sticker status
-                stickers = []
                 for approval in approval_list:
+                    for a_sticker in instance.sticker_set.filter(status__in=['current', 'awaiting_printing']):
+                        a_sticker.status = 'to_be_returned'
+                        a_sticker.save()
+                    for a_sticker in instance.sticker_set.filter(status=Sticker.STICKER_STATUS_READY):
+                        # vessel sold before the sticker is picked up by cron for export (very rarely happens)
+                        a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
+                        a_sticker.save()
+                    # write approval history
+                    approval.write_approval_history('vessel_sold')
                     ## send notification email
                     send_vessel_nomination_notification_main(approval)
-                    # add to stickers list
-                    #stickers.append(approval.stickers.filter(status='current'))
-                    for a_sticker in approval.stickers.filter(status='current'):
-                        stickers.append(a_sticker)
-                for sticker in stickers:
-                    sticker.status = 'to_be_returned'
-                    sticker.save()
             else:
                 raise serializers.ValidationError("Missing information: You must specify a sale date")
             return Response()
@@ -1943,6 +2018,44 @@ class VesselViewSet(viewsets.ModelViewSet):
     #        return Response([])
 
     @list_route(methods=['GET',])
+    def list_internal(self, request, *args, **kwargs):
+        search_text = request.GET.get('search[value]', '')
+
+        owner_qs = None
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+        if target_email_user_id:
+            target_user = EmailUser.objects.get(id=target_email_user_id)
+            owner_qs = Owner.objects.filter(emailuser=target_user)
+
+        if owner_qs:
+            owner = owner_qs[0]
+            #vessel_details_list = [vessel.latest_vessel_details for vessel in owner.vessels.all()]
+            vessel_ownership_list = owner.vesselownership_set.all()
+
+            # rewrite following for vessel_ownership_list
+            if search_text:
+                search_text = search_text.lower()
+                #search_text_vessel_detail_ids = []
+                search_text_vessel_ownership_ids = []
+                matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
+                for vo in vessel_ownership_list:
+                    vd = vo.vessel.latest_vessel_details
+                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
+                            search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
+                            vd.vessel_type in matching_vessel_type_choices or
+                            search_text in vo.end_date.strftime('%d/%m/%Y')
+                            #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
+                    ):
+                        search_text_vessel_ownership_ids.append(vo.id)
+                #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
+                vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+
+            serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
+            return add_cache_control(Response(serializer.data))
+        else:
+            return Response([])
+
+    @list_route(methods=['GET',])
     def list_external(self, request, *args, **kwargs):
         search_text = request.GET.get('search[value]', '')
         owner_qs = Owner.objects.filter(emailuser=request.user)
@@ -1991,15 +2104,53 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return MooringBay.objects.filter(active=True)
 
+    @list_route(methods=['GET',])
+    def lookup(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        #serializer_data = MooringBaySerializer(qs, many=True).data
+        #import ipdb; ipdb.set_trace()
+        #serializer_data.update({"id":None,"name":"","mooring_bookings_id":None,})
+        #serializer_data.move_to_end('{"id":1,"name":"Rottnest Island","mooring_bookings_id":1,"active":true}', last=False)
+        response_data = [{"id":None,"name":"","mooring_bookings_id":None}]
+        for mooring in qs:
+            response_data.append(MooringBaySerializer(mooring).data)
+        return Response(response_data)
 
 
 class MooringFilterBackend(DatatablesFilterBackend):
-    def filter_queryset(self, request, queryset, view):
-        total_count = queryset.count()
+    #def filter_queryset(self, request, queryset, view):
+    #    total_count = queryset.count()
 
-        #filter_mooring_status = request.GET.get('filter_mooring_status')
-        #if filter_mooring_status and not filter_mooring_status.lower() == 'all':
-            ##queryset = queryset.filter(customer_status=filter_compliance_status)
+    #    #filter_mooring_status = request.GET.get('filter_mooring_status')
+    #    #if filter_mooring_status and not filter_mooring_status.lower() == 'all':
+    #        ##queryset = queryset.filter(customer_status=filter_compliance_status)
+
+    #    filter_mooring_bay = request.GET.get('filter_mooring_bay')
+    #    if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
+    #        queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
+
+    #    getter = request.query_params.get
+    #    fields = self.get_fields(getter)
+    #    ordering = self.get_ordering(getter, fields)
+    #    queryset = queryset.order_by(*ordering)
+    #    if len(ordering):
+    #        queryset = queryset.order_by(*ordering)
+
+    #    try:
+    #        queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
+    #    except Exception as e:
+    #        print(e)
+    #    setattr(view, '_datatables_total_count', total_count)
+    #    return queryset
+    def filter_queryset(self, request, queryset, view):
+        print(request.GET)
+        total_count = queryset.count()
+        # filter_mooring_status
+        filter_mooring_status = request.GET.get('filter_mooring_status')
+        if filter_mooring_status and not filter_mooring_status.lower() == 'all':
+            #queryset = queryset.filter(status=filter_status)
+            filtered_ids = [m.id for m in Mooring.objects.all() if m.status.lower() == filter_mooring_status.lower()]
+            queryset = queryset.filter(id__in=filtered_ids)
 
         filter_mooring_bay = request.GET.get('filter_mooring_bay')
         if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
@@ -2047,9 +2198,6 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def list_internal(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
@@ -2057,6 +2205,7 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListMooringSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
 
 
 class MooringViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2092,9 +2241,14 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         #print(selected_date)
         #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         if selected_date:
-            approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
+            #approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
+            approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
         else:
-            approval_list = mooring.approval_set.filter(status='current')
+            #approval_list = mooring.approval_set.filter(status='current')
+            approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
+            approval_list.append(mooring.mooring_licence)
+        #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)

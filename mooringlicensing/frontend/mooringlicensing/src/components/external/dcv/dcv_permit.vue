@@ -14,18 +14,12 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Year</label>
+                <label for="" class="col-sm-3 control-label">Season</label>
                 <div class="col-sm-6">
                     <select class="form-control" v-model="dcv_permit.season">
                         <option value=""></option>
                         <option v-for="season in season_options" :value="season">{{ season.name }}</option>
                     </select>
-                </div>
-            </div>
-            <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">UVI vessel identifier</label>
-                <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_permit.dcv_vessel.uvi_vessel_identifier">
                 </div>
             </div>
             <div class="row form-group">
@@ -91,7 +85,7 @@ export default {
                 //vessel_name: '',
                 dcv_vessel: {
                     id: null,
-                    uvi_vessel_identifier: '',
+                    //uvi_vessel_identifier: '',
                     rego_no: '',
                     vessel_name: '',
                 },
@@ -187,7 +181,7 @@ export default {
                         vm.dcv_permit.dcv_vessel =
                         {
                             id: id,
-                            uvi_vessel_identifier: '',
+                            //uvi_vessel_identifier: '',
                             rego_no: id,
                             vessel_name: '',
                         }
@@ -204,7 +198,7 @@ export default {
                 vm.dcv_permit.dcv_vessel = Object.assign({},
                     {
                         id: null,
-                        uvi_vessel_identifier: '',
+                        //uvi_vessel_identifier: '',
                         rego_no: '',
                         vessel_name: '',
                     }

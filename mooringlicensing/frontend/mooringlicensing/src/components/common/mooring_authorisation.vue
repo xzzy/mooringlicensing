@@ -1,78 +1,72 @@
 <template lang="html">
-    <FormSection label="Mooring details" Index="mooring_authorisation">
-        <div class="row form-group">
-            <label for="" class="col-sm-9 control-label">Do you want to be authorised
-            </label>
-        </div>
-        <div class="form-group">
-            <div class="row">
-                <div class="col-sm-9">
-                    <input :disabled="readonly" type="radio" id="site_licensee" value="site_licensee" v-model="mooringAuthPreference" required=""/>
-                    <label for="site_licensee" class="control-label">By a mooring site licensee for their mooring</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-9">
-                    <input :disabled="readonly" type="radio" id="ria" value="ria" v-model="mooringAuthPreference" required=""/>
-                    <label for="ria" class="control-label">By Rottnest Island Authority for a mooring allocated by the Authority</label>
-                </div>
-            </div>
-        </div>
-
-        <div v-show="mooringAuthPreference==='site_licensee'">
+    <div v-if="change_mooring" id="mooring_authorisation">
+        <FormSection label="Mooring details" Index="mooring_authorisation">
             <div class="row form-group">
-                <label for="site_licensee_email" class="col-sm-3 control-label">Site licensee email</label>
-                <div class="col-sm-9">
-                    <input :readonly="readonly" class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
+                <label for="" class="col-sm-9 control-label">Do you want to be authorised
+                </label>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-sm-9">
+                        <input :disabled="readonly" type="radio" id="site_licensee" value="site_licensee" v-model="mooringAuthPreference" required=""/>
+                        <label for="site_licensee" class="control-label">By a mooring site licensee for their mooring</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-9">
+                        <input :disabled="readonly" type="radio" id="ria" value="ria" v-model="mooringAuthPreference" required=""/>
+                        <label for="ria" class="control-label">By Rottnest Island Authority for a mooring allocated by the Authority</label>
+                    </div>
                 </div>
             </div>
-            <div class="row form-group">
-                <label for="mooring_id" class="col-sm-3 control-label">Mooring site ID</label>
-                <div class="col-sm-4">
-                    <select 
-                        id="mooring_lookup"  
-                        name="mooring_lookup"  
-                        ref="mooring_lookup" 
-                        class="form-control" 
-                    />
-                    <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
-                </div>
-            </div>
-        </div>
 
-        <div v-show="mooringAuthPreference==='ria'" class="row form-group">
-            <draggable 
-            :disabled="readonly" 
-            :list="mooringBays"
-            tag="ul"
-            class="list-group col-sm-5 draggable-class"
-            handle=".handle"
-            >
-                <li
-                    class="list-group-item"
-                    v-for="(mooring, index) in mooringBays"
-                    :key="mooring.name"
+            <div v-show="mooringAuthPreference==='site_licensee'">
+                <div class="row form-group">
+                    <label for="site_licensee_email" class="col-sm-3 control-label">Site licensee email</label>
+                    <div class="col-sm-9">
+                        <input :readonly="readonly" class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
+                    </div>
+                </div>
+                <div class="row form-group">
+                    <label for="mooring_id" class="col-sm-3 control-label">Mooring site ID</label>
+                    <div class="col-sm-9">
+                        <select 
+                            id="mooring_lookup"  
+                            name="mooring_lookup"  
+                            ref="mooring_lookup" 
+                            class="form-control" 
+                            style="width: 40%"
+                        />
+                        <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="mooringAuthPreference==='ria'" class="row form-group">
+                <div class="col-sm-9">
+                <label for="ria_draggable" class="draggable-label-class control-label">Order the bays in your preferred order with most preferred bay on top</label>
+                <draggable 
+                id="ria_draggable"
+                :disabled="readonly" 
+                :list="mooringBays"
+                tag="ul"
+                class="list-group col-sm-5 draggable-class"
+                handle=".handle"
                 >
-                    <i class="fa fa-align-justify handle"></i>
-                    <!--i class="fa handle"></i-->
-                    <span class="col-sm-1"/>
-                    <span class="text">{{ mooring.name }}</span>
-                    <span class="pull-right">{{ index }}</span>
-                </li>
-
-                 
-
-            <!--tr class="form-control" id="mooringList" v-for="(mooring, index) in mooringBays" :key="mooring.id">
-                        <td scope="row">{{ index }}</td>
-                        <td>{{ mooring.name }}</td>
-                    </tr-->
-                    <!--div class="form-control" id="mooringList" v-for="(mooring, index) in mooringBays" :key="mooring.id">
-                        <span class="pull-left"> {{ mooring.name }}</span>
-                        <span class="pull-right"> {{ index }}</span>
-                    </div-->
-            </draggable>
-        </div>
-    </FormSection>
+                    <li
+                        class="list-group-item"
+                        v-for="mooring in mooringBays"
+                        :key="mooring.name"
+                    >
+                        <i class="fa fa-align-justify handle"></i>
+                        <span class="col-sm-1"/>
+                        <span class="text">{{ mooring.name }}</span>
+                    </li>
+                </draggable>
+                </div>
+            </div>
+        </FormSection>
+    </div>
 </template>
 
 <script>
@@ -98,6 +92,9 @@ import draggable from 'vuedraggable';
             readonly:{
                 type: Boolean,
                 default: true,
+            },
+            change_mooring: {
+              type: Boolean,
             },
         },
         data:function () {
@@ -209,6 +206,10 @@ import draggable from 'vuedraggable';
 }
 .draggable-class {
     padding-left: 3%;
+}
+.draggable-label-class {
+    padding-left: 3%;
+    padding-bottom: 3%;
 }
 </style>
 

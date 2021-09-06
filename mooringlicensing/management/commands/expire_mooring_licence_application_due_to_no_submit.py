@@ -9,10 +9,11 @@ from django.db.models import Q
 
 import logging
 
-from mooringlicensing.components.proposals.email import send_expire_mooring_licence_application_email
+from mooringlicensing.components.proposals.email import send_expire_mooring_licence_application_email, \
+    send_expire_mla_notification_to_assessor
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
-from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_WLA
+from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_MLA
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_WLA)
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
             # No number of days found
@@ -41,8 +42,9 @@ class Command(BaseCommand):
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
+        # MLA and associated documents must be submitted within X days period after invitation
         queries = Q()
-        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+        queries &= Q(processing_status__in=(Proposal.PROCESSING_STATUS_DRAFT, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS))
         queries &= Q(date_invited__lt=boundary_date)
 
         # For debug
@@ -57,7 +59,16 @@ class Command(BaseCommand):
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.customer_status = Proposal.CUSTOMER_STATUS_EXPIRED
                 a.save()
-                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED)
+                # update WLA internal_status and queue date
+                a.waiting_list_allocation.internal_status = 'waiting'
+                a.waiting_list_allocation.wla_queue_date = today
+                a.waiting_list_allocation.save()
+                # reset Waiting List order
+                a.waiting_list_allocation.set_wla_order()
+
+                due_date = a.date_invited + timedelta(days=days_setting.number_of_days)
+                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED, due_date)
+                send_expire_mla_notification_to_assessor(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS, due_date)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:

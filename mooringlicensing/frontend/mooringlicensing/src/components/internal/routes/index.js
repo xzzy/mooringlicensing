@@ -12,9 +12,12 @@ import WaitingListDash from '@/components/internal/waiting_list/dashboard.vue'
 import MooringsDash from '@/components/internal/moorings/dashboard.vue'
 import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
 import VesselDetail from '@/components/internal/vessels/vessel_detail.vue'
+import DcvVesselDetail from '@/components/internal/vessels/dcv_vessel_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
+import PersonDetail from '@/components/internal/person/person_detail.vue'
 import Compliance from '../compliances/access.vue'
 import Reports from '@/components/reports/reports.vue'
+import Approval from '@/components/internal/approvals/approval.vue'
 /*
 import User from '../users/manage.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
@@ -43,13 +46,11 @@ export default
             component: ApprovalDash,
             name:"internal-approvals-dash"
         },
-        /*
         {
             path: 'approval/:approval_id',
             component: Approval,
-
+            name: 'internal-approval-detail',
         },
-        */
         {
             path: 'compliances',
             component: ComplianceDash,
@@ -99,11 +100,33 @@ export default
                 },
             ]
         },
+        {
+            path: 'dcv_vessel',
+            //component: MooringsDash,
+            component: {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: ':dcv_vessel_id',
+                    component: DcvVesselDetail,
+                    name:"internal-dcv-vessel-detail"
+                },
+            ]
+        },
 
         {
             path: 'sticker',
             component: StickersDash,
             name: "internal-stickers-dash"
+        },
+        {
+            path: 'person/:email_user_id',
+            component: PersonDetail,
+            name: "internal-person-detail"
         },
         {
             path: 'compliance/:compliance_id',

@@ -64,6 +64,11 @@ export default {
                 return options.indexOf(val) != -1 ? true: false;
             }
         },
+        target_email_user_id: {
+            type: Number,
+            required: false,
+            default: 0,
+        }
     },
     data() {
         let vm = this;
@@ -104,6 +109,12 @@ export default {
         }
     },
     computed: {
+        debug: function(){
+            if (this.$route.query.debug){
+                return this.$route.query.debug === 'Tru3'
+            }
+            return false
+        },
         is_external: function() {
             return this.level == 'external'
         },
@@ -223,7 +234,11 @@ export default {
                             links += '<div>'
                             links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (vm.is_internal){
-                                links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
+                                if (invoice.payment_status.toLowerCase() === 'paid'){
+                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
+                                } else {
+                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
+                                }
                             }
                             links += '</div>'
                         }
@@ -241,12 +256,18 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    //console.log(full)
                     let links = '';
                     if (vm.is_internal){
-                        if(full.assessor_process){
+                        if (vm.debug){
                             links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                        } else {
                             links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                        } else {
+                            if(full.assessor_process){
+                                links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
+                            } else {
+                                links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                            }
                         }
                     }
                     if (vm.is_external){
@@ -258,9 +279,14 @@ export default {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
                         for (let invoice of full.invoices){
-                            if (invoice.payment_status === 'unpaid'){
+                            console.log('--invoice--')
+                            console.log(invoice)
+                            if (invoice.payment_status.toLowerCase() === 'unpaid'){
                                 links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
                             }
+                        }
+                        if (full.document_upload_url){
+                            links +=  `<a href='${full.document_upload_url}'>Upload Documents</a>`
                         }
                     }
                     return links;
@@ -308,10 +334,12 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    //console.log(full)
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
+                            //ret_str += '<div>' + item.payment_status + '</div>'
+                            ret_str += '<span>' + item.payment_status + '</span>'
                         }
                         return ret_str
                     } else {
@@ -363,7 +391,7 @@ export default {
                 serverSide: true,
                 searching: search,
                 ajax: {
-                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.proposals_paginated_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -375,7 +403,22 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[ ],
+                //buttons:[ ],
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+
                 columns: columns,
                 processing: true,
                 initComplete: function() {
@@ -394,7 +437,7 @@ export default {
             let vm = this;
             swal({
                 title: "Discard Application",
-                text: "Are you sure you want to discard this proposal?",
+                text: "Are you sure you want to discard this application?",
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Discard Application',
@@ -406,7 +449,7 @@ export default {
                     console.log(response)
                     swal(
                         'Discarded',
-                        'Your proposal has been discarded',
+                        'Your application has been discarded',
                         'success'
                     )
                     //vm.$refs.application_datatable.vmDataTable.ajax.reload();

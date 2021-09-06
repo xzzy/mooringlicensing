@@ -148,7 +148,8 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             //return 'not implemented';
-                            return full.authorised_user_permits;
+                            let total = full.authorised_user_permits.ria + full.authorised_user_permits.site_licensee
+                            return total + ' (' + full.authorised_user_permits.ria + '/' + full.authorised_user_permits.site_licensee + ')'
                         }
                     }
         },
@@ -231,6 +232,21 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+                /*
+                buttons:[
                     //{
                     //    extend: 'csv',
                     //    exportOptions: {
@@ -238,6 +254,7 @@ export default {
                     //    }
                     //},
                 ],
+                */
                 columns: vm.applicableColumns,
                 processing: true,
                 initComplete: function() {

@@ -59,6 +59,7 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
 
 class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
     arrival_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
+    departure_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
 
     def validate(self, data):
         field_errors = {}
@@ -67,6 +68,8 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         if not self.partial:
             if not data.get('arrival_date', None):
                 field_errors['year'] = ['Please enter an arrival date.',]
+            if not data.get('departure_date', None):
+                field_errors['year'] = ['Please enter an departure date.',]
 
             # Raise errors
             if field_errors:
@@ -84,6 +87,7 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'arrival_date',
+            'departure_date',
             'dcv_admission',
             'private_visit',
         )
@@ -115,6 +119,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
     dcv_organisation_id = serializers.IntegerField(required=True)
     fee_season_id = serializers.IntegerField(required=True)
+    # permits = serializers.SerializerMethodField()
 
     def validate(self, data):
         field_errors = {}
@@ -157,6 +162,11 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_permits(self, obj):
+        permit_urls = []
+        for doc in obj.permits.all():
+            permit_urls.append(doc._file.url)
+
     class Meta:
         model = DcvPermit
         fields = (
@@ -169,12 +179,14 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'fee_season_id',
             'start_date',
             'end_date',
+            # 'permits',
         )
         read_only_fields = (
             'id',
             'lodgement_number',
             'start_date',
             'end_date',
+            # 'permits',
         )
 
 
