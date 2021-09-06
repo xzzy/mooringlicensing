@@ -27,6 +27,7 @@ if SHOW_DEBUG_TOOLBAR:
     ]
     INSTALLED_APPS += (
         'debug_toolbar',
+        'smart_selects',
     )
     INTERNAL_IPS = ('127.0.0.1', 'localhost')
 
@@ -341,3 +342,4 @@ ORACLE_CODES = [
         'name': 'Mooring swap fees',
     },
 ]
+JQUERY_URL = True
