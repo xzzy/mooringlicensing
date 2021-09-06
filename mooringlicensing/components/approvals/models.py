@@ -789,8 +789,8 @@ class Approval(RevisionedMixin):
 
         return type_list
 
-    @property
-    def fee_items(self):
+    # @property
+    def get_fee_items(self):
         fee_items = []
         for proposal in self.proposal_set.all():
             for application_fee in proposal.application_fees.all():
@@ -806,7 +806,7 @@ class Approval(RevisionedMixin):
     def latest_applied_season(self):
         latest_applied_season = None
 
-        for fee_item in self.fee_items:
+        for fee_item in self.get_fee_items():
             if latest_applied_season:
                 if latest_applied_season.end_date < fee_item.fee_period.fee_season.end_date:
                     latest_applied_season = fee_item.fee_period.fee_season

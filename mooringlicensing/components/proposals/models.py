@@ -434,6 +434,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def get_fee_items_paid(self):
+        fee_items = []
+        for application_fee in self.application_fees.all():
+            if application_fee.paid:
+                for fee_item in application_fee.fee_items.all():
+                    fee_items.append(fee_item)
+        return fee_items
+
     @property
     def vessel_removed(self):
         # for AUP, AAP manage_stickers
@@ -3071,6 +3079,13 @@ class VesselOwnership(models.Model):
 
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
+
+    def get_fee_items_paid(self):
+        # Return all the fee_items for this vessel
+        fee_items = []
+        for proposal in self.proposal_set.filter(approval__isnull=False):
+            fee_items += proposal.get_fee_items_paid()
+        return fee_items
 
     def save(self, *args, **kwargs):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
