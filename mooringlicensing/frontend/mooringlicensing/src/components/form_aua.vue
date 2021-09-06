@@ -112,9 +112,20 @@
                   />
               </div>
               <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
+                  <div v-if="proposal">
+                      <CurrentMooring 
+                          :proposal=proposal
+                          :readonly=readonly
+                          :is_internal=is_internal
+                          @resetCurrentMooring=resetCurrentMooring
+                          />
+                  </div>
                   <MooringAuthorisation
                   :proposal="proposal" 
                   id="mooring_authorisation" 
+                  :id="'mooringAuthorisation' + mooringAuthorisationUuid"
+                  :key="'mooringAuthorisation' + mooringAuthorisationUuid"
+                  :change_mooring=change_mooring
                   ref="mooring_authorisation"
                   :readonly="readonly"
                   />
@@ -150,6 +161,7 @@
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
     import CurrentVessels from '@/components/common/current_vessels.vue'
+    import CurrentMooring from '@/components/common/current_mooring.vue'
     import Insurance from '@/components/common/insurance.vue'
     import MooringAuthorisation from '@/components/common/mooring_authorisation.vue'
     /*
@@ -220,7 +232,9 @@
                 values:null,
                 profile: {},
                 uuid: 0,
+                mooringAuthorisationUuid: 0,
                 keep_current_vessel: true,
+                change_mooring: true,
             }
         },
         components: {
@@ -228,6 +242,7 @@
             Confirmation,
             Vessels,
             CurrentVessels,
+            CurrentMooring,
             Insurance,
             MooringAuthorisation,
             /*
@@ -274,6 +289,10 @@
             resetCurrentVessel: function(keep) {
                 this.keep_current_vessel = keep;
                 this.uuid++
+            },
+            resetCurrentMooring: function(keep) {
+                this.change_mooring = keep;
+                this.mooringAuthorisationUuid++
             },
             populateProfile: function(profile) {
                 this.profile = Object.assign({}, profile);
