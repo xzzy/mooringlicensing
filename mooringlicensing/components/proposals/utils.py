@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 
 from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
@@ -1001,13 +1002,17 @@ def is_payment_officer(user):
 
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
+    # Retrieve all the fee_items for this vessel
+    fee_items_paid = proposal.vessel_ownership.get_fee_items_paid()
+    if fee_item_being_applied in fee_items_paid:
+        # Fee item being paid has been paid already
+        return Decimal('0.0')
+
     # This logic might be true to all the four types of application
     # If not, implement the logic specific to a certain application type under that class
     if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
         # This is Amendment application.  We have to adjust the fee
         if fee_item_being_applied:
-            #logger_for_payment.log('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-            #logger_for_payment.log('FeeItem being applied: {}'.format(fee_item_being_applied))
             logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
             logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
 
@@ -1015,7 +1020,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
             fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
             # Adjust the fee
-            for fee_item in proposal.approval.fee_items:
+            for fee_item in proposal.approval.get_fee_items():
                 if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
                     # Find the fee_item which can be considered as already paid for this period
                     target_fee_period = fee_item_being_applied.fee_period
@@ -1048,5 +1053,9 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
         # This is New/Renewal Application type
         # fee_amount_adjusted = fee_item_being_applied.amount
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+
+        # TEST
+        if proposal.approval:
+            fee_items = proposal.approval.get_fee_items()
 
     return fee_amount_adjusted
