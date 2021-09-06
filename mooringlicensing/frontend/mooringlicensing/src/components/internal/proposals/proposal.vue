@@ -409,11 +409,13 @@ export default {
         },
         proposedApproval: function(){
             console.log('proposedApproval')
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+            /*
             if(this.proposal.proposed_issuance_approval == null){
             }
+            */
             this.uuid++;
             this.$nextTick(() => {
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
                 this.$refs.proposed_approval.isModalOpen = true;
             });
         },
@@ -446,26 +448,13 @@ export default {
                     'error'
                 )
             } else {
-                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-                this.$refs.proposed_approval.state = 'final_approval';
-                this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-                /*
-                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
-                    var start_date=new Date();
-                    start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
-                    $(this.$refs.proposed_approval.$refs.start_date).data('DateTimePicker').date(start_date);
-                }
-                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.expiry_date!=null){
-                    var expiry_date=new Date();
-                    expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
-                    $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
-                }
-                */
-                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-                // if(this.proposal.applicant.email){
-                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-                // }
-                this.$refs.proposed_approval.isModalOpen = true;
+                this.uuid++;
+                this.$nextTick(() => {
+                    this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                    this.$refs.proposed_approval.state = 'final_approval';
+                    this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                    this.$refs.proposed_approval.isModalOpen = true;
+                });
             }
 
         },
