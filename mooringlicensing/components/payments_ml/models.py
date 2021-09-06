@@ -218,6 +218,7 @@ class ApplicationFee(Payment):
 
 
 class FeeSeason(RevisionedMixin):
+    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):

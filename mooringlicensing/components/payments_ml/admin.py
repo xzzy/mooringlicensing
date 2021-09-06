@@ -99,6 +99,17 @@ class FeeSeasonForm(forms.ModelForm):
 
         return data
 
+    def clean_application_type(self):
+        data = self.cleaned_data['application_type']
+
+        if not self.instance.is_editable:
+            if data != self.instance.application_type:
+                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+        if not data:
+            raise forms.ValidationError('Please select an application type.')
+
+        return data
+
     # def clean(self):
     #     cleaned_data = super(FeeSeasonForm, self).clean()
     #     if cleaned_data['name']:
