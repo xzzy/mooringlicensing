@@ -111,7 +111,7 @@ from '@/utils/hooks'
                     currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}. 
                        Do you want to list another vessel on your Mooring Licence?`;
                 }
-                return '';
+                //return '';
             },
             currentVesselDisplayText: function() {
                 if (this.proposal && this.proposal.approval_vessel_rego_no) {
@@ -119,7 +119,7 @@ from '@/utils/hooks'
                     lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}. 
                         Do you want to add another vessel on your ${this.proposal.approval_type_text}?`;
                 }
-                return '';
+                //return '';
             },
 
         },
