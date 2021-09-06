@@ -8,6 +8,9 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from datetime import datetime
+from django.dispatch import receiver
+from django.db.models.signals import post_save, post_delete, pre_delete
+from mooringlicensing import settings
 
 
 class UserSystemSettings(models.Model):
@@ -99,14 +102,34 @@ class Document(models.Model):
 class ApplicationType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
-    oracle_code = models.CharField(max_length=50, blank=True, null=True)
+    fee_by_fee_constructor = models.BooleanField(default=True)
 
     def __str__(self):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
         return '{}'.format(self.description)
 
+    def get_oracle_code_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.value
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    def get_enforcement_date_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.date_of_enforcement
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    @staticmethod
+    def get_current_oracle_code_by_application(code):
+        application_type = ApplicationType.objects.get(code=code)
+        return application_type.get_oracle_code_by_date()
+
     class Meta:
         app_label = 'mooringlicensing'
+        verbose_name = 'Oracle code'
 
 
 
@@ -276,8 +299,14 @@ def update_electoral_roll_doc_filename(instance, filename):
 
 class VesselSizeCategoryGroup(RevisionedMixin):
     name = models.CharField(max_length=100, null=False, blank=False)
-    # created = models.DateTimeField(auto_now_add=True)
-    # updated = models.DateTimeField(auto_now=True)
+
+    def get_one_smaller_category(self, vessel_size_category):
+        smaller_categories = self.vessel_size_categories.filter(start_size__lt=vessel_size_category.start_size, null_vessel=False).order_by('-start_size')
+        if smaller_categories:
+            return smaller_categories.first()
+        else:
+            # Probably the vessel_size_category passed as a parameter is the smallest vessel size category in this group
+            return None
 
     def __str__(self):
         num_item = self.vessel_size_categories.count()
@@ -293,6 +322,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         else:
             super(VesselSizeCategoryGroup, self).save(**kwargs)
 
+
     @property
     def is_editable(self):
         for fee_constructor in self.fee_constructors.all():
@@ -302,17 +332,28 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         return True
 
 
+# @receiver(post_save, sender=VesselSizeCategoryGroup)
+# def _post_save_vscg(sender, instance, **kwargs):
+#     print('VesselSizeCategoryGroup post save()')
+#     print(instance)
+
+
 class VesselSizeCategory(RevisionedMixin):
     name = models.CharField(max_length=100)
     start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='unit [m]')
     include_start_size = models.BooleanField(default=True)  # When true, 'start_size' is included.
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=True, blank=True, related_name='vessel_size_categories')
     null_vessel = models.BooleanField(default=False)
-    # created = models.DateTimeField(auto_now_add=True)
-    # updated = models.DateTimeField(auto_now=True)
+
+    def get_one_smaller_category(self):
+        smaller_category = self.vessel_size_category_group.get_one_smaller_category(self)
+        return smaller_category
 
     def __str__(self):
-        return self.name
+        if self.null_vessel:
+            return self.name
+        else:
+            return '{} (>{}m)'.format(self.name, self.start_size)
 
     class Meta:
         verbose_name_plural = "Vessel Size Categories"
@@ -329,6 +370,32 @@ class VesselSizeCategory(RevisionedMixin):
         if self.vessel_size_category_group:
             return self.vessel_size_category_group.is_editable
         return True
+
+
+@receiver(post_save, sender=VesselSizeCategory)
+def _post_save_vsc(sender, instance, **kwargs):
+    print('VesselSizeCategory post save()')
+    print(instance.vessel_size_category_group)
+
+    for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
+        if fee_constructor.is_editable:
+            fee_constructor.reconstruct_fees()
+
+
+@receiver(post_delete, sender=VesselSizeCategory)
+def _post_delete_vsc(sender, instance, **kwargs):
+    print('VesselSizeCategory post delete()')
+    print(instance.vessel_size_category_group)
+
+    for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
+        if fee_constructor.is_editable:
+            fee_constructor.reconstruct_fees()
+
+
+# @receiver(pre_delete, sender=VesselSizeCategory)
+# def _pre_delete_vsc(sender, instance, **kwargs):
+#     print('VesselSizeCategory pre delete()')
+#     print(instance.vessel_size_category_group)
 
 
 class NumberOfDaysType(RevisionedMixin):

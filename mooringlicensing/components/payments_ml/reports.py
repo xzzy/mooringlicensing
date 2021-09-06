@@ -6,11 +6,9 @@ from django.db.models.query_utils import Q
 from ledger.payments.models import CashTransaction, BpointTransaction, BpayTransaction,Invoice
 from ledger.settings_base import TIME_ZONE
 
-from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvAdmissionFee, DcvPermitFee
 from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.proposals.models import Proposal
 
 
 def booking_bpoint_settlement_report(_date):
@@ -31,15 +29,8 @@ def booking_bpoint_settlement_report(_date):
 
         # Retrieve all the oracle codes used in this app
         oracle_codes = []
-        app_type_dcv_admission = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-        app_type_dcv_permit = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-        oracle_codes.append(app_type_dcv_admission.oracle_code)
-        oracle_codes.append(app_type_dcv_permit.oracle_code)
-        for item in Proposal.__subclasses__():
-            if hasattr(item, 'code'):
-                app_type = ApplicationType.objects.get(code=item.code)
-                oracle_codes.append(app_type.oracle_code)
-        oracle_codes = list(set(oracle_codes))  # Remove duplication
+        for application_type in ApplicationType.objects.all():
+            oracle_codes.append(application_type.get_oracle_code_by_date())
 
         # crn1 starts with one of the oracle codes retrieved
         queries = Q()

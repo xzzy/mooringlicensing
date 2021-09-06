@@ -2,8 +2,8 @@
     <div class="">
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
-            <h4>Annual Admission Application: {{proposal.lodgement_number}}</h4>
-            <h5>{{ proposal.proposal_type.description }}</h5>
+            <h4>Annual Admission {{ applicationTypeText }} Application: {{proposal.lodgement_number}}</h4>
+            <!--h5>{{ proposal.proposal_type.description }}</h5-->
         </div>
 
         <div class="">
@@ -72,19 +72,31 @@
                   </div>
                   <div v-else>
                     <Applicant
-                    :proposal="proposal"
-                    id="proposalStartApplicant"
-                    :readonly="readonly"
+                        :email_user="proposal.submitter" 
+                        :applicantType="proposal.applicant_type" 
+                        id="proposalStartApplicant"
+                        :readonly="readonly"
                     />
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
+                  <div v-if="proposal">
+                      <CurrentVessels 
+                          :proposal=proposal
+                          :readonly=readonly
+                          :is_internal=is_internal
+                          @resetCurrentVessel=resetCurrentVessel
+                          />
+                  </div>
                   <Vessels
                   :proposal="proposal"
-                  :profile="profile"
-                  id="proposalStartVessels"
+                  :profile="profileVar"
+                  :id="'proposalStartVessels' + uuid"
+                  :key="'proposalStartVessels' + uuid"
+                  :keep_current_vessel=keep_current_vessel
                   ref="vessels"
                   :readonly="readonly"
+                  :is_internal="is_internal"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -125,6 +137,7 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
+    import CurrentVessels from '@/components/common/current_vessels.vue'
     import Insurance from '@/components/common/insurance.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
@@ -193,6 +206,8 @@
             return{
                 values:null,
                 profile: {},
+                uuid: 0,
+                keep_current_vessel: true,
             }
         },
         components: {
@@ -200,6 +215,7 @@
             Confirmation,
             Vessels,
             Insurance,
+            CurrentVessels,
             /*
             ActivitiesLand,
             ActivitiesMarine,
@@ -213,8 +229,22 @@
             */
         },
         computed:{
+            profileVar: function() {
+                if (this.is_external) {
+                    return this.profile;
+                } else if (this.proposal) {
+                    return this.proposal.submitter;
+                }
+            },
             applicantType: function(){
                 return this.proposal.applicant_type;
+            },
+            applicationTypeText: function(){
+                let text = '';
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new') {
+                    text = this.proposal.proposal_type.description;
+                }
+                return text;
             },
             /*
             showElectoralRoll: function() {
@@ -227,6 +257,10 @@
             */
         },
         methods:{
+            resetCurrentVessel: function(keep) {
+                this.keep_current_vessel = keep;
+                this.uuid++
+            },
             populateProfile: function(profile) {
                 this.profile = Object.assign({}, profile);
             },

@@ -15,6 +15,17 @@
                         </span>
                     </div>
                 </div>
+
+                <div class="row form-group">
+                    <label for="" class="col-sm-2 control-label">Departure</label>
+                    <div class="col-sm-3 input-group date" ref="departureDatePicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="row form-group">
                     <label class="col-sm-2 control-label">Private visit</label>
                     <div class="col-sm-2">
@@ -35,7 +46,7 @@
                     </div>
                     <div v-else class="row">
                         <div class="col-sm-12">
-                            <div><strong>You do not have an annual admission permit, authorised user permit or mooring licence for the vessel.  Please click <a href="https://mooring-ria.dbca.wa.gov.au/admissions/ria/" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
+                            <div><strong>Please click <a :href="daily_admission_url" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
                             <div><strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong></div>
                         </div>
                     </div>
@@ -46,7 +57,7 @@
                         <div class="col-sm-2 text-center"><label>Landing</label></div>
                         <div class="col-sm-2 text-center"><label>Extended stay</label></div>
                         <div class="col-sm-2 text-center"><label>Not landing</label></div>
-                        <div class="col-sm-2 text-center"><label>Approved events</label></div>
+                        <div v-show="column_approved_events_shown" class="col-sm-2 text-center"><label>Approved events</label></div>
                         <div class="col-sm-2 text-center"><label>Fee (AU$)</label></div>
                     </div>
                     <div class="row form-group">
@@ -60,7 +71,7 @@
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
                         </div>
-                        <div class="col-sm-2">
+                        <div v-show="column_approved_events_shown" class="col-sm-2">
                             <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-approved-events" placeholder="" v-model="arrival.adults.approved_events">
                         </div>
                         <div class="col-sm-2">
@@ -74,13 +85,13 @@
                         <div class="col-sm-2">
                             <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
                         </div>
-                        <div class="col-sm-2">
-                            <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                        <div v-show="column_extended_stay_enabled" class="col-sm-2">
+                            <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
                         </div>
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
                         </div>
-                        <div class="col-sm-2">
+                        <div v-show="column_approved_events_shown" class="col-sm-2">
                             <input :disabled="!column_approved_events_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-approved-events" placeholder="" v-model="arrival.children.approved_events">
                         </div>
                         <div class="col-sm-2">
@@ -106,7 +117,7 @@ require('eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-  
+
 export default {
     name: 'DcvAdmissionArrivalPanel',
     props: {
@@ -134,6 +145,10 @@ export default {
             type: Boolean,
             default: true,
         },
+        column_approved_events_shown: {
+            type: Boolean,
+            default: true,
+        },
         radio_private_visit_enabled: {
             type: Boolean,
             default: true,
@@ -144,6 +159,7 @@ export default {
         return {
             shown: false,  // Hidden first to make fade-in work
             paySubmitting: false,
+            daily_admission_url: '',
         }
     },
     components:{
@@ -255,6 +271,12 @@ export default {
         },
     },
     methods: {
+        fetchData: async function(){
+            // Status values
+            const res = await this.$http.get(api_endpoints.daily_admission_url);
+            console.log(res.body.daily_admission_url)
+            this.daily_admission_url = res.body.daily_admission_url
+        },
         delete_arrival_icon_clicked: function() {
             this.shown = false
             this.$emit('delete_arrival', this.arrival.uuid)
@@ -262,13 +284,16 @@ export default {
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.arrivalDatePicker);
+            let el_to = $(vm.$refs.departureDatePicker);
+
             let options = {
                 format: "DD/MM/YYYY",
                 showClear: true ,
                 useCurrent: false,
             };
 
-            el_fr.datetimepicker(options);
+            el_fr.datetimepicker(options)
+            el_to.datetimepicker(options)
 
             el_fr.on("dp.change", function(e) {
                 let selected_date = null;
@@ -276,18 +301,34 @@ export default {
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
                     vm.arrival.arrival_date = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date)
                 } else {
                     // Date not selected
                     vm.arrival.arrival_date = selected_date;
+                    el_to.data('DateTimePicker').minDate(false)
                 }
-            });
+            })
+
+            el_to.on("dp.change", function(e){
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.arrival.departure_date = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.arrival.departure_date = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(false)
+                }
+            })
         },
     },
     mounted: function () {
         this.shown = true  // Show the panel once
     },
-    created: function() {
-
+    created: async function() {
+        await this.fetchData();
         this.$nextTick(() => {
             this.addEventListeners();
         });

@@ -33,6 +33,7 @@ from mooringlicensing.components.main.decorators import (
 from mooringlicensing.components.organisations.models import  (
                                     Organisation,
                                 )
+from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 
 from mooringlicensing.components.users.serializers import   (
                                                 UserSerializer,
@@ -78,6 +79,33 @@ class GetProfile(views.APIView):
         response = Response(serializer.data)
         return add_cache_control(response)
 
+
+class GetPerson(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data = EmailUser.objects.filter(
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term) |
+                Q(email__icontains=search_term)
+            )[:10]
+            data_transform = []
+            for email_user in data:
+                if email_user.dob:
+                    text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
+                else:
+                    text = '{} {}'.format(email_user.first_name, email_user.last_name)
+
+                serializer = EmailUserAppViewSerializer(email_user)
+                email_user_data = serializer.data
+                email_user_data['text'] = text
+                data_transform.append(email_user_data)
+            return Response({"results": data_transform})
+        return Response()
+
+
 class GetSubmitterProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
@@ -97,9 +125,14 @@ class UserListFilterView(generics.ListAPIView):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('email', 'first_name', 'last_name')
 
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.all()
     serializer_class = UserSerializer
+
+    # def get_queryset(self):
+    #     queryset = EmailUser.objects.all()
+    #     pass
 
     @detail_route(methods=['POST',])
     def update_personal(self, request, *args, **kwargs):

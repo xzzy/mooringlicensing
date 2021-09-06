@@ -352,6 +352,7 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
+
 def save_proponent_data_aaa(instance, request, viewset):
     print(request.data)
     # vessel
@@ -371,7 +372,15 @@ def save_proponent_data_aaa(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    serializer.save()
+    instance = serializer.save()
+    if viewset.action == 'submit':
+        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+            # Save + Submit + Paid ==> We have to update the status
+            # Probably this is the case that assessor put back this application to external and then external submit this.
+            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            instance.save()
+
 
 def save_proponent_data_wla(instance, request, viewset):
     print(request.data)
@@ -392,9 +401,14 @@ def save_proponent_data_wla(instance, request, viewset):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    serializer.save()
-    # if instance.pending_amendment_request:
-    #     proposal_submit(instance, request)
+    instance = serializer.save()
+    if viewset.action == 'submit':
+        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+            # Save + Submit + Paid ==> We have to update the status
+            # Probably this is the case that assessor put back this application to external and then external submit this.
+            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            instance.save()
 
 
 def save_proponent_data_mla(instance, request, viewset):
@@ -497,7 +511,7 @@ def submit_vessel_data(instance, request, vessel_data):
 
     #import ipdb; ipdb.set_trace()
     if (not vessel_data.get('rego_no') and instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and
-            type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication]):
+            type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication, AnnualAdmissionApplication]):
         return
     #else:
      #   raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
@@ -516,10 +530,15 @@ def submit_vessel_data(instance, request, vessel_data):
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
     else:
         ## Mooring Licence Application
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vesel_size:
+        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
         elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
+        elif instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and (
+                instance.vessel_details.vessel_applicable_length > instance.approval.child_obj.mooring.vessel_size_limit or
+                instance.vessel_details.vessel_draft > instance.approval.child_obj.mooring.vessel_draft_limit
+                ):
+            raise serializers.ValidationError("Vessel unsuitable for mooring")
 
     # record ownership data
     #submit_vessel_ownership(instance, request)
@@ -571,10 +590,20 @@ def submit_vessel_data(instance, request, vessel_data):
             approvals_aup.append(approval)
         if type(approval) == AuthorisedUserPermit and approval.status in ['current', 'suspended']:
             approvals_aup_sus.append(approval)
+    #import ipdb; ipdb.set_trace()
     # apply rules
     if (type(instance.child_obj) == WaitingListApplication and (proposals_wla or approvals_wla or
             proposals_mla or approvals_ml_sus)):
         association_fail = True
+    # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
+    elif (type(instance.child_obj) == WaitingListApplication and (
+        WaitingListApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']).exclude(id=instance.id) or
+        WaitingListAllocation.objects.filter(submitter=instance.submitter).exclude(status__in=['cancelled', 'expired', 'surrendered']).exclude(approval=instance.approval) or
+        MooringLicenceApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+        MooringLicence.objects.filter(submitter=instance.submitter).filter(status__in=['current', 'suspended']))
+        ):
+        raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Licence and Mooring Licence application")
+        #association_fail = True
     elif (type(instance.child_obj) == AnnualAdmissionApplication and (proposals_aaa or approvals_aap or
             proposals_aua or approvals_aup_sus or proposals_mla or approvals_ml_sus)):
         association_fail = True
@@ -971,7 +1000,7 @@ def is_payment_officer(user):
 #        booking_email.send_confirmation_tclass_email_notification(request.user, booking, bi, recipients, is_test=True)
 
 
-def get_fee_amount_adjusted(proposal, fee_item_being_applied):
+def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     # This logic might be true to all the four types of application
     # If not, implement the logic specific to a certain application type under that class
     if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
@@ -982,7 +1011,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
             logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
             logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
 
-            fee_amount_adjusted = fee_item_being_applied.amount
+            # fee_amount_adjusted = fee_item_being_applied.amount
+            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
             # Adjust the fee
             for fee_item in proposal.approval.fee_items:
@@ -1002,8 +1032,10 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
                     )
 
                     # Applicant already partially paid for this fee item.  Deduct it.
-                    fee_amount_adjusted -= fee_item_considered_paid.amount
-                    logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+                    # fee_amount_adjusted -= fee_item_considered_paid.amount
+                    if fee_item_considered_paid:
+                        fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+                        logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
             fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
         else:
@@ -1014,6 +1046,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied):
                 raise Exception('FeeItem not found.')
     else:
         # This is New/Renewal Application type
-        fee_amount_adjusted = fee_item_being_applied.amount
+        # fee_amount_adjusted = fee_item_being_applied.amount
+        fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
     return fee_amount_adjusted

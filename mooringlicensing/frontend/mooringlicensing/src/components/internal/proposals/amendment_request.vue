@@ -7,25 +7,24 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
                             <div class="row">
-                                <div class="col-sm-offset-2 col-sm-8">
-                                    <div class="form-group">
-                                        <label class="control-label pull-left"  for="Name">Reason</label>
-                                        <select class="form-control" name="reason" ref="reason" v-model="amendment.reason">
+                                <div class="form-group">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-right"  for="reason_select">Reason</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <select class="form-control" id="reason_select" ref="reason" v-model="amendment.reason">
                                             <option v-for="r in reason_choices" :value="r.key">{{r.value}}</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-offset-2 col-sm-8">
-                                    <div class="form-group">
-                                        <label class="control-label pull-left"  for="Name">Details</label>
-                                        <div v-if="is_apiary_proposal">
-                                             <textarea class="form-control" name="name" v-model="amendment.text" id="amendment_text"></textarea>
-                                        </div>
-                                        <div v-else>
-                                            <textarea class="form-control" name="name" v-model="amendment.text" readonly="true"></textarea>
-                                        </div>
+                                <div class="form-group">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-right" for="amendment_text">Details</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <textarea class="form-control" v-model="amendment.text" id="amendment_text"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -171,13 +170,14 @@ export default {
             //formData.append('data', JSON.stringify(amendment));
             // vm.$http.post('/api/amendment_request.json',JSON.stringify(amendment),{
             //vm.$http.post('/api/amendment_request.json', formData, { emulateJSON: true, }).then(
+            console.log('vm.amendment')
+            console.log(vm.amendment)
             vm.$http.post('/api/amendment_request.json', vm.amendment).then(
                 response => {
                     //vm.$parent.loading.splice('processing contact',1);
-                    let proposal_or_licence = vm.is_apiary_proposal ? 'application' : 'proposal'
                     swal(
                          'Sent',
-                         'An email has been sent to the proponent with the request to amend this ' + proposal_or_licence,
+                         'An email has been sent to the applicant with the request to amend this application',
                          'success'
                     );
                     vm.amendingProposal = true;

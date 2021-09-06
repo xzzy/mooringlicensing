@@ -10,6 +10,8 @@ module.exports = {
     mooring_lookup:"/api/mooring_lookup",
     mooring_lookup_per_bay:"/api/mooring_lookup_per_bay",
     vessel_lookup:"/api/vessel_lookup",
+    sticker_lookup:"/api/sticker_lookup",
+    person_lookup:"/api/person_lookup",
     company_names:"/api/company_names",
     dcv_vessel_rego_nos:"/api/dcv_vessel_rego_nos",
     fee_configurations: "/api/fee_configurations",
@@ -19,7 +21,9 @@ module.exports = {
     compliance_statuses_dict:"/api/compliance_statuses_dict",
     mooring_statuses_dict:"/api/mooring_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
+    mooring_bays_lookup:"/api/mooringbays/lookup.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
+    daily_admission_url: "/api/daily_admission_url",
 
     profile: '/api/profile',
     submitter_profile: '/api/submitter_profile',
@@ -42,6 +46,7 @@ module.exports = {
     moorings_paginated_internal: '/api/moorings_paginated/list_internal',
     compliances:"/api/compliances.json",
     vessel_external_list: '/api/vessel/list_external',
+    vessel_internal_list: '/api/vessel/list_internal',
     waitinglistapplication: '/api/waitinglistapplication/',
     waitinglistallocation: '/api/waitinglistallocation/',
     existing_mooring_licences: '/api/mooringlicence/existing_mooring_licences',
@@ -60,6 +65,12 @@ module.exports = {
     vesselownership: '/api/vesselownership/',
     proposal_by_uuid: '/api/proposal_by_uuid/',
 
+    lookupApprovalDetails: function(id) {
+        return `/api/approvals/${id}/lookup_approval.json`;
+    },
+    lookupApprovalHistory: function(id) {
+        return `/api/approvals/${id}/approval_history?format=datatables`;
+    },
     lookupVessel: function(id) {
         return `/api/vessel/${id}/lookup_vessel.json`;
     },

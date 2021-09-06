@@ -265,7 +265,11 @@ export default {
     submit_text: function() {
         let submitText = 'Submit';
         if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
-            submitText = 'Pay and Submit';
+            if (this.proposal.fee_paid){
+                submitText = 'Submit';
+            } else {
+                submitText = 'Pay / Submit';
+            }
         }
         return submitText;
     },
@@ -312,7 +316,8 @@ export default {
         if (this.$refs.waiting_list_application) {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
-                payload.proposal.dot_name = this.$refs.waiting_list_application.$refs.vessels.dotName;
+                //payload.proposal.dot_name = this.$refs.waiting_list_application.$refs.vessels.dotName;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.waiting_list_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (typeof(this.$refs.waiting_list_application.$refs.profile.silentElector) === 'boolean') {
                 payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
@@ -325,7 +330,7 @@ export default {
         } else if (this.$refs.annual_admission_application) {
             if (this.$refs.annual_admission_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
-                payload.proposal.dot_name = this.$refs.annual_admission_application.$refs.vessels.dotName;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.annual_admission_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (this.$refs.annual_admission_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
@@ -335,7 +340,7 @@ export default {
         } else if (this.$refs.authorised_user_application) {
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
-                payload.proposal.dot_name = this.$refs.authorised_user_application.$refs.vessels.dotName;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.authorised_user_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (this.$refs.authorised_user_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
@@ -358,7 +363,7 @@ export default {
         } else if (this.$refs.mooring_licence_application) {
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
-                payload.proposal.dot_name = this.$refs.mooring_licence_application.$refs.vessels.dotName;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.mooring_licence_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (typeof(this.$refs.mooring_licence_application.$refs.profile.silentElector) === 'boolean') {
             //if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
@@ -414,9 +419,9 @@ export default {
       vm.$http.post(vm.proposal_form_url,formData);
       */
     },
-    submit_and_pay: async function() {
+    save_and_pay: async function() {
         //let formData = this.set_formData()
-        console.log('in submit_and_pay')
+        console.log('in save_and_pay')
         try {
             const res = await this.save(false, this.proposal_submit_url);
             if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
@@ -442,7 +447,31 @@ export default {
             //this.submitting = false;
         }
     },
-
+    save_without_pay: async function(){
+        /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+        let vm = this
+        try {
+            const res = await this.save(false, this.proposal_submit_url);
+            if (res.ok) {
+                vm.$router.push({
+                  name: 'external-dashboard'
+                });
+            }
+        } catch(err) {
+            console.log(err)
+            console.log(typeof(err.body))
+            await swal({
+                title: 'Submit Error',
+                //text: helpers.apiVueResourceError(err),
+                html: helpers.formatError(err),
+                type: "error",
+                //html: true,
+            })
+            this.savingProposal=false;
+            this.paySubmitting=false;
+            //this.submitting = false;
+        }
+    },
     setdata: function(readonly){
       this.proposal_readonly = readonly;
     },
@@ -653,34 +682,11 @@ export default {
             vm.paySubmitting=false;
             return;
         }
-      
+
         if (!vm.proposal.fee_paid) {
-            await vm.submit_and_pay();
+            await vm.save_and_pay()
         } else {
-            /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-            console.log('application was pushed back by assessor for amendment')
-            const res = await this.save(false, this.proposal_submit_url);
-            if (res.ok) {
-                vm.$router.push({
-                  name: 'external-dashboard'
-                });
-            }
-            /*
-            vm.save_wo_confirm()
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id + '/submit'), formData).then(res=>{
-                vm.proposal = res.body;
-                vm.$router.push({
-                    name: 'submit_proposal',
-                    params: { proposal: vm.proposal}
-                });
-            },err=>{
-                swal(
-                    'Submit Error',
-                    helpers.apiVueResourceError(err),
-                    'error'
-                )
-            });
-                */
+            await vm.save_without_pay()
         }
     },
 

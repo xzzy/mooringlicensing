@@ -12,7 +12,7 @@
             </div>
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Year</label>
+                    <label for="">Season</label>
                     <select class="form-control" v-model="filterYear">
                         <option value="All">All</option>
                         <option v-for="season in fee_seasons" :value="season.id">{{ season.name }}</option>
@@ -109,7 +109,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Number', 'Permit or Licence', 'Date sent / printed / mailed', 'Status', 'Year', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Date sent / printed / mailed', 'Status', 'Season', 'Action']
             }
         },
         column_id: function(){
@@ -267,7 +267,22 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:['csv'],
+                //buttons:['csv'],
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+
                 columns: columns,
                 processing: true,
                 initComplete: function() {
@@ -468,7 +483,7 @@ export default {
 
             // Listener for thr row
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'td', function(e) {
-                e.preventDefault();
+                //e.preventDefault();
 
                 let td_link = $(this)
 
@@ -525,59 +540,6 @@ export default {
                     // Change icon class name to vm.td_collapse_class_name
                     first_td.removeClass(vm.td_collapse_class_name).addClass(vm.td_expand_class_name)
                 }
-                //////
-
-         //       let nextElem = tr.next()
-         //       if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
-         //           // Sticker details row is already shown.  Remove it.
-         //           nextElem.fadeOut(500, function(){
-         //               nextElem.remove()
-         //           })
-         //       } else {
-         //           // Display sticker details
-
-         //           // Convert jquery <tr> element to the Datatable row object
-         //           //let row = vm.$refs.stickers_datatable.vmDataTable.row(tr)
-         //           //row.child('<span>AHO</span>').show()
-         //           //return
-
-         //           vm.$http.get(helpers.add_endpoint_json(api_endpoints.stickers, sticker_id)).then(
-         //               res => {
-         //                   let sticker = res.body
-         //                   let table_inside = vm.getActionDetailTable(sticker)
-         //                   let details_elem = $('<tr class="' + vm.sticker_details_tr_class_name + '"><td colspan="' + vm.number_of_columns + '">' + table_inside + '</td></tr>')
-         //                   details_elem.hide()
-         //                   details_elem.insertAfter(tr)
-
-         //                   // Make this sticker action details table Datatable
-         //                   let my_table = $('#table-sticker-details-' + sticker.id)
-         //                   my_table.DataTable({
-         //                       lengthChange: false,
-         //                       searching: false,
-         //                       info: false,
-         //                       paging: false,
-         //                       order: [[0, 'desc']],
-         //                   })
-
-         //                   details_elem.fadeIn(1000)
-         //               },
-         //               err => {
-
-         //               }
-         //           )
-         //       }
-
-                // Get row object as datatable API
-                //var row = vm.$refs.stickers_datatable.vmDataTable.row(tr);
-
-                //if (row.child.isShown()) {
-                //    row.child.hide();
-                //} else {
-                //    row.child('<span>AHO</span>').show()
-                //}
-
-                //console.log(row.data()['number'])
-
             })
         },
     },

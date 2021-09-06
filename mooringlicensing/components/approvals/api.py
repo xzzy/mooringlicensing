@@ -1,4 +1,5 @@
 import traceback
+from confy import env
 import datetime
 import pytz
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -15,7 +16,8 @@ from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 from datetime import datetime
 
-from mooringlicensing.components.approvals.email import send_create_mooring_licence_application_email_notification
+from mooringlicensing import forms
+from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
@@ -25,7 +27,7 @@ from mooringlicensing.components.payments_ml.serializers import DcvPermitSeriali
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring#, ApplicationType
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalDocument, DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
+    DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,
 )
 from mooringlicensing.components.main.process_document import (
@@ -34,7 +36,6 @@ from mooringlicensing.components.main.process_document import (
 from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
     ApprovalCancellationSerializer,
-    ApprovalExtendSerializer,
     ApprovalSuspensionSerializer,
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
@@ -46,7 +47,9 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
     EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
+    ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer,
 )
+from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW
@@ -55,12 +58,51 @@ from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework import filters
 
 
+class GetDailyAdmissionUrl(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        daily_admission_url = env('DAILY_ADMISSION_PAGE_URL', '')
+        data = {'daily_admission_url': daily_admission_url}
+        return Response(data)
+
+
 class GetFeeSeasonsDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.all()]
         return Response(data)
+
+
+class GetSticker(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data = Sticker.objects.filter(number__icontains=search_term)[:10]
+            data_transform = []
+            for sticker in data:
+                approval_history = sticker.approvalhistory_set.order_by('id').first()  # Should not be None, but could be None for the data generated at the early stage of development.
+                if approval_history and approval_history.approval:
+                    data_transform.append({
+                        'id': sticker.id,
+                        'text': sticker.number,
+                        'approval_id': approval_history.approval.id,
+                    })
+                elif sticker.approval:
+                    data_transform.append({
+                        'id': sticker.id,
+                        'text': sticker.number,
+                        'approval_id': sticker.approval.id,
+                    })
+                else:
+                    # Should not reach here
+                    pass
+
+            return Response({"results": data_transform})
+        return Response()
 
 
 class GetApprovalTypeDict(views.APIView):
@@ -156,12 +198,12 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         external_waiting_list = request.GET.get('external_waiting_list')
         external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
         if external_waiting_list and not show_expired_surrendered:
-                print("external")
+                #print("external")
                 #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
-                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_OFFERED))
+                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
                 #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
 
-        print(queryset)
+        #print(queryset)
         # approval types filter2 - Licences dash only (excludes wla)
         filter_approval_type2 = request.GET.get('filter_approval_type2')
         #import ipdb; ipdb.set_trace()
@@ -210,7 +252,12 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         request_user = self.request.user
         all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
 
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+
         if is_internal(self.request):
+            if target_email_user_id:
+                target_user = EmailUser.objects.get(id=target_email_user_id)
+                all = all.filter(Q(submitter=target_user))
             return all
         elif is_customer(self.request):
             qs = all.filter(Q(submitter=request_user))
@@ -373,6 +420,86 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     #         application_types=application_types,
     #     )
     #     return Response(data)
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def get_moorings(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #serializer = ApprovalMooringSerializer(instance.mooringonapproval_set.all(), many=True)
+        #return Response(serializer.data)
+        #moorings_on_approval = instance.mooringonapproval_set.all()
+        moorings = []
+        for moa in instance.mooringonapproval_set.all():
+            #mooring_name = moa.mooring.name
+            licence_holder_data = {}
+            if moa.mooring.mooring_licence:
+                licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+            moorings.append({
+                "id": moa.id,
+                "mooring_name": moa.mooring.name,
+                #"licence_holder": licence_holder_data,
+                "licensee": licence_holder_data.get('full_name') if licensee else '',
+                "mobile": licence_holder_data.get('mobile_number') if licensee else '',
+                "email": licence_holder_data.get('email') if licensee else '',
+                })
+        return Response(moorings)
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def request_new_stickers(self, request, *args, **kwargs):
+        # external
+        approval = self.get_object()
+        data = request.data
+
+        # TODO: Validation
+
+        sticker_action_details = []
+        # stickers = Sticker.objects.filter(status=Sticker.STICKER_STATUS_CURRENT, approval=approval)
+        stickers = Sticker.objects.filter(approval=approval)
+        for sticker in stickers:
+            # Update Sticker actsticker_action_details = {list: 1} [{'id': 73, 'sticker': 88, 'reason': 'fgfgsad', 'date_created': '2021-08-24T08:52:29.049638Z', 'date_updated': '2021-08-24T08:52:29.049715Z', 'date_of_lost_sticker': None, 'date_of_returned_sticker': None, 'action': 'Request new sticker', 'user': 132580, '… Viewion
+            data['sticker'] = sticker.id
+            data['action'] = 'Request new sticker'
+            data['user'] = request.user.id
+            serializer = StickerActionDetailSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            new_sticker_action_detail = serializer.save()
+            sticker_action_details.append(new_sticker_action_detail.id)
+
+        return Response({'sticker_action_detail_ids': sticker_action_details})
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def stickers(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # TODO ??? return all the current stickers for this approval
+
+        return Response({'stickers': []})
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def approval_history(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def lookup_approval(self, request, *args, **kwargs):
+        instance = self.get_object()
+        #serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
+        approval_details = {
+                "approvalType": instance.child_obj.description,
+                "approvalLodgementNumber": instance.lodgement_number,
+                #"history": serializer.data,
+                }
+        return Response(approval_details)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -609,15 +736,12 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
     def _handle_dcv_vessel(dcv_vessel, org_id=None):
         data = dcv_vessel
         rego_no_requested = data.get('rego_no', '')
-        uvi_requested = data.get('uvi_vessel_identifier', '')
         vessel_name_requested = data.get('vessel_name', '')
         try:
-            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
+            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
         except DcvVessel.DoesNotExist:
             data['rego_no'] = rego_no_requested
-            data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
-            # data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
@@ -629,10 +753,40 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-
         dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
 
-        data['submitter'] = request.user.id
+        if request.user.is_authenticated():
+            # Logged in user
+            # 1. DcvPermit exists
+            # 2. DcvPermit doesn't exist
+
+            submitter = request.user
+        else:
+            # Anonymous user
+            # 1. DcvPermit exists
+            # 2. DcvPermit doesn't exist
+            if dcv_vessel.dcv_permits.count():
+                # DcvPermit exists
+                submitter = dcv_vessel.dcv_permits.first().submitter
+            else:
+                # DcvPermit doesn't exist
+                email_address = request.data.get('email_address')
+                email_address_confirmation = request.data.get('email_address_confirmation')
+                skipper = request.data.get('skipper')
+                if email_address == email_address_confirmation:
+                    if skipper:
+                        this_user = EmailUser.objects.filter(email=email_address)
+                        if this_user:
+                            new_user = this_user.first()
+                        else:
+                            new_user = EmailUser.objects.create(email=email_address, first_name=skipper)
+                        submitter = new_user
+                    else:
+                        raise forms.ValidationError('Please fill the skipper field')
+                else:
+                    raise forms.ValidationError('Email addresses do not match')
+
+        data['submitter'] = submitter.id
         # data['fee_sid'] = fee_season_requested.get('id')
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -702,13 +856,11 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     def _handle_dcv_vessel(request, org_id=None):
         data = request.data
         rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
-        uvi_requested = request.data.get('dcv_vessel').get('uvi_vessel_identifier', '')
         vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
         try:
-            dcv_vessel = DcvVessel.objects.get(uvi_vessel_identifier=uvi_requested)
+            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
         except DcvVessel.DoesNotExist:
             data['rego_no'] = rego_no_requested
-            data['uvi_vessel_identifier'] = uvi_requested
             data['vessel_name'] = vessel_name_requested
             data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
@@ -818,6 +970,42 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
 
         return add_cache_control(Response(dcv_vessel_data))
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_admissions(self, request, *args, **kwargs):
+        vessel = self.get_object()
+        selected_date_str = request.data.get("selected_date")
+        selected_date = None
+        if selected_date_str:
+            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+        #if selected_date:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
+        #else:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        #import ipdb; ipdb.set_trace()
+        admissions = DcvAdmission.objects.filter(dcv_vessel=vessel)
+        serializer = LookupDcvAdmissionSerializer(admissions, many=True)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def find_related_permits(self, request, *args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        vessel = self.get_object()
+        selected_date_str = request.data.get("selected_date")
+        selected_date = None
+        if selected_date_str:
+            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+        #if selected_date:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
+        #else:
+        #    approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
+        #import ipdb; ipdb.set_trace()
+        admissions = DcvPermit.objects.filter(dcv_vessel=vessel)
+        serializer = LookupDcvPermitSerializer(admissions, many=True)
+        return Response(serializer.data)
+
 
 
 class DcvAdmissionFilterBackend(DatatablesFilterBackend):
@@ -936,11 +1124,16 @@ class StickerViewSet(viewsets.ModelViewSet):
         # Update Sticker
         sticker.record_lost()
         serializer = StickerSerializer(sticker)
+
+        # Write approval history
+        sticker.approval.write_approval_history()
+
         return Response({'sticker': serializer.data})
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def request_replacement(self, request, *args, **kwargs):
+        # internal
         sticker = self.get_object()
         data = request.data
 
@@ -953,9 +1146,9 @@ class StickerViewSet(viewsets.ModelViewSet):
         details = serializer.save()
 
         # Sticker
-        sticker.request_replacement()
-        serializer = StickerSerializer(sticker)
-        return Response({'sticker': serializer.data})
+        # new_sticker = sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+        # serializer = StickerSerializer(sticker)
+        return Response({'sticker_action_detail_ids': [details.id,]})
 
 
 class StickerPaginatedViewSet(viewsets.ModelViewSet):
@@ -1049,12 +1242,12 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 # send email
                 send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
                 # update waiting_list_allocation
-                waiting_list_allocation.status = 'offered'
+                waiting_list_allocation.internal_status = 'offered'
                 ## BB 20210609 - we no longer reset wla_queue_date
                 #waiting_list_allocation.wla_queue_date = None
-                waiting_list_allocation.wla_order = None
+                #waiting_list_allocation.wla_order = None
                 waiting_list_allocation.save()
-                waiting_list_allocation.set_wla_order()
+                #waiting_list_allocation.set_wla_order()
             return Response({"proposal_created": new_proposal.lodgement_number})
 
 

@@ -10,12 +10,13 @@ from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.utils.encoding import python_2_unicode_compatible
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError, ObjectDoesNotExist, ImproperlyConfigured
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
 
@@ -24,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType, GlobalSettings,
+    Document, ApplicationType, GlobalSettings, NumberOfDaysType, NumberOfDaysSetting,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -33,18 +34,19 @@ from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.models import Invoice
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 
-from mooringlicensing.components.payments_ml.models import FeeItem
+# from mooringlicensing.components.payments_ml.models import FeeItem
 from mooringlicensing.components.proposals.email import (
-    send_proposal_decline_email_notification,
-    send_proposal_approval_email_notification,
+    # send_proposal_decline_email_notification,
+    send_application_processed_email,
     # send_proposal_awaiting_payment_approval_email_notification,
     send_amendment_email_notification,
-    send_submit_email_notification,
+    send_confirmation_email_upon_submit,
     # send_external_submit_email_notification,
     send_approver_decline_email_notification,
     send_approver_approve_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
+    send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
 )
 # from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
 from mooringlicensing.ordered_model import OrderedModel
@@ -58,7 +60,7 @@ from rest_framework import serializers
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_ID, \
-    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW
+    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
 logger_for_payment = logging.getLogger('payment_checkout')
@@ -230,7 +232,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # CUSTOMER_STATUS_PARTIALLY_APPROVED = 'partially_approved'
     # CUSTOMER_STATUS_PARTIALLY_DECLINED = 'partially_declined'
     CUSTOMER_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
-    CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED = 'awaiting_payment_sticker_returned'
     CUSTOMER_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
     CUSTOMER_STATUS_EXPIRED = 'expired'
     CUSTOMER_STATUS_CHOICES = (
@@ -248,7 +249,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # (CUSTOMER_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
         # (CUSTOMER_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
-        (CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
         (CUSTOMER_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
         (CUSTOMER_STATUS_EXPIRED, 'Expired'),
         )
@@ -277,7 +277,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         CUSTOMER_STATUS_EXPIRED,
     ]
 
-    PROCESSING_STATUS_TEMP = 'temp'
+    # PROCESSING_STATUS_TEMP = 'temp'
     PROCESSING_STATUS_DRAFT = 'draft'
     PROCESSING_STATUS_WITH_ASSESSOR = 'with_assessor'
     # PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR = 'with_district_assessor'
@@ -287,9 +287,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS = 'with_assessor_requirements'
     PROCESSING_STATUS_WITH_APPROVER = 'with_approver'
     # PROCESSING_STATUS_RENEWAL = 'renewal'
-    PROCESSING_STATUS_LICENCE_AMENDMENT = 'licence_amendment'
-    PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE = 'awaiting_applicant_respone'
-    PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE = 'awaiting_assessor_response'
+    # PROCESSING_STATUS_LICENCE_AMENDMENT = 'licence_amendment'
+    # PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE = 'awaiting_applicant_respone'
+    # PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE = 'awaiting_assessor_response'
     # PROCESSING_STATUS_AWAITING_STICKER = 'awaiting_sticker'
     PROCESSING_STATUS_PRINTING_STICKER = 'printing_sticker'
     PROCESSING_STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
@@ -307,36 +307,37 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     PROCESSING_STATUS_AWAITING_STICKER_RETURNED = 'awaiting_sticker_returned'
     PROCESSING_STATUS_EXPIRED = 'expired'
 
-    PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_TEMP, 'Temporary'),
-                                 (PROCESSING_STATUS_DRAFT, 'Draft'),
-                                 (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
-                                 # (PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR, 'With District Assessor'),
-                                 # (PROCESSING_STATUS_ONHOLD, 'On Hold'),
-                                 # (PROCESSING_STATUS_WITH_QA_OFFICER, 'With QA Officer'),
-                                 # (PROCESSING_STATUS_WITH_REFERRAL, 'With Referral'),
-                                 (PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, 'With Assessor (Requirements)'),
-                                 (PROCESSING_STATUS_WITH_APPROVER, 'With Approver'),
-                                 # (PROCESSING_STATUS_RENEWAL, 'Renewal'),
-                                 (PROCESSING_STATUS_LICENCE_AMENDMENT, 'Licence Amendment'),
-                                 (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
-                                 (PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE, 'Awaiting Assessor Response'),
-                                 # (PROCESSING_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
-                                 (PROCESSING_STATUS_PRINTING_STICKER, 'Printing Sticker'),
-                                 (PROCESSING_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
-                                 (PROCESSING_STATUS_AWAITING_DOCUMENTS, 'Awaiting Documents'),
-                                 # (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
-                                 # (PROCESSING_STATUS_READY_FOR_CONDITIONS, 'Ready for Conditions'),
-                                 # (PROCESSING_STATUS_READY_TO_ISSUE, 'Ready to Issue'),
-                                 (PROCESSING_STATUS_APPROVED, 'Approved'),
-                                 (PROCESSING_STATUS_DECLINED, 'Declined'),
-                                 (PROCESSING_STATUS_DISCARDED, 'Discarded'),
-                                 # (PROCESSING_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
-                                 # (PROCESSING_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
-                                 (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
-                                 (PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
-                                 (PROCESSING_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
-                                 (PROCESSING_STATUS_EXPIRED, 'Expired'),
-                                )
+    PROCESSING_STATUS_CHOICES = (
+        # (PROCESSING_STATUS_TEMP, 'Temporary'),
+        (PROCESSING_STATUS_DRAFT, 'Draft'),
+        (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
+        # (PROCESSING_STATUS_WITH_DISTRICT_ASSESSOR, 'With District Assessor'),
+        # (PROCESSING_STATUS_ONHOLD, 'On Hold'),
+        # (PROCESSING_STATUS_WITH_QA_OFFICER, 'With QA Officer'),
+        # (PROCESSING_STATUS_WITH_REFERRAL, 'With Referral'),
+        (PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, 'With Assessor (Requirements)'),
+        (PROCESSING_STATUS_WITH_APPROVER, 'With Approver'),
+        # (PROCESSING_STATUS_RENEWAL, 'Renewal'),
+        # (PROCESSING_STATUS_LICENCE_AMENDMENT, 'Licence Amendment'),
+        # (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
+        # (PROCESSING_STATUS_AWAITING_ASSESSOR_RESPONSE, 'Awaiting Assessor Response'),
+        # (PROCESSING_STATUS_AWAITING_STICKER, 'Awaiting Sticker'),
+        (PROCESSING_STATUS_PRINTING_STICKER, 'Printing Sticker'),
+        (PROCESSING_STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
+        (PROCESSING_STATUS_AWAITING_DOCUMENTS, 'Awaiting Documents'),
+        # (PROCESSING_STATUS_AWAITING_RESPONSES, 'Awaiting Responses'),
+        # (PROCESSING_STATUS_READY_FOR_CONDITIONS, 'Ready for Conditions'),
+        # (PROCESSING_STATUS_READY_TO_ISSUE, 'Ready to Issue'),
+        (PROCESSING_STATUS_APPROVED, 'Approved'),
+        (PROCESSING_STATUS_DECLINED, 'Declined'),
+        (PROCESSING_STATUS_DISCARDED, 'Discarded'),
+        # (PROCESSING_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
+        # (PROCESSING_STATUS_PARTIALLY_DECLINED, 'Partially Declined'),
+        (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED, 'Awaiting Payment and Sticker Returned'),
+        (PROCESSING_STATUS_AWAITING_STICKER_RETURNED, 'Awaiting Sticker Returned'),
+        (PROCESSING_STATUS_EXPIRED, 'Expired'),
+    )
 
     proposal_type = models.ForeignKey(ProposalType, blank=True, null=True)
 
@@ -363,7 +364,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
     assigned_approver = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_approvals', on_delete=models.SET_NULL)
     processing_status = models.CharField('Processing Status', max_length=40, choices=PROCESSING_STATUS_CHOICES,
-                                         default=PROCESSING_STATUS_CHOICES[1][0])
+                                         default=PROCESSING_STATUS_CHOICES[0][0])
     prev_processing_status = models.CharField(max_length=40, blank=True, null=True)
 
     approval = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True)
@@ -393,6 +394,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     berth_mooring = models.CharField(max_length=200, blank=True)
+    ## Name as shown on DoT registration papers
+    dot_name = models.CharField(max_length=200, blank=True, null=True)
     #org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.IntegerField(null=True, blank=True)
     individual_owner = models.NullBooleanField()
@@ -419,8 +422,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
     waiting_list_allocation = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, related_name="ria_generated_proposal")
-    ## Name as shown on DoT registration papers
-    dot_name = models.CharField(max_length=200, blank=True, null=True)
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
 
@@ -432,6 +433,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def __str__(self):
         return str(self.lodgement_number)
+
+    @property
+    def vessel_removed(self):
+        # for AUP, AAP manage_stickers
+        #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
+        if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
+            raise ValidationError("Only for AUP, AAA")
+        removed = False
+        if self.previous_application and self.previous_application.vessel_ownership and not self.vessel_ownership:
+            removed = True
+        return removed
+
+    @property
+    def vessel_swapped(self):
+        # for AUP, AAP manage_stickers
+        #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
+        if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
+            raise ValidationError("Only for AUP, AAA")
+        changed = False
+        if (self.vessel_ownership and self.previous_application and self.previous_application.vessel_ownership and 
+                self.vessel_ownership.vessel.rego_no != self.previous_application.vessel_ownership.vessel.rego_no):
+            changed = True
+        return changed
+
+    @property
+    def vessel_amend_new(self):
+        # only for amendment
+        # for AUP, AAP manage_stickers
+        #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
+        if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
+            raise ValidationError("Only for AUP, AAA")
+        new = False
+        if (self.proposal_type is not ProposalType.objects.get(code='new') and self.vessel_ownership and
+                self.previous_application and not self.previous_application.vessel_ownership):
+            new = True
+        return new
 
     def does_have_valid_associations(self):
         # Check if this application has valid associations with other applications and approvals
@@ -688,7 +725,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_DRAFT,
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_TEMP,
+            # Proposal.PROCESSING_STATUS_TEMP,
             Proposal.PROCESSING_STATUS_DISCARDED,
             # 'with_referral',
             # 'with_qa_officer',
@@ -815,8 +852,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #return self.__assessor_group() in user.proposalassessorgroup_set.all()
                 return self.child_obj.is_assessor(user)
 
-    def log_user_action(self, action, request):
-        return ProposalUserAction.log_action(self, action, request.user)
+    #def log_user_action(self, action, request):
+     #   return ProposalUserAction.log_action(self, action, request.user)
+
+    def log_user_action(self, action, request=None):
+        if request:
+            return ProposalUserAction.log_action(self, action, request.user)
+        else:
+            return ProposalUserAction.log_action(self, action)
 
     @property
     def is_submitted(self):
@@ -960,34 +1003,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
-        if self.application_type.name==ApplicationType.FILMING and self.filming_approval_type=='lawful_authority':
-            allowed_status=['approved', 'partially_approved']
-            if not self.processing_status in allowed_status and not self.is_lawful_authority_finalised:
-                raise ValidationError('You cannot change the current status at this time')
-            elif self.approval and self.approval.can_reissue:
-                if self.__assessor_group() in request.user.proposalassessorgroup_set.all():
-                    self.processing_status = status
-                    self.save(version_comment='Reissue Approval: {}'.format(self.approval.lodgement_number))
-                    #self.save()
-                    # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
-                else:
-                    raise ValidationError('Cannot reissue Approval. User not permitted.')
-            else:
-                raise ValidationError('Cannot reissue Approval')
-
-        else:
+        with transaction.atomic():
             if not self.processing_status=='approved' :
                 raise ValidationError('You cannot change the current status at this time')
-            elif self.approval and self.approval.can_reissue:
-                if self.__approver_group() in request.user.proposalapprovergroup_set.all():
-                    self.processing_status = status
-                    #self.save()
-                    self.save(version_comment='Reissue Approval: {}'.format(self.approval.lodgement_number))
-                    # Create a log entry for the proposal
-                    self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.id),request)
-                else:
-                    raise ValidationError('Cannot reissue Approval. User not permitted.')
+            #elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
+            #    # track changes to apiary sites and proposal requirements in save() methods instead
+            #    self.processing_status = status
+            #    #self.self_clone = copy.deepcopy(self)
+            #    #self.self_clone.id = None
+            #    #self.self_clone.save()
+            #    self.save()
+            #    #self.proposal_apiary.self_clone = copy.deepcopy(self.proposal_apiary)
+            #    #self.proposal_apiary.self_clone.id = None
+            #    #self.proposal_apiary.self_clone.save()
+            #    self.proposal_apiary.reissue_originating_approval = False
+            #    self.proposal_apiary.reissue_target_approval = False
+            #    self.proposal_apiary.save()
+            #    self.proposal_apiary.originating_approval.reissued = True
+            #    self.proposal_apiary.originating_approval.save()
+            #    self.proposal_apiary.target_approval.reissued = True
+            #    self.proposal_apiary.target_approval.save()
+            elif self.approval and self.approval.can_reissue and self.is_approver(request.user):
+                ## security ???
+                #elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
+                self.processing_status = status
+                self.proposed_issuance_approval = {}
+                self.save()
+                self.approval.reissued=True
+                self.approval.save()
+                # Create a log entry for the proposal
+                self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
+                #else:
+                    #raise ValidationError('Cannot reissue Approval')
             else:
                 raise ValidationError('Cannot reissue Approval')
 
@@ -1045,7 +1092,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
-                send_proposal_decline_email_notification(self,request, proposal_decline)
+                # update WLA internal_status
+                from mooringlicensing.components.approvals.models import MooringLicence
+                if self.application_type.code == MooringLicence.code and self.waiting_list_allocation:
+                    self.waiting_list_allocation.internal_status = 'waiting'
+                    self.waiting_list_allocation.save()
+                # send_proposal_decline_email_notification(self,request, proposal_decline)
+                send_application_processed_email(self, 'declined', False, request)
             except:
                 raise
 
@@ -1143,7 +1196,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'mooring_id': mooring_id,
                     'ria_mooring_name': ria_mooring_name,
                     'details': details.get('details'),
-                    'cc_email': details.get('cc_email')
+                    'cc_email': details.get('cc_email'),
+                    'mooring_on_approval': details.get('mooring_on_approval'),
+                    'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
                 approver_comment = ''
@@ -1200,7 +1255,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def final_approval_for_WLA_AAA(self, request, details=None, auto_approve=False):
         with transaction.atomic():
-            #import ipdb; ipdb.set_trace()
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 # current_date = current_datetime.date()
@@ -1235,7 +1289,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     else:
                         self.proposed_issuance_approval = {}
                 self.save()
-                self.process_after_approval(request)
+                self.process_after_approval()
                 # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
                 # if self.application_type.code == WaitingListApplication.code:
                 #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -1293,8 +1347,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 self.approval = approval
 
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+
                 # send Proposal approval email with attachment
-                send_proposal_approval_email_notification(self, request)
+                send_application_processed_email(self, 'approved', False, request)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
@@ -1303,7 +1359,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def final_approval_for_AUA_MLA(self, request, details):
+    def final_approval_for_AUA_MLA(self, request=None, details=None):
+    #def final_approval_for_AUA_MLA(self, details, request=None):
         with transaction.atomic():
             try:
                 self.proposed_decline_status = False
@@ -1314,39 +1371,54 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
                 else:
-                    if not self.can_assess(request.user):
+                    if request and not self.can_assess(request.user):
                         raise exceptions.ProposalNotAuthorized()
-                    if self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
+                    if request and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
                     if not self.applicant_address:
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                    ria_mooring_name = ''
-                    mooring_id = details.get('mooring_id')
-                    if mooring_id:
-                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
-                    self.proposed_issuance_approval = {
-                        # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                        # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                        'mooring_bay_id': details.get('mooring_bay_id'),
-                        'mooring_id': mooring_id,
-                        'ria_mooring_name': ria_mooring_name,
-                        'details': details.get('details'),
-                        'cc_email': details.get('cc_email')
-                    }
-                    self.save()
+                    if request:
+                        ria_mooring_name = ''
+                        mooring_id = details.get('mooring_id')
+                        if mooring_id:
+                            ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        self.proposed_issuance_approval = {
+                            # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                            # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                            'mooring_bay_id': details.get('mooring_bay_id'),
+                            'mooring_id': mooring_id,
+                            'ria_mooring_name': ria_mooring_name,
+                            'details': details.get('details'),
+                            'cc_email': details.get('cc_email'),
+                            'mooring_on_approval': details.get('mooring_on_approval'),
+                            'vessel_ownership': details.get('vessel_ownership'),
+                        }
+                        self.save()
 
-                from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
-                from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
-                line_items, db_operations = create_fee_lines(self)
-                # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-                try:
-                    fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
-                except:
-                    fee_item_additional = None
+                approval = None
+                if request:
+                    from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
+                    from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
+                    line_items, db_operations = create_fee_lines(self)
 
-                if line_items:
+                    total_amount = 0
+                    for line_item in line_items:
+                        total_amount += line_item['price_incl_tax']
+
+                    if total_amount == 0:
+                        # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
+                        # Ledger skips the payment step, which calling the function below
+                        approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+
+                    # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                    from mooringlicensing.components.payments_ml.models import FeeItem
+                    fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
+                    try:
+                        fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                    except:
+                        fee_item_additional = None
+
                     with transaction.atomic():
                         try:
                             logger.info('Creating invoice for the application: {}'.format(self))
@@ -1357,50 +1429,68 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice = Invoice.objects.get(order_number=order.number)
 
                             line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-
-                            annual_rental_fee = ApplicationFee.objects.create(
-                                proposal=self,
-                                # fee_constructor=fee_constructor,
-                                # fee_item=fee_item,
-                                # annual_rental_fee_period=annual_rental_fee_period,
-                                invoice_reference=invoice.reference,
-                                payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
-                                # invoice_period_start_date=invoice_period[0],
-                                # invoice_period_end_date=invoice_period[1],
-                                # lines=line_items,  # We may add this field to the ApplicationFee model
-                            )
-                            annual_rental_fee.fee_items.add(fee_item)
-                            if fee_item_additional:
-                                annual_rental_fee.fee_items.add(fee_item_additional)
-                            # updates.append(annual_rental_fee.invoice_reference)
-
-                            self.process_after_approval(request)
-                            # self.save()
-
-                            # Log proposal action
-                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
-                            # Log entry for organisation
-                            applicant_field = getattr(self, self.applicant_field)
-                            applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
-
-                            self.save()
-
                         except Exception as e:
                             err_msg = 'Failed to create annual site fee confirmation'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
+
+                if self.approval and self.approval.reissued:
+                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                    self.process_after_approval()
+                elif request:
+                    application_fee = ApplicationFee.objects.create(
+                        proposal=self,
+                        invoice_reference=invoice.reference,
+                        payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
+                    )
+                    application_fee.fee_items.add(fee_item)
+                    if fee_item_additional:
+                        application_fee.fee_items.add(fee_item_additional)
+
+                    self.send_emails_for_payment_required(request, invoice)
+                    self.process_after_approval(request, total_amount)
+
+                if approval:
+                    moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+                    request = request if request else None
+                    total_amount = total_amount if total_amount else 0
+                    # Update status after manage_stickers() just in case
+                    self.process_after_approval(request, total_amount)
+
+                # Log proposal action
+                if request:
+                    self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
+                else:
+                    self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+                # Log entry for organisation
+                applicant_field = getattr(self, self.applicant_field)
+                if request:
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
+                else:
+                    applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+
+                self.save()
 
                 return self
 
             except:
                 raise
 
-    def final_approval(self, request, details):
+    def send_emails_for_payment_required(self, request, invoice):
+        attachments = []
+        if invoice:
+            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+            attachments.append(attachment)
+        # ret_value = send_emails_for_payment_required(request, self, attachments)
+        ret_value = send_application_processed_email(self, 'approved', True, request)
+        return ret_value
+
+    def final_approval(self, request=None, details=None):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
             self.final_approval_for_WLA_AAA(request, details)
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             return self.final_approval_for_AUA_MLA(request, details)
-
 
     def generate_compliances(self,approval, request):
         today = timezone.now().date()
@@ -1520,7 +1610,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise e
 
     def amend_approval(self,request):
-        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -1601,6 +1690,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return prev_application
 
     @property
+    def previous_application_status_filter(self):
+        prev_application = self.previous_application
+        while prev_application and prev_application.processing_status in ['discarded', 'declined'] and prev_application.previous_application:
+            prev_application = prev_application.previous_application
+        return prev_application
+
+    @property
     def approval_class(self):
         from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
         if hasattr(self, 'waitinglistapplication'):
@@ -1623,16 +1719,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_payment_success(request)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def process_after_approval(self, request):
-        self.child_obj.process_after_approval(request)
+    def process_after_approval(self, request=None, total_amount=None):
+        self.child_obj.process_after_approval(request, total_amount)
         self.refresh_from_db()  # Somehow this is needed...
 
-    def get_fee_amount_adjusted(self, fee_item):
-        return self.child_obj.get_fee_amount_adjusted(fee_item)
+    def get_fee_amount_adjusted(self, fee_item, vessel_length):
+        return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
 
     @property
     def application_type_code(self):
         return self.child_obj.code
+
+    @property
+    def description(self):
+        if hasattr(self, 'child_obj'):
+            return self.child_obj.description
+        return ''
 
     @classmethod
     def application_type_descriptions(cls):
@@ -1696,6 +1798,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return target_date
 
+    def auto_approve(self, request):
+        ## If renewal and no change to vessel
+        #if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+        if self.proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]):
+            auto_approve = True
+            #auto_approve = False
+            ## current and previous application both do not have a vessel
+            if not self.vessel_details and not self.previous_application_status_filter.vessel_details:
+                #auto_approve = True
+                pass
+            ## either current or previous application does not have a vessel
+            elif not self.vessel_details or not self.previous_application_status_filter.vessel_details:
+                auto_approve = False
+                #pass
+            #elif self.previous_application_status_filter and (
+            ## compare current vessel data to previous application's vessel data
+            elif (
+                    # Vessel Details and rego
+                    self.vessel_details.vessel != self.previous_application_status_filter.vessel_details.vessel or 
+                    self.vessel_details.vessel_type != self.previous_application_status_filter.vessel_details.vessel_type or
+                    self.vessel_details.vessel_overall_length != self.previous_application_status_filter.vessel_details.vessel_overall_length or
+                    self.vessel_details.vessel_length != self.previous_application_status_filter.vessel_details.vessel_length or
+                    self.vessel_details.vessel_draft != self.previous_application_status_filter.vessel_details.vessel_draft or
+                    self.vessel_details.vessel_beam != self.previous_application_status_filter.vessel_details.vessel_beam or
+                    self.vessel_details.vessel_weight != self.previous_application_status_filter.vessel_details.vessel_weight or
+                    # Vessel Ownership
+                    self.percentage != self.previous_application_status_filter.percentage or
+                    self.individual_owner != self.previous_application_status_filter.individual_owner or
+                    self.company_ownership_percentage != self.previous_application_status_filter.company_ownership_percentage or
+                    self.company_ownership_name != self.previous_application_status_filter.company_ownership_name
+                    ):
+                auto_approve = False
+                #pass
+            if auto_approve:
+                self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
+
 
 def update_sticker_doc_filename(instance, filename):
     return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)
@@ -1733,12 +1871,37 @@ class StickerPrintingBatch(Document):
         app_label = 'mooringlicensing'
 
 
-class StickerPrintingResponse(Document):
-    _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
-    received_datetime = models.DateTimeField(blank=True, null=True)
+class StickerPrintingResponseEmail(models.Model):
+    email_subject = models.CharField(max_length=255, blank=True, null=True)
+    email_body = models.TextField(null=True, blank=True)
+    email_date = models.CharField(max_length=255, blank=True, null=True)
+    email_from = models.CharField(max_length=255, blank=True, null=True)
+    email_message_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+class StickerPrintingResponse(Document):
+    _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
+    sticker_printing_response_email = models.ForeignKey(StickerPrintingResponseEmail, blank=True, null=True)
+    processed = models.BooleanField(default=False)  # Processed by a cron to update sticker details
+    no_errors_when_process = models.NullBooleanField(default=None)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    @property
+    def email_subject(self):
+        if self.sticker_printing_response_email:
+            return self.sticker_printing_response_email.email_subject
+        return ''
+
+    @property
+    def email_date(self):
+        if self.sticker_printing_response_email:
+            return self.sticker_printing_response_email.email_date
+        return ''
 
 
 # class StickerMixin(models.Model):
@@ -1755,8 +1918,6 @@ class WaitingListApplication(Proposal):
     prefix = 'WL'
 
     new_application_text = "I want to be included on the waiting list for a mooring license"
-
-    oracle_code = 'T1 EXEMPT'
 
     apply_page_visibility = True
     description = 'Waiting List Application'
@@ -1808,7 +1969,8 @@ class WaitingListApplication(Proposal):
             invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
-        ret_value = send_submit_email_notification(request, self, attachments)
+        ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
+        send_notification_email_upon_submit_to_assessor(request, self, attachments)
         return ret_value
 
     #@classmethod
@@ -1836,6 +1998,7 @@ class WaitingListApplication(Proposal):
                     'start_date': current_datetime.date(),
                     'expiry_date': self.end_date,
                     'submitter': self.submitter,
+                    'internal_status': 'waiting',
                 }
             )
             if created:
@@ -1848,7 +2011,6 @@ class WaitingListApplication(Proposal):
         return approval, created
 
     def process_after_payment_success(self, request):
-        #import ipdb; ipdb.set_trace()
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
@@ -1859,30 +2021,7 @@ class WaitingListApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    def auto_approve(self, request):
-        # If renewal and no change to vessel
-        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
-            auto_approve = True
-            if (
-                    # Vessel Details and rego
-                    self.vessel_details.vessel != self.previous_application_notnull_vessel.vessel_details.vessel or 
-                    self.vessel_details.vessel_type != self.previous_application_notnull_vessel.vessel_details.vessel_type or
-                    self.vessel_details.vessel_overall_length != self.previous_application_notnull_vessel.vessel_details.vessel_overall_length or
-                    self.vessel_details.vessel_length != self.previous_application_notnull_vessel.vessel_details.vessel_length or
-                    self.vessel_details.vessel_draft != self.previous_application_notnull_vessel.vessel_details.vessel_draft or
-                    self.vessel_details.vessel_beam != self.previous_application_notnull_vessel.vessel_details.vessel_beam or
-                    self.vessel_details.vessel_weight != self.previous_application_notnull_vessel.vessel_details.vessel_weight or
-                    # Vessel Ownership
-                    self.percentage != self.previous_application_notnull_vessel.percentage or
-                    self.individual_owner != self.previous_application_notnull_vessel.individual_owner or
-                    self.company_ownership_percentage != self.previous_application_notnull_vessel.company_ownership_percentage or
-                    self.company_ownership_name != self.previous_application_notnull_vessel.company_ownership_name
-                    ):
-                auto_approve = False
-            if auto_approve:
-                self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
-
-    def process_after_approval(self, request):
+    def process_after_approval(self, request=None, total_amount=None):
         self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
@@ -1893,9 +2032,9 @@ class WaitingListApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -1927,7 +2066,6 @@ class AnnualAdmissionApplication(Proposal):
     code = 'aaa'
     prefix = 'AA'
     new_application_text = "I want to apply for an annual admission permit"
-    oracle_code = 'T1 EXEMPT'
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
@@ -1978,7 +2116,8 @@ class AnnualAdmissionApplication(Proposal):
             invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
-        ret_value = send_submit_email_notification(request, self, attachments)
+        ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
+        send_notification_email_upon_submit_to_assessor(request, self, attachments)
         return ret_value
 
     #@classmethod
@@ -1987,7 +2126,7 @@ class AnnualAdmissionApplication(Proposal):
         created = None
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             approval = self.approval
-            approval.current_proposal=self
+            approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
             approval.expiry_date = self.end_date
@@ -2010,7 +2149,7 @@ class AnnualAdmissionApplication(Proposal):
                 self.approval = approval
                 self.save()
         # manage stickers
-        approval.child_obj.manage_stickers(self)
+        # approval.child_obj.manage_stickers(self)
         # write approval history
         approval.write_approval_history()
         return approval, created
@@ -2026,41 +2165,23 @@ class AnnualAdmissionApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    def auto_approve(self, request):
-        # If renewal and no change to vessel
-        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
-            auto_approve = True
-            if (
-                    # Vessel Details and rego
-                    self.vessel_details.vessel != self.previous_application_notnull_vessel.vessel_details.vessel or 
-                    self.vessel_details.vessel_type != self.previous_application_notnull_vessel.vessel_details.vessel_type or
-                    self.vessel_details.vessel_overall_length != self.previous_application_notnull_vessel.vessel_details.vessel_overall_length or
-                    self.vessel_details.vessel_length != self.previous_application_notnull_vessel.vessel_details.vessel_length or
-                    self.vessel_details.vessel_draft != self.previous_application_notnull_vessel.vessel_details.vessel_draft or
-                    self.vessel_details.vessel_beam != self.previous_application_notnull_vessel.vessel_details.vessel_beam or
-                    self.vessel_details.vessel_weight != self.previous_application_notnull_vessel.vessel_details.vessel_weight or
-                    # Vessel Ownership
-                    self.percentage != self.previous_application_notnull_vessel.percentage or
-                    self.individual_owner != self.previous_application_notnull_vessel.individual_owner or
-                    self.company_ownership_percentage != self.previous_application_notnull_vessel.company_ownership_percentage or
-                    self.company_ownership_name != self.previous_application_notnull_vessel.company_ownership_name
-                    ):
-                auto_approve = False
-            if auto_approve:
-                self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
-
-    def process_after_approval(self, request):
+    def process_after_approval(self, request=None, total_amount=None):
         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
         self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         self.save()
 
+    #@property
+    #def does_accept_null_vessel(self):
+     #   return False
     @property
     def does_accept_null_vessel(self):
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
+            return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -2075,7 +2196,6 @@ class AuthorisedUserApplication(Proposal):
     code = 'aua'
     prefix = 'AU'
     new_application_text = "I want to apply for an an authorised user permit"
-    oracle_code = 'T1 EXEMPT'
     apply_page_visibility = True
     description = 'Authorised User Application'
 
@@ -2084,6 +2204,15 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_due_date_for_endorsement_by_target_date(self, target_date=timezone.localtime(timezone.now()).date()):
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
+        days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, target_date)
+        if not days_setting:
+            # No number of days found
+            raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, target_date))
+        due_date = self.lodgement_date + datetime.timedelta(days=days_setting.number_of_days)
+        return due_date
 
     @property
     def assessor_group(self):
@@ -2138,59 +2267,41 @@ class AuthorisedUserApplication(Proposal):
             self.save()
             # Email to endorser
             send_endorsement_of_authorised_user_application_email(request, self)
-            # Email to submitter
-            send_submit_email_notification(request, self)
         else:
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             self.save()
-            # Email to submitter
-            send_submit_email_notification(request, self)
+
+        # Email to submitter
+        send_confirmation_email_upon_submit(request, self, False)
+        send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
-        #import ipdb; ipdb.set_trace()
+        # This function is called after payment success for new/amendment/renewal application
+
         created = None
         mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
-        #mooring_bay_id_pk = self.proposed_issuance_approval.get('mooring_bay_id')
         ria_selected_mooring = None
-        #ria_selected_mooring_bay = None
         if mooring_id_pk:
             ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
-        #if mooring_bay_id_pk:
-         #   ria_selected_mooring_bay = MooringBay.objects.get(id=mooring_bay_id_pk)
 
-        #else:
-        # find any current AUP for this submitter with the same vessel
-        au_list = self.approval_class.objects.filter(
-                status='current', 
-                submitter=self.submitter, 
-                current_proposal__vessel_details__vessel=self.vessel_details.vessel
-                )
-        if au_list:
-            #approval = au_list[0]
-            # change proposal to amendment application
-            self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-        #    approval.issue_date = current_datetime
-        #    approval.current_proposal = self
-        #    # change start and expiry dates???
-        #    approval.start_date = current_datetime.date()
-        #    approval.expiry_date = self.end_date
-        #    approval.save()
-        if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
-            approval = self.approval
-            approval.current_proposal=self
-            approval.issue_date = current_datetime
-            approval.start_date = current_datetime.date()
-            approval.expiry_date = self.end_date
-            approval.submitter = self.submitter
-            approval.save()
-        else:
+        ## find any current AUP for this submitter with the same vessel
+        #au_list = self.approval_class.objects.filter(
+        #        status='current', 
+        #        submitter=self.submitter, 
+        #        current_proposal__vessel_details__vessel=self.vessel_details.vessel,
+        #        )
+        #if au_list:
+        #    # change proposal to amendment application
+        #    self.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
+
+        # Manage approval
+        if self.proposal_type.code == PROPOSAL_TYPE_NEW:
+            # When new application
             approval, created = self.approval_class.objects.update_or_create(
                 current_proposal=self,
                 defaults={
                     'issue_date': current_datetime,
-                    #'start_date': current_date.strftime('%Y-%m-%d'),
-                    #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
                     'start_date': current_datetime.date(),
                     'expiry_date': self.end_date,
                     'submitter': self.submitter,
@@ -2199,52 +2310,108 @@ class AuthorisedUserApplication(Proposal):
             if created:
                 self.approval = approval
                 self.save()
-        # always reset this flag
-        approval.renewal_sent = False
-        approval.save()
-        # create MooringOnApproval records
+        elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            # When amendment application
+            approval = self.approval
+            approval.current_proposal = self
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.submitter = self.submitter
+            approval.save()
+        elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            # When renewal application
+            approval = self.approval
+            approval.current_proposal = self
+            approval.issue_date = current_datetime
+            approval.start_date = current_datetime.date()
+            approval.expiry_date = self.end_date
+            approval.submitter = self.submitter
+            approval.renewal_sent = False
+            approval.expiry_notice_sent = False
+            approval.renewal_count += 1
+            approval.save()
+
+        # Create MooringOnApproval records
+        ## also see logic in approval.add_mooring()
+        existing_mooring_count = approval.mooringonapproval_set.count()
         if ria_selected_mooring:
-            approval.add_mooring(mooring=ria_selected_mooring,site_licensee=False)
+            moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
         else:
-            approval.add_mooring(mooring=approval.current_proposal.mooring,site_licensee=True)
-        # manage stickers
-        approval.child_obj.manage_stickers(self)
-        # write approval history
-        approval.write_approval_history()
+            if approval.current_proposal.mooring:
+                moa, created = approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+        # updating checkboxes
+        if self.approval:
+            for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
+                for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                    # convert proposed_issuance_approval to an end_date
+                    if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
+                        moa2.end_date = current_datetime.date()
+                        moa2.save()
+
+        # Manage stickers
+        # TODO: do you really need this?
+        moa_created = moa if created else None
+        # approval.child_obj.manage_stickers(self, moa_created)
+
+        # approval.child_obj.manage_stickers(self)
+
+        # Write approval history
+        if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
+            approval.write_approval_history('mooring_add')
+        elif created:
+            approval.write_approval_history('new')
+        else:
+            approval.write_approval_history()
+        #approval.write_approval_history()
+
         return approval, created
 
-    def process_after_approval(self, request):
-        print('process_after_approved() in AuthorisedUserApplication')
-        if self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_NEW):
+    def process_after_approval(self, request=None, total_amount=None):
+        from mooringlicensing.components.approvals.models import Sticker
+
+        if self.approval and self.approval.reissued:
+            # Reissued proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New proposal
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT):
-            # Renewal or Amendment proposal --> Approval exists
-            if self.approval.moorings.all().count() % 4 == 0:
-                # Each existing sticker filled with 4 moorings --> Just creating new sticker.  No need to return.
+        elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            # Amendment --> Approval already exists
+            # TODO: Reconsider the logic...  Do we have to worry about moorings?
+            if total_amount:
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
                 self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
             else:
-                # One of the existing stickers should be replaced by a new sticker
-                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-                # TODO: find the sticker to be replaced and change status of it to 'to_be_returned'
-        elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-            # TODO: Change all the existing stickers status to the 'Expired' (too early???)  Create new stickers
+                stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                if stickers_awaiting.count():
+                    # There is at lease one sticker awaiting printing
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            # TODO: Reconsider the logic...  Do we have to worry about moorings?
+            if total_amount:
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            else:
+                stickers_awaiting = self.approval.mooringonapproval_set.filter(sticker__status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                if stickers_awaiting.count():
+                    # There is at lease one sticker awaiting printing
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         else:
             raise  # Should not reach here
 
-            # TODO: update approval (append a mooring, etc)
-
         self.save()
         # TODO: Send email (payment required)
-        # else:
-        # self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-        # self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT_STICKER_RETURNED
-        # self.save()
         # TODO: Send email (payment required, Sticker to be returned)
 
     def process_after_payment_success(self, request):
@@ -2252,19 +2419,19 @@ class AuthorisedUserApplication(Proposal):
             # User had to make payment
             self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
-            # User had to make payment and also return sticker
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
+        #if self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT_STICKER_RETURNED:
+        #    # User had to make payment and also return sticker
+        #    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_STICKER_RETURNED
+        #    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_STICKER_RETURNED
         self.save()
 
     @property
     def does_accept_null_vessel(self):
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -2281,7 +2448,6 @@ class MooringLicenceApplication(Proposal):
     proposal = models.OneToOneField(Proposal, parent_link=True)
     code = 'mla'
     prefix = 'ML'
-    oracle_code = 'T1 EXEMPT'
     new_application_text = ""
     apply_page_visibility = False
     description = 'Mooring Licence Application'
@@ -2291,6 +2457,10 @@ class MooringLicenceApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_document_upload_url(self, request):
+        document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': self.uuid}))
+        return document_upload_url
 
     @property
     def assessor_group(self):
@@ -2324,27 +2494,49 @@ class MooringLicenceApplication(Proposal):
         self.proposal.refresh_from_db()
         print('refresh_from_db1')
 
-    def process_after_uploading_other_documents(self, request):
+    def process_after_submit_other_documents(self, request):
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.internal_status = 'submitted'
+            self.waiting_list_allocation.save()
         self.save()
 
-    def set_status_after_payment_success(self):
-        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-        self.save()
+        # Log actions
+        self.log_user_action(ProposalUserAction.ACTION_SUBMIT_OTHER_DOCUMENTS, request)
+
+        # Send email to assessors
+        send_other_documents_submitted_notification_email(request, self)
+
+    # def set_status_after_payment_success(self):
+    #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+    #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+    #     self.save()
 
     def send_emails_after_payment_success(self, request):
         # ret_value = send_submit_email_notification(request, self)
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
-    def process_after_approval(self, request):
+    def process_after_approval(self, request=None, total_amount=None):
         print('in process_after_approved')
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        self.save()
+        if self.approval and self.approval.reissued:
+            # Reissued proposal
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        elif total_amount > 0:
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            self.save()
+        else:
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            self.save()
+            if request:
+                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+            else:
+                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
         # self.proposal.refresh_from_db()
         # print('refresh_from_db2')
         # TODO: Send email (payment required)
@@ -2363,9 +2555,15 @@ class MooringLicenceApplication(Proposal):
         self.save()
         send_documents_upload_for_mooring_licence_application_email(request, self)
 
-    def update_or_create_approval(self, current_datetime, request):
+    def update_or_create_approval(self, current_datetime, request=None):
         try:
-            existing_mooring_licence = self.allocated_mooring.mooring_licence
+            # renewal/amendment/reissue - associated ML must have a mooring
+            if self.approval and self.approval.child_obj.mooring:
+                existing_mooring_licence = self.approval.child_obj
+            else:
+                existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
+            mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
+            existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
             # find any current ML for this submitter on the same mooring
             #if (self.allocated_mooring.mooring_licence and 
@@ -2404,19 +2602,35 @@ class MooringLicenceApplication(Proposal):
                         'submitter': self.submitter,
                     }
                 )
+                # associate mooring licence with mooring, only on NEW proposal_type
+                if not self.approval:
+                    self.allocated_mooring.mooring_licence = approval
+                    self.allocated_mooring.save()
+                # always associate proposal with approval
                 if created:
                     self.approval = approval
                     self.save()
-                ## TODO: renewal, amendment affected???
-                # associate Mooring with approval
-                self.allocated_mooring.mooring_licence = approval
-                self.allocated_mooring.save()
                 # Move WLA to status approved
-                self.waiting_list_allocation.status = 'approved'
-                self.waiting_list_allocation.save()
+                if self.waiting_list_allocation:
+                    self.waiting_list_allocation.internal_status = 'approved'
+                    self.waiting_list_allocation.status = 'fulfilled'
+                    self.waiting_list_allocation.wla_order = None
+                    self.waiting_list_allocation.save()
+                    self.waiting_list_allocation.set_wla_order()
+
+            # updating checkboxes
+            if self.approval:
+                for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
+                    for vo2 in self.approval.child_obj.vessel_ownership_list:
+                    #for vo2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                        # convert proposed_issuance_approval to an end_date
+                        if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
+                            vo2.mooring_licence_end_date = current_datetime.date()
+                            vo2.save()
             # log Mooring action
-            if existing_mooring_licence and existing_mooring_licence != approval:
-                approval.current_proposal.allocated_mooring.log_user_action(
+            ## TODO: rework switch licence logic
+            if existing_mooring_licence and existing_mooring_licence is not approval.child_obj:
+                mooring.log_user_action(
                         MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
                             str(existing_mooring_licence),
                             str(approval),
@@ -2424,7 +2638,7 @@ class MooringLicenceApplication(Proposal):
                         request
                         )
             else:
-                approval.current_proposal.allocated_mooring.log_user_action(
+                mooring.log_user_action(
                         MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
                             str(approval),
                             ),
@@ -2434,12 +2648,19 @@ class MooringLicenceApplication(Proposal):
             approval.renewal_sent = False
             approval.save()
             # manage stickers
-            approval.child_obj.manage_stickers(self)
+
+            # TODO: remove comment
+            # approval.child_obj.manage_stickers(self)
+
             # write approval history
-            approval.write_approval_history()
+            if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
+                approval.write_approval_history('vessel_add')
+            elif created:
+                approval.write_approval_history('new')
+            else:
+                approval.write_approval_history()
             return approval, created
         except Exception as e:
-            print("error in update_or_create_approval")
             print(e)
             raise e
             msg = 'Payment taken for Proposal: {}, but approval creation has failed'.format(self.lodgement_number)
@@ -2451,9 +2672,9 @@ class MooringLicenceApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied):
+    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied)
+        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
         """
@@ -2508,11 +2729,34 @@ class PrivateMooringManager(models.Manager):
         return super(PrivateMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2)
 
 
+class AuthorisedUserMooringManager(models.Manager):
+    def get_queryset(self):
+        #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
+        return super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status='current')
+
+
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
-        lookups = Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current'))
-        return super(AvailableMooringManager, self).get_queryset().filter(lookups)
+        # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
+        #lookups = (
+         #       Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current')) 
+          #      & (Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) | Q(ria_generated_proposal=None))
+           #     )
+        available_ids = []
+        for mooring in Mooring.private_moorings.all():
+            # first check mooring_licence status
+            if not mooring.mooring_licence or mooring.mooring_licence.status != 'current':
+                # now check whether there are any blocking proposals
+                blocking_proposal = False
+                for proposal in mooring.ria_generated_proposal.all():
+                    if proposal.processing_status not in ['approved', 'declined', 'discarded']:
+                        blocking_proposal = True
+                if not blocking_proposal:
+                    available_ids.append(mooring.id)
+
+        #return super(AvailableMooringManager, self).get_queryset().filter(lookups)
+        return super(AvailableMooringManager, self).get_queryset().filter(id__in=available_ids)
 
 
 # not for admin - data comes from Mooring Bookings
@@ -2536,9 +2780,12 @@ class Mooring(models.Model):
     # model managers
     objects = models.Manager()
     private_moorings = PrivateMooringManager()
+    authorised_user_moorings = AuthorisedUserMooringManager()
     available_moorings = AvailableMooringManager()
     # Used for WLAllocation create MLApplication check
-    mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
+    #mooring_licence = models.ForeignKey('MooringLicence', blank=True, null=True)
+    # mooring licence can onl,y have one Mooring
+    mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring")
 
     def __str__(self):
         return self.name
@@ -2554,6 +2801,29 @@ class Mooring(models.Model):
     def log_user_action(self, action, request):
         return MooringUserAction.log_action(self, action, request.user)
 
+    @property
+    def status(self):
+        from mooringlicensing.components.approvals.models import MooringOnApproval
+        status = 'Unallocated'
+        ## check for Mooring Licences
+        if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+            #status = 'Licensed'
+            status = 'Allocated'
+        if not status:
+            # check for Mooring Applications
+            proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
+            for proposal in proposals:
+                if proposal.child_obj.code == 'mla':
+                    #status = 'Licence Application'
+                    status = 'Offered'
+        return status
+
+    #@property
+    def suitable_vessel(self, vessel_details):
+        suitable = True
+        if vessel_details.vessel_applicable_length > self.vessel_size_limit or vessel_details.vessel_draft > self.vessel_draft_limit:
+            suitable = False
+        return suitable
 
 class MooringLogDocument(Document):
     log_entry = models.ForeignKey('MooringLogEntry',related_name='documents')
@@ -2723,6 +2993,7 @@ class CompanyOwnership(models.Model):
     vessel = models.ForeignKey(Vessel)
     company = models.ForeignKey('Company')
     percentage = models.IntegerField(null=True, blank=True)
+    ## TODO: delete start and end dates if no longer required
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True)
     created = models.DateTimeField(default=timezone.now)
@@ -2737,6 +3008,7 @@ class CompanyOwnership(models.Model):
         return "{}: {}".format(self.company, self.percentage)
 
     def save(self, *args, **kwargs):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
         if not self.pk:
@@ -2746,14 +3018,30 @@ class CompanyOwnership(models.Model):
                     raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
                 elif vd.status == "approved" and self.status == "approved":
                     raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
+        existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
+        if existing_record:
+            prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
         super(CompanyOwnership, self).save(*args,**kwargs)
+        ## Reissue associated ML and AUPs if end-dated
+        if existing_record and not prev_end_date and self.end_date:
+            aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership__company_ownership=self)
+            for aup in aup_set:
+                #if aup.status in ['current', 'suspended']:
+                if aup.status == 'current':
+                    aup.internal_reissue()
+            ## ML
+            vo_set = self.vesselownership_set.all()
+            for vo in vo_set:
+                proposal_set = vo.proposal_set.all()
+                for proposal in proposal_set:
+                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                        proposal.approval.internal_reissue()
 
 
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
         latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
-        #return self.first()
 
 
 class VesselOwnership(models.Model):
@@ -2772,6 +3060,9 @@ class VesselOwnership(models.Model):
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()
     #objects = VesselOwnershipManager()
+    mooring_licence_end_date = models.DateField(blank=True, null=True)
+    ## Name as shown on DoT registration papers
+    dot_name = models.CharField(max_length=200, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
@@ -2781,21 +3072,25 @@ class VesselOwnership(models.Model):
     def __str__(self):
         return "{}: {}".format(self.owner, self.vessel)
 
-    #def save(self, *args, **kwargs):
-    #    qs = self.vessel.vesselownership_set.all()
-    #    total = 0
-    #    for vo in qs:
-    #        total += vo.percentage if vo.percentage else 0
-    #    if total > 100:
-    #        raise serializers.ValidationError({"Vessel ownership percentage": "Cannot exceed 100%"})
-    #    super(VesselOwnership, self).save(*args,**kwargs)
-
-    #@property
-    #def company_owner(self):
-    #    company = False
-    #    if self.company_ownership and self.company_ownership.id:
-    #        company = True
-    #    return company
+    def save(self, *args, **kwargs):
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
+        existing_record = True if VesselOwnership.objects.filter(id=self.id) else False
+        if existing_record:
+            prev_end_date = VesselOwnership.objects.get(id=self.id).end_date
+        super(VesselOwnership, self).save(*args,**kwargs)
+        ## Reissue associated ML and AUPs if end-dated
+        if existing_record and not prev_end_date and self.end_date:
+            #import ipdb; ipdb.set_trace()
+            aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership=self)
+            for aup in aup_set:
+                #if aup.status in ['current', 'suspended']:
+                if aup.status == 'current':
+                    aup.internal_reissue()
+            ## ML
+            proposal_set = self.proposal_set.all()
+            for proposal in proposal_set:
+                if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                    proposal.approval.internal_reissue()
 
 
 # Non proposal specific
@@ -2911,6 +3206,30 @@ class WrittenProofDocument(Document):
         verbose_name = "Written Proof Document"
 
 
+class SignedLicenceAgreementDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True)
+    can_hide = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Signed Licence Agreement"
+
+
+class ProofOfIdentityDocument(Document):
+    proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
+    can_delete = models.BooleanField(default=True)
+    can_hide = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Proof Of Identity"
 
 # Vessel details per Proposal
 # - allows for customer to edit vessel details during application process
@@ -3136,6 +3455,7 @@ class ProposalUserAction(UserAction):
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
+    ACTION_SUBMIT_OTHER_DOCUMENTS = 'Submit other documents'
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
@@ -3173,13 +3493,16 @@ class ProposalUserAction(UserAction):
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, proposal, action, user):
+    def log_action(cls, proposal, action, user=None):
         return cls.objects.create(
             proposal=proposal,
             who=user,
             what=str(action)
         )
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
     proposal = models.ForeignKey(Proposal, related_name='action_logs')
 
 

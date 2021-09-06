@@ -7,34 +7,42 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">UVI Vessel Identifier</label>
-                <div class="col-sm-6">
-                    <input type="text" class="form-control" name="uvi_vessel_identifier" placeholder="" v-model="dcv_admission.dcv_vessel.uvi_vessel_identifier">
-                </div>
-            </div>
-            <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
                     </select>
+                    <span v-if="is_valid_rego_no"><i class="fa fa-check-circle"></i></span>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel name</label>
+                <label for="vessel_name" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_admission.dcv_vessel.vessel_name">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Skipper</label>
+                <label for="skipper" class="col-sm-3 control-label">Skipper</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="skipper" placeholder="" v-model="dcv_admission.skipper">
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Contact number</label>
+                <label for="contact_number" class="col-sm-3 control-label">Contact number</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="contact_number" placeholder="" v-model="dcv_admission.contact_number">
+                </div>
+            </div>
+
+            <div v-if="show_email_fields" class="row form-group">
+                <label for="email_address" class="col-sm-3 control-label">Email address</label>
+                <div class="col-sm-6">
+                    <input type="email" class="form-control" name="email_address" placeholder="" v-model="dcv_admission.email_address">
+                </div>
+            </div>
+            <div v-if="show_email_fields" class="row form-group">
+                <label for="email_address_confirmation" class="col-sm-3 control-label">Email address (Confirm)</label>
+                <div class="col-sm-6">
+                    <input type="email" class="form-control" name="email_address_confirmation" placeholder="" v-model="dcv_admission.email_address_confirmation">
                 </div>
             </div>
 
@@ -47,6 +55,7 @@
                     :key="arrival.uuid"
                     :dcv_vessel="dcv_admission.dcv_vessel"
                     :fee_configurations="fee_configurations"
+                    :column_approved_events_shown=false
                 />
             </template>
 
@@ -69,8 +78,8 @@
                             <div class="navbar-inner">
                                 <div class="container">
                                     <p class="pull-right" style="margin-top:5px">
-                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>Pay and Submit&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit" :disabled="paySubmitting"/>
+                                        <input v-if="pay_submit_button_enabled" type="button" @click.prevent="pay_and_submit" class="btn btn-primary" :value="pay_submit_button_text"/>
+                                        <button v-else type="button" class="btn btn-primary" disabled>{{ pay_submit_button_text }}<i v-if="paySubmitting" class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
                                     </p>
                                 </div>
                             </div>
@@ -113,10 +122,11 @@ export default {
                 id: null,
                 dcv_vessel: {
                     id: null,
-                    uvi_vessel_identifier: '',
                     rego_no: '',
                     vessel_name: '',
                 },
+                email_address: '',
+                email_address_confirmation: '',
                 skipper: '',
                 contact_number: '',
                 arrivals: [
@@ -155,6 +165,93 @@ export default {
 
     },
     computed: {
+        pay_submit_button_enabled: function(){
+            return this.valid_form
+        },
+        is_valid_rego_no: function(){
+            if(this.dcv_admission.dcv_vessel.rego_no)
+                return true
+            return false
+        },
+        is_valid_vessel_name: function(){
+            if(this.dcv_admission.dcv_vessel.vessel_name)
+                return true
+            return false
+        },
+        is_valid_skipper: function(){
+            if(this.dcv_admission.skipper)
+                return true
+            return false
+        },
+        is_valid_email_address: function(){
+            if(this.validateEmail(this.dcv_admission.email_address)){
+                console.log('email_address: true')
+                return true
+            }
+            console.log('email_address: false')
+            return false
+        },
+        is_valid_email_address_confirmation: function(){
+            if(this.validateEmail(this.dcv_admission.email_address_confirmation)){
+                console.log('email_address_confirmation: true')
+                return true
+            }
+            console.log('email_address_confirmation: false')
+            return false
+        },
+        is_valid_email_addresses: function(){
+            if(this.dcv_admission.email_address == this.dcv_admission.email_address_confirmation)
+                return true
+            return false
+        },
+        does_dcv_permit_exist: function(){
+            if(this.dcv_admission.dcv_vessel.hasOwnProperty('dcv_permits')){
+                if(this.dcv_admission.dcv_vessel.dcv_permits.length > 0){
+                    return true
+                }
+            }
+            return false
+        },
+        valid_form: function(){
+            console.log('start validate')
+            let enabled = true
+            if(this.paySubmitting)
+                enabled = false
+            //if(!this.is_valid_rego_no)
+            //    enabled = false
+            if(!this.is_valid_vessel_name)
+                enabled = false
+            if(!this.dcv_admission.skipper)
+                enabled = false
+            if(!this.dcv_admission.contact_number)
+                enabled = false
+            if(this.is_authenticated){
+                // Authenticated
+            } else {
+                // Not authenticated
+                if(!this.does_dcv_permit_exist){
+                    if(!this.is_valid_email_address)
+                        enabled = false
+                    if(!this.is_valid_email_address_confirmation)
+                        enabled = false
+                    if(!this.is_valid_email_addresses)
+                        enabled = false
+                }
+            }
+            console.log('end validate')
+            return enabled
+        },
+        is_authenticated: function() {
+            if (this.$route.fullPath.includes('external')){
+                return true
+            }
+            return false
+        },
+        show_email_fields: function(){
+            if (!this.is_authenticated && !this.does_dcv_permit_exist)
+                return true
+            return false
+        },
         is_external: function() {
             return this.level == 'external'
         },
@@ -164,8 +261,21 @@ export default {
         dcv_admission_fee_url: function() {
           return `/dcv_admission_fee/${this.dcv_admission.id}/`
         },
+        pay_submit_button_text: function() {
+            let button_text = 'Submit'
+            for (let arrival of this.dcv_admission.arrivals){
+                if (!arrival.private_visit){
+                    button_text = 'Pay and Submit'
+                }
+            }
+            return button_text
+        }
     },
     methods: {
+        validateEmail: function(email) {
+              const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+              return re.test(email)
+        },
         lookupDcvVessel: async function(id) {
             console.log('in lookupDcvVessel')
             const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
@@ -222,7 +332,6 @@ export default {
                         vm.dcv_admission.dcv_vessel =
                         {
                             id: id,
-                            uvi_vessel_identifier: '',
                             rego_no: id,
                             vessel_name: '',
                         }
@@ -244,7 +353,6 @@ export default {
                 vm.dcv_admission.dcv_vessel = Object.assign({},
                     {
                         id: null,
-                        uvi_vessel_identifier: '',
                         rego_no: '',
                         vessel_name: '',
                     }

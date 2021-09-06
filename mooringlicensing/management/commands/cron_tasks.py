@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from django.core.mail import send_mail
+#from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, EmailMessage
 from pathlib import Path
 import subprocess
 
@@ -29,22 +30,28 @@ class Command(BaseCommand):
         subprocess.call('python manage_co.py expire_mooring_licence_application_due_to_no_documents' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py expire_mooring_licence_application_due_to_no_submit' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py update_approval_status' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py expire_approvals' + stdout_redirect, shell=True)
         subprocess.call('python manage_co.py approval_renewal_notices' + stdout_redirect, shell=True)
-        #subprocess.call('python manage_co.py eclass_expiry_notices' + stdout_redirect, shell=True) 
-        #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True) 
+        #subprocess.call('python manage_co.py eclass_expiry_notices' + stdout_redirect, shell=True)
+        #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True)
         #subprocess.call('python manage_co.py monthly_invoices' + stdout_redirect, shell=True) 
         subprocess.call('python manage_ml.py import_mooring_bookings_data' + stdout_redirect, shell=True) 
-        subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True)
+        #subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True)
         subprocess.call('python manage_ml.py export_and_email_sticker_data' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py import_sticker_data' + stdout_redirect, shell=True)
 
         logger.info('Command {} completed'.format(__name__))
         self.send_email()
 
     def send_email(self):
+        email_instance = env('EMAIL_INSTANCE','DEV')
         log_txt = Path(LOGFILE).read_text()
         subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
         body = ''
         to = settings.CRON_NOTIFICATION_EMAIL if isinstance(settings.NOTIFICATION_EMAIL, list) else [settings.CRON_NOTIFICATION_EMAIL]
-        send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt)
+        msg = EmailMultiAlternatives(self.subject, log_txt, settings.EMAIL_FROM, to,
+                #attachments=_attachments, cc=cc, bcc=bcc, 
+                #reply_to=reply_to, 
+                headers={'System-Environment': email_instance}
+                )
+        #send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt,)
 

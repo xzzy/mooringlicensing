@@ -97,7 +97,7 @@ class UserFilterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     #mooringlicensing_organisations = serializers.SerializerMethodField()
     residential_address = UserAddressSerializer()
-    postal_address = UserAddressSerializer()
+    postal_address = serializers.SerializerMethodField()
     personal_details = serializers.SerializerMethodField()
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
@@ -133,6 +133,12 @@ class UserSerializer(serializers.ModelSerializer):
             'is_mooringlicensing_admin',
             'postal_same_as_residential',
         )
+
+    def get_postal_address(self, obj):
+        address = {}
+        if obj.postal_address:
+            address = UserAddressSerializer(obj.postal_address).data
+        return address
 
     def get_personal_details(self,obj):
         return True if obj.last_name  and obj.first_name else False

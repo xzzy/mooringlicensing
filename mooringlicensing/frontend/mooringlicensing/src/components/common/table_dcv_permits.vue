@@ -20,10 +20,10 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="application_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="datatable_options" 
+                <datatable
+                    ref="application_datatable"
+                    :id="datatable_id"
+                    :dtOptions="datatable_options"
                     :dtHeaders="datatable_headers"
                 />
             </div>
@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Approval', 'Organisation', 'UIV Vessel Identifier', 'Status', 'Year', 'Action']
+            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Action']
         },
         column_id: function(){
             return {
@@ -112,7 +112,6 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
-                    console.log(full)
                     return full.id
                 }
             }
@@ -137,7 +136,18 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented';
+                    let links = ''
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                        }
+                    }
+                    if (full.permits){
+                        for (let permit_url of full.permits){
+                            links +=  `<div><a href='${permit_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Permit</a></div>`;
+                        }
+                    }
+                    return links
                 }
             }
         },
@@ -149,18 +159,6 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     return full.dcv_organisation_name;
-                    //return '';
-                }
-            }
-        },
-        column_uiv: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.dcv_vessel_uiv;
                     //return '';
                 }
             }
@@ -223,27 +221,17 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    /*
                     let links = '';
-                    if (!vm.is_external){
-                        if(full.assessor_process){
-                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                        } else {
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            links += '</div>'
                         }
                     }
-                    else{
-                        if (full.can_user_edit) {
-                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                        }
-                        else if (full.can_user_view) {
-                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                        }
-                    }
-                    return links;
-                    */
-                    return 'not implemented';
+                    return links
                 }
             }
         },
@@ -255,7 +243,6 @@ export default {
                 vm.column_lodgement_number,
                 vm.column_invoice_approval,
                 vm.column_organisation,
-                vm.column_uiv,
                 vm.column_status,
                 vm.column_year,
                 vm.column_action,
@@ -284,7 +271,22 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[ ],
+                //buttons:[ ],
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+
                 columns: columns,
                 processing: true,
                 initComplete: function() {
@@ -311,8 +313,6 @@ export default {
             }).then(() => {
                 vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
                 .then((response) => {
-                    console.log('response: ')
-                    console.log(response)
                     swal(
                         'Discarded',
                         'Your proposal has been discarded',

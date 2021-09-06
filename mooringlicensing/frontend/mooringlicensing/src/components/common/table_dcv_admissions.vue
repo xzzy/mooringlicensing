@@ -20,10 +20,10 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="admissions_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="datatable_options" 
+                <datatable
+                    ref="admissions_datatable"
+                    :id="datatable_id"
+                    :dtOptions="datatable_options"
                     :dtHeaders="datatable_headers"
                 />
             </div>
@@ -37,7 +37,7 @@ import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 
 export default {
-    name: 'TableDcvPermits',
+    name: 'TableDcvAdmissions',
     props: {
         level:{
             type: String,
@@ -102,7 +102,7 @@ export default {
                 return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
             }
             */
-            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation',*/ 'UIV Vessel Identifier',/* 'Status',*/ 'Date', 'Action']
+            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation', 'Status',*/'Arrival Date', 'Lodgement Date', 'Action']
         },
         column_id: function(){
             return {
@@ -112,7 +112,6 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
-                    console.log(full)
                     return full.id
                 }
             }
@@ -137,7 +136,18 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return 'not implemented';
+                    let links = ''
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                        }
+                    }
+                    if (full.admission_urls){
+                        for (let admission_url of full.admission_urls){
+                            links +=  `<div><a href='${admission_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation</a></div>`;
+                        }
+                    }
+                    return links
                 }
             }
         },
@@ -154,20 +164,6 @@ export default {
                 }
             }
         },
-        */
-        column_uiv: function(){
-            return {
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    return full.dcv_vessel_uiv;
-                    //return '';
-                }
-            }
-        },
-        /*
         column_status: function(){
             return {
                 data: "id",
@@ -180,7 +176,22 @@ export default {
             }
         },
         */
-        column_date: function(){
+        column_arrival_date: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let ret = ''
+                    for (let arrival of full.arrivals){
+                        ret += '<div>' + arrival.arrival_date + '</div>'
+                    }
+                    return ret
+                }
+            }
+        },
+        column_lodgement_date: function(){
             return {
                 data: "id",
                 orderable: true,
@@ -227,6 +238,8 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log('---')
+                    console.log(full)
                     /*
                     let links = '';
                     if (!vm.is_external){
@@ -247,7 +260,17 @@ export default {
                     }
                     return links;
                     */
-                    return 'not implemented';
+                    let links = '';
+                    if (full.invoices){
+                        for (let invoice of full.invoices){
+                            links += '<div>'
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
+                            links += '</div>'
+                        }
+                    }
+                    return links
                 }
             }
         },
@@ -259,9 +282,9 @@ export default {
                 vm.column_lodgement_number,
                 vm.column_invoice_confirmation,
                 //vm.column_organisation,
-                vm.column_uiv,
                 //vm.column_status,
-                vm.column_date,
+                vm.column_arrival_date,
+                vm.column_lodgement_date,
                 vm.column_action,
             ]
             let search = true
@@ -288,7 +311,22 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[ ],
+                //buttons:[ ],
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ],
+
                 columns: columns,
                 processing: true,
                 initComplete: function() {
