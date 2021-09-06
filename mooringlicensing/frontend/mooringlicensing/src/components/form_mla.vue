@@ -81,10 +81,20 @@
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
+                  <div v-if="proposal">
+                      <CurrentVessels 
+                          :proposal=proposal
+                          :readonly=readonly
+                          :is_internal=is_internal
+                          @resetCurrentVessel=resetCurrentVessel
+                          />
+                  </div>
                   <Vessels 
                   :proposal="proposal" 
                   :profile="profileVar" 
-                  id="proposalStartVessels" 
+                  :id="'proposalStartVessels' + uuid"
+                  :key="'proposalStartVessels' + uuid"
+                  :keep_current_vessel=keep_current_vessel
                   ref="vessels"
                   :readonly="readonlyMLA"
                   :is_internal="is_internal"
@@ -128,6 +138,7 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
+    import CurrentVessels from '@/components/common/current_vessels.vue'
     import Insurance from '@/components/common/insurance.vue'
     /*
     import Assessment from '@/components/common/tclass/assessment.vue'
@@ -196,12 +207,15 @@
             return{
                 values:null,
                 profile: {},
+                uuid: 0,
+                keep_current_vessel: true,
             }
         },
         components: {
             Applicant,
             Confirmation,
             Vessels,
+            CurrentVessels,
             Insurance,
             /*
             ActivitiesLand,
@@ -258,6 +272,10 @@
             */
         },
         methods:{
+            resetCurrentVessel: function(keep) {
+                this.keep_current_vessel = keep;
+                this.uuid++
+            },
             populateProfile: function(profile) {
                 this.profile = Object.assign({}, profile);
             },
