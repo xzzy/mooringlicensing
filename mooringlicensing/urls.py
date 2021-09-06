@@ -128,6 +128,7 @@ urlpatterns = [
     #url(r'^admin/', include(mooringlicensing_admin_site.urls)),
     #url(r'^admin/', mooringlicensing_admin_site.urls),
     url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
+    url(r'^chaining/', include('smart_selects.urls')),
     url(r'', include(api_patterns)),
     url(r'^$', views.MooringLicensingRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.MooringLicensingContactView.as_view(), name='ds_contact'),
