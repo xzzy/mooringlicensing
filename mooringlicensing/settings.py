@@ -189,18 +189,22 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',
     'description': 'DCV Permit',
+    'fee_by_fee_constructor': True,
 }
 APPLICATION_TYPE_DCV_ADMISSION = {
     'code': 'dcv',
     'description': 'DCV Admission',
+    'fee_by_fee_constructor': True,
 }
 APPLICATION_TYPE_REPLACEMENT_STICKER = {
     'code': 'replacement_sticker',
     'description': 'Replacement sticker fees',
+    'fee_by_fee_constructor': False,
 }
 APPLICATION_TYPE_MOORING_SWAP = {
     'code': 'mooring_swap',
     'description': 'Mooring swap fees',
+    'fee_by_fee_constructor': False,
 }
 APPLICATION_TYPES = [
     APPLICATION_TYPE_DCV_PERMIT,

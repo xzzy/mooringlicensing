@@ -53,8 +53,9 @@ class DefaultDataManager(object):
                 type, created = ApplicationType.objects.get_or_create(code=app_type['code'])
                 if created:
                     type.description = app_type['description']
-                    type.save()
                     logger.info("Created ApplicationType: {}".format(type.description))
+                type.fee_by_fee_constructor = app_type['fee_by_fee_constructor']  # In order to configure the data, which have already exist in the DB
+                type.save()
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
