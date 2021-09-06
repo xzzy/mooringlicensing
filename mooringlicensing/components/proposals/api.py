@@ -10,7 +10,7 @@ from rest_framework.renderers import JSONRenderer
 from datetime import datetime, date
 # from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
 # from rest_framework.pagination import PageNumberPagination
-# from collections import OrderedDict
+from collections import OrderedDict
 # from django.core.cache import cache
 from ledger.accounts.models import EmailUser, Address
 # from ledger.address.models import Country
@@ -2104,6 +2104,17 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return MooringBay.objects.filter(active=True)
 
+    @list_route(methods=['GET',])
+    def lookup(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        #serializer_data = MooringBaySerializer(qs, many=True).data
+        #import ipdb; ipdb.set_trace()
+        #serializer_data.update({"id":None,"name":"","mooring_bookings_id":None,})
+        #serializer_data.move_to_end('{"id":1,"name":"Rottnest Island","mooring_bookings_id":1,"active":true}', last=False)
+        response_data = [{"id":None,"name":"","mooring_bookings_id":None}]
+        for mooring in qs:
+            response_data.append(MooringBaySerializer(mooring).data)
+        return Response(response_data)
 
 
 class MooringFilterBackend(DatatablesFilterBackend):
