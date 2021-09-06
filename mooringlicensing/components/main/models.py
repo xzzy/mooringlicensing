@@ -102,6 +102,7 @@ class Document(models.Model):
 class ApplicationType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
+    fee_by_fee_constructor = models.BooleanField(default=True)
 
     def __str__(self):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
