@@ -21,6 +21,7 @@ module.exports = {
     compliance_statuses_dict:"/api/compliance_statuses_dict",
     mooring_statuses_dict:"/api/mooring_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
+    mooring_bays_lookup:"/api/mooringbays/lookup.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
     daily_admission_url: "/api/daily_admission_url",
 
