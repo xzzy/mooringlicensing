@@ -3,7 +3,33 @@
         <FormSection v-if="mooringLicenceCurrentVesselDisplayText || currentVesselDisplayText" label="Current Vessel" Index="current_vessel">
             <div v-if="mooringLicenceCurrentVesselDisplayText" class="row form-group">
                 <div class="col-sm-9">
-                    {{ mooringLicenceCurrentVesselDisplayText }}
+                    <label for="" class="col-sm-12 control-label">{{ mooringLicenceCurrentVesselDisplayText }}</label>
+                        <div class="col-sm-9">
+                            <input 
+                            @change="resetCurrentVessel" 
+                            :disabled="readonly" 
+                            type="radio" 
+                            id="current_vessel_false" 
+                            name="current_vessel_false" 
+                            :value="false" 
+                            v-model="keep_current_vessel" 
+                            required
+                            />
+                            <label for="current_vessel_false" class="control-label">Yes</label>
+                        </div>
+                        <div class="col-sm-9">
+                            <input 
+                            @change="resetCurrentVessel" 
+                            :disabled="readonly" 
+                            type="radio" 
+                            id="current_vessel_true" 
+                            name="current_vessel_true" 
+                            :value="true" 
+                            v-model="keep_current_vessel" 
+                            required
+                            />
+                            <label for="current_vessel_true" class="control-label">No</label>
+                        </div>
                 </div>
             </div>
             <div v-else class="row form-group">
@@ -80,26 +106,20 @@ from '@/utils/hooks'
         },
         computed: {
             mooringLicenceCurrentVesselDisplayText: function() {
-                let displayText = '';
                 if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                    displayText += `Your mooring licence ${this.proposal.approval_lodgement_number} 
-                    currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}.`;
+                    return `Your mooring licence ${this.proposal.approval_lodgement_number} 
+                    currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}. 
+                       Do you want to list another vessel on your Mooring Licence?`;
                 }
-                return displayText;
+                return '';
             },
             currentVesselDisplayText: function() {
-                let displayText = '';
                 if (this.proposal && this.proposal.approval_vessel_rego_no) {
-                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number} 
-                    lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}.`;
+                    return `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number} 
+                    lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}. 
+                        Do you want to add another vessel on your ${this.proposal.approval_type_text}?`;
                 }
-                /*
-                if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                    displayText += `Your Authorised User Permit ${this.proposal.approval_lodgement_number} 
-                    lists the following vessel ${this.proposal.mooring_licence_vessels.toString()}.`;
-                }
-                */
-                return displayText;
+                return '';
             },
 
         },
