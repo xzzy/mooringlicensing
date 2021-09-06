@@ -242,6 +242,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_vessel_rego_no = serializers.SerializerMethodField()
     waiting_list_application_id = serializers.SerializerMethodField()
+    authorised_user_moorings_str = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -323,8 +324,17 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'approval_lodgement_number',
                 'approval_vessel_rego_no',
                 'waiting_list_application_id',
+                'authorised_user_moorings_str',
                 )
         read_only_fields=('documents',)
+
+    def get_authorised_user_moorings_str(self, obj):
+        moorings_str = ''
+        if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
+            #for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            for moa in obj.approval.mooringonapproval_set.all():
+                moorings_str += moa.mooring.name + ','
+            return moorings_str[0:-1]
 
     def get_waiting_list_application_id(self, obj):
         wla_id = None
