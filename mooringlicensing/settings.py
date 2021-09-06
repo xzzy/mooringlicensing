@@ -27,7 +27,6 @@ if SHOW_DEBUG_TOOLBAR:
     ]
     INSTALLED_APPS += (
         'debug_toolbar',
-        'smart_selects',
     )
     INTERNAL_IPS = ('127.0.0.1', 'localhost')
 
@@ -41,6 +40,7 @@ STATIC_URL = '/static/'
 
 
 INSTALLED_APPS += [
+    'smart_selects',
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',
@@ -342,4 +342,4 @@ ORACLE_CODES = [
         'name': 'Mooring swap fees',
     },
 ]
-JQUERY_URL = True
+USE_DJANGO_JQUERY = True
