@@ -249,6 +249,8 @@ class FeeSeason(RevisionedMixin):
 
     @property
     def is_editable(self):
+        temp = self.fee_constructors
+        temp = self.fee_constructors.all()
         for fee_constructor in self.fee_constructors.all():
             if not fee_constructor.is_editable:
                 # This season has been used in the fee_constructor for payments at least once
@@ -299,7 +301,15 @@ class FeePeriod(RevisionedMixin):
 class FeeConstructor(RevisionedMixin):
     application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
     # fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
-    fee_season = ChainedForeignKey(FeeSeason, chained_field='application_type', chained_model_field='application_type', show_all=False, auto_choose=True, sort=True)
+    fee_season = ChainedForeignKey(FeeSeason,
+                                   chained_field='application_type',
+                                   chained_model_field='application_type',
+                                   show_all=False,
+                                   auto_choose=True,
+                                   sort=True,
+                                   null=True,
+                                   blank=True,
+                                   related_name='fee_constructors')
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors')
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
