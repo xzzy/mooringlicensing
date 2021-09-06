@@ -17,6 +17,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
     AuthorisedUserApplication
+from smart_selects.db_fields import ChainedForeignKey
 
 logger = logging.getLogger('__name__')
 
@@ -297,7 +298,8 @@ class FeePeriod(RevisionedMixin):
 
 class FeeConstructor(RevisionedMixin):
     application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
-    fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
+    # fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
+    fee_season = ChainedForeignKey(FeeSeason, chained_field='application_type', chained_model_field='application_type', show_all=False, auto_choose=True, sort=True)
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors')
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
