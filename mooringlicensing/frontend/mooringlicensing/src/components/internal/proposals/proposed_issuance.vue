@@ -576,7 +576,8 @@ export default {
             this.validation_form.resetForm();
         },
         fetchMooringBays: async function() {
-            const res = await this.$http.get(api_endpoints.mooring_bays);
+            //const res = await this.$http.get(api_endpoints.mooring_bays);
+            const res = await this.$http.get(api_endpoints.mooring_bays_lookup);
             for (let bay of res.body) {
                 this.mooringBays.push(bay)
             }
@@ -865,10 +866,12 @@ export default {
         vm.addFormValidations();
         this.$nextTick(()=>{
             //vm.eventListeners();
+            /*
             // AUP reissue
             if (!this.proposal.reissued) {
                 this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
             }
+            */
             //this.approval.mooring_bay_id = null;
             this.initialiseMooringLookup();
             this.addEventListeners();

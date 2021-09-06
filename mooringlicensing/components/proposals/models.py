@@ -394,6 +394,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
     berth_mooring = models.CharField(max_length=200, blank=True)
+    ## Name as shown on DoT registration papers
+    dot_name = models.CharField(max_length=200, blank=True, null=True)
     #org_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.IntegerField(null=True, blank=True)
     individual_owner = models.NullBooleanField()
@@ -1025,6 +1027,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 ## security ???
                 #elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
                 self.processing_status = status
+                self.proposed_issuance_approval = {}
                 self.save()
                 self.approval.reissued=True
                 self.approval.save()
@@ -2347,6 +2350,7 @@ class AuthorisedUserApplication(Proposal):
                         moa2.save()
 
         # Manage stickers
+        # TODO: do you really need this?
         moa_created = moa if created else None
         # approval.child_obj.manage_stickers(self, moa_created)
 
