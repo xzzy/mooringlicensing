@@ -196,13 +196,13 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
                 pass
 
             elif action == 'delete':
-                delete_document(request, instance, comms_instance=None, document_type=None)
+                delete_document(request, instance, comms_instance=None, document_type='temp_document')
 
             elif action == 'cancel':
-                cancel_document(request, instance, comms_instance=None, document_type=None)
+                cancel_document(request, instance, comms_instance=None, document_type='temp_document')
 
             elif action == 'save':
-                save_document(request, instance, comms_instance=None, document_type=None)
+                save_document(request, instance, comms_instance=None, document_type='temp_document')
 
             returned_file_data = [dict(
                         file=d._file.url,
