@@ -3083,7 +3083,8 @@ class VesselOwnership(models.Model):
     def get_fee_items_paid(self):
         # Return all the fee_items for this vessel
         fee_items = []
-        for proposal in self.proposal_set.filter(approval__isnull=False):
+        from mooringlicensing.components.approvals.models import Approval
+        for proposal in self.proposal_set.filter(approval__isnull=False, approval__status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,)):
             fee_items += proposal.get_fee_items_paid()
         return fee_items
 
