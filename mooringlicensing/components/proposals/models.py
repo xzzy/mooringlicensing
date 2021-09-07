@@ -424,7 +424,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     waiting_list_allocation = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, related_name="ria_generated_proposal")
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
-
+    temporary_document_collection_id = models.IntegerField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -3098,6 +3098,21 @@ class VesselOwnership(models.Model):
                     proposal.approval.internal_reissue()
 
 
+
+class VesselRegistrationDocument(Document):
+    #proposal = models.ForeignKey(Proposal,related_name='vessel_registration_documents')
+    vessel_ownership = models.ForeignKey(VesselOwnership,related_name='vessel_registration_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Vessel Registration Papers"
+
+
 # Non proposal specific
 class Owner(models.Model):
     emailuser = models.OneToOneField(EmailUser)
@@ -3131,18 +3146,6 @@ class Company(models.Model):
     def __str__(self):
         return "{}: {}".format(self.name, self.id)
 
-
-class VesselRegistrationDocument(Document):
-    proposal = models.ForeignKey(Proposal,related_name='vessel_registration_documents')
-    _file = models.FileField(max_length=512)
-    input_name = models.CharField(max_length=255,null=True,blank=True)
-    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
-    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name = "Vessel Registration Papers"
 
 
 class InsuranceCertificateDocument(Document):
