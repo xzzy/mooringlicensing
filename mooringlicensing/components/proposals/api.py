@@ -836,16 +836,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         else:
             return add_cache_control(Response())
 
-    @detail_route(methods=['POST'])
-    @renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def process_vessel_registration_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
-        if returned_data:
-            return add_cache_control(Response(returned_data))
-        else:
-            return add_cache_control(Response())
+    #@detail_route(methods=['POST'])
+    #@renderer_classes((JSONRenderer,))
+    #@basic_exception_handler
+    #def process_vessel_registration_document(self, request, *args, **kwargs):
+    #    instance = self.get_object()
+    #    returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
+    #    if returned_data:
+    #        return add_cache_control(Response(returned_data))
+    #    else:
+    #        return add_cache_control(Response())
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -1648,6 +1648,17 @@ class SearchReferenceView(views.APIView):
 class VesselOwnershipViewSet(viewsets.ModelViewSet):
     queryset = VesselOwnership.objects.all().order_by('id')
     serializer_class = VesselOwnershipSerializer
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def process_vessel_registration_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
+        if returned_data:
+            return Response(returned_data)
+        else:
+            return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
