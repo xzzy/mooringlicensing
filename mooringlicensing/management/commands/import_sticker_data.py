@@ -113,6 +113,10 @@ class Command(BaseCommand):
                     except Exception as e:
                         logger.exception('Exception has been raised when importing .xlsx file')
                         continue
+
+                # imapclient.store(num, "+FLAGS", "\\Deleted")
+                imapclient.copy(num, "Archive")
+                imapclient.store(num, "+FLAGS", "\\Deleted")
             except:
                 logger.exception('Exception has been raised when processing emails')
                 continue
