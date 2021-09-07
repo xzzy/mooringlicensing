@@ -275,14 +275,13 @@ class SystemMaintenance(models.Model):
     def __str__(self):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
 
-# Not currently used
+
 class TemporaryDocumentCollection(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
 
 
-# Not currently used
 class TemporaryDocument(Document):
     temp_document_collection = models.ForeignKey(
         TemporaryDocumentCollection,
