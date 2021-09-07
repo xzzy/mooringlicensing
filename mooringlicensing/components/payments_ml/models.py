@@ -219,7 +219,7 @@ class ApplicationFee(Payment):
 
 
 class FeeSeason(RevisionedMixin):
-    application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
+    application_type = models.ForeignKey(ApplicationType, null=True, blank=True, limit_choices_to={'fee_by_fee_constructor': True})
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):
@@ -264,7 +264,9 @@ class FeeSeason(RevisionedMixin):
 
     @property
     def end_date(self):
-        end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
+        end_date = None
+        if self.start_date:
+            end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
         return end_date
 
     class Meta:
@@ -299,7 +301,7 @@ class FeePeriod(RevisionedMixin):
 
 
 class FeeConstructor(RevisionedMixin):
-    application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True})
     # fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
     fee_season = ChainedForeignKey(FeeSeason,
                                    chained_field='application_type',
