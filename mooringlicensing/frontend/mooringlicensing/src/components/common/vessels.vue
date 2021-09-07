@@ -142,6 +142,9 @@
                         :isRepeatable="true"
                         :documentActionUrl="vesselRegistrationDocumentUrl"
                         :replace_button_by_text="true"
+                        :temporaryDocumentCollectionId="temporary_document_collection_id"
+                        :key="temporary_document_collection_id"
+                        @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
                     />
                 </div>
             </div>
@@ -230,6 +233,8 @@ from '@/utils/hooks'
                 vesselTypes: [],
                 vesselRegoNos: [],
                 selectedRego: null,
+                //temporary_document_collection_list: [],
+                temporary_document_collection_id: null,
             }
         },
         components:{
@@ -360,6 +365,7 @@ from '@/utils/hooks'
                 return this.fee_paid ? this.proposal.fee_invoice_url : '';
             },
             vesselRegistrationDocumentUrl: function() {
+                /*
                 let url = '';
                 if (this.proposal && this.proposal.id) {
                     url = helpers.add_endpoint_join(
@@ -368,6 +374,8 @@ from '@/utils/hooks'
                     )
                 }
                 return url;
+                */
+                return 'temporary_document';
             },
             hullIdentificationNumberDocumentUrl: function() {
                 let url = '';
@@ -392,6 +400,19 @@ from '@/utils/hooks'
 
         },
         methods:{
+            addToTemporaryDocumentCollectionList(temp_doc_id) {
+                this.temporary_document_collection_id = temp_doc_id;
+            },
+                /*
+            addToTemporaryDocumentCollectionList({temp_doc_id, input_name}) {
+                this.temporary_document_collection_list.push(
+                    {   "temp_doc_id": temp_doc_id,
+                        "input_name": input_name,
+                    }
+                );
+            },
+            */
+
             resetCurrentVessel: function() {
             },
             retrieveIndividualOwner: async function() {
@@ -911,6 +932,10 @@ from '@/utils/hooks'
                 // read in dot_name
                 if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.dot_name) {
                     this.dotName = this.vessel.vessel_ownership.dot_name;
+                }
+                // read in temporary_document_collection_id
+                if (this.proposal && this.proposal.temporary_document_collection_id) {
+                    this.temporary_document_collection_id = this.proposal.temporary_document_collection_id;
                 }
                 /*
                 // keep current vessel
