@@ -243,3 +243,19 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         document._file = path
         document.save()
 
+# For transferring files from temp doc objs to default doc objs
+def save_default_document_obj(instance, temp_document):
+    document = instance.documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        '{}/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
