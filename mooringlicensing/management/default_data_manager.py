@@ -28,10 +28,10 @@ class DefaultDataManager(object):
         # Proposal Types
         for item in settings.PROPOSAL_TYPES_FOR_FEE_ITEM:
             try:
-                type, created = ProposalType.objects.get_or_create(code=item[0])
+                myType, created = ProposalType.objects.get_or_create(code=item[0])
                 if created:
-                    type.description = item[1]
-                    type.save()
+                    myType.description = item[1]
+                    myType.save()
                     logger.info("Created ProposalType: {}".format(item[1]))
             except Exception as e:
                 logger.error('{}, ProposalType: {}'.format(e, item[1]))
@@ -41,21 +41,21 @@ class DefaultDataManager(object):
             # Create record(s) based on the existence of the subclasses
             if hasattr(item, 'code'):
                 try:
-                    type, created = ApplicationType.objects.get_or_create(code=item.code)
+                    myType, created = ApplicationType.objects.get_or_create(code=item.code)
                     if created:
-                        type.description = item.description
-                        type.save()
+                        myType.description = item.description
+                        myType.save()
                         logger.info("Created ApplicationType: {}".format(item.description))
                 except Exception as e:
                     logger.error('{}, ApplicationType: {}'.format(e, item.code))
         try:
             for app_type in settings.APPLICATION_TYPES:
-                type, created = ApplicationType.objects.get_or_create(code=app_type['code'])
+                myType, created = ApplicationType.objects.get_or_create(code=app_type['code'])
                 if created:
-                    type.description = app_type['description']
-                    logger.info("Created ApplicationType: {}".format(type.description))
-                type.fee_by_fee_constructor = app_type['fee_by_fee_constructor']  # In order to configure the data, which have already exist in the DB
-                type.save()
+                    myType.description = app_type['description']
+                    logger.info("Created ApplicationType: {}".format(myType.description))
+                myType.fee_by_fee_constructor = app_type['fee_by_fee_constructor']  # In order to configure the data, which have already exist in the DB
+                myType.save()
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
@@ -101,7 +101,7 @@ class DefaultDataManager(object):
         # AgeGroup for the DcvAdmission fees
         for item in AgeGroup.NAME_CHOICES:
             try:
-                type, created = AgeGroup.objects.get_or_create(code=item[0])
+                myType, created = AgeGroup.objects.get_or_create(code=item[0])
                 if created:
                     logger.info("Created AgeGroup: {}".format(item[1]))
             except Exception as e:
@@ -110,7 +110,7 @@ class DefaultDataManager(object):
         # AdmissionType for the DcvAdmission fees
         for item in AdmissionType.TYPE_CHOICES:
             try:
-                type, created = AdmissionType.objects.get_or_create(code=item[0])
+                myType, created = AdmissionType.objects.get_or_create(code=item[0])
                 if created:
                     logger.info("Created AdmissionType: {}".format(item[1]))
             except Exception as e:
@@ -131,26 +131,26 @@ class DefaultDataManager(object):
                 types_to_be_deleted = NumberOfDaysType.objects.filter(code__isnull=True)
                 types_to_be_deleted.delete()  # Delete left overs
 
-                type, created = NumberOfDaysType.objects.get_or_create(code=item['code'])
+                myType, created = NumberOfDaysType.objects.get_or_create(code=item['code'])
                 if created:
                     # Save description
-                    type.description = item['description']
-                    type.name = item['name']
-                    type.save()
-                    logger.info("Created number of days type: {}".format(type.name))
+                    myType.description = item['description']
+                    myType.name = item['name']
+                    myType.save()
+                    logger.info("Created number of days type: {}".format(myType.name))
 
-                setting = NumberOfDaysSetting.objects.filter(number_of_days_type=type)
+                setting = NumberOfDaysSetting.objects.filter(number_of_days_type=myType)
                 if not setting:
                     # No setting for this type. Create one
                     enforcement_date = datetime.date(year=2021, month=1, day=1)
                     NumberOfDaysSetting.objects.create(
                         number_of_days=item['default'],
                         date_of_enforcement=enforcement_date,
-                        number_of_days_type=type
+                        number_of_days_type=myType
                     )
 
             except Exception as e:
-                logger.error('{}, Number of days type: {}'.format(e, type.name))
+                logger.error('{}, Number of days type: {}'.format(e, myType.name))
 
         # Oracle account codes
         today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
