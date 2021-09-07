@@ -264,7 +264,9 @@ class FeeSeason(RevisionedMixin):
 
     @property
     def end_date(self):
-        end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
+        end_date = None
+        if self.start_date:
+            end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
         return end_date
 
     class Meta:

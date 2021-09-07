@@ -29,12 +29,13 @@
                 </div>
                 <div class="row form-group">
                     <label for="mooring_id" class="col-sm-3 control-label">Mooring site ID</label>
-                    <div class="col-sm-4">
+                    <div class="col-sm-9">
                         <select 
                             id="mooring_lookup"  
                             name="mooring_lookup"  
                             ref="mooring_lookup" 
                             class="form-control" 
+                            style="width: 40%"
                         />
                         <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
                     </div>
