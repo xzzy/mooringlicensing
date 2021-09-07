@@ -273,8 +273,9 @@ class FeeItemStickerReplacementAdmin(admin.ModelAdmin):
 
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_date', 'end_date',]
+    list_display = ['name', 'application_type', 'start_date', 'end_date',]
     inlines = [FeePeriodInline,]
+    list_filter = ['application_type',]
     form = FeeSeasonForm
 
 
