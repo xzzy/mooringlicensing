@@ -100,6 +100,9 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         elif document_type == 'waiting_list_offer_document':
             document_id = request.data.get('document_id')
             document = instance.waiting_list_offer_documents.get(id=document_id)
+        elif document_type == 'temp_document':
+            document_id = request.data.get('document_id')
+            document = instance.documents.get(id=document_id)
 
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document_id = request.data.get('document_id')
