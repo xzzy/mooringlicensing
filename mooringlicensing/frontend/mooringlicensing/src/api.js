@@ -64,6 +64,7 @@ module.exports = {
     proposal_requirements:"/api/proposal_requirements.json",
     vesselownership: '/api/vesselownership/',
     proposal_by_uuid: '/api/proposal_by_uuid/',
+    temporary_document: '/api/temporary_document/',
 
     lookupApprovalDetails: function(id) {
         return `/api/approvals/${id}/lookup_approval.json`;
@@ -98,7 +99,6 @@ module.exports = {
     campgrounds: '/api/campgrounds/campgrounds_list',
     camping_choices: '/api/mooringlicensings/camping_choices',
     filter_list: '/api/mooringlicensings/filter_list/',
-    temporary_document: '/api/temporary_document/',
     admin_data: '/admin_data/',
     */
 }
