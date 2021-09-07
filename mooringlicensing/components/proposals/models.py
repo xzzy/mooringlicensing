@@ -2550,10 +2550,15 @@ class MooringLicenceApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
-        self.save()
-        send_documents_upload_for_mooring_licence_application_email(request, self)
+        if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            self.save()
+        else:
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
+            self.save()
+            send_documents_upload_for_mooring_licence_application_email(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         try:

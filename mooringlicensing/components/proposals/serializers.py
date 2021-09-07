@@ -334,7 +334,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             #for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             for moa in obj.approval.mooringonapproval_set.all():
                 moorings_str += moa.mooring.name + ','
-            return moorings_str[0:-1]
+            return moorings_str[0:-1] if mooring_str else ''
 
     def get_waiting_list_application_id(self, obj):
         wla_id = None
