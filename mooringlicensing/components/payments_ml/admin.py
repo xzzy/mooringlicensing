@@ -208,7 +208,7 @@ class FeeConstructorForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super(FeeConstructorForm, self).clean()
         if len(self.changed_data) == 1 and self.changed_data[0] == 'enabled' and cleaned_data['enabled'] is False:
-            # When change is setting 'enabled' field to False, no validation required
+            # When change is only setting 'enabled' field to False, no validation required
             return cleaned_data
 
         cleaned_application_type = cleaned_data.get('application_type', None)

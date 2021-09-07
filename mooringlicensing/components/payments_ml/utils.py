@@ -177,13 +177,13 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor_additional = None
+    fee_constructor_for_aa = None
     if isinstance(instance, Proposal):
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
         if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             # There is also annual admission fee component for the AUA/MLA.
-            fee_constructor_additional = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
-            if not fee_constructor_additional:
+            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+            if not fee_constructor_for_aa:
                 # Fees have not been configured for the annual admission application and date
                 raise Exception('FeeConstructor object for the Annual Admission Application not found for the date: {}'.format(target_date))
         if not fee_constructor:
@@ -198,24 +198,24 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         raise Exception('Something went wrong when calculating the fee')
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
-    fee_item_additional = fee_constructor_additional.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_additional else None
+    fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_for_aa else None
 
     fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)
-    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_additional, vessel_length) if fee_item_additional else None
+    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_for_aa, vessel_length) if fee_item_for_aa else None
 
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
     # db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
     db_processes_after_success['datetime_for_calculating_fee'] = current_datetime_str
     db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
-    db_processes_after_success['fee_item_additional_id'] = fee_item_additional.id if fee_item_additional else 0
+    db_processes_after_success['fee_item_additional_id'] = fee_item_for_aa.id if fee_item_for_aa else 0
     # TODO: Perform db_process for additional component, too???
 
     line_items = []
     line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime))
     if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
         # There is also annual admission fee component for the AUA/MLA.
-        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, current_datetime))
+        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, instance, current_datetime))
 
     logger.info('{}'.format(line_items))
 

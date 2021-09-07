@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 
 from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
@@ -41,12 +42,12 @@ from mooringlicensing.components.proposals.serializers import (
         )
 
 from mooringlicensing.components.approvals.models import (
-        ApprovalHistory, 
-        MooringLicence, 
-        AnnualAdmissionPermit, 
-        WaitingListAllocation, 
-        AuthorisedUserPermit
-        )
+    ApprovalHistory,
+    MooringLicence,
+    AnnualAdmissionPermit,
+    WaitingListAllocation,
+    AuthorisedUserPermit, Approval
+)
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 # from mooringlicensing.components.proposals.email import send_submit_email_notification, \
 #     send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
@@ -1021,52 +1022,138 @@ def is_payment_officer(user):
 
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
-    # This logic might be true to all the four types of application
-    # If not, implement the logic specific to a certain application type under that class
-    if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
-        # This is Amendment application.  We have to adjust the fee
-        if fee_item_being_applied:
-            #logger_for_payment.log('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-            #logger_for_payment.log('FeeItem being applied: {}'.format(fee_item_being_applied))
-            logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-            logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
+    # Retrieve all the fee_items for this vessel
 
-            # fee_amount_adjusted = fee_item_being_applied.amount
-            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+    if fee_item_being_applied:
+        logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
+        logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
 
-            # Adjust the fee
-            for fee_item in proposal.approval.fee_items:
-                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
-                    # Find the fee_item which can be considered as already paid for this period
-                    target_fee_period = fee_item_being_applied.fee_period
-                    target_vessel_size_category = fee_item.vessel_size_category
-                    target_proposal_type = fee_item_being_applied.proposal_type
-
-                    target_fee_constructor = fee_item_being_applied.fee_constructor
-                    fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
-                        target_vessel_size_category,
-                        target_fee_period,
-                        proposal_type=target_proposal_type,
-                        age_group=None,
-                        admission_type=None
-                    )
-
-                    # Applicant already partially paid for this fee item.  Deduct it.
-                    # fee_amount_adjusted -= fee_item_considered_paid.amount
-                    if fee_item_considered_paid:
-                        fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-                        logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
-
-            fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
-        else:
-            if proposal.does_accept_null_vessel:
-                # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
-                fee_amount_adjusted = 0
-            else:
-                raise Exception('FeeItem not found.')
-    else:
-        # This is New/Renewal Application type
-        # fee_amount_adjusted = fee_item_being_applied.amount
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
+        # Retrieve all the fee items paid for this vessel (through proposal.vessel_ownership)
+        fee_items_already_paid = proposal.vessel_ownership.get_fee_items_paid()
+        if fee_item_being_applied in fee_items_already_paid:
+            # Fee item being applied has been paid already
+            # We don't charge this fee_item_being_applied
+            return Decimal('0.0')
+        else:
+            for fee_item in fee_items_already_paid:
+                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and fee_item.proposal_type == fee_item_being_applied.proposal_type:
+                    # Found fee_item which has
+                    #   same: fee_season, proposal_type, application_type
+                    #   different: fee_period, vessel_size_category  (might be the same)
+
+                    if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
+                        # Find the fee_item which can be considered as already paid for this period, this proposal type
+                        target_fee_period = fee_item_being_applied.fee_period
+                        target_proposal_type = fee_item.proposal_type
+                        target_vessel_size_category = fee_item.vessel_size_category
+
+                        target_fee_constructor = fee_item_being_applied.fee_constructor
+                        fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+                            target_vessel_size_category,
+                            target_fee_period,
+                            proposal_type=target_proposal_type,
+                            age_group=None,
+                            admission_type=None
+                        )
+
+                        # Applicant already partially paid for this fee item.  Deduct it.
+                        # fee_amount_adjusted -= fee_item_considered_paid.amount
+                        if fee_item_considered_paid:
+                            fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+                            logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+
+        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
+            fee_items_already_paid = proposal.approval.get_fee_items()
+            if fee_item_being_applied in fee_items_already_paid:
+                # Fee item being applied has been paid already
+                # We don't charge this fee_item_being_applied
+                return Decimal('0.0')
+            else:
+                for fee_item in fee_items_already_paid:
+                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and fee_item.proposal_type == fee_item_being_applied.proposal_type:
+                        # Found fee_item which has
+                        #   same: fee_season, proposal_type, application_type
+                        #   different: fee_period, vessel_size_category  (might be the same)
+
+                        if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
+                            # Find the fee_item which can be considered as already paid for this period, this proposal type, but the previous vessel size category
+                            target_fee_period = fee_item_being_applied.fee_period
+                            target_proposal_type = fee_item_being_applied.proposal_type
+                            target_vessel_size_category = fee_item.vessel_size_category  # <== Vessel size category should be the one of the fee item found.
+
+                            target_fee_constructor = fee_item_being_applied.fee_constructor
+                            fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+                                target_vessel_size_category,
+                                target_fee_period,
+                                proposal_type=target_proposal_type,
+                                age_group=None,
+                                admission_type=None
+                            )
+
+                            # Applicant already partially paid for this fee item.  Deduct it.
+                            # fee_amount_adjusted -= fee_item_considered_paid.amount
+                            if fee_item_considered_paid:
+                                fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+                                logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+
+        fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
+    else:
+        if proposal.does_accept_null_vessel:
+            # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+            fee_amount_adjusted = 0
+        else:
+            raise Exception('FeeItem not found.')
+
     return fee_amount_adjusted
+
+
+#    # This logic might be true to all the four types of application
+#    # If not, implement the logic specific to a certain application type under that class
+#    if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
+#        # This is Amendment application.  We have to adjust the fee
+#        if fee_item_being_applied:
+#            logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
+#            logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
+#
+#            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+#
+#            # Adjust the fee
+#            for fee_item in proposal.approval.get_fee_items():
+#                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
+#                    # Find the fee_item which can be considered as already paid for this period
+#                    target_fee_period = fee_item_being_applied.fee_period
+#                    target_vessel_size_category = fee_item.vessel_size_category
+#                    target_proposal_type = fee_item_being_applied.proposal_type
+#
+#                    target_fee_constructor = fee_item_being_applied.fee_constructor
+#                    fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+#                        target_vessel_size_category,
+#                        target_fee_period,
+#                        proposal_type=target_proposal_type,
+#                        age_group=None,
+#                        admission_type=None
+#                    )
+#
+#                    # Applicant already partially paid for this fee item.  Deduct it.
+#                    # fee_amount_adjusted -= fee_item_considered_paid.amount
+#                    if fee_item_considered_paid:
+#                        fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+#                        logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+#
+#            fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
+#        else:
+#            if proposal.does_accept_null_vessel:
+#                # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+#                fee_amount_adjusted = 0
+#            else:
+#                raise Exception('FeeItem not found.')
+#    else:
+#        # This is New/Renewal Application type
+#        # fee_amount_adjusted = fee_item_being_applied.amount
+#        fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+#
+#    return fee_amount_adjusted
+#
