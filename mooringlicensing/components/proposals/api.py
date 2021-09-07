@@ -407,7 +407,7 @@ class GetMooringStatusesDict(views.APIView):
       #  return Response(data)
     def get(self, request):
         #data = [{'code': i[0], 'description': i[1]} for i in Mooring.MOORING_SPECIFICATION]
-        return Response(['Licenced', 'Licence application'])
+        return Response(['Unlicensed', 'Licensed', 'Licence application'])
 
 
 class GetEmptyList(views.APIView):
