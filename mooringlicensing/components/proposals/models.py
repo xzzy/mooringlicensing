@@ -424,7 +424,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     waiting_list_allocation = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, related_name="ria_generated_proposal")
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
-
+    temporary_document_collection_id = models.IntegerField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2550,10 +2550,15 @@ class MooringLicenceApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
-        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
-        self.save()
-        send_documents_upload_for_mooring_licence_application_email(request, self)
+        if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+            self.save()
+        else:
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS
+            self.save()
+            send_documents_upload_for_mooring_licence_application_email(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         try:
@@ -3093,6 +3098,21 @@ class VesselOwnership(models.Model):
                     proposal.approval.internal_reissue()
 
 
+
+class VesselRegistrationDocument(Document):
+    #proposal = models.ForeignKey(Proposal,related_name='vessel_registration_documents')
+    vessel_ownership = models.ForeignKey(VesselOwnership,related_name='vessel_registration_documents')
+    _file = models.FileField(max_length=512)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = "Vessel Registration Papers"
+
+
 # Non proposal specific
 class Owner(models.Model):
     emailuser = models.OneToOneField(EmailUser)
@@ -3126,18 +3146,6 @@ class Company(models.Model):
     def __str__(self):
         return "{}: {}".format(self.name, self.id)
 
-
-class VesselRegistrationDocument(Document):
-    proposal = models.ForeignKey(Proposal,related_name='vessel_registration_documents')
-    _file = models.FileField(max_length=512)
-    input_name = models.CharField(max_length=255,null=True,blank=True)
-    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
-    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name = "Vessel Registration Papers"
 
 
 class InsuranceCertificateDocument(Document):
