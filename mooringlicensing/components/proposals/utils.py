@@ -1010,7 +1010,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
 
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
-        # Retrieve all the fee items paid for this vessel
+        # Retrieve all the fee items paid for this vessel (through proposal.vessel_ownership)
         fee_items_already_paid = proposal.vessel_ownership.get_fee_items_paid()
         if fee_item_being_applied in fee_items_already_paid:
             # Fee item being applied has been paid already
@@ -1044,8 +1044,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                             fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
                             logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
-        # Adjust the fee
         if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
             fee_items_already_paid = proposal.approval.get_fee_items()
             if fee_item_being_applied in fee_items_already_paid:
                 # Fee item being applied has been paid already
