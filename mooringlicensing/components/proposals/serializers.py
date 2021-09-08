@@ -711,13 +711,14 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'customer_status',
                 'processing_status',
                 'temporary_document_collection_id',
+                'keep_existing_mooring',
                 )
         read_only_fields=('id',)
 
     def validate(self, data):
         print("validate data")
         print(data)
-        # import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -768,6 +769,7 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'company_ownership_name',
                 'dot_name',
                 'temporary_document_collection_id',
+                'keep_existing_mooring',
                 )
 
 
