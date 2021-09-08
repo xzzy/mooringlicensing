@@ -350,11 +350,11 @@ export default {
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
             if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
+                payload.proposal.keep_existing_mooring = 
+                    !this.$refs.authorised_user_application.$refs.mooring_authorisation.change_mooring;
                 if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference) {
                     payload.proposal.mooring_authorisation_preference = 
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
-                    payload.proposal.keep_existing_mooring = 
-                        !this.$refs.authorised_user_application.$refs.mooring_authorisation.change_mooring;
                 }
                 if (payload.proposal.mooring_authorisation_preference === 'ria') { 
                     payload.proposal.bay_preferences_numbered = 
