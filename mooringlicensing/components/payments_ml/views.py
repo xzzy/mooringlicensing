@@ -696,9 +696,10 @@ class ApplicationFeeSuccessView(TemplateView):
 
                         # Handle stickers here..???
                         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(proposal)
+                        approval.update_approval_history_by_stickers()
 
                         # send Proposal approval email with attachment
-                        send_application_processed_email(proposal, 'approved', True, request)
+                        send_application_processed_email(proposal, 'approved', request, stickers_to_be_returned)
                         proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
                         proposal.approval.documents.all().update(can_delete=False)
 
