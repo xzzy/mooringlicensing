@@ -1355,7 +1355,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 self.approval = approval
 
+                # Update stickers
                 moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+
+                # Update stickers of the approval-history
+                self.approval.update_approval_history_by_stickers()
 
                 # send Proposal approval email with attachment
                 send_application_processed_email(self, 'approved', False, request)
@@ -1460,6 +1464,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if approval:
                     moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+                    approval.update_approval_history_by_stickers()
                     request = request if request else None
                     total_amount = total_amount if total_amount else 0
                     # Update status after manage_stickers() just in case
