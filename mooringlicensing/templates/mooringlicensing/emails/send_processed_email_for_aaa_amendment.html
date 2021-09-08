@@ -5,7 +5,7 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
 
 {% if decision == 'approved' %}
     <p>Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
-    {% if stickers_to_be_returned | length > 0 %}
+    {% if stickers_to_be_returned|length > 0 %}
         <p>Please return sticker<br />
             {% for sticker in stickers_to_be_returned %}
             {{ sticker.number }}<br />
