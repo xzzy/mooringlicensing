@@ -14,7 +14,7 @@
 {% system_name_short as system_name_short %}
 {% support_email as support_email %}
 {% is_payment_officer as is_payment_officer %}
-{% GIT_COMMIT_HASH as GIT_COMMIT_HASH %}
+{% RAND_HASH as RAND_HASH %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +24,7 @@
             {% bootstrap_css %}
                 <link type="text/css" href="{% static 'mooringlicensing/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
-	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{GIT_COMMIT_HASH}}">
+	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{RAND_HASH}}">
             {% endif %}
             {% block extra_css %}
             {% endblock %}
@@ -68,7 +68,6 @@
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
                                         {% if is_internal_login %}
-                                            <li><a href="/internal/proposals">Applications</a></li>
                                             <li><a href="/internal/approvals">Approvals</a></li>
                                             <li><a href="/internal/compliances">Compliance</a></li>
                                             <li><a href="/internal/waiting_list">Waiting List</a></li>
@@ -128,7 +127,9 @@
                                                     <li><a href="{% url 'test-emails' %}">Test Emails</a></li>
                                                 {% endif %}
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
-                                                <li><a href="/external/vessels">Manage Vessels</a></li>
+                                                {% if not is_internal_login %}
+                                                    <li><a href="/external/vessels">Manage Vessels</a></li>
+                                                {% endif %}
                                                 <!-- <li><a href="{% url 'manage-profiles' %}">Manage Profiles</a></li> -->
                                                 {% for org in request.user.mooringlicensing_organisations.all %}
                                                     {% for org_contact in org.contacts.all%}
@@ -192,12 +193,12 @@
         {% block modals %}
         {% endblock %}
         {% if not dev %}
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/manifest.js' %}?v={{GIT_COMMIT_HASH}}"></script>
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/vendor.js' %}?v={{GIT_COMMIT_HASH}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/manifest.js' %}?v={{RAND_HASH}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/vendor.js' %}?v={{RAND_HASH}}"></script>
             {% if app_build_url %}
                 <script type="text/javascript" src="{{ app_build_url }}"></script>
             {% else %}
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{GIT_COMMIT_HASH}}"></script>
+    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{RAND_HASH}}"></script>
             {% endif %}
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>

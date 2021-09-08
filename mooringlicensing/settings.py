@@ -40,6 +40,7 @@ STATIC_URL = '/static/'
 
 
 INSTALLED_APPS += [
+    'smart_selects',
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',
@@ -72,9 +73,11 @@ REST_FRAMEWORK = {
 MIDDLEWARE_CLASSES += [
     'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
+    'mooringlicensing.middleware.CacheControlMiddleware',
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
+TEMPLATES[0]['OPTIONS']['context_processors'].append('mooringlicensing.context_processors.mooringlicensing_processor')
 del BOOTSTRAP3['css_url']
 #BOOTSTRAP3 = {
 #    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
@@ -104,15 +107,22 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
 # Use git commit hash for purging cache in browser for deployment changes
-GIT_COMMIT_HASH = ''
-GIT_COMMIT_DATE = ''
+#GIT_COMMIT_HASH = ''
+#GIT_COMMIT_DATE = ''
+#if  os.path.isdir(BASE_DIR+'/.git/') is True:
+ #   GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
+  #  GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+#if len(GIT_COMMIT_HASH) == 0: 
+#    GIT_COMMIT_HASH = os.popen('cat /app/rand_hash').read()
+#    if len(GIT_COMMIT_HASH) == 0:
+#       print ("ERROR: No rand hash provided")
+RAND_HASH = ''
 if  os.path.isdir(BASE_DIR+'/.git/') is True:
-    GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
-    GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
-if len(GIT_COMMIT_HASH) == 0: 
-    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
-    if len(GIT_COMMIT_HASH) == 0:
-       print ("ERROR: No git hash provided")
+    RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+if not len(RAND_HASH):
+    RAND_HASH = os.popen('cat /app/rand_hash').read()
+if len(RAND_HASH) == 0:
+    print ("ERROR: No rand hash provided")
 
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Mooring Licensing')
@@ -127,14 +137,18 @@ DEP_FAX = env('DEP_FAX','(08) 9423 8242')
 DEP_POSTAL = env('DEP_POSTAL','Locked Bag 104, Bentley Delivery Centre, Western Australia 6983')
 DEP_NAME = env('DEP_NAME','Department of Biodiversity, Conservation and Attractions')
 DEP_NAME_SHORT = env('DEP_NAME_SHORT','DBCA')
+RIA_NAME = env('RIA_NAME', 'Rottnest Island Authority (RIA)')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'mooringlicensing')
-ADMIN_GROUP = env('ADMIN_GROUP', 'MooringLicensing Admin')
+#ADMIN_GROUP = env('ADMIN_GROUP', 'MooringLicensing Admin')
+ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '04:05')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
+CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 EMAIL_FROM = DEFAULT_FROM_EMAIL
+os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 
 BASE_URL=env('BASE_URL')
 
@@ -149,10 +163,14 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-if env('CONSOLE_EMAIL_BACKEND', False):
-   EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
+if CONSOLE_EMAIL_BACKEND:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
+PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S651')
+OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
+PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
+PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0'))
 
 MOORING_BOOKINGS_API_KEY=env('MOORING_BOOKINGS_API_KEY')
 MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
@@ -160,25 +178,41 @@ MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
 PROPOSAL_TYPE_NEW = 'new'
 PROPOSAL_TYPE_RENEWAL = 'renewal'
 PROPOSAL_TYPE_AMENDMENT = 'amendment'
-PROPOSAL_TYPES = [
+PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_NEW, 'New Application'),
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
 
-ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
-APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
+#ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
+#APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
 HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',
     'description': 'DCV Permit',
-    'oracle_code': '0517',
+    'fee_by_fee_constructor': True,
 }
 APPLICATION_TYPE_DCV_ADMISSION = {
     'code': 'dcv',
     'description': 'DCV Admission',
-    'oracle_code': '0517',
+    'fee_by_fee_constructor': True,
 }
+APPLICATION_TYPE_REPLACEMENT_STICKER = {
+    'code': 'replacement_sticker',
+    'description': 'Replacement sticker fees',
+    'fee_by_fee_constructor': False,
+}
+APPLICATION_TYPE_MOORING_SWAP = {
+    'code': 'mooring_swap',
+    'description': 'Mooring swap fees',
+    'fee_by_fee_constructor': False,
+}
+APPLICATION_TYPES = [
+    APPLICATION_TYPE_DCV_PERMIT,
+    APPLICATION_TYPE_DCV_ADMISSION,
+    APPLICATION_TYPE_REPLACEMENT_STICKER,
+    APPLICATION_TYPE_MOORING_SWAP,
+]
 LOGGING['loggers']['mooringlicensing'] = {
     'handlers': ['file'],
     'level': 'INFO'
@@ -203,3 +237,109 @@ CUSTOM_GROUPS = [
     GROUP_DCV_APPROVER_MOORING_LICENCE,
     GROUP_DCV_PERMIT_ADMIN,
 ]
+
+# For NumberOfDaysSettings
+CODE_DAYS_BEFORE_DUE_COMPLIANCE = 'ComplianceDueDate'
+CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML = 'MLVesselNominateNotification'
+CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA = 'WLAVesselNominateNotification'
+CODE_DAYS_BEFORE_PERIOD_MLA = 'MLApplicationSubmitNotification'
+CODE_DAYS_IN_PERIOD_MLA = 'MLApplicationSubmitPeriod'
+CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLADocumentsSubmitPeriod'
+CODE_DAYS_FOR_ENDORSER_AUA = 'AUAEndorseDeclinePeriod'
+CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'
+
+TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
+    {
+        'code': CODE_DAYS_BEFORE_DUE_COMPLIANCE,
+        'name': 'Compliance due date',
+        'description': 'Number of days before due date of compliance',
+        'default': 28
+    },
+    {
+        'code': CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML,
+        'name': 'Vessel nominate notification for ML',
+        'description': 'Number of days before end of six month period in which a new vessel is to be nominated for ML',
+        'default': 28
+    },
+    {
+        'code': CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA,
+        'name': 'Vessel nominate notification for WLA',
+        'description': 'Number of days before end of six month period in which a new vessel is to be nominated for WLA',
+        'default': 28
+    },
+    {
+        'code': CODE_DAYS_BEFORE_PERIOD_MLA,
+        'name': 'MLA application submit notification',
+        'description': 'Number of days before end of period in which the mooring licence application needs to be submitted',
+        'default': 14
+    },
+    {
+        'code': CODE_DAYS_IN_PERIOD_MLA,
+        'name': 'MLA application submit period',
+        'description': 'Number of days in which the mooring licence application needs to be submitted.',
+        'default': 28
+    },  ### 1
+    {
+        'code': CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA,
+        'name': 'MLA documents submit period',
+        'description': 'Number of days in which the additional documents for a mooring licence application needs to be submitted.',
+        'default': 28
+    },  ### 2
+    {
+        'code': CODE_DAYS_FOR_ENDORSER_AUA,
+        'name': 'AUA endorse/decline period',
+        'description': 'Number of days after initial submit for the endorser to endorse/decline',
+        'default': 28
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL,
+        'name': 'AAP, AUP and ML Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 28
+    },
+]
+
+# Oracle codes
+ORACLE_CODE_ID_WL = 'oracle_code_wl'
+ORACLE_CODE_ID_AA = 'oracle_code_aa'
+ORACLE_CODE_ID_AU = 'oracle_code_au'
+ORACLE_CODE_ID_ML = 'oracle_code_ml'
+ORACLE_CODE_ID_DCV_PERMIT = 'oracle_code_dcv_permit'
+ORACLE_CODE_ID_DCV_ADMISSION = 'oracle_code_dcv_admission'
+ORACLE_CODE_ID_REPLACEMENT_STICKER = 'oracle_code_replacement_sticker'
+ORACLE_CODE_ID_MOORING_SWAP = 'oracle_code_mooring_swap'
+ORACLE_CODES = [
+    {
+        'identifier': ORACLE_CODE_ID_WL,
+        'name': 'Waiting list allocation fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_AA,
+        'name': 'Annual admission fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_AU,
+        'name': 'Authorised user fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_ML,
+        'name': 'Mooring licence fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_DCV_PERMIT,
+        'name': 'DCV permit fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_DCV_ADMISSION,
+        'name': 'DCV admission fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_REPLACEMENT_STICKER,
+        'name': 'Replacement sticker fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_MOORING_SWAP,
+        'name': 'Mooring swap fees',
+    },
+]
+USE_DJANGO_JQUERY = True

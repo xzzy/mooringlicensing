@@ -5,7 +5,10 @@ from django.db.models import Min
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem, \
+    FeeItemStickerReplacement
+from mooringlicensing.components.proposals.models import AnnualAdmissionApplication, AuthorisedUserApplication, \
+    MooringLicenceApplication
 
 
 class FeePeriodFormSet(forms.models.BaseInlineFormSet):
@@ -96,6 +99,17 @@ class FeeSeasonForm(forms.ModelForm):
 
         return data
 
+    def clean_application_type(self):
+        data = self.cleaned_data['application_type']
+
+        if not self.instance.is_editable:
+            if data != self.instance.application_type:
+                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+        if not data:
+            raise forms.ValidationError('Please select an application type.')
+
+        return data
+
     # def clean(self):
     #     cleaned_data = super(FeeSeasonForm, self).clean()
     #     if cleaned_data['name']:
@@ -123,9 +137,13 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
-    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type', 'age_group', 'admission_type')
+    readonly_fields = ('fee_period', 'vessel_size_category', 'null_vessel', 'proposal_type', 'age_group', 'admission_type')
     max_num = 0  # This removes 'Add another ...' button
     form = FeeItemForm
+
+    def null_vessel(self, obj):
+        return obj.vessel_size_category.null_vessel
+    null_vessel.boolean = True
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
@@ -189,6 +207,9 @@ class FeeConstructorForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(FeeConstructorForm, self).clean()
+        if len(self.changed_data) == 1 and self.changed_data[0] == 'enabled' and cleaned_data['enabled'] is False:
+            # When change is only setting 'enabled' field to False, no validation required
+            return cleaned_data
 
         cleaned_application_type = cleaned_data.get('application_type', None)
         cleaned_fee_season = cleaned_data.get('fee_season', None)
@@ -217,20 +238,44 @@ class FeeConstructorForm(forms.ModelForm):
             # Exclude the instance itself (allow edit)
             existing_fee_constructors = existing_fee_constructors.exclude(id=self.instance.id)
         for existing_fc in existing_fee_constructors:
-            if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or \
-                    existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
+            if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
                 # Season overwrapps
                 raise forms.ValidationError('The season applied overwraps the existing season: {} ({} to {})'.format(
                     existing_fc.fee_season,
                     existing_fc.fee_season.start_date,
                     existing_fc.fee_season.end_date))
 
+        # Check if the season start and end date of the annual admission fee_constructor match those of the authorised user fee_constructor and mooring licence fee_constructor.
+        application_types_aa_au_ml = ApplicationType.objects.filter(code__in=(AnnualAdmissionApplication.code, AuthorisedUserApplication.code, MooringLicenceApplication.code))
+        if cleaned_application_type in application_types_aa_au_ml:
+            existing_fcs = FeeConstructor.objects.filter(application_type__in=application_types_aa_au_ml, enabled=True)
+            if self.instance and self.instance.id:
+                # Exclude the instance itself (allow edit)
+                existing_fcs = existing_fcs.exclude(id=self.instance.id)
+            for existing_fc in existing_fcs:
+                if existing_fc.fee_season.start_date < cleaned_fee_season.start_date < existing_fc.fee_season.end_date or existing_fc.fee_season.start_date < cleaned_fee_season.end_date < existing_fc.fee_season.end_date:
+                    # Season of the annual admission permit doesn't match the season of the authorised user permit
+                    raise forms.ValidationError('The date range of the season applied: {} ({} to {}) does not match that of the existing AAP/AUP/ML: {} ({} to {})'.format(
+                            cleaned_fee_season,
+                            cleaned_fee_season.start_date,
+                            cleaned_fee_season.end_date,
+                            existing_fc.fee_season,
+                            existing_fc.fee_season.start_date,
+                            existing_fc.fee_season.end_date))
+
         return cleaned_data
+
+
+@admin.register(FeeItemStickerReplacement)
+class FeeItemStickerReplacementAdmin(admin.ModelAdmin):
+    list_display = ['amount', 'date_of_enforcement', 'enabled', 'incur_gst']
 
 
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
+    list_display = ['name', 'application_type', 'start_date', 'end_date',]
     inlines = [FeePeriodInline,]
+    list_filter = ['application_type',]
     form = FeeSeasonForm
 
 
@@ -239,9 +284,33 @@ class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
     list_display = ('id', 'application_type', 'fee_season', 'start_date', 'end_date', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment',)
+    list_display_links = ['id', 'application_type', ]
+    list_filter = ['application_type', 'enabled']
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Sort 'fee_season' dropdown by the start_date
         if db_field.name == "fee_season":
             kwargs["queryset"] = FeeSeason.objects.annotate(s_date=Min("fee_periods__start_date")).order_by('s_date')
         return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+# @admin.register(OracleCodeApplication)
+# class OracleCodeAdmin(admin.ModelAdmin):
+#     list_display = ['name', 'get_value_today', 'get_enforcement_date',]
+#     readonly_fields = ('identifier',)
+#     inlines = [OracleCodeItemInline,]
+#
+#     def get_fields(self, request, obj=None):
+#         fields = super(OracleCodeAdmin, self).get_fields(request, obj)
+#         fields.remove('identifier')
+#         return fields
+#
+#     def get_value_today(self, obj):
+#         return obj.get_oracle_code_by_date()
+#
+#     def get_enforcement_date(self, obj):
+#         return obj.get_enforcement_date_by_date()
+#
+#     get_value_today.short_description = 'Oracle code (current)'
+#     get_enforcement_date.short_description = 'Since'
+

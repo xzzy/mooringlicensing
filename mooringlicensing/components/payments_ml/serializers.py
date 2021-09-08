@@ -3,8 +3,8 @@ import datetime
 from rest_framework import serializers
 
 from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, \
-    DcvAdmissionArrival, NumberOfPeople
-from mooringlicensing.components.payments_ml.models import FeeSeason
+    DcvAdmissionArrival, NumberOfPeople, AgeGroup, AdmissionType
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor, FeeItem, FeePeriod
 
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
@@ -59,6 +59,7 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
 
 class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
     arrival_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
+    departure_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
 
     def validate(self, data):
         field_errors = {}
@@ -67,6 +68,8 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         if not self.partial:
             if not data.get('arrival_date', None):
                 field_errors['year'] = ['Please enter an arrival date.',]
+            if not data.get('departure_date', None):
+                field_errors['year'] = ['Please enter an departure date.',]
 
             # Raise errors
             if field_errors:
@@ -84,6 +87,7 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'arrival_date',
+            'departure_date',
             'dcv_admission',
             'private_visit',
         )
@@ -115,6 +119,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
     dcv_organisation_id = serializers.IntegerField(required=True)
     fee_season_id = serializers.IntegerField(required=True)
+    # permits = serializers.SerializerMethodField()
 
     def validate(self, data):
         field_errors = {}
@@ -157,6 +162,11 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_permits(self, obj):
+        permit_urls = []
+        for doc in obj.permits.all():
+            permit_urls.append(doc._file.url)
+
     class Meta:
         model = DcvPermit
         fields = (
@@ -169,10 +179,95 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'fee_season_id',
             'start_date',
             'end_date',
+            # 'permits',
         )
         read_only_fields = (
             'id',
             'lodgement_number',
             'start_date',
             'end_date',
+            # 'permits',
         )
+
+
+class FeeSeasonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeeSeason
+        fields = (
+            'id',
+            'name'
+        )
+
+
+# class AgeGroupSerializer(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = AgeGroup
+#         fields = (
+#             'id',
+#             'code',
+#         )
+#
+#
+# class AdmissionTypeSerializer(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = AdmissionType
+#         fields = (
+#             'id',
+#             'code',
+#         )
+
+
+class FeePeriodSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = FeePeriod
+        fields = (
+            'id',
+            'start_date',
+            'name',
+        )
+
+
+# class FeeItemSerializer(serializers.ModelSerializer):
+#     age_group = serializers.CharField(source='age_group.code')
+#     admission_type = serializers.CharField(source='admission_type.code')
+#
+#     class Meta:
+#         model = FeeItem
+#         fields = (
+#             'id',
+#             'amount',
+#             'age_group',
+#             'admission_type'
+#         )
+
+
+class FeeConstructorSerializer(serializers.ModelSerializer):
+    start_date = serializers.ReadOnlyField()
+    end_date = serializers.ReadOnlyField()
+    fee_season = FeeSeasonSerializer()
+    fee_items = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FeeConstructor
+        fields = (
+            'id',
+            'start_date',
+            'end_date',
+            'fee_season',
+            'incur_gst',
+            'fee_items',
+        )
+
+    def get_fee_items(self, fee_constructor):
+        fee_configurations = {}
+
+        for age_group in AgeGroup.NAME_CHOICES:
+            fee_configurations[age_group[0]] = {}
+        for fee_item in fee_constructor.feeitem_set.all():
+            if fee_item.admission_type:
+                fee_configurations[fee_item.age_group.code].update({fee_item.admission_type.code: fee_item.amount})
+
+        return fee_configurations
