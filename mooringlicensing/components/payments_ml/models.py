@@ -92,7 +92,8 @@ class Payment(RevisionedMixin):
             invoice = invoice.first()
             return invoice.payment_status
         else:
-            raise Exception('No invoice found for the ApplicationFee: {}'.format(self))
+            return '---'
+            # raise Exception('No invoice found for the ApplicationFee: {}'.format(self))
 
         # for i in invoices:
         #     if not i.voided:
