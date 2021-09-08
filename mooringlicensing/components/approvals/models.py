@@ -968,8 +968,9 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.save()
         self.reissued=True
         self.save()
-        # Create a log entry for the proposal
+        # Create a log entry for the proposal and approval
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
+        self.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
         ## final approval
         self.current_proposal.final_approval()
 
@@ -1283,19 +1284,23 @@ class ApprovalUserAction(UserAction):
     ACTION_SURRENDER_APPROVAL = "surrender licence {}"
     ACTION_RENEW_APPROVAL = "Create renewal Application for licence {}"
     ACTION_AMEND_APPROVAL = "Create amendment Application for licence {}"
+    ACTION_REISSUE_APPROVAL = "Reissue licence {}"
 
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, approval, action, user):
+    def log_action(cls, approval, action, user=None):
         return cls.objects.create(
             approval=approval,
             who=user,
             what=str(action)
         )
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
     approval= models.ForeignKey(Approval, related_name='action_logs')
 
 
