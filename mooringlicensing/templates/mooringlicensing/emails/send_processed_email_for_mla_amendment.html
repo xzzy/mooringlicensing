@@ -6,8 +6,12 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
 {% if decision == 'approved' %}
     {% if payment_url %}
         <p>Your mooring licence application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.
-        {% if sticker_to_be_returned %}
-            <p>Please return the old sticker {{ sticker_to_be_returned.number }} to the Rottnest Island Authority.</p>
+        {% if stickers_to_be_returned|length > 0 %}
+        <p>Please return sticker<br />
+            {% for sticker in stickers_to_be_returned %}
+            {{ sticker.number }}<br />
+            {% endfor %}
+        <p>of your old vessel to the Rottnest Island Authority.</p>
         {% endif %}
         <p>The new sticker(s) for your vessel will be mailed to you once your payment has been received. Please click <a href="{{ payment_url }}">here</a> to pay the fees for your mooring licence.</p>
         {% if details %}
@@ -15,8 +19,12 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
         {% endif %}
     {% else %}
         <p>Your mooring licence application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
-        {% if sticker_to_be_returned %}
-            <p>Please return the old sticker {{ sticker_to_be_returned.number }} to the Rottnest Island Authority.</p>
+        {% if stickers_to_be_returned|length > 0 %}
+        <p>Please return sticker<br />
+            {% for sticker in stickers_to_be_returned %}
+            {{ sticker.number }}<br />
+            {% endfor %}
+        <p>of your old vessel to the Rottnest Island Authority.</p>
         {% endif %}
         <p>The new sticker(s) for your vessel will be mailed to you in the coming days.</p>
         {% if details %}

@@ -115,6 +115,7 @@ class BookingSettlementReportView(views.APIView):
        except Exception as e:
            traceback.print_exc()
 
+
 def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
     #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
@@ -124,6 +125,7 @@ def oracle_integration(date, override):
 
 class OracleJob(views.APIView):
     renderer_classes = [JSONRenderer,]
+
     def get(self, request, format=None):
         try:
             data = {
