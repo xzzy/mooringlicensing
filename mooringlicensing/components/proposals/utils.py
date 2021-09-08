@@ -5,6 +5,8 @@ from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
 
 from mooringlicensing import settings
+import json
+from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
 from mooringlicensing.components.proposals.models import (
@@ -505,6 +507,26 @@ def save_vessel_data(instance, request, vessel_data):
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
+    print(vessel_data)
+    if settings.DO_DOT_CHECK:
+        # Dot vessel rego lookup
+        dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
+        owner_str = dot_name.replace(" ", "%20")
+        payload = {
+                "boatRegistrationNumber": vessel_data.get("rego_no"),
+                "owner": owner_str,
+                "userId": str(request.user.id)
+                }
+        json_string = json.dumps(payload)
+        dot_response_str = get_dot_vessel_information(request, json_string)
+        dot_response_json = json.loads(dot_response_str)
+        dot_response = dot_response_json.get("data")
+        dot_boat_length = dot_response.get("boatLength")
+        boat_found = True if dot_response.get("boatFound") == "Y" else False
+        boat_owner_match = True if dot_response.get("boatOwnerMatch") else False
+        ml_boat_length = vessel_data.get("vessel_details", {}).get("vessel_length")
+        if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
+            raise serializers.ValidationError("Entered Vessel details do not match Department of Transport records")
 
     min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
     min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
