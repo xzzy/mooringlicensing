@@ -425,6 +425,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
     temporary_document_collection_id = models.IntegerField(blank=True, null=True)
+    # AUA amendment
+    keep_existing_mooring = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
