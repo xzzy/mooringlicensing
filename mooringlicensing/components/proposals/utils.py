@@ -5,8 +5,8 @@ from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
 
 from mooringlicensing import settings
-from mooringlicensing.components.main.models import GlobalSettings
-from mooringlicensing.components.main.process_document import save_default_document_obj
+from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
+from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
 from mooringlicensing.components.proposals.models import (
     # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
     # ProposalUserAction,
@@ -739,18 +739,21 @@ def store_vessel_ownership(request, vessel, instance=None):
     if instance:
         vessel.check_blocking_ownership(vessel_ownership, instance)
     # save temp doc if exists
-    if request.data.get('temporary_document_collection_id'):
-        handle_document(vessel_ownership, request.data)
+    #import ipdb; ipdb.set_trace()
+    if request.data.get('proposal', {}).get('temporary_document_collection_id'):
+        handle_document(instance, vessel_ownership, request.data)
+        #vessel_ownership.refresh_from_db()
     # Vessel docs
     if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
         raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 
-def handle_document(instance, request_data, *args, **kwargs):
+def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
+    #import ipdb; ipdb.set_trace()
     print("handle document")
     #temporary_document_collection_dict = request_data.get('temporary_document_collection_id')
     #temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id')
-    temporary_document_collection_id = request_data.get('temporary_document_collection_id')
+    temporary_document_collection_id = request_data.get('proposal', {}).get('temporary_document_collection_id')
     if temporary_document_collection_id:
         #temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
          #       id=temporary_document_collection_id)
@@ -759,8 +762,10 @@ def handle_document(instance, request_data, *args, **kwargs):
             temp_doc_collection = TemporaryDocumentCollection.objects.filter(id=temporary_document_collection_id)[0]
         if temp_doc_collection:
             for doc in temp_doc_collection.documents.all():
-                save_default_document_obj(instance, doc)
+                save_vessel_registration_document_obj(vessel_ownership, doc)
             temp_doc_collection.delete()
+            instance.temporary_document_collection_id = None
+            instance.save()
 
 def ownership_percentage_validation(vessel_ownership):
     individual_ownership_id = None
