@@ -149,8 +149,8 @@
                 <div v-else class="col-sm-9">
                     <FileField 
                         :readonly="readonly"
-                        ref="vessel_registration_documents"
-                        name="vessel-registration-documents"
+                        ref="vessel_registration_document"
+                        name="vessel_registration_document"
                         :isRepeatable="true"
                         :documentActionUrl="vesselRegistrationDocumentUrl"
                         :replace_button_by_text="true"
@@ -316,7 +316,15 @@ from '@/utils/hooks'
                 */
                 return displayText;
             },
+            showDotRegistrationPapers: function() {
+                let retVal = false;
+                if (this.companyOwner) {
+                    retVal = true
+                }
+                return retVal;
+            },
 
+            /*
             showDotRegistrationPapers: function() {
                 let retVal = false;
                 if (this.proposal && this.proposal.id && this.companyOwner) {
@@ -324,6 +332,7 @@ from '@/utils/hooks'
                 }
                 return retVal;
             },
+            */
             /*
             companyOwnerPercentage: function() {
                 if (this.vessel.vessel_ownership.company_ownership.percentage) {
@@ -380,17 +389,16 @@ from '@/utils/hooks'
                 return this.fee_paid ? this.proposal.fee_invoice_url : '';
             },
             vesselRegistrationDocumentUrl: function() {
-                /*
                 let url = '';
-                if (this.proposal && this.proposal.id) {
+                if (this.existingVesselOwnership) {
                     url = helpers.add_endpoint_join(
-                        api_endpoints.proposal,
-                        this.proposal.id + '/process_vessel_registration_document/'
+                        api_endpoints.vesselownership,
+                        this.vessel.vessel_ownership.id + '/process_vessel_registration_document/'
                     )
+                } else {
+                    url = 'temporary_document';
                 }
                 return url;
-                */
-                return 'temporary_document';
             },
             hullIdentificationNumberDocumentUrl: function() {
                 let url = '';
