@@ -699,7 +699,7 @@ class ApplicationFeeSuccessView(TemplateView):
                         approval.update_approval_history_by_stickers()
 
                         # send Proposal approval email with attachment
-                        send_application_processed_email(proposal, 'approved', request)
+                        send_application_processed_email(proposal, 'approved', request, stickers_to_be_returned)
                         proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
                         proposal.approval.documents.all().update(can_delete=False)
 

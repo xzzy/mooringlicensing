@@ -25,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType, GlobalSettings, NumberOfDaysType, NumberOfDaysSetting,
+    Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -1347,7 +1347,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.approval.update_approval_history_by_stickers()
 
                 # send Proposal approval email with attachment
-                send_application_processed_email(self, 'approved', request)
+                send_application_processed_email(self, 'approved', request, stickers_to_be_returned)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 

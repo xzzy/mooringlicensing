@@ -668,18 +668,18 @@ def send_approval_renewal_email_notification(approval):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
 
-def send_application_processed_email(proposal, decision, request):
+def send_application_processed_email(proposal, decision, request, stickers_to_be_returned=[]):
     # 17
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
         send_wla_processed_email(proposal, decision, request)  # require_payment should be always False for WLA because it should be paid at this stage.
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
-        send_aaa_processed_email(proposal, decision, request)  # require_payment should be always False for AAA because it should be paid at this stage.
+        send_aaa_processed_email(proposal, decision, request, stickers_to_be_returned)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
-        send_aua_processed_email(proposal, decision, request)
+        send_aua_processed_email(proposal, decision, request, stickers_to_be_returned)
     elif proposal.application_type.code == MooringLicenceApplication.code:
-        send_mla_processed_email(proposal, decision, request)
+        send_mla_processed_email(proposal, decision, request, stickers_to_be_returned)
     else:
         # Should not reach here
         html_template = 'mooringlicensing/emails/send_wla_processed.html'
@@ -795,7 +795,7 @@ def send_wla_processed_email(proposal, decision, request):
     return msg
 
 
-def send_aaa_processed_email(proposal, decision, request):
+def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returned=[]):
     # 18 new/renewal, approval/decline
     # 19 amendment, approval/decline
     all_ccs = []
@@ -829,7 +829,7 @@ def send_aaa_processed_email(proposal, decision, request):
         'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
-        'sticker_to_be_replaced': {'number': '(TODO)'},  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
     }
 
     email = TemplateEmailBase(
@@ -850,7 +850,7 @@ def send_aaa_processed_email(proposal, decision, request):
     return msg
 
 
-def send_aua_processed_email(proposal, decision, request):
+def send_aua_processed_email(proposal, decision, request, stickers_to_be_returned):
     # 20 AUA new/renewal, approval/decline
     # 21 AUA amendment(no payment), approval/decline
     # 22 AUA amendment(payment), approval/decline
@@ -902,7 +902,7 @@ def send_aua_processed_email(proposal, decision, request):
         'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
-        'sticker_to_be_replaced': {'number': '(TODO)'},  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
         'payment_url': payment_url,
     }
 
@@ -924,7 +924,7 @@ def send_aua_processed_email(proposal, decision, request):
     return msg
 
 
-def send_mla_processed_email(proposal, decision, request):
+def send_mla_processed_email(proposal, decision, request, stickers_to_be_returned):
     # 23 ML new/renewal, approval/decline
     # 24 ML amendment(no payment), approval/decline
     # 25 ML amendment(payment), approval/decline
@@ -971,7 +971,7 @@ def send_mla_processed_email(proposal, decision, request):
             'proposal_type_code': proposal.proposal_type.code,
             'decision': decision,
             'details': details,
-            'sticker_to_be_replaced': {'number': '(TODO)'},
+            'stickers_to_be_returned': stickers_to_be_returned,
             # TODO: if existing sticker needs to be replaced, assign sticker object here.
             'payment_url': payment_url,
         }
