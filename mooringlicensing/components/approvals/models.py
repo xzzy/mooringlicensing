@@ -272,6 +272,21 @@ class Approval(RevisionedMixin):
             return self.child_obj.description
         return ''
 
+    def update_approval_history_by_stickers(self):
+        """
+        This function find an approval_history record which doesn't have any stickers
+        then update it by the latest sticker data
+        """
+        approval_history_empty_sticker = self.approvalhistory_set.filter(stickers=None).order_by('id')
+        if approval_history_empty_sticker.count() == 1:
+            approval_history_empty_sticker = approval_history_empty_sticker.first()
+            stickers = self.stickers.filter(status__in=['ready', 'current', 'awaiting_printing'])
+            for sticker in stickers:
+                approval_history_empty_sticker.stickers.add(sticker)
+        elif approval_history_empty_sticker.count() > 1:
+            # Should not reach here...?
+            pass
+
     def write_approval_history(self, reason=None):
         history_count = self.approvalhistory_set.count()
         if reason:
