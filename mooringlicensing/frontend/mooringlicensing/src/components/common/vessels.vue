@@ -134,7 +134,19 @@
             </div>
             <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
-                <div class="col-sm-9">
+                <div v-if="!existingVesselOwnership" class="col-sm-9">
+                    <FileField 
+                        :readonly="readonly"
+                        ref="temp_document"
+                        name="temp_document"
+                        :isRepeatable="true"
+                        :documentActionUrl="vesselRegistrationDocumentUrl"
+                        :replace_button_by_text="true"
+                        :temporaryDocumentCollectionId="temporary_document_collection_id"
+                        @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
+                    />
+                </div>
+                <div v-else class="col-sm-9">
                     <FileField 
                         :readonly="readonly"
                         ref="vessel_registration_documents"
@@ -142,11 +154,9 @@
                         :isRepeatable="true"
                         :documentActionUrl="vesselRegistrationDocumentUrl"
                         :replace_button_by_text="true"
-                        :temporaryDocumentCollectionId="temporary_document_collection_id"
-                        :key="temporary_document_collection_id"
-                        @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
                     />
                 </div>
+
             </div>
             <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
@@ -279,6 +289,11 @@ from '@/utils/hooks'
         },
         */
         computed: {
+            existingVesselOwnership: function() {
+                if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
+                    return true;
+                }
+            },
             mooringLicenceCurrentVesselDisplayText: function() {
                 let displayText = '';
                 if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
