@@ -741,6 +741,9 @@ def store_vessel_ownership(request, vessel, instance=None):
     # save temp doc if exists
     if request.data.get('temporary_document_collection_id'):
         handle_document(vessel_ownership, request.data)
+    # Vessel docs
+    if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
+        raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 
 def handle_document(instance, request_data, *args, **kwargs):
