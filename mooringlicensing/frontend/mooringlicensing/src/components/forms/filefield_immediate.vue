@@ -115,6 +115,14 @@ export default {
             },
             deep: true
         },
+        temporaryDocumentCollectionId: function() {
+            // read in prop value
+            if (this.temporaryDocumentCollectionId) {
+                this.temporary_document_collection_id = this.temporaryDocumentCollectionId;
+                this.get_documents();
+            }
+        },
+
     },
 
     methods:{
@@ -300,11 +308,6 @@ export default {
             }
         }
         this.$nextTick(async () => {
-            // read in prop value
-            console.log(this.temporaryDocumentCollectionId);
-            if (this.temporaryDocumentCollectionId) {
-                this.temporary_document_collection_id = this.temporaryDocumentCollectionId;
-            }
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // pass
             } else {

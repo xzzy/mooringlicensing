@@ -961,10 +961,14 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_holder(self, obj):
-        submitter = ''
+        holder_str = ''
         if obj.submitter:
-            submitter = obj.submitter.get_full_name()
-        return submitter
+            holder_str = '<span>{}</br>{}</br>{}</br></span>'.format(
+                    obj.submitter.get_full_name(), 
+                    obj.submitter.mobile_number, 
+                    obj.submitter.email
+                    )
+        return holder_str
 
     def get_issue_date_str(self, obj):
         issue_date = ''
