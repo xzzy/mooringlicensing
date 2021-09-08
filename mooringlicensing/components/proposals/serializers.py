@@ -335,7 +335,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             #for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             for moa in obj.approval.mooringonapproval_set.all():
                 moorings_str += moa.mooring.name + ','
-            return moorings_str[0:-1] if mooring_str else ''
+            return moorings_str[0:-1] if moorings_str else ''
 
     def get_waiting_list_application_id(self, obj):
         wla_id = None
@@ -711,13 +711,14 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'customer_status',
                 'processing_status',
                 'temporary_document_collection_id',
+                'keep_existing_mooring',
                 )
         read_only_fields=('id',)
 
     def validate(self, data):
         print("validate data")
         print(data)
-        # import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -768,6 +769,7 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'company_ownership_name',
                 'dot_name',
                 'temporary_document_collection_id',
+                'keep_existing_mooring',
                 )
 
 
