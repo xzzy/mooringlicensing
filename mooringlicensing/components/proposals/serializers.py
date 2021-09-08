@@ -627,9 +627,9 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
-                    not self.instance.vessel_registration_documents.all()):
-                custom_errors["Vessel Registration Papers"] = "Please attach"
+            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
+             #       not self.instance.vessel_registration_documents.all()):
+              #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -652,10 +652,9 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
             # Vessel docs
-            #if not self.instance.vessel_registration_documents.all():
-            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not 
-                    self.instance.vessel_registration_documents.all()):
-                custom_errors["Vessel Registration Papers"] = "Please attach"
+            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not 
+             #       self.instance.vessel_registration_documents.all()):
+              #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -689,12 +688,9 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            #if not self.instance.vessel_registration_documents.all():
-            if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
-                    not self.instance.vessel_registration_documents.all()):
-                custom_errors["Vessel Registration Papers"] = "Please attach"
-            #if not self.instance.hull_identification_number_documents.all():
-             #   custom_errors["Hull Identification Number Documents"] = "Please attach"
+            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
+             #       not self.instance.vessel_registration_documents.all()):
+              #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -1471,33 +1467,6 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         #org_name = data.get("org_name")
         vessel = data.get("vessel")
         total = 0
-        ## 20210510 - need separate function
-        #if percentage:
-        #    # individual ownership
-        #    qs = self.instance.vessel.vesselownership_set.all()
-        #    for vo in qs:
-        #        # Same VesselOwnership record? - match vo with incoming data
-        #        if vo.owner == owner and not vo.company_ownership and vo.vessel == vessel:
-        #            # handle percentage change on VesselOwnership obj
-        #            total += percentage
-        #        else:
-        #            total += vo.percentage if vo.percentage else 0
-        #    # company ownership
-        #    qs2 = self.instance.vessel.companyownership_set.all()
-        #    for co in qs2:
-        #        # Same Ownership record? - match vo with incoming data
-        #        if (co.owner == owner and co.company_ownership == org_name or (not vo.org_name and not org_name)) and
-        #        vo.vessel == vessel):
-        #            # handle percentage change on VesselOwnership obj
-        #            total += percentage
-        #        else:
-        #            total += vo.percentage if vo.percentage else 0
-
-        #    if total > 100:
-        #        custom_errors["Vessel ownership percentage"] = "Cannot exceed 100%"
-
-        #if not data.get("percentage"):
-         #   custom_errors["Ownership Percentage"] = "You must specify the ownership percentage"
         if data.get("percentage") and data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         # Vessel docs
