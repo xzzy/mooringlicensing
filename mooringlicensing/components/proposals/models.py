@@ -425,6 +425,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
     temporary_document_collection_id = models.IntegerField(blank=True, null=True)
+    # AUA amendment
+    keep_existing_mooring = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1011,36 +1013,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
+        from mooringlicensing.components.approvals.models import ApprovalUserAction
         with transaction.atomic():
             if not self.processing_status=='approved' :
                 raise ValidationError('You cannot change the current status at this time')
-            #elif self.application_type.name == 'Site Transfer' and self.__approver_group() in request.user.apiaryapprovergroup_set.all():
-            #    # track changes to apiary sites and proposal requirements in save() methods instead
-            #    self.processing_status = status
-            #    #self.self_clone = copy.deepcopy(self)
-            #    #self.self_clone.id = None
-            #    #self.self_clone.save()
-            #    self.save()
-            #    #self.proposal_apiary.self_clone = copy.deepcopy(self.proposal_apiary)
-            #    #self.proposal_apiary.self_clone.id = None
-            #    #self.proposal_apiary.self_clone.save()
-            #    self.proposal_apiary.reissue_originating_approval = False
-            #    self.proposal_apiary.reissue_target_approval = False
-            #    self.proposal_apiary.save()
-            #    self.proposal_apiary.originating_approval.reissued = True
-            #    self.proposal_apiary.originating_approval.save()
-            #    self.proposal_apiary.target_approval.reissued = True
-            #    self.proposal_apiary.target_approval.save()
             elif self.approval and self.approval.can_reissue and self.is_approver(request.user):
-                ## security ???
-                #elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
                 self.processing_status = status
                 self.proposed_issuance_approval = {}
                 self.save()
                 self.approval.reissued=True
                 self.approval.save()
-                # Create a log entry for the proposal
+                # Create a log entry for the proposal and approval
                 self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
+                self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
                 #else:
                     #raise ValidationError('Cannot reissue Approval')
             else:
