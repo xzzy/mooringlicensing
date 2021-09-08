@@ -1091,7 +1091,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
                 # send_proposal_decline_email_notification(self,request, proposal_decline)
-                send_application_processed_email(self, 'declined', False, request)
+                send_application_processed_email(self, 'declined', request)
             except:
                 raise
 
@@ -1347,7 +1347,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.approval.update_approval_history_by_stickers()
 
                 # send Proposal approval email with attachment
-                send_application_processed_email(self, 'approved', False, request)
+                send_application_processed_email(self, 'approved', request)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
@@ -1481,7 +1481,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
         # ret_value = send_emails_for_payment_required(request, self, attachments)
-        ret_value = send_application_processed_email(self, 'approved', True, request)
+        ret_value = send_application_processed_email(self, 'approved', request)
         return ret_value
 
     def final_approval(self, request=None, details=None):

@@ -668,18 +668,18 @@ def send_approval_renewal_email_notification(approval):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
 
-def send_application_processed_email(proposal, decision, require_payment, request):
+def send_application_processed_email(proposal, decision, request):
     # 17
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
-        send_wla_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for WLA because it should be paid at this stage.
+        send_wla_processed_email(proposal, decision, request)  # require_payment should be always False for WLA because it should be paid at this stage.
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
-        send_aaa_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA because it should be paid at this stage.
+        send_aaa_processed_email(proposal, decision, request)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
-        send_aua_processed_email(proposal, decision, require_payment, request)
+        send_aua_processed_email(proposal, decision, request)
     elif proposal.application_type.code == MooringLicenceApplication.code:
-        send_mla_processed_email(proposal, decision, require_payment, request)
+        send_mla_processed_email(proposal, decision, request)
     else:
         # Should not reach here
         html_template = 'mooringlicensing/emails/send_wla_processed.html'
@@ -746,7 +746,7 @@ def send_application_processed_email(proposal, decision, require_payment, reques
             _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
 
-def send_wla_processed_email(proposal, decision, require_payment, request):
+def send_wla_processed_email(proposal, decision, request):
     # 17
     all_ccs = []
     all_bccs = []
@@ -795,7 +795,7 @@ def send_wla_processed_email(proposal, decision, require_payment, request):
     return msg
 
 
-def send_aaa_processed_email(proposal, decision, require_payment, request):
+def send_aaa_processed_email(proposal, decision, request):
     # 18 new/renewal, approval/decline
     # 19 amendment, approval/decline
     all_ccs = []
@@ -850,7 +850,7 @@ def send_aaa_processed_email(proposal, decision, require_payment, request):
     return msg
 
 
-def send_aua_processed_email(proposal, decision, require_payment, request):
+def send_aua_processed_email(proposal, decision, request):
     # 20 AUA new/renewal, approval/decline
     # 21 AUA amendment(no payment), approval/decline
     # 22 AUA amendment(payment), approval/decline
@@ -879,10 +879,10 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
         html_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.html'
         txt_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.txt'
 
-        if require_payment:
-            pass  # TODO: or generating payment_url below should be enough?
-        else:
-            pass  # TODO: or generating payment_url below should be enough?
+        # if require_payment:
+        #     pass  # TODO: or generating payment_url below should be enough?
+        # else:
+        #     pass  # TODO: or generating payment_url below should be enough?
 
     # Generate payment_url if needed
     payment_url = ''
@@ -924,7 +924,7 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
     return msg
 
 
-def send_mla_processed_email(proposal, decision, require_payment, request):
+def send_mla_processed_email(proposal, decision, request):
     # 23 ML new/renewal, approval/decline
     # 24 ML amendment(no payment), approval/decline
     # 25 ML amendment(payment), approval/decline
