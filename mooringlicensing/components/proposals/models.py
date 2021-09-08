@@ -25,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType, GlobalSettings, NumberOfDaysType, NumberOfDaysSetting,
+    Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting,
     # Region, District, Tenure,
     # ApplicationType,
     # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
@@ -1091,7 +1091,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
                 # send_proposal_decline_email_notification(self,request, proposal_decline)
-                send_application_processed_email(self, 'declined', False, request)
+                send_application_processed_email(self, 'declined', request)
             except:
                 raise
 
@@ -1340,10 +1340,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 self.approval = approval
 
+                # Update stickers
                 moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
 
+                # Update stickers of the approval-history
+                self.approval.update_approval_history_by_stickers()
+
                 # send Proposal approval email with attachment
-                send_application_processed_email(self, 'approved', False, request)
+                send_application_processed_email(self, 'approved', request, stickers_to_be_returned)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
@@ -1445,6 +1449,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if approval:
                     moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+                    approval.update_approval_history_by_stickers()
                     request = request if request else None
                     total_amount = total_amount if total_amount else 0
                     # Update status after manage_stickers() just in case
@@ -1476,7 +1481,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
             attachments.append(attachment)
         # ret_value = send_emails_for_payment_required(request, self, attachments)
-        ret_value = send_application_processed_email(self, 'approved', True, request)
+        ret_value = send_application_processed_email(self, 'approved', request)
         return ret_value
 
     def final_approval(self, request=None, details=None):
@@ -2247,13 +2252,22 @@ class AuthorisedUserApplication(Proposal):
         # TODO: Send payment success email to the submitter (applicant)
         return True
 
+    def get_mooring_authorisation_preference(self):
+        if self.keep_existing_mooring:
+            return self.previous_application.child_obj.get_mooring_authorisation_preference()
+        else:
+            return self.mooring_authorisation_preference
+
     def process_after_submit(self, request):
         #self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
-        if self.mooring_authorisation_preference.lower() != 'ria':
+        mooring_preference = self.get_mooring_authorisation_preference()
+
+        if mooring_preference.lower() != 'ria':
+        # if self.mooring_authorisation_preference.lower() != 'ria':
             # When this application is AUA, and the mooring authorisation preference is not RIA
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
