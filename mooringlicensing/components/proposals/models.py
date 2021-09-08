@@ -2252,13 +2252,22 @@ class AuthorisedUserApplication(Proposal):
         # TODO: Send payment success email to the submitter (applicant)
         return True
 
+    def get_mooring_authorisation_preference(self):
+        if self.keep_existing_mooring:
+            return self.previous_application.child_obj.get_mooring_authorisation_preference()
+        else:
+            return self.mooring_authorisation_preference
+
     def process_after_submit(self, request):
         #self.refresh_from_db()  # required to update self.mooring_authorisation_preference, but not very sure why
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
-        if self.mooring_authorisation_preference.lower() != 'ria':
+        mooring_preference = self.get_mooring_authorisation_preference()
+
+        if mooring_preference.lower() != 'ria':
+        # if self.mooring_authorisation_preference.lower() != 'ria':
             # When this application is AUA, and the mooring authorisation preference is not RIA
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
