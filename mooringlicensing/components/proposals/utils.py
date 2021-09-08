@@ -1068,6 +1068,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                             logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
         if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+            # When proposal.approval exists, this proposal is either amendment or renewal
+
             # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
             fee_items_already_paid = proposal.approval.get_fee_items()
             if fee_item_being_applied in fee_items_already_paid:
