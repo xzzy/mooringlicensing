@@ -6,7 +6,7 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
 {% if decision == 'approved' %}
     {% if payment_url %}
         <p>Your mooring licence application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.
-        {% if stickers_to_be_returned | length > 0 %}
+        {% if stickers_to_be_returned|length > 0 %}
         <p>Please return sticker<br />
             {% for sticker in stickers_to_be_returned %}
             {{ sticker.number }}<br />
@@ -19,7 +19,7 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
         {% endif %}
     {% else %}
         <p>Your mooring licence application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
-        {% if stickers_to_be_returned | length > 0 %}
+        {% if stickers_to_be_returned|length > 0 %}
         <p>Please return sticker<br />
             {% for sticker in stickers_to_be_returned %}
             {{ sticker.number }}<br />
