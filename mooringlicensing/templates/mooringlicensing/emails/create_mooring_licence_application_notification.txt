@@ -1,0 +1,17 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{%  block content_body %}
+Dear {{ recipient.first_name }} {{ recipient.last_name }},
+You are invited to apply for a mooring licence based on your current Waiting List Allocation {{ approval.lodgement_number }}.
+
+You are required to submit your application within {{ application_period }} number of days and submit any additional documents within {{ documents_period }} number of days thereafter.
+
+{% if message_details %}
+Details:
+{{ message_details }}
+{% endif %}
+
+Please access {{ url }} to access the application.
+
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{%  endblock %}

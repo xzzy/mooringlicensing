@@ -1,0 +1,10 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+    Dear {{ recipient.first_name }} {{ recipient.last_name }},
+
+    Your {{ approval.description }} {{ approval.lodgement_number }} is due for renewal by {{ expiry_date }}.
+    Please access {{ url }} to log in to the online licensing system to submit your renewal application.
+
+    {% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}

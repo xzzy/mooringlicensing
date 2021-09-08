@@ -1,33 +1,22 @@
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
-from django.core.urlresolvers import reverse
+import logging
+from confy import env
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from django.template.response import TemplateResponse
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
-from django.views.generic.base import View, TemplateView
+from django.shortcuts import render, redirect
+from django.views.generic import DetailView
+from django.views.generic.base import TemplateView
 from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.views.decorators.csrf import csrf_protect
-from django.core.exceptions import ValidationError
-from django.db import transaction
-
-from datetime import datetime, timedelta
-
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.forms import *
-from mooringlicensing.components.proposals.models import (#Referral, 
+from mooringlicensing.components.proposals.models import (
         Proposal, 
         HelpPage
         )
 from mooringlicensing.components.compliances.models import Compliance
-
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from django.core.management import call_command
-import json
-from decimal import Decimal
 from mooringlicensing.components.main.utils import add_cache_control
 
-import logging
+
 logger = logging.getLogger('payment_checkout')
 
 
@@ -91,6 +80,7 @@ class InternalComplianceView(DetailView):
     model = Compliance
     template_name = 'mooringlicensing/dash/index.html'
 
+
 class MooringLicensingRoutingView(TemplateView):
     template_name = 'mooringlicensing/index.html'
 
@@ -102,11 +92,22 @@ class MooringLicensingRoutingView(TemplateView):
         kwargs['form'] = LoginForm
         return super(MooringLicensingRoutingView, self).get(*args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super(MooringLicensingRoutingView, self).get_context_data(**kwargs)
+        daily_admission_page_url = env('DAILY_ADMISSION_PAGE_URL', '')
+        context.update({
+            'daily_admission_page_url': daily_admission_page_url
+        })
+        return context
+
+
 class MooringLicensingContactView(TemplateView):
     template_name = 'mooringlicensing/contact.html'
 
+
 class MooringLicensingFurtherInformationView(TemplateView):
     template_name = 'mooringlicensing/further_info.html'
+
 
 class InternalProposalView(DetailView):
     #template_name = 'mooringlicensing/index.html'
@@ -175,12 +176,24 @@ class HelpView(LoginRequiredMixin, TemplateView):
 class ManagementCommandsView(LoginRequiredMixin, TemplateView):
     template_name = 'mooringlicensing/mgt-commands.html'
 
+    def get(self, request, *args, **kwargs):
+        debug = request.GET.get('debug', 'f')
+        if debug.lower() in ['true', 't', 'yes', 'y']:
+            debug = True
+        else:
+            debug = False
+
+        context = self.get_context_data(**kwargs)
+        context.update({'debug': debug})
+        return self.render_to_response(context)
+
     def post(self, request):
         data = {}
         command_script = request.POST.get('script', None)
+
         if command_script:
-            print ('running {}'.format(command_script))
-            call_command(command_script)
+            print('running {}'.format(command_script))
+            call_command(command_script, params=request.POST)
             data.update({command_script: 'true'})
 
         return render(request, self.template_name, data)
