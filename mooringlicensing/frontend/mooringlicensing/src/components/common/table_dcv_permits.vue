@@ -4,9 +4,18 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Organisation</label>
-                    <select class="form-control" v-model="filterOrganisation">
+                    <select class="form-control" v-model="filterDcvOrganisation">
                         <option value="All">All</option>
                         <option v-for="org in dcv_organisations" :value="org.id">{{ org.name }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Season</label>
+                    <select class="form-control" v-model="filterFeeSeason">
+                        <option value="All">All</option>
+                        <option v-for="fee_season in fee_seasons" :value="fee_season.id">{{ fee_season.name }}</option>
                     </select>
                 </div>
             </div>
@@ -54,19 +63,25 @@ export default {
             datatable_id: 'applications-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterOrganisation: null,
+            filterDcvOrganisation: null,
+            filterFeeSeason: null,
 
             // filtering options
             dcv_organisations: [],
+            fee_seasons: [],
         }
     },
     components:{
         datatable
     },
     watch: {
-        filterOrganisation: function() {
+        filterDcvOrganisation: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            vm.$refs.application_datatable.vmDataTable.draw();
+        },
+        filterFeeSeason: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();
         },
     },
     computed: {
@@ -246,7 +261,8 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_organisation_id = vm.filterOrganisation
+                        d.filter_dcv_organisation_id = vm.filterDcvOrganisation
+                        d.filter_fee_season_id = vm.filterFeeSeason
                     }
                 },
                 dom: 'lBfrtip',
@@ -309,8 +325,16 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
+            // DcvOrganisation list
             vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
                 vm.dcv_organisations = response.body.results
+            },(error) => {
+                console.log(error);
+            })
+            // FeeSeason list
+            //vm.$http.get(api_endpoints.fee_seasons_dict + '?application_type_codes=dcvp').then((response) => {
+            vm.$http.get(api_endpoints.fee_seasons_dict + '?application_type_codes=dcvp').then((response) => {
+                vm.fee_seasons = response.body
             },(error) => {
                 console.log(error);
             })
