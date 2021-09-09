@@ -515,7 +515,7 @@ def dot_check_wrapper(request, payload, vessel_lookup_errors):
     logger.info("dot_response_json")
     logger.info(dot_response_json)
     logger.info(dot_response_json.get("status"))
-    if not dot_response_json.get("status") == 200:
+    if dot_response_json.get("status") and not dot_response_json.get("status") == 200:
         raise serializers.ValidationError("DoT Service Unavailable")
     dot_response = dot_response_json.get("data")
     dot_boat_length = dot_response.get("boatLength")
