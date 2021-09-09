@@ -71,7 +71,20 @@ class GetFeeSeasonsDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.all()]
+        from mooringlicensing.components.main.models import ApplicationType
+
+        application_type_codes = request.GET.get('application_type_codes', '')
+
+        if application_type_codes:
+            application_type_codes = application_type_codes.split(',')
+            application_types = []
+            for app_code in application_type_codes:
+                application_type = ApplicationType.objects.filter(code=app_code)
+                if application_type:
+                    application_types.append(application_type.first())
+            data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.filter(application_type__in=application_types)]
+        else:
+            data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.all()]
         return Response(data)
 
 
@@ -894,10 +907,14 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
-        # status filter
-        filter_organisation_id = request.GET.get('filter_organisation_id')
+        # filter by dcv_organisation
+        filter_organisation_id = request.GET.get('filter_dcv_organisation_id')
         if filter_organisation_id and not filter_organisation_id.lower() == 'all':
             queryset = queryset.filter(dcv_organisation__id=filter_organisation_id)
+        # filter by season
+        filter_fee_season_id = request.GET.get('filter_fee_season_id')
+        if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
+            queryset = queryset.filter(fee_season__id=filter_fee_season_id)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
