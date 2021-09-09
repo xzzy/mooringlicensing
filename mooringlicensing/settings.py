@@ -342,6 +342,7 @@ ORACLE_CODES = [
         'name': 'Mooring swap fees',
     },
 ]
+# For django-smart-select
 USE_DJANGO_JQUERY = True
 ## DoT vessel rego lookup
 DOT_URL=env('DOT_URL',None)
