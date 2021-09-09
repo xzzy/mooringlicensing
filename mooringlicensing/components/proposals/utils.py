@@ -524,7 +524,7 @@ def submit_vessel_data(instance, request, vessel_data):
         vessel_lookup_errors = {}
         # Mooring Licence vessel history
         if type(instance.child_obj) == MooringLicenceApplication and instance.approval:
-            for vo in approval.vessel_ownership_list:
+            for vo in approval.child_obj.vessel_ownership_list:
                 dot_name = vo.dot_name
                 owner_str = dot_name.replace(" ", "%20")
                 payload = {
