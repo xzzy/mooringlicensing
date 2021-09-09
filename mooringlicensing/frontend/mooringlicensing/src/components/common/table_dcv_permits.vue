@@ -3,10 +3,10 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Type</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <label for="">Organisation</label>
+                    <select class="form-control" v-model="filterOrganisation">
                         <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
+                        <option v-for="org in dcv_organisations" :value="org.id">{{ org.name }}</option>
                     </select>
                 </div>
             </div>
@@ -54,37 +54,20 @@ export default {
             datatable_id: 'applications-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterApplicationType: null,
-            filterApplicationStatus: null,
-            filterApplicant: null,
+            filterOrganisation: null,
 
             // filtering options
-            application_types: [],
-            application_statuses: [],
-            applicants: [],
+            dcv_organisations: [],
         }
     },
     components:{
         datatable
     },
     watch: {
-        filterApplicationStatus: function() {
-            let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationStatus != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
-            //}
-        },
-        filterApplicationType: function() {
+        filterOrganisation: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
-        filterApplicant: function(){
-            let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        }
     },
     computed: {
         is_external: function() {
@@ -263,11 +246,7 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        /*
-                        d.filter_application_type = vm.filterApplicationType
-                        d.filter_application_status = vm.filterApplicationStatus
-                        d.filter_applicant = vm.filterApplicant
-                        */
+                        d.filter_organisation_id = vm.filterOrganisation
                     }
                 },
                 dom: 'lBfrtip',
@@ -330,29 +309,11 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
-            // Application Types
-            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
-                vm.application_types = response.body
+            vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
+                vm.dcv_organisations = response.body.results
             },(error) => {
                 console.log(error);
             })
-
-            // Application Statuses
-            vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                vm.application_statuses = response.body
-            },(error) => {
-                console.log(error);
-            })
-
-            // Applicant
-            if (vm.is_internal){
-                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    console.log(response.body)
-                    vm.applicants = response.body
-                },(error) => {
-                    console.log(error);
-                })
-            }
         },
         addEventListeners: function(){
             let vm = this
@@ -364,7 +325,6 @@ export default {
         },
     },
     created: function(){
-        console.log('table_applications created')
         this.fetchFilterLists()
     },
     mounted: function(){

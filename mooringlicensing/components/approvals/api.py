@@ -894,9 +894,10 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
-        #filter_compliance_status = request.GET.get('filter_compliance_status')
-        #if filter_compliance_status and not filter_compliance_status.lower() == 'all':
-         #   queryset = queryset.filter(customer_status=filter_compliance_status)
+        # status filter
+        filter_organisation_id = request.GET.get('filter_organisation_id')
+        if filter_organisation_id and not filter_organisation_id.lower() == 'all':
+            queryset = queryset.filter(dcv_organisation__id=filter_organisation_id)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
