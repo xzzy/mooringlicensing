@@ -344,3 +344,8 @@ ORACLE_CODES = [
 ]
 # For django-smart-select
 USE_DJANGO_JQUERY = True
+## DoT vessel rego lookup
+DOT_URL=env('DOT_URL',None)
+DOT_USERNAME=env('DOT_USERNAME',None)
+DOT_PASSWORD=env('DOT_PASSWORD',None)
+DO_DOT_CHECK=env('DO_DOT_CHECK', False)

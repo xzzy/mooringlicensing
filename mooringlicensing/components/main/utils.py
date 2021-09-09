@@ -3,6 +3,7 @@ from ledger.settings_base import TIME_ZONE
 from django.utils import timezone
 
 import requests
+from requests.auth import HTTPBasicAuth
 import json
 import pytz
 from django.conf import settings
@@ -424,4 +425,20 @@ def email_stickers_document():
 
     return updates, errors
 
+## DoT vessel rego check
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def get_dot_vessel_information(request,json_string):
+    DOT_URL=settings.DOT_URL
+    paramGET=json_string.replace("\n", "")
+    client_ip = get_client_ip(request)
+    auth=auth=HTTPBasicAuth(settings.DOT_USERNAME,settings.DOT_PASSWORD)
+    r = requests.get(DOT_URL+"?paramGET="+paramGET+"&client_ip="+client_ip, auth=auth)
+    return r.text
 
