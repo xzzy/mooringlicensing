@@ -1387,7 +1387,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # errors.append(err_msg)
 
                 if self.approval and self.approval.reissued:
-                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 #                    self.process_after_approval()
                 elif request:
                     application_fee = ApplicationFee.objects.create(
