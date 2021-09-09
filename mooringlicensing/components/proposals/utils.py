@@ -499,10 +499,14 @@ def save_vessel_data(instance, request, vessel_data):
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
     # overwrite vessel_data.id with correct value
-    serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
-    serializer.is_valid(raise_exception=True)
-    print(serializer.validated_data)
-    serializer.save()
+    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'):
+        # do not write vessel_data to proposal
+        pass
+    else:
+        serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
+        serializer.is_valid(raise_exception=True)
+        print(serializer.validated_data)
+        serializer.save()
 
 def dot_check_wrapper(request, payload, vessel_lookup_errors):
     json_string = json.dumps(payload)
@@ -524,7 +528,7 @@ def submit_vessel_data(instance, request, vessel_data):
         vessel_lookup_errors = {}
         # Mooring Licence vessel history
         if type(instance.child_obj) == MooringLicenceApplication and instance.approval:
-            for vo in approval.child_obj.vessel_ownership_list:
+            for vo in instance.approval.child_obj.vessel_ownership_list:
                 dot_name = vo.dot_name
                 owner_str = dot_name.replace(" ", "%20")
                 payload = {
@@ -535,14 +539,15 @@ def submit_vessel_data(instance, request, vessel_data):
                 dot_check_wrapper(request, payload, vessel_lookup_errors)
 
         # current proposal vessel check
-        dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
-        owner_str = dot_name.replace(" ", "%20")
-        payload = {
-                "boatRegistrationNumber": vessel_data.get("rego_no"),
-                "owner": owner_str,
-                "userId": str(request.user.id)
-                }
-        dot_check_wrapper(request, payload, vessel_lookup_errors)
+        if vessel_data.get("rego_no"):
+            dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
+            owner_str = dot_name.replace(" ", "%20")
+            payload = {
+                    "boatRegistrationNumber": vessel_data.get("rego_no"),
+                    "owner": owner_str,
+                    "userId": str(request.user.id)
+                    }
+            dot_check_wrapper(request, payload, vessel_lookup_errors)
 
         if vessel_lookup_errors:
             raise serializers.ValidationError(vessel_lookup_errors)
