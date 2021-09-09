@@ -1091,21 +1091,27 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
 
         # Retrieve all the fee items paid for this vessel (through proposal.vessel_ownership)
         fee_items_already_paid = proposal.vessel_ownership.get_fee_items_paid()
+        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
+            for item in proposal.approval.get_fee_items():
+                if item not in fee_items_already_paid:
+                    fee_items_already_paid.append(item)
+
         if fee_item_being_applied in fee_items_already_paid:
             # Fee item being applied has been paid already
             # We don't charge this fee_item_being_applied
             return Decimal('0.0')
         else:
             for fee_item in fee_items_already_paid:
-                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and fee_item.proposal_type == fee_item_being_applied.proposal_type:
-                    # Found fee_item which has
-                    #   same: fee_season, proposal_type, application_type
-                    #   different: fee_period, vessel_size_category  (might be the same)
+                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and \
+                        fee_item.fee_constructor.application_type == fee_item_being_applied.fee_constructor.application_type:
+                    # Found fee_item which has the same fee_season and the same application_type of fee_item_being_applied
+                    # This fee_item's fee_period and vessel_size_category might be different from those of the fee_item_being_applied
 
                     if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
-                        # Find the fee_item which can be considered as already paid for this period, this proposal type
+                        # Find the fee_item which can be considered as already paid for this period
                         target_fee_period = fee_item_being_applied.fee_period
-                        target_proposal_type = fee_item.proposal_type
+                        target_proposal_type = fee_item_being_applied.proposal_type
                         target_vessel_size_category = fee_item.vessel_size_category
 
                         target_fee_constructor = fee_item_being_applied.fee_constructor
@@ -1123,42 +1129,42 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                             fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
                             logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
-        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
-            # When proposal.approval exists, this proposal is either amendment or renewal
-
-            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
-            fee_items_already_paid = proposal.approval.get_fee_items()
-            if fee_item_being_applied in fee_items_already_paid:
-                # Fee item being applied has been paid already
-                # We don't charge this fee_item_being_applied
-                return Decimal('0.0')
-            else:
-                for fee_item in fee_items_already_paid:
-                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:  # and fee_item.proposal_type == fee_item_being_applied.proposal_type:
-                        # Found fee_item which has
-                        #   same: fee_season, application_type
-                        #   different: fee_period, vessel_size_category  (might be the same)
-
-                        if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
-                            # Find the fee_item which can be considered as already paid for this period, this proposal type, but the previous vessel size category
-                            target_fee_period = fee_item_being_applied.fee_period
-                            target_proposal_type = fee_item_being_applied.proposal_type
-                            target_vessel_size_category = fee_item.vessel_size_category  # <== Vessel size category should be the one of the fee item found.
-
-                            target_fee_constructor = fee_item_being_applied.fee_constructor
-                            fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
-                                target_vessel_size_category,
-                                target_fee_period,
-                                proposal_type=target_proposal_type,
-                                age_group=None,
-                                admission_type=None
-                            )
-
-                            # Applicant already partially paid for this fee item.  Deduct it.
-                            # fee_amount_adjusted -= fee_item_considered_paid.amount
-                            if fee_item_considered_paid:
-                                fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-                                logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+#        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+#            # When proposal.approval exists, this proposal is either amendment or renewal
+#
+#            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
+#            fee_items_already_paid = proposal.approval.get_fee_items()
+#            if fee_item_being_applied in fee_items_already_paid:
+#                # Fee item being applied has been paid already
+#                # We don't charge this fee_item_being_applied
+#                return Decimal('0.0')
+#            else:
+#                for fee_item in fee_items_already_paid:
+#                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:  # and fee_item.proposal_type == fee_item_being_applied.proposal_type:
+#                        # Found fee_item which has
+#                        #   same: fee_season, application_type
+#                        #   different: fee_period, vessel_size_category  (might be the same)
+#
+#                        if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
+#                            # Find the fee_item which can be considered as already paid for this period, this proposal type, but the previous vessel size category
+#                            target_fee_period = fee_item_being_applied.fee_period
+#                            target_proposal_type = fee_item_being_applied.proposal_type
+#                            target_vessel_size_category = fee_item.vessel_size_category  # <== Vessel size category should be the one of the fee item found.
+#
+#                            target_fee_constructor = fee_item_being_applied.fee_constructor
+#                            fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+#                                target_vessel_size_category,
+#                                target_fee_period,
+#                                proposal_type=target_proposal_type,
+#                                age_group=None,
+#                                admission_type=None
+#                            )
+#
+#                            # Applicant already partially paid for this fee item.  Deduct it.
+#                            # fee_amount_adjusted -= fee_item_considered_paid.amount
+#                            if fee_item_considered_paid:
+#                                fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+#                                logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
         fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
     else:
