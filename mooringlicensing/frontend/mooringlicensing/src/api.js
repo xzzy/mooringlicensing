@@ -25,6 +25,7 @@ module.exports = {
     mooring_bays_lookup:"/api/mooringbays/lookup.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
     daily_admission_url: "/api/daily_admission_url",
+    dcv_organisations: "/api/dcv_organisations",
 
     profile: '/api/profile',
     submitter_profile: '/api/submitter_profile',
