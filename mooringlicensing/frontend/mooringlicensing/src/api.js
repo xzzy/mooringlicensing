@@ -17,6 +17,7 @@ module.exports = {
     fee_configurations: "/api/fee_configurations",
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",
+    payment_system_id: "/api/payment_system_id",
     fee_seasons_dict:"/api/fee_seasons_dict",
     compliance_statuses_dict:"/api/compliance_statuses_dict",
     mooring_statuses_dict:"/api/mooring_statuses_dict",
