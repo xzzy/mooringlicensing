@@ -262,3 +262,19 @@ def save_default_document_obj(instance, temp_document):
     document._file = path
     document.save()
 
+def save_vessel_registration_document_obj(instance, temp_document):
+    document = instance.vessel_registration_documents.get_or_create(
+            input_name="vessel_registration_document",
+            name=temp_document.name)[0]
+    path = default_storage.save(
+        '{}/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name,
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
