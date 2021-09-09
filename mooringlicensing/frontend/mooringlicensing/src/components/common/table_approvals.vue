@@ -583,7 +583,11 @@ export default {
                             let ret_str = ''
                             for (let sticker of full.stickers){
                                 console.log(sticker.mailing_date)
-                                ret_str += moment(sticker.mailing_date).format('DD/MM/YYYY') + '<br />'
+                                if (sticker.mailing_date){
+                                    ret_str += moment(sticker.mailing_date).format('DD/MM/YYYY') + '<br />'
+                                } else {
+                                    ret_str += ''
+                                }
                             }
                             return ret_str
                         }
