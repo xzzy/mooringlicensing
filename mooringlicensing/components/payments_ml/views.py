@@ -649,7 +649,7 @@ class ApplicationFeeSuccessView(TemplateView):
                 update_payments(invoice_ref)
 
                 if proposal and invoice.payment_status in ('paid', 'over_paid',):
-                    proposal.process_after_payment_success(request)
+                    proposal.child_obj.process_after_payment_success(request)
                     self.adjust_db_operations(db_operations)
 
                     if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):

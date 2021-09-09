@@ -1400,7 +1400,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         application_fee.fee_items.add(fee_item_additional)
 
                     self.send_emails_for_payment_required(request, invoice)
-                    self.process_after_approval(request, total_amount)
+                    self.child_obj.process_after_approval(request, total_amount)
 
                 if approval:
                     moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
@@ -1671,15 +1671,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.refresh_from_db()
         return approval, created
 
-    def process_after_payment_success(self, request):
-        if hasattr(self.child_obj, 'process_after_payment_success'):
-            self.child_obj.process_after_payment_success(request)
-            self.refresh_from_db()  # Somehow this is needed...
-
-    def process_after_approval(self, request=None, total_amount=None):
-        if hasattr(self.child_obj, 'process_after_approval'):
-            self.child_obj.process_after_approval(request, total_amount)
-            self.refresh_from_db()  # Somehow this is needed...
+    # def process_after_approval(self, request=None, total_amount=None):
+    #     if hasattr(self.child_obj, 'processes_after_approval'):
+    #         self.child_obj.processes_after_approval(request, total_amount)
+    #         self.refresh_from_db()  # Somehow this is needed...
 
     def get_fee_amount_adjusted(self, fee_item, vessel_length):
         return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
@@ -2030,6 +2025,9 @@ class WaitingListApplication(Proposal):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
         return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
+    def process_after_approval(self, request=None, total_amount=0):
+        pass
+
     def does_have_valid_associations(self):
         """
         Check if this application has valid associations with other applications and approvals
@@ -2201,6 +2199,9 @@ class AnnualAdmissionApplication(Proposal):
         print('Awaiting Payment: ' + str(awaiting_payment))
         print('Sticker Printing: ' + str(awaiting_printing))
 
+    def process_after_approval(self, request=None, total_amount=0):
+        pass
+
     #@property
     #def does_accept_null_vessel(self):
      #   return False
@@ -2235,6 +2236,9 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def process_after_payment_success(self, request):
+        pass
 
     def update_status(self):
         # this works only when called after approved/success-payment
@@ -2432,6 +2436,9 @@ class AuthorisedUserApplication(Proposal):
 
         return approval, created
 
+    def process_after_approval(self, request=None, total_amount=0):
+        pass
+
     @property
     def does_accept_null_vessel(self):
         return False
@@ -2464,6 +2471,9 @@ class MooringLicenceApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def process_after_payment_success(self, request):
+        pass
 
     def get_document_upload_url(self, request):
         document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': self.uuid}))
@@ -3102,7 +3112,10 @@ class VesselOwnership(models.Model):
         fee_items = []
         from mooringlicensing.components.approvals.models import Approval
         for proposal in self.proposal_set.filter(approval__isnull=False, approval__status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,)):
-            fee_items += proposal.get_fee_items_paid()
+            for item in proposal.get_fee_items_paid():
+                if item not in fee_items:
+                    fee_items.append(item)
+            # fee_items += proposal.get_fee_items_paid()
         return fee_items
 
     def save(self, *args, **kwargs):
