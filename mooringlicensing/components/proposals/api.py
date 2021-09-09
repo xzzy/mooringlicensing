@@ -106,7 +106,8 @@ from mooringlicensing.components.proposals.serializers import (
 )
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
-from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker
+from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
+    DcvOrganisation
 from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main
 from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 
@@ -153,6 +154,15 @@ logger = logging.getLogger(__name__)
 #            return Response(serializer.data)
 #        else:
 #            return Response({'error': 'There is currently no application type.'}, status=status.HTTP_404_NOT_FOUND)
+
+class GetDcvOrganisations(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        data = DcvOrganisation.objects.all()
+        data_transform = [{'id': org.id, 'name': org.name} for org in data]
+        return Response({"results": data_transform})
+
 
 class GetDcvVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
