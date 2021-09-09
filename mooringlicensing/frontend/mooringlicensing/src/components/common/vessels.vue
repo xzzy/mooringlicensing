@@ -896,8 +896,8 @@ from '@/utils/hooks'
         mounted: function () {
             this.$nextTick(async () => {
                 await this.fetchVesselTypes();
-                //if (this.proposal && this.proposal.proposal_type.code==='new') {
-                if (this.proposal) {
+                if (this.proposal && this.keep_current_vessel) {
+                    // fetches vessel data from proposal (saved as draft)
                     await this.fetchVessel();
                 } else if (!this.proposal && !this.creatingVessel) {
                     // route.params.vessel_id in this case is a vesselownership id
