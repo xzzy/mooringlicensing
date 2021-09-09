@@ -9,6 +9,7 @@ from ledger.settings_base import TIME_ZONE
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvAdmissionFee, DcvPermitFee
 from mooringlicensing.components.compliances.models import Compliance
+from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX
 
 
 def booking_bpoint_settlement_report(_date):
@@ -27,21 +28,22 @@ def booking_bpoint_settlement_report(_date):
         writer = csv.writer(strIO)
         writer.writerow(fieldnames)
 
-        # Retrieve all the oracle codes used in this app
-        oracle_codes = []
-        for application_type in ApplicationType.objects.all():
-            oracle_codes.append(application_type.get_oracle_code_by_date())
-
-        # crn1 starts with one of the oracle codes retrieved
-        queries = Q()
-        for oracle_code in oracle_codes:
-            queries |= Q(crn1__startswith=oracle_code)
+#        # Retrieve all the oracle codes used in this app
+#        oracle_codes = []
+#        for application_type in ApplicationType.objects.all():
+#            oracle_codes.append(application_type.get_oracle_code_by_date())
+#
+#        # crn1 starts with one of the oracle codes retrieved
+#        queries = Q()
+#        for oracle_code in oracle_codes:
+#            queries |= Q(crn1__startswith=oracle_code)
 
         bpoint = []
         bpoint.extend([x for x in BpointTransaction.objects.filter(
             Q(created__date=_date),
             Q(response_code=0),
-            queries  # crn1__startswith='0517'
+            Q(crn1__startswith=PAYMENT_SYSTEM_PREFIX),
+            # queries  # crn1__startswith='0517'
         ).exclude(crn1__endswith='_test')])
 
         for b in bpoint:
