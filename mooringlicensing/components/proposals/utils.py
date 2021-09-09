@@ -1083,9 +1083,9 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                 return Decimal('0.0')
             else:
                 for fee_item in fee_items_already_paid:
-                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and fee_item.proposal_type == fee_item_being_applied.proposal_type:
+                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:  # and fee_item.proposal_type == fee_item_being_applied.proposal_type:
                         # Found fee_item which has
-                        #   same: fee_season, proposal_type, application_type
+                        #   same: fee_season, application_type
                         #   different: fee_period, vessel_size_category  (might be the same)
 
                         if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
