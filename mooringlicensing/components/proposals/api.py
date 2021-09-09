@@ -137,7 +137,8 @@ from copy import deepcopy
 
 import logging
 
-from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
+    PAYMENT_SYSTEM_ID
 
 logger = logging.getLogger(__name__)
 
@@ -354,6 +355,13 @@ class GetApplicationTypeDescriptions(views.APIView):
 
     def get(self, request, format=None):
         return add_cache_control(Response(Proposal.application_type_descriptions()))
+
+
+class GetPaymentSystemId(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        return add_cache_control(Response({'payment_system_id': PAYMENT_SYSTEM_ID}))
 
 
 class GetApplicantsDict(views.APIView):
