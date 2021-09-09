@@ -504,12 +504,37 @@ def save_vessel_data(instance, request, vessel_data):
     print(serializer.validated_data)
     serializer.save()
 
+def dot_check_wrapper(request, payload, vessel_lookup_errors):
+    json_string = json.dumps(payload)
+    dot_response_str = get_dot_vessel_information(request, json_string)
+    dot_response_json = json.loads(dot_response_str)
+    dot_response = dot_response_json.get("data")
+    dot_boat_length = dot_response.get("boatLength")
+    boat_found = True if dot_response.get("boatFound") == "Y" else False
+    boat_owner_match = True if dot_response.get("boatOwnerMatch") else False
+    ml_boat_length = vessel_data.get("vessel_details", {}).get("vessel_length")
+    if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
+        vessel_lookup_errors[vessel_data.get("rego_no")] = "The provided details do not match those recorded with the Department of Transport"
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
     print(vessel_data)
+    # Dot vessel rego lookup
     if settings.DO_DOT_CHECK:
-        # Dot vessel rego lookup
+        vessel_lookup_errors = {}
+        # Mooring Licence vessel history
+        if type(instance.child_obj) == MooringLicenceApplication and instance.approval:
+            for vo in approval.vessel_ownership_list:
+                dot_name = vo.dot_name
+                owner_str = dot_name.replace(" ", "%20")
+                payload = {
+                        "boatRegistrationNumber": vo.vessel.rego_no,
+                        "owner": owner_str,
+                        "userId": str(request.user.id)
+                        }
+                dot_check_wrapper(request, payload, vessel_lookup_errors)
+
+        # current proposal vessel check
         dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
         owner_str = dot_name.replace(" ", "%20")
         payload = {
@@ -517,16 +542,10 @@ def submit_vessel_data(instance, request, vessel_data):
                 "owner": owner_str,
                 "userId": str(request.user.id)
                 }
-        json_string = json.dumps(payload)
-        dot_response_str = get_dot_vessel_information(request, json_string)
-        dot_response_json = json.loads(dot_response_str)
-        dot_response = dot_response_json.get("data")
-        dot_boat_length = dot_response.get("boatLength")
-        boat_found = True if dot_response.get("boatFound") == "Y" else False
-        boat_owner_match = True if dot_response.get("boatOwnerMatch") else False
-        ml_boat_length = vessel_data.get("vessel_details", {}).get("vessel_length")
-        if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
-            raise serializers.ValidationError("Entered Vessel details do not match Department of Transport records")
+        dot_check_wrapper(request, payload, vessel_lookup_errors)
+
+        if vessel_lookup_errors:
+            raise serializers.ValidationError(vessel_lookup_errors)
 
     min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
     min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
