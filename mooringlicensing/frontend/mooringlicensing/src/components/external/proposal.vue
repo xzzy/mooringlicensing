@@ -368,6 +368,7 @@ export default {
         } else if (this.$refs.mooring_licence_application) {
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
+                payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;
                 payload.proposal.temporary_document_collection_id = this.$refs.mooring_licence_application.$refs.vessels.temporary_document_collection_id;
                 //payload.vessel.vessel_ownership.dot_name = this.$refs.mooring_licence_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
