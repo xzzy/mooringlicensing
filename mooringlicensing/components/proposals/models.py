@@ -2385,7 +2385,7 @@ class AuthorisedUserApplication(Proposal):
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
-            approval.expiry_date = self.end_date
+            # approval.expiry_date = self.end_date
             approval.submitter = self.submitter
             approval.save()
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
