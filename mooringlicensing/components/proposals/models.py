@@ -1386,7 +1386,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
 
-                if request:
+                if self.approval and self.approval.reissued:
+                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+#                    self.process_after_approval()
+                elif request:
                     application_fee = ApplicationFee.objects.create(
                         proposal=self,
                         invoice_reference=invoice.reference,
@@ -1398,9 +1401,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                     self.send_emails_for_payment_required(request, invoice)
                     self.child_obj.process_after_approval(request, total_amount)
-                elif self.approval and self.approval.reissued:
-                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-#                    self.process_after_approval()
 
                 if approval:
                     moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
