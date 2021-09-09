@@ -606,30 +606,6 @@ class Approval(RevisionedMixin):
                     ProposalUserAction.log_action(proposal,ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id),user)
             except:
                 raise
-    ## TODO: remove method?
-    def approval_extend(self,request,details):
-        with transaction.atomic():
-            try:
-                if not request.user in self.allowed_assessors:
-                    raise ValidationError('You do not have access to extend this approval')
-                #if not self.can_extend and self.can_action:
-                 #   raise ValidationError('You cannot extend approval any further')
-                self.renewal_count += 1
-                self.extend_details = details.get('extend_details')
-                self.expiry_date = datetime.date(self.expiry_date.year + self.current_proposal.application_type.max_renewal_period, self.expiry_date.month, self.expiry_date.day)
-                today = timezone.now().date()
-                if self.expiry_date <= today:
-                    if not self.status == 'extended':
-                        self.status = 'extended'
-                        #send_approval_extend_email_notification(self)
-                self.extended=True
-                self.save()
-                # Log proposal action
-                self.log_user_action(ApprovalUserAction.ACTION_EXTEND_APPROVAL.format(self.id),request)
-                # Log entry for organisation
-                self.current_proposal.log_user_action(ProposalUserAction.ACTION_EXTEND_APPROVAL.format(self.current_proposal.id),request)
-            except:
-                raise
 
     def approval_cancellation(self,request,details):
         with transaction.atomic():
