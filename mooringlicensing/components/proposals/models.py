@@ -1385,7 +1385,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
 
-                if self.approval and self.approval.reissued:
+                if self.approval and self.approval.reissued and not total_amount > 0:
+                    # TODO: we assume no payment for reissue - what about "request amendment"?
                     from mooringlicensing.components.approvals.models import ApprovalUserAction
                     approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
                     self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
@@ -1401,7 +1402,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         application_fee.fee_items.add(fee_item_additional)
 
                     self.send_emails_for_payment_required(request, invoice)
-                    self.child_obj.process_after_approval(request, total_amount)
+                    #self.child_obj.process_after_approval(request, total_amount)
 
                 if approval:
                     moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
@@ -2548,11 +2549,12 @@ class MooringLicenceApplication(Proposal):
         return True
 
     def process_after_approval(self, request=None, total_amount=0):
-        if not (self.approval and self.approval.reissued) and not total_amount > 0:
-            if request:
-                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-            else:
-                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+        pass
+        #if not (self.approval and self.approval.reissued) and not total_amount > 0:
+        #    if request:
+        #        approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+        #    else:
+        #        approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
         # TODO: Send email (payment required)
 
@@ -2858,7 +2860,7 @@ class Mooring(models.Model):
             #status = 'Allocated'
         if not status:
             # check for Mooring Applications
-            proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
+            proposals = self.ria_generated_proposal.exclude(processing_status__in=['approved', 'declined', 'discarded'])
             for proposal in proposals:
                 if proposal.child_obj.code == 'mla':
                     status = 'Licence Application'
