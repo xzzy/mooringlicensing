@@ -2842,7 +2842,8 @@ class Mooring(models.Model):
         #status = 'Unallocated'
         status = 'Unlicensed'
         ## check for Mooring Licences
-        if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+        #if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+        if self.mooring_licence and self.mooring_licence.status in ['current', 'suspended']:
             status = 'Licensed'
             #status = 'Allocated'
         if not status:
