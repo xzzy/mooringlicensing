@@ -1252,7 +1252,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # TODO if it is an ammendment proposal then check appropriately
                 # approval, created = self.create_approval(current_datetime=current_datetime)
-                approval, created = self.update_or_create_approval(current_datetime)
+                approval, created = self.child_obj.update_or_create_approval(current_datetime)
                 checking_proposal = self
                 # always reset this flag
                 approval.renewal_sent = False
@@ -1360,7 +1360,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if total_amount == 0:
                         # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
                         # Ledger skips the payment step, which calling the function below
-                        approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                        approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                     # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                     from mooringlicensing.components.payments_ml.models import FeeItem
@@ -1387,7 +1387,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if self.approval and self.approval.reissued:
                     from mooringlicensing.components.approvals.models import ApprovalUserAction
-                    approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                    approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
                     self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
 #                    self.process_after_approval()
                 elif request:
@@ -1667,10 +1667,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             raise ObjectDoesNotExist("Proposal must have an associated child object - WLA, AA, AU or ML")
 
-    def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=None):
-        approval, created = self.child_obj.update_or_create_approval(target_datetime, request)
-        self.refresh_from_db()
-        return approval, created
+    # def update_or_create_approval(self, target_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=None):
+    #     approval, created = self.child_obj.update_or_create_approval(target_datetime, request)
+    #     self.refresh_from_db()
+    #     return approval, created
 
     # def process_after_approval(self, request=None, total_amount=None):
     #     if hasattr(self.child_obj, 'processes_after_approval'):
@@ -2160,6 +2160,7 @@ class AnnualAdmissionApplication(Proposal):
     def update_status(self):
         # this works only when called after approved/success-payment
         from mooringlicensing.components.approvals.models import Sticker
+        from mooringlicensing.components.approvals.models import Approval
         awaiting_payment = False
         awaiting_printing = False
 
@@ -2169,7 +2170,7 @@ class AnnualAdmissionApplication(Proposal):
 
         if self.approval:
             stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-            if stickers.count() >0:
+            if stickers.count() > 0:
                 awaiting_printing = True
 
         if awaiting_payment:
@@ -2179,10 +2180,19 @@ class AnnualAdmissionApplication(Proposal):
             self.proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.proposal.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
         else:
+            # No need to pay
+            # No need to await printing
             if self.proposal.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
-                # THis function is being accessed by the payment-success
+                # This function is being accessed by the payment-success
                 self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                 self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+                #if self.approval and self.approval.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
+                #    # This application is amendment application
+                #    self.proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                #    self.proposal.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                #else:
+                #    self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                #    self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                 # Should not reach here
                 # WHen with_assessor to with_assessor_requirements, this function should not be called
