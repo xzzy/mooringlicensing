@@ -9,7 +9,7 @@
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
                                     <label>Waiting List</label>
-                                    <div v-if="wlaApprovals.length<=1">
+                                    <div v-if="wlaApprovals.length<=1 && newWlaAllowed">
                                         <div v-for="(application_type, index) in wlaChoices">
                                             <input 
                                             type="radio" 
@@ -233,6 +233,7 @@ export default {
         auaMultiple: [],
         mlMultiple: [],
         creatingProposal: false,
+        newWlaAllowed: false,
         //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
     }
   },
@@ -512,6 +513,10 @@ export default {
             this.application_types.push(l)
         }
     },
+    fetchWlaAllowed: async function(){
+        const response = await this.$http.get(api_endpoints.wla_allowed);
+        this.newWlaAllowed = response.body.wla_allowed;
+    },
 
   },
   mounted: async function() {
@@ -519,6 +524,7 @@ export default {
     await this.fetchApplicationTypes();
     //await this.fetchExistingMooringLicences();
     await this.fetchExistingLicences();
+    await this.fetchWlaAllowed();
     this.parseApprovals();
     this.parseWla();
     this.parseAaa();
