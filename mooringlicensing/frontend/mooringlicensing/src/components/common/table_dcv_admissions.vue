@@ -3,11 +3,33 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Type</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <label for="">Organisation</label>
+                    <select class="form-control" v-model="filterDcvOrganisation">
                         <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
+                        <option v-for="org in dcv_organisations" :value="org.id">{{ org.name }}</option>
                     </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Date from</label>
+                    <div class="input-group date" ref="dateFromPicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" v-model="filterDateFrom" id="dateFromField"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Date to</label>
+                    <div class="input-group date" ref="dateToPicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" v-model="filterDateTo" id="dateToField"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -54,37 +76,22 @@ export default {
             datatable_id: 'admissions-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterApplicationType: null,
-            filterApplicationStatus: null,
-            filterApplicant: null,
+            filterDcvOrganisation: null,
+            filterDateFrom: null,
+            filterDateTo: null,
 
             // filtering options
-            application_types: [],
-            application_statuses: [],
-            applicants: [],
+            dcv_organisations: [],
         }
     },
     components:{
         datatable
     },
     watch: {
-        filterApplicationStatus: function() {
-            let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationStatus != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
-            //}
-        },
-        filterApplicationType: function() {
+        filterDcvOrganisation: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
-        filterApplicant: function(){
-            let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        }
     },
     computed: {
         is_external: function() {
@@ -303,8 +310,8 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
+                        d.filter_dcv_organisation_id = vm.filterDcvOrganisation
                         /*
-                        d.filter_application_type = vm.filterApplicationType
                         d.filter_application_status = vm.filterApplicationStatus
                         d.filter_applicant = vm.filterApplicant
                         */
@@ -372,29 +379,12 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
-            // Application Types
-            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
-                vm.application_types = response.body
+            // DcvOrganisation list
+            vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
+                vm.dcv_organisations = response.body
             },(error) => {
                 console.log(error);
             })
-
-            // Application Statuses
-            vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                vm.application_statuses = response.body
-            },(error) => {
-                console.log(error);
-            })
-
-            // Applicant
-            if (vm.is_internal){
-                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    console.log(response.body)
-                    vm.applicants = response.body
-                },(error) => {
-                    console.log(error);
-                })
-            }
         },
         addEventListeners: function(){
             let vm = this
