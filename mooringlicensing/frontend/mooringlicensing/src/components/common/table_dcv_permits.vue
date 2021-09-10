@@ -327,7 +327,7 @@ export default {
 
             // DcvOrganisation list
             vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
-                vm.dcv_organisations = response.body.results
+                vm.dcv_organisations = response.body
             },(error) => {
                 console.log(error);
             })
