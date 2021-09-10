@@ -965,7 +965,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
-        from mooringlicensing.components.approvals.models import ApprovalUserAction
         with transaction.atomic():
             if not self.processing_status=='approved' :
                 raise ValidationError('You cannot change the current status at this time')
@@ -975,9 +974,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 self.approval.reissued=True
                 self.approval.save()
-                # Create a log entry for the proposal and approval
+                # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
-                self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
+                #self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
                 #else:
                     #raise ValidationError('Cannot reissue Approval')
             else:
@@ -1387,7 +1386,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # errors.append(err_msg)
 
                 if self.approval and self.approval.reissued:
+                    from mooringlicensing.components.approvals.models import ApprovalUserAction
                     approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                    self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
 #                    self.process_after_approval()
                 elif request:
                     application_fee = ApplicationFee.objects.create(
