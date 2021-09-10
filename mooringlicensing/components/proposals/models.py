@@ -2339,21 +2339,19 @@ class AuthorisedUserApplication(Proposal):
         mooring_preference = self.get_mooring_authorisation_preference()
 
         if mooring_preference.lower() != 'ria':
-        # if self.mooring_authorisation_preference.lower() != 'ria':
             # When this application is AUA, and the mooring authorisation preference is not RIA
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT
             self.save()
             # Email to endorser
             send_endorsement_of_authorised_user_application_email(request, self)
+            send_confirmation_email_upon_submit(request, self, False)
         else:
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             self.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             self.save()
-
-        # Email to submitter
-        send_confirmation_email_upon_submit(request, self, False)
-        send_notification_email_upon_submit_to_assessor(request, self)
+            send_confirmation_email_upon_submit(request, self, False)
+            send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         # This function is called after payment success for new/amendment/renewal application
