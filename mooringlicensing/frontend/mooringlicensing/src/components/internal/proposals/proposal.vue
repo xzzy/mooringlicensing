@@ -35,6 +35,7 @@
                     @issueProposal="issueProposal"
                     @declineProposal="declineProposal"
                     @assignRequestUser="assignRequestUser"
+                    @assignTo="assignTo"
                 />
 
             </div>

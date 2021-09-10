@@ -136,6 +136,21 @@ class GetApprovalStatusesDict(views.APIView):
         return Response(data)
 
 
+class GetWlaAllowed(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        from mooringlicensing.components.proposals.models import WaitingListApplication
+        wla_allowed = True
+        # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
+        if (WaitingListApplication.objects.filter(submitter=request.user).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+            WaitingListAllocation.objects.filter(submitter=request.user).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
+            MooringLicenceApplication.objects.filter(submitter=request.user).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+            MooringLicence.objects.filter(submitter=request.user).filter(status__in=['current', 'suspended'])):
+            wla_allowed = False
+        return Response({"wla_allowed": wla_allowed})
+
+
 class ApprovalPaymentFilterViewSet(generics.ListAPIView):
     """ https://cop-internal.dbca.wa.gov.au/api/filtered_organisations?search=Org1
     """
@@ -368,10 +383,50 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    #@list_route(methods=['GET',])
+    #@basic_exception_handler
+    #def existing_licences(self, request, *args, **kwargs):
+    #    existing_licences = []
+    #    l_list = Approval.objects.filter(
+    #            submitter=request.user,
+    #            status='current',
+    #            )
+    #    for l in l_list:
+    #        lchild = l.child_obj
+    #        # mooring text required?
+    #        if type(lchild) == MooringLicence:
+    #            if Mooring.objects.filter(mooring_licence=lchild):
+    #                mooring = Mooring.objects.filter(mooring_licence=lchild)[0]
+    #                existing_licences.append({
+    #                    "approval_id": lchild.id,
+    #                    "current_proposal_id": lchild.current_proposal.id,
+    #                    "lodgement_number": lchild.lodgement_number,
+    #                    #"mooring": mooring.name,
+    #                    "mooring_id": mooring.id,
+    #                    #"app_type_code": lchild.code,
+    #                    #"code": 'ml_{}'.format(lchild.id),
+    #                    "code": lchild.code,
+    #                    "description": lchild.description,
+    #                    #"new_application_text": "I want to add a vessel to Mooring Licence {} on mooring {}".format(lchild.lodgement_number, mooring.name)
+    #                    "new_application_text": "I want to amend or renew my current mooring licence {}".format(lchild.lodgement_number)
+    #                    })
+    #        else:
+    #            existing_licences.append({
+    #                "approval_id": lchild.id,
+    #                "lodgement_number": lchild.lodgement_number,
+    #                "current_proposal_id": lchild.current_proposal.id,
+    #                #"lodgement_number": ml.lodgement_number,
+    #                "code": lchild.code,
+    #                "description": lchild.description,
+    #                "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
+    #                })
+
+
+    #    return Response(existing_licences)
+
     @list_route(methods=['GET',])
     @basic_exception_handler
     def existing_licences(self, request, *args, **kwargs):
-        # TODO: still required?
         existing_licences = []
         l_list = Approval.objects.filter(
                 submitter=request.user,
@@ -379,7 +434,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 )
         for l in l_list:
             lchild = l.child_obj
-            # mooring text required?
             if type(lchild) == MooringLicence:
                 if Mooring.objects.filter(mooring_licence=lchild):
                     mooring = Mooring.objects.filter(mooring_licence=lchild)[0]
@@ -387,27 +441,21 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         "approval_id": lchild.id,
                         "current_proposal_id": lchild.current_proposal.id,
                         "lodgement_number": lchild.lodgement_number,
-                        #"mooring": mooring.name,
                         "mooring_id": mooring.id,
-                        #"app_type_code": lchild.code,
-                        #"code": 'ml_{}'.format(lchild.id),
                         "code": lchild.code,
                         "description": lchild.description,
-                        #"new_application_text": "I want to add a vessel to Mooring Licence {} on mooring {}".format(lchild.lodgement_number, mooring.name)
                         "new_application_text": "I want to amend or renew my current mooring licence {}".format(lchild.lodgement_number)
                         })
             else:
-                existing_licences.append({
-                    "approval_id": lchild.id,
-                    "lodgement_number": lchild.lodgement_number,
-                    "current_proposal_id": lchild.current_proposal.id,
-                    #"lodgement_number": ml.lodgement_number,
-                    "code": lchild.code,
-                    "description": lchild.description,
-                    "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
-                    })
-
-
+                if lchild.amend_or_renew:
+                    existing_licences.append({
+                        "approval_id": lchild.id,
+                        "lodgement_number": lchild.lodgement_number,
+                        "current_proposal_id": lchild.current_proposal.id,
+                        "code": lchild.code,
+                        "description": lchild.description,
+                        "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
+                        })
         return Response(existing_licences)
 
     @list_route(methods=['GET'])
