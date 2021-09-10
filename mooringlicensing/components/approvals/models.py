@@ -1099,8 +1099,9 @@ class MooringLicence(Approval):
         self.current_proposal.save()
         self.reissued=True
         self.save()
-        # Create a log entry for the proposal
+        # Create a log entry for the proposal and approval
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
+        self.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
         ## final approval
         self.current_proposal.final_approval()
 
