@@ -526,10 +526,20 @@ class Approval(RevisionedMixin):
     @property
     def amend_or_renew(self):
         try:
+            if not self.status in ['current', 'suspended']:
+                return None
             amend_renew = 'amend'
             ## test whether any renewal or amendment applications have been created
-            #existing_proposal_qs=Proposal.objects.filter(customer_status__in=['under_review', 'with_assessor', 'draft'],
-            existing_proposal_qs=self.proposal_set.filter(customer_status__in=['under_review', 'with_assessor', 'draft'],
+            customer_status_choices = []
+            if type(self.child_obj) == WaitingListAllocation:
+                customer_status_choices = ['with_assessor', 'draft']
+            elif type(self.child_obj) == AnnualAdmissionPermit:
+                customer_status_choices = ['with_assessor', 'draft', 'printing_sticker']
+            elif type(self.child_obj) == AuthorisedUserPermit:
+                customer_status_choices = ['with_assessor', 'draft', 'awaiting_endorsement', 'printing_sticker', 'awaiting_payment']
+            elif type(self.child_obj) == MooringLicence:
+                customer_status_choices = ['with_assessor', 'draft', 'awaiting_endorsement', 'printing_sticker', 'awaiting_payment', 'awaiting_documents']
+            existing_proposal_qs=self.proposal_set.filter(customer_status__in=customer_status_choices,
                     proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL]))
             ## cannot amend or renew
             if existing_proposal_qs:
@@ -1099,8 +1109,9 @@ class MooringLicence(Approval):
         self.current_proposal.save()
         self.reissued=True
         self.save()
-        # Create a log entry for the proposal
+        # Create a log entry for the proposal and approval
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
+        self.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
         ## final approval
         self.current_proposal.final_approval()
 
