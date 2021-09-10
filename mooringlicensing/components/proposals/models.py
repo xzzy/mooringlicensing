@@ -965,7 +965,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
 
     def reissue_approval(self,request,status):
-        from mooringlicensing.components.approvals.models import ApprovalUserAction
         with transaction.atomic():
             if not self.processing_status=='approved' :
                 raise ValidationError('You cannot change the current status at this time')
@@ -975,9 +974,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 self.approval.reissued=True
                 self.approval.save()
-                # Create a log entry for the proposal and approval
+                # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
-                self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
+                #self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
                 #else:
                     #raise ValidationError('Cannot reissue Approval')
             else:
@@ -1386,7 +1385,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
 
-                if request:
+                if self.approval and self.approval.reissued and not total_amount > 0:
+                    # TODO: we assume no payment for reissue - what about "request amendment"?
+                    from mooringlicensing.components.approvals.models import ApprovalUserAction
+                    approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                    self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
+#                    self.process_after_approval()
+                elif request:
                     application_fee = ApplicationFee.objects.create(
                         proposal=self,
                         invoice_reference=invoice.reference,
@@ -1397,10 +1402,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         application_fee.fee_items.add(fee_item_additional)
 
                     self.send_emails_for_payment_required(request, invoice)
-                    self.child_obj.process_after_approval(request, total_amount)
-                elif self.approval and self.approval.reissued:
-                    approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-#                    self.process_after_approval()
+                    #self.child_obj.process_after_approval(request, total_amount)
 
                 if approval:
                     moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
@@ -2547,11 +2549,12 @@ class MooringLicenceApplication(Proposal):
         return True
 
     def process_after_approval(self, request=None, total_amount=0):
-        if not (self.approval and self.approval.reissued) and not total_amount > 0:
-            if request:
-                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-            else:
-                approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
+        pass
+        #if not (self.approval and self.approval.reissued) and not total_amount > 0:
+        #    if request:
+        #        approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+        #    else:
+        #        approval, created = self.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
         # TODO: Send email (payment required)
 
@@ -2851,12 +2854,13 @@ class Mooring(models.Model):
         #status = 'Unallocated'
         status = 'Unlicensed'
         ## check for Mooring Licences
-        if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+        #if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
+        if self.mooring_licence and self.mooring_licence.status in ['current', 'suspended']:
             status = 'Licensed'
             #status = 'Allocated'
         if not status:
             # check for Mooring Applications
-            proposals = self.ria_generated_proposal.exclude(processing_status__in=['declined', 'discarded'])
+            proposals = self.ria_generated_proposal.exclude(processing_status__in=['approved', 'declined', 'discarded'])
             for proposal in proposals:
                 if proposal.child_obj.code == 'mla':
                     status = 'Licence Application'

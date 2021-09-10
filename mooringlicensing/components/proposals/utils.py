@@ -508,7 +508,7 @@ def save_vessel_data(instance, request, vessel_data):
         print(serializer.validated_data)
         serializer.save()
 
-def dot_check_wrapper(request, payload, vessel_lookup_errors):
+def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     json_string = json.dumps(payload)
     dot_response_str = get_dot_vessel_information(request, json_string)
     dot_response_json = json.loads(dot_response_str)
@@ -541,7 +541,7 @@ def submit_vessel_data(instance, request, vessel_data):
                         "owner": owner_str,
                         "userId": str(request.user.id)
                         }
-                dot_check_wrapper(request, payload, vessel_lookup_errors)
+                dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
         # current proposal vessel check
         if vessel_data.get("rego_no"):
@@ -552,7 +552,7 @@ def submit_vessel_data(instance, request, vessel_data):
                     "owner": owner_str,
                     "userId": str(request.user.id)
                     }
-            dot_check_wrapper(request, payload, vessel_lookup_errors)
+            dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
         if vessel_lookup_errors:
             raise serializers.ValidationError(vessel_lookup_errors)
