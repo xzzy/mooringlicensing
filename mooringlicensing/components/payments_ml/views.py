@@ -663,7 +663,7 @@ class ApplicationFeeSuccessView(TemplateView):
                         # else:
                         #     # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
-                        approval, created = proposal.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                        approval, created = proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                         if created:
                             if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -695,7 +695,7 @@ class ApplicationFeeSuccessView(TemplateView):
                         proposal.approval = approval
 
                         proposal.child_obj.update_status()  # To calculate the manage_stickers() below correctly, proposal's status must be updated
-                        moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(proposal)
+                        moas_to_be_reallocated, stickers_to_be_returned = approval.child_obj.manage_stickers(proposal)
                         approval.update_approval_history_by_stickers()
 
                         # send Proposal approval email with attachment
