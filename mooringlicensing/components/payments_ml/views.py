@@ -694,7 +694,7 @@ class ApplicationFeeSuccessView(TemplateView):
 
                         proposal.approval = approval
 
-                        # Handle stickers here..???
+                        proposal.child_obj.update_status()  # To calculate the manage_stickers() below correctly, proposal's status must be updated
                         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(proposal)
                         approval.update_approval_history_by_stickers()
 
