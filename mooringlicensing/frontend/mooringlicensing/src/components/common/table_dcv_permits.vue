@@ -296,32 +296,6 @@ export default {
                 name: 'apply_proposal'
             })
         },
-        discardProposal: function(proposal_id) {
-            let vm = this;
-            swal({
-                title: "Discard Application",
-                text: "Are you sure you want to discard this proposal?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Discard Application',
-                confirmButtonColor:'#dc3545'
-            }).then(() => {
-                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-                .then((response) => {
-                    swal(
-                        'Discarded',
-                        'Your proposal has been discarded',
-                        'success'
-                    )
-                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.application_datatable.vmDataTable.draw();
-                }, (error) => {
-                    console.log(error);
-                });
-            },(error) => {
-
-            });
-        },
         fetchFilterLists: function(){
             let vm = this;
 
@@ -341,11 +315,6 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-discard-proposal');
-                vm.discardProposal(id)
-            });
         },
     },
     created: function(){

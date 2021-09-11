@@ -90,7 +90,15 @@ export default {
     watch: {
         filterDcvOrganisation: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            vm.$refs.admissions_datatable.vmDataTable.draw();
+        },
+        filterDateFrom: function() {
+            let vm = this;
+            vm.$refs.admissions_datatable.vmDataTable.draw();
+        },
+        filterDateTo: function() {
+            let vm = this;
+            vm.$refs.admissions_datatable.vmDataTable.draw();
         },
     },
     computed: {
@@ -311,10 +319,8 @@ export default {
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         d.filter_dcv_organisation_id = vm.filterDcvOrganisation
-                        /*
-                        d.filter_application_status = vm.filterApplicationStatus
-                        d.filter_applicant = vm.filterApplicant
-                        */
+                        d.filter_date_from = vm.filterDateFrom
+                        d.filter_date_to = vm.filterDateTo
                     }
                 },
                 dom: 'lBfrtip',
@@ -348,34 +354,6 @@ export default {
                 name: 'apply_proposal'
             })
         },
-        discardProposal: function(proposal_id) {
-            let vm = this;
-            swal({
-                title: "Discard Application",
-                text: "Are you sure you want to discard this proposal?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Discard Application',
-                confirmButtonColor:'#dc3545'
-            }).then(() => {
-                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-                .then((response) => {
-                    console.log('response: ')
-                    console.log(response)
-                    swal(
-                        'Discarded',
-                        'Your proposal has been discarded',
-                        'success'
-                    )
-                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.admissions_datatable.vmDataTable.draw();
-                }, (error) => {
-                    console.log(error);
-                });
-            },(error) => {
-
-            });
-        },
         fetchFilterLists: function(){
             let vm = this;
 
@@ -388,11 +366,46 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.admissions_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-discard-proposal');
-                vm.discardProposal(id)
-            });
+
+            let el_fr = $(vm.$refs.dateFromPicker);
+            let el_to = $(vm.$refs.dateToPicker);
+
+            let options = {
+                format: "DD/MM/YYYY",
+                showClear: true ,
+                useCurrent: false,
+            };
+
+            el_fr.datetimepicker(options)
+            el_to.datetimepicker(options)
+
+            el_fr.on("dp.change", function(e) {
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.filterDateFrom = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.filterDateFrom = selected_date;
+                    el_to.data('DateTimePicker').minDate(false)
+                }
+            })
+
+            el_to.on("dp.change", function(e){
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.filterDateTo = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.filterDateTo = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(false)
+                }
+            })
         },
     },
     created: function(){
