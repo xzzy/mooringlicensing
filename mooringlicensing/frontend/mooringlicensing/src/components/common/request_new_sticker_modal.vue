@@ -3,10 +3,25 @@
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
-                <div class="row">
-                    <div class="col-sm-12">
-                        A sticker replacement costs $$$.
-                    </div>
+                <div class="row form-group">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th scope="col"></th>
+                                <th scope="col">Number</th>
+                                <th scope="col">vessel</th>
+                                <th scope="col">mooring</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="sticker in stickers" :key="sticker.id">
+                                <td><input type="checkbox" v-model="sticker.checked" /></td>
+                                <td>{{ sticker.number }}</td>
+                                <td>---</td>
+                                <td>---</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
                 <div class="row form-group">
                     <label class="col-sm-2 control-label" for="reason">Reason</label>
@@ -14,30 +29,9 @@
                         <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
                     </div>
                 </div>
-                <div v-show="showDateOfLost" class="row form-group">
-                    <label class="col-sm-2 control-label">Date of Lost</label>
-                    <div class="col-sm-3">
-                        <div class="input-group date" ref="lostDatePicker">
-                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="lost_date_elem"/>
-                            <span class="input-group-addon">
-                                <span class="glyphicon glyphicon-calendar"></span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div v-show="showDateOfReturned" class="row form-group">
-                    <label class="col-sm-2 control-label">Date of Returned</label>
-                    <div class="col-sm-3">
-                        <div class="input-group date" ref="returnedDatePicker">
-                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="returned_date_elem"/>
-                            <span class="input-group-addon">
-                                <span class="glyphicon glyphicon-calendar"></span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div slot="footer">
+                <span><strong>Sticker replacement cost ${{ total_fee }}</strong></span>
                 <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                 <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
@@ -83,11 +77,16 @@ export default {
         approval_id: async function(){
             let vm = this
             // Whenever approval_id is changed, this function is called
+            console.log('vm.approval_id')
             console.log(vm.approval_id)
 
+
             if (vm.approval_id){
-                const ret = vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/stickers'))
-                console.log(ret)
+                const ret = await vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/stickers'))
+                for (let sticker of ret.body.stickers){
+                    sticker.checked = true
+                }
+                vm.stickers = ret.body.stickers
 
             } else {
                 vm.stickers = []
@@ -102,18 +101,9 @@ export default {
         title: function() {
             return 'New Sticker'
         },
-        showDateOfLost: function(){
-            if (this.action === 'record_lost'){
-                return true
-            }
-            return false
-        },
-        showDateOfReturned: function(){
-            if (this.action === 'record_returned'){
-                return true
-            }
-            return false
-        },
+        total_fee: function() {
+            return 12
+        }
     },
     methods:{
         getDefaultDetails: function(){
