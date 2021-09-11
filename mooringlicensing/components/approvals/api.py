@@ -1073,14 +1073,27 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-
 class DcvAdmissionFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
-        #filter_compliance_status = request.GET.get('filter_compliance_status')
-        #if filter_compliance_status and not filter_compliance_status.lower() == 'all':
-         #   queryset = queryset.filter(customer_status=filter_compliance_status)
+        # filter by dcv_organisation
+        filter_organisation_id = request.GET.get('filter_dcv_organisation_id')
+        if filter_organisation_id and not filter_organisation_id.lower() == 'all':
+            queryset = queryset.filter(dcv_vessel__dcv_organisation__id=filter_organisation_id)
+
+        queries = Q()
+        # filter by date from
+        filter_date_from = request.GET.get('filter_date_from')
+        if filter_date_from and not filter_date_from.lower() == 'all':
+            filter_date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
+            queries &= Q(dcv_admission_arrivals__arrival_date__gte=filter_date_from)
+        # filter by date to
+        filter_date_to = request.GET.get('filter_date_to')
+        if filter_date_to and not filter_date_to.lower() == 'all':
+            filter_date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
+            queries &= Q(dcv_admission_arrivals__arrival_date__lte=filter_date_to)
+        queryset = queryset.filter(queries)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
