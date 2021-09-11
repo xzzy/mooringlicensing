@@ -3,11 +3,33 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Type</label>
-                    <select class="form-control" v-model="filterApplicationType">
+                    <label for="">Organisation</label>
+                    <select class="form-control" v-model="filterDcvOrganisation">
                         <option value="All">All</option>
-                        <option v-for="type in application_types" :value="type.code">{{ type.description }}</option>
+                        <option v-for="org in dcv_organisations" :value="org.id">{{ org.name }}</option>
                     </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Date from</label>
+                    <div class="input-group date" ref="dateFromPicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" v-model="filterDateFrom" id="dateFromField"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Date to</label>
+                    <div class="input-group date" ref="dateToPicker">
+                        <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" v-model="filterDateTo" id="dateToField"/>
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -54,37 +76,30 @@ export default {
             datatable_id: 'admissions-datatable-' + vm._uid,
 
             // selected values for filtering
-            filterApplicationType: null,
-            filterApplicationStatus: null,
-            filterApplicant: null,
+            filterDcvOrganisation: null,
+            filterDateFrom: null,
+            filterDateTo: null,
 
             // filtering options
-            application_types: [],
-            application_statuses: [],
-            applicants: [],
+            dcv_organisations: [],
         }
     },
     components:{
         datatable
     },
     watch: {
-        filterApplicationStatus: function() {
+        filterDcvOrganisation: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationStatus != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
-            //}
+            vm.$refs.admissions_datatable.vmDataTable.draw();
         },
-        filterApplicationType: function() {
+        filterDateFrom: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+            vm.$refs.admissions_datatable.vmDataTable.draw();
         },
-        filterApplicant: function(){
+        filterDateTo: function() {
             let vm = this;
-            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        }
+            vm.$refs.admissions_datatable.vmDataTable.draw();
+        },
     },
     computed: {
         is_external: function() {
@@ -303,11 +318,9 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        /*
-                        d.filter_application_type = vm.filterApplicationType
-                        d.filter_application_status = vm.filterApplicationStatus
-                        d.filter_applicant = vm.filterApplicant
-                        */
+                        d.filter_dcv_organisation_id = vm.filterDcvOrganisation
+                        d.filter_date_from = vm.filterDateFrom
+                        d.filter_date_to = vm.filterDateTo
                     }
                 },
                 dom: 'lBfrtip',
@@ -341,68 +354,58 @@ export default {
                 name: 'apply_proposal'
             })
         },
-        discardProposal: function(proposal_id) {
-            let vm = this;
-            swal({
-                title: "Discard Application",
-                text: "Are you sure you want to discard this proposal?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Discard Application',
-                confirmButtonColor:'#dc3545'
-            }).then(() => {
-                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-                .then((response) => {
-                    console.log('response: ')
-                    console.log(response)
-                    swal(
-                        'Discarded',
-                        'Your proposal has been discarded',
-                        'success'
-                    )
-                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.admissions_datatable.vmDataTable.draw();
-                }, (error) => {
-                    console.log(error);
-                });
-            },(error) => {
-
-            });
-        },
         fetchFilterLists: function(){
             let vm = this;
 
-            // Application Types
-            vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
-                vm.application_types = response.body
+            // DcvOrganisation list
+            vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
+                vm.dcv_organisations = response.body
             },(error) => {
                 console.log(error);
             })
-
-            // Application Statuses
-            vm.$http.get(api_endpoints.application_statuses_dict).then((response) => {
-                vm.application_statuses = response.body
-            },(error) => {
-                console.log(error);
-            })
-
-            // Applicant
-            if (vm.is_internal){
-                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    console.log(response.body)
-                    vm.applicants = response.body
-                },(error) => {
-                    console.log(error);
-                })
-            }
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.admissions_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-discard-proposal');
-                vm.discardProposal(id)
-            });
+
+            let el_fr = $(vm.$refs.dateFromPicker);
+            let el_to = $(vm.$refs.dateToPicker);
+
+            let options = {
+                format: "DD/MM/YYYY",
+                showClear: true ,
+                useCurrent: false,
+            };
+
+            el_fr.datetimepicker(options)
+            el_to.datetimepicker(options)
+
+            el_fr.on("dp.change", function(e) {
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.filterDateFrom = selected_date;
+                    el_to.data('DateTimePicker').minDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.filterDateFrom = selected_date;
+                    el_to.data('DateTimePicker').minDate(false)
+                }
+            })
+
+            el_to.on("dp.change", function(e){
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.filterDateTo = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(selected_date)
+                } else {
+                    // Date not selected
+                    vm.filterDateTo = selected_date;
+                    el_fr.data('DateTimePicker').maxDate(false)
+                }
+            })
         },
     },
     created: function(){
