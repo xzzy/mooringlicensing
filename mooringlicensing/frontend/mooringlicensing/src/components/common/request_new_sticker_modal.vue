@@ -61,16 +61,12 @@ export default {
             stickers: [],
             isModalOpen:false,
             action: '',
-            sticker: {},
             details: vm.getDefaultDetails(),
             processing: false,
+            fee_item: null,
 
-            //form:null,
             errors: false,
-            //validation_form: null,
             errorString: '',
-            //successString: '',
-            //success:false,
         }
     },
     watch: {
@@ -112,7 +108,15 @@ export default {
             return 'New Sticker'
         },
         total_fee: function() {
-            return 12
+            let vm = this
+            let amount = 0
+
+            for (let sticker of this.stickers){
+                if (sticker.checked){
+                    amount += vm.fee_item.amount
+                }
+            }
+            return amount
         }
     },
     methods:{
@@ -185,40 +189,21 @@ export default {
                 }
             });
         },
-        //addFormValidations: function() {
-        //    let vm = this;
-        //    vm.validation_form = $(vm.form).validate({
-        //        rules: {
-        //            reason:"required",
-        //        },
-        //        messages: {
-        //            arrival:"field is required",
-        //            departure:"field is required",
-        //            campground:"field is required",
-        //            campsite:"field is required"
-        //        },
-        //        showErrors: function(errorMap, errorList) {
-        //            $.each(this.validElements(), function(index, element) {
-        //                var $element = $(element);
-        //                $element.attr("data-original-title", "").parents('.form-group').removeClass('has-error');
-        //            });
-        //            // destroy tooltips on valid elements
-        //            $("." + this.settings.validClass).tooltip("destroy");
-        //            // add or update tooltips
-        //            for (var i = 0; i < errorList.length; i++) {
-        //                var error = errorList[i];
-        //                $(error.element)
-        //                    .tooltip({
-        //                        trigger: "focus"
-        //                    })
-        //                    .attr("data-original-title", error.message)
-        //                    .parents('.form-group').addClass('has-error');
-        //            }
-        //        }
-        //    });
-        //},
+        fetchData: function(){
+            let vm = this
+
+            vm.$http.get(api_endpoints.fee_item_sticker_replacement).then(
+                (response) => {
+                    vm.fee_item = response.body
+                },
+                (error) => {
+                    console.log(error)
+                }
+            )
+        }
     },
     created:function () {
+        this.fetchData()
         this.$nextTick(() => {
             this.addEventListeners();
         });
