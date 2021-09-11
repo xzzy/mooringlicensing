@@ -307,6 +307,8 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log('---full---')
+                            console.log(full)
                             return full.id
                         }
                     }
@@ -1083,6 +1085,8 @@ export default {
         },
         requestNewSticker: function(approval_id){
             this.$refs.request_new_sticker_modal.approval_id = approval_id
+            console.log('approval_id')
+            console.log(approval_id)
             this.$refs.request_new_sticker_modal.isModalOpen = true
         },
         approvalHistory: function(id){
