@@ -512,18 +512,20 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def request_new_stickers(self, request, *args, **kwargs):
         # external
         approval = self.get_object()
-        data = request.data
+        details = request.data['details']
+        sticker_ids = [sticker['id'] for sticker in request.data['stickers']]
 
         # TODO: Validation
 
         sticker_action_details = []
-        # stickers = Sticker.objects.filter(status=Sticker.STICKER_STATUS_CURRENT, approval=approval)
-        stickers = Sticker.objects.filter(approval=approval)
+        stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids)
+        data = {}
         for sticker in stickers:
             # Update Sticker actsticker_action_details = {list: 1} [{'id': 73, 'sticker': 88, 'reason': 'fgfgsad', 'date_created': '2021-08-24T08:52:29.049638Z', 'date_updated': '2021-08-24T08:52:29.049715Z', 'date_of_lost_sticker': None, 'date_of_returned_sticker': None, 'action': 'Request new sticker', 'user': 132580, '… Viewion
             data['sticker'] = sticker.id
             data['action'] = 'Request new sticker'
             data['user'] = request.user.id
+            data['reason'] = details['reason']
             serializer = StickerActionDetailSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             new_sticker_action_detail = serializer.save()
