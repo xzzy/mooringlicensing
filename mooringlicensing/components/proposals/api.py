@@ -161,7 +161,7 @@ class GetDcvOrganisations(views.APIView):
     def get(self, request, format=None):
         data = DcvOrganisation.objects.all()
         data_transform = [{'id': org.id, 'name': org.name} for org in data]
-        return Response({"results": data_transform})
+        return Response(data_transform)
 
 
 class GetDcvVesselRegoNos(views.APIView):
