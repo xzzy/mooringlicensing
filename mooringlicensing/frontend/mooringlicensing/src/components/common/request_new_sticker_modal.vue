@@ -33,7 +33,7 @@
             <div slot="footer">
                 <span><strong>Sticker replacement cost ${{ total_fee }}</strong></span>
                 <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -84,7 +84,7 @@ export default {
             if (vm.approval_id){
                 const ret = await vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/stickers'))
                 for (let sticker of ret.body.stickers){
-                    sticker.checked = true
+                    sticker.checked = false
                 }
                 vm.stickers = ret.body.stickers
 
@@ -94,6 +94,16 @@ export default {
         }
     },
     computed: {
+        okButtonEnabled: function(){
+            if (this.details.reason){
+                for (let sticker of this.stickers){
+                    if (sticker.checked === true){
+                        return true
+                    }
+                }
+            }
+            return false
+        },
         showError: function() {
             var vm = this;
             return vm.errors;
@@ -120,6 +130,7 @@ export default {
             vm.$emit("sendData", {
                 "details": vm.details,
                 "approval_id": vm.approval_id,
+                "stickers": vm.stickers,
             })
         },
         cancel:function () {

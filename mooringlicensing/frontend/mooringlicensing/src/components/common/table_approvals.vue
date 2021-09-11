@@ -775,8 +775,10 @@ export default {
     },
     methods: {
         sendData: function(params){
+            console.log('params: ')
+            console.log(params)
             let vm = this
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params.details).then(
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
                 res => {
                     helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
                 },
