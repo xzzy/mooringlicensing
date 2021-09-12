@@ -307,6 +307,8 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log('---full---')
+                            console.log(full)
                             return full.id
                         }
                     }
@@ -774,7 +776,7 @@ export default {
     methods: {
         sendData: function(params){
             let vm = this
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params.details).then(
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
                 res => {
                     helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
                 },
@@ -783,22 +785,6 @@ export default {
                 }
             )
         },
-        //post_and_redirect: function(url, postData) {
-        //    /* http.post and ajax do not allow redirect from Django View (post method),
-        //       this function allows redirect by mimicking a form submit.
-        //       usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
-        //    */
-        //    var postFormStr = "<form method='POST' name='Preview Licence' action='" + url + "'>";
-        //    for (var key in postData) {
-        //        if (postData.hasOwnProperty(key)) {
-        //            postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
-        //        }
-        //    }
-        //    postFormStr += "</form>";
-        //    var formElement = $(postFormStr);
-        //    $('body').append(formElement);
-        //    $(formElement).submit();
-        //},
         fetchProfile: function(){
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
@@ -1066,7 +1052,6 @@ export default {
             });
         },
         cancelApproval: function(approval_id){
-
             this.$refs.approval_cancellation.approval_id = approval_id;
             this.$refs.approval_cancellation.isModalOpen = true;
         },
@@ -1091,9 +1076,6 @@ export default {
             this.$nextTick(() => {
                 this.$refs.approval_history.isModalOpen = true;
             });
-
-            //this.$refs.approval_history.approvalId = approvalId;
-            //this.$refs.approval_history.isModalOpen = true;
         },
 
         renewApproval:function (proposal_id) {

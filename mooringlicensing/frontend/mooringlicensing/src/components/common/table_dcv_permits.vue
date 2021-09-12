@@ -37,6 +37,10 @@
                 />
             </div>
         </div>
+        <CreateNewStickerModal
+            ref="create_new_sticker_modal"
+            @sendData="sendData"
+        />
     </div>
 </template>
 
@@ -44,6 +48,7 @@
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
+import CreateNewStickerModal from "@/components/common/create_new_sticker_modal.vue"
 
 export default {
     name: 'TableDcvPermits',
@@ -72,7 +77,8 @@ export default {
         }
     },
     components:{
-        datatable
+        datatable,
+        CreateNewStickerModal,
     },
     watch: {
         filterDcvOrganisation: function() {
@@ -220,14 +226,17 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     let links = '';
-                    if (full.invoices){
-                        for (let invoice of full.invoices){
-                            links += '<div>'
-                            if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                    if (vm.is_internal){
+                        if (full.invoices){
+                            for (let invoice of full.invoices){
+                                links += '<div>'
+                                if (!vm.is_external){
+                                    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                                }
+                                links += '</div>'
                             }
-                            links += '</div>'
                         }
+                        links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
                     }
                     return links
                 }
@@ -291,6 +300,27 @@ export default {
         }
     },
     methods: {
+        sendData: function(params){
+            console.log('params: ')
+            console.log(params)
+
+            let vm = this
+            vm.$http.post('/api/dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
+                res => {
+                    console.log('res.body')
+                    console.log(res.body)
+                },
+                err => {
+                    console.log(err)
+                }
+            )
+        },
+        createNewSticker: function(dcv_permit_id){
+            console.log('dcv_permit_id')
+            console.log(dcv_permit_id)
+            this.$refs.create_new_sticker_modal.dcv_permit_id = dcv_permit_id
+            this.$refs.create_new_sticker_modal.isModalOpen = true
+        },
         new_application_button_clicked: function(){
             this.$router.push({
                 name: 'apply_proposal'
@@ -315,6 +345,13 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
+
+            //External Request New Sticker listener
+            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-create-new-sticker]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-create-new-sticker');
+                vm.createNewSticker(id);
+            });
         },
     },
     created: function(){
