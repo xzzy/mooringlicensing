@@ -17,8 +17,12 @@
                             <tr v-for="sticker in stickers" :key="sticker.id">
                                 <td><input type="checkbox" v-model="sticker.checked" /></td>
                                 <td>{{ sticker.number }}</td>
-                                <td>---</td>
-                                <td>---</td>
+                                <td>{{ sticker.vessel_rego_no }}</td>
+                                <td>
+                                    <span v-for="mooring in sticker.moorings">
+                                        {{ mooring.name }}
+                                    </span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -72,17 +76,15 @@ export default {
     watch: {
         approval_id: async function(){
             let vm = this
-            // Whenever approval_id is changed, this function is called
-            console.log('vm.approval_id')
-            console.log(vm.approval_id)
-
-
+            // Whenever approval_id is changed, update this.stickers
             if (vm.approval_id){
                 const ret = await vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/stickers'))
                 for (let sticker of ret.body.stickers){
                     sticker.checked = false
                 }
                 vm.stickers = ret.body.stickers
+                console.log('vm.stickers')
+                console.log(vm.stickers)
 
             } else {
                 vm.stickers = []
