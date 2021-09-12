@@ -98,15 +98,9 @@ export default {
             return this.level == 'internal'
         },
         datatable_headers: function(){
-            /*
-            if (this.is_external){
-                return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
-            }
             if (this.is_internal){
-                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
+                return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Sticker', 'Action']
             }
-            */
-            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Action']
         },
         column_id: function(){
             return {
@@ -189,6 +183,17 @@ export default {
                 }
             }
         },
+        column_sticker: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return '(TODO)'
+                }
+            }
+        },
 
         /*
         column_invoice: function(){
@@ -252,6 +257,7 @@ export default {
                 vm.column_organisation,
                 vm.column_status,
                 vm.column_year,
+                vm.column_sticker,
                 vm.column_action,
             ]
             let search = true
