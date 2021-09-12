@@ -141,11 +141,12 @@ export default {
             return {
                 data: "approval",
                 orderable: true,
-                searchable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
-                }
+                },
+                name: 'approval__lodgement_number'
             }
         },
         column_printing_company: function(){
