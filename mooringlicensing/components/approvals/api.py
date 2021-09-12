@@ -512,18 +512,20 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def request_new_stickers(self, request, *args, **kwargs):
         # external
         approval = self.get_object()
-        data = request.data
+        details = request.data['details']
+        sticker_ids = [sticker['id'] for sticker in request.data['stickers']]
 
         # TODO: Validation
 
         sticker_action_details = []
-        # stickers = Sticker.objects.filter(status=Sticker.STICKER_STATUS_CURRENT, approval=approval)
-        stickers = Sticker.objects.filter(approval=approval)
+        stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids)
+        data = {}
         for sticker in stickers:
             # Update Sticker actsticker_action_details = {list: 1} [{'id': 73, 'sticker': 88, 'reason': 'fgfgsad', 'date_created': '2021-08-24T08:52:29.049638Z', 'date_updated': '2021-08-24T08:52:29.049715Z', 'date_of_lost_sticker': None, 'date_of_returned_sticker': None, 'action': 'Request new sticker', 'user': 132580, '… Viewion
             data['sticker'] = sticker.id
             data['action'] = 'Request new sticker'
             data['user'] = request.user.id
+            data['reason'] = details['reason']
             serializer = StickerActionDetailSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             new_sticker_action_detail = serializer.save()
@@ -536,10 +538,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def stickers(self, request, *args, **kwargs):
         instance = self.get_object()
-
-        # TODO ??? return all the current stickers for this approval
-
-        return Response({'stickers': []})
+        stickers = instance.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT,])
+        serializer = StickerSerializer(stickers, many=True)
+        return Response({'stickers': serializer.data})
 
     @detail_route(methods=['GET'])
     @renderer_classes((JSONRenderer,))
@@ -932,6 +933,16 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
             raise
 
         return dcv_vessel
+
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def create_new_sticker(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data
+
+        # TODO: create a new sticker for the DcvPermit
+
+        return Response({})
 
     def create(self, request, *args, **kwargs):
         data = request.data
