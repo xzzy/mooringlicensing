@@ -168,11 +168,8 @@ export default {
                 if (e.date){
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
-                    vm.details.date_of_lost_sticker = selected_date;
-                } else {
-                    // Date not selected
-                    vm.details.date_of_lost_sticker = selected_date;
                 }
+                vm.details.date_of_lost_sticker = selected_date;
             });
 
             // Date of Returned
