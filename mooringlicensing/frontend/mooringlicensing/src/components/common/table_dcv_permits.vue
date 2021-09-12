@@ -303,17 +303,21 @@ export default {
         sendData: function(params){
             console.log('params: ')
             console.log(params)
+
             let vm = this
-            //vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
-            //    res => {
-            //        helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
-            //    },
-            //    err => {
-            //        console.log(err)
-            //    }
-            //)
+            vm.$http.post('/api/dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
+                res => {
+                    console.log('res.body')
+                    console.log(res.body)
+                },
+                err => {
+                    console.log(err)
+                }
+            )
         },
         createNewSticker: function(dcv_permit_id){
+            console.log('dcv_permit_id')
+            console.log(dcv_permit_id)
             this.$refs.create_new_sticker_modal.dcv_permit_id = dcv_permit_id
             this.$refs.create_new_sticker_modal.isModalOpen = true
         },
@@ -345,7 +349,7 @@ export default {
             //External Request New Sticker listener
             vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-create-new-sticker]', function(e) {
                 e.preventDefault();
-                var id = $(this).attr('data-request-new-sticker');
+                var id = $(this).attr('data-create-new-sticker');
                 vm.createNewSticker(id);
             });
         },

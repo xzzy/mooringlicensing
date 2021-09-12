@@ -94,9 +94,9 @@ export default {
             vm.errors = false
             vm.processing = true
             vm.$emit("sendData", {
-                "details": vm.details,
-                "approval_id": vm.approval_id,
-                "stickers": vm.stickers,
+                "sticker_number": vm.sticker_number,
+                "dcv_permit_id": vm.dcv_permit_id,
+                "mailed_date": vm.mailed_date,
             })
         },
         cancel:function () {
@@ -106,6 +106,7 @@ export default {
             this.isModalOpen = false
             this.sticker_number = ''
             this.mailed_date = null
+            $('#mailed_date_elem').val('')
             this.errors = false
             this.processing = false
             this.dcv_permit_id = null
