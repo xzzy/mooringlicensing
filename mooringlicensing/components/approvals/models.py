@@ -1613,7 +1613,8 @@ class Sticker(models.Model):
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
     sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True)
-    approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')
+    approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')  # Sticker links to either approval or dcv_permit, never to both.
+    dcv_permit = models.ForeignKey(DcvPermit, blank=True, null=True, related_name='stickers')
     printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
     # vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
