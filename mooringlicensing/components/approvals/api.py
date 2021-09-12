@@ -934,6 +934,16 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_vessel
 
+    @detail_route(methods=['POST',])
+    @basic_exception_handler
+    def create_new_sticker(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data
+
+        # TODO: create a new sticker for the DcvPermit
+
+        return Response({})
+
     def create(self, request, *args, **kwargs):
         data = request.data
 
