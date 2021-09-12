@@ -25,7 +25,8 @@ from mooringlicensing.components.organisations.models import (
     Organisation
 )
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
-from mooringlicensing.components.proposals.serializers import InternalProposalSerializer #EmailUserAppViewSerializer
+from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
+    MooringSimpleSerializer  # EmailUserAppViewSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
@@ -1093,6 +1094,8 @@ class StickerSerializer(serializers.ModelSerializer):
     sent_date = serializers.SerializerMethodField()
     sticker_action_details = StickerActionDetailSerializer(many=True)
     fee_constructor = FeeConstructorSerializer()
+    vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
+    moorings = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1106,6 +1109,8 @@ class StickerSerializer(serializers.ModelSerializer):
             'sent_date',
             'sticker_action_details',
             'fee_constructor',
+            'vessel_rego_no',
+            'moorings',
         )
         datatables_always_serialize = (
             'id',
@@ -1117,7 +1122,17 @@ class StickerSerializer(serializers.ModelSerializer):
             'sent_date',
             'sticker_action_details',
             'fee_constructor',
+            'vessel_rego_no',
+            'moorings',
         )
+
+    def get_moorings(self, obj):
+        moas = obj.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT))
+        moorings = []
+        for moa in moas:
+            moorings.append(moa.mooring)
+        serializers = MooringSimpleSerializer(moorings, many=True)
+        return serializers.data
 
     def get_status(self, obj):
         choices = dict(Sticker.STATUS_CHOICES)
