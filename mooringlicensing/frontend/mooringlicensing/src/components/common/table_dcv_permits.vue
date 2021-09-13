@@ -190,7 +190,11 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return '(TODO)'
+                    let ret_str = ''
+                    for(let sticker of full.stickers){
+                        ret_str += sticker.number + '<br />'
+                    }
+                    return ret_str
                 }
             }
         },
