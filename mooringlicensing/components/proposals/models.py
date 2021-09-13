@@ -2849,21 +2849,19 @@ class Mooring(models.Model):
     @property
     def status(self):
         from mooringlicensing.components.approvals.models import MooringOnApproval
-        #status = 'Unallocated'
-        status = 'Unlicensed'
+        #status = 'Unlicensed'
+        status = ''
         ## check for Mooring Licences
         #if MooringOnApproval.objects.filter(mooring=self, approval__status='current'):
         if self.mooring_licence and self.mooring_licence.status in ['current', 'suspended']:
             status = 'Licensed'
-            #status = 'Allocated'
         if not status:
             # check for Mooring Applications
             proposals = self.ria_generated_proposal.exclude(processing_status__in=['approved', 'declined', 'discarded'])
             for proposal in proposals:
                 if proposal.child_obj.code == 'mla':
                     status = 'Licence Application'
-                    #status = 'Offered'
-        return status
+        return status if status else 'Unlicenced'
 
     #@property
     def suitable_vessel(self, vessel_details):
@@ -3001,7 +2999,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
-    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    #vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -3025,7 +3023,8 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
 
     @property
     def vessel_applicable_length(self):
-        return self.vessel_overall_length
+        #return self.vessel_overall_length
+        return self.vessel_length
 
 
 class CompanyOwnership(models.Model):
