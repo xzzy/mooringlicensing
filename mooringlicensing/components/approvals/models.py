@@ -150,6 +150,7 @@ class ApprovalHistory(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+        ordering = ['-id',]
 
 
 ## Should be VesselOwnershipOnApproval ???
