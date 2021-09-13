@@ -26,9 +26,9 @@
                     </table>
                     {% for arrival in dcv_admission.dcv_admission_arrivals.all %}
                     {% if arrival.private_visit %}
-                        <div>
+                        <p>
                             For payment of daily admissions for your private visit for {{ arrival.arrival_date }} click <a :href="daily_admission_url" target="_blank">here</a>
-                        </div>
+                        </p>
                     {% endif %}
                     {% endfor %}
                     <br/>
