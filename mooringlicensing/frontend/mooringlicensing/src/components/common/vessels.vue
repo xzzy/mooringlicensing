@@ -180,12 +180,12 @@
                     <input :readonly="readonly" type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
                 </div>
             </div>
-            <div class="row form-group">
+            <!--div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Overall length of vessel</label>
                 <div class="col-sm-2">
                     <input :readonly="readonly" type="number" min="1" class="form-control" id="overall_length" placeholder="" v-model="vessel.vessel_details.vessel_overall_length" required=""/>
                 </div>
-            </div>
+            </div-->
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Displacement tonnage</label>
                 <div class="col-sm-2">
@@ -824,7 +824,7 @@ from '@/utils/hooks'
                     let vessel_details = {};
                     vessel_details.vessel_type = this.proposal.vessel_type;
                     vessel_details.vessel_name = this.proposal.vessel_name;
-                    vessel_details.vessel_overall_length = this.proposal.vessel_overall_length;
+                    //vessel_details.vessel_overall_length = this.proposal.vessel_overall_length;
                     vessel_details.vessel_length = this.proposal.vessel_length;
                     vessel_details.vessel_draft = this.proposal.vessel_draft;
                     vessel_details.vessel_beam = this.proposal.vessel_beam;
