@@ -1183,6 +1183,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
     permits = serializers.SerializerMethodField()
+    stickers = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
@@ -1198,6 +1199,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'fee_invoice_url',
             'invoices',
             'permits',
+            'stickers',
             )
         datatables_always_serialize = (
             'id',
@@ -1211,7 +1213,15 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'fee_invoice_url',
             'invoices',
             'permits',
+            'stickers',
             )
+
+    def get_stickers(self, obj):
+        stickers = []
+        for sticker in obj.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,]):
+            serializer = StickerSerializer(sticker)
+            stickers.append(serializer.data)
+        return stickers
 
     def get_permits(self, obj):
         permit_urls = []
