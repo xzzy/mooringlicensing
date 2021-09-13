@@ -46,7 +46,7 @@
                     </div>
                     <div v-else class="row">
                         <div class="col-sm-12">
-                            <div><strong>You will be asked to pay the daily admission for your private visit after successful submission of the DCV admission.<strong></div>
+                            <div><strong>You will be asked to pay the daily admission for your private visit after successful submission of the DCV admission.</strong></div>
                         </div>
                     </div>
                 </template>
