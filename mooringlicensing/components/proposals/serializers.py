@@ -216,6 +216,17 @@ class MooringSerializer(serializers.ModelSerializer):
         return obj.mooring_bay.name
 
 
+class MooringSimpleSerializer(serializers.ModelSerializer):
+    mooring_bay_name = serializers.CharField(source='mooring_bay.name')
+
+    class Meta:
+        model = Mooring
+        fields = (
+            'name',
+            'mooring_bay_name',
+        )
+
+
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()

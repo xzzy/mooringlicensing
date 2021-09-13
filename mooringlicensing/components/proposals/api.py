@@ -1,46 +1,32 @@
 import traceback
-import json
-from django.db.models import Q, Min
-from django.db import transaction, connection
+import pytz
+from django.db.models import Q
+from django.db import transaction
 from django.core.exceptions import ValidationError
-from rest_framework import viewsets, serializers, status, generics, views
-from rest_framework.decorators import detail_route, list_route, renderer_classes, parser_classes
+from rest_framework import viewsets, serializers, status, views
+from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from datetime import datetime, date
-# from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
-# from rest_framework.pagination import PageNumberPagination
-from collections import OrderedDict
-# from django.core.cache import cache
+from datetime import datetime
+from ledger.settings_base import TIME_ZONE
 from ledger.accounts.models import EmailUser, Address
-# from ledger.address.models import Country
-# from datetime import datetime, timedelta, date
 from mooringlicensing import settings
 from mooringlicensing.components.proposals.utils import (
         save_proponent_data,
         save_assessor_data, 
-        # proposal_submit,
         save_bare_vessel_data
         )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
-#from mooringlicensing.utils import missing_required_fields
 from mooringlicensing.components.main.utils import (
-        check_db_connection, 
         add_cache_control,
         get_bookings,
         )
 
 from django.urls import reverse
-from django.shortcuts import render, redirect, get_object_or_404
-from mooringlicensing.components.main.models import (
-        Document, #Region, District, Tenure, 
-        #ApplicationType, 
-        )
+from django.shortcuts import redirect
 from mooringlicensing.components.proposals.models import (
-    #ProposalType,
     Proposal,
-    ProposalDocument,
     ProposalRequirement,
     ProposalStandardRequirement,
     AmendmentRequest,
@@ -113,9 +99,6 @@ from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 
         LookupApprovalSerializer,
         )
-from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.compliances.serializers import ComplianceSerializer
-from ledger.payments.invoice.models import Invoice
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
         )
@@ -125,14 +108,9 @@ from mooringlicensing.components.main.decorators import (
         query_debugger
         )
 from mooringlicensing.helpers import is_customer, is_internal
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
-from rest_framework.filters import BaseFilterBackend
-import reversion
 from reversion.models import Version
 from copy import deepcopy
 
@@ -161,7 +139,7 @@ class GetDcvOrganisations(views.APIView):
     def get(self, request, format=None):
         data = DcvOrganisation.objects.all()
         data_transform = [{'id': org.id, 'name': org.name} for org in data]
-        return Response({"results": data_transform})
+        return Response(data_transform)
 
 
 class GetDcvVesselRegoNos(views.APIView):
@@ -365,6 +343,18 @@ class GetApplicationTypeDescriptions(views.APIView):
 
     def get(self, request, format=None):
         return add_cache_control(Response(Proposal.application_type_descriptions()))
+
+
+class GetStickerReplacementFeeItem(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        from mooringlicensing.components.payments_ml.models import FeeItemStickerReplacement
+
+        current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+        fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
+
+        return add_cache_control(Response({'amount': fee_item.amount, 'incur_gst': fee_item.incur_gst}))
 
 
 class GetPaymentSystemId(views.APIView):
