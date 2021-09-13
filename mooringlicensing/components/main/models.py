@@ -228,7 +228,7 @@ class GlobalSettings(models.Model):
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
     value = models.CharField(max_length=255)
-    _file = models.FileField(upload_to='dcv_permit_template', null=True, blank=True)
+    _file = models.FileField(upload_to='permit_template', null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
