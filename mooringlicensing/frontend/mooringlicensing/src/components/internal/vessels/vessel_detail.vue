@@ -65,14 +65,14 @@
                                     {{ vessel.vessel_details.vessel_length }}
                                 </div>
                             </div>
-                            <div class="row form-group">
+                            <!--div class="row form-group">
                                 <div class="col-sm-3">
                                     <label>Overall length of vessel:</label>
                                 </div>
                                 <div class="col-sm-6">
                                     {{ vessel.vessel_details.vessel_overall_length }}
                                 </div>
-                            </div>
+                            </div-->
                             <div class="row form-group">
                                 <div class="col-sm-3">
                                     <label>Displacement tonnage:</label>
