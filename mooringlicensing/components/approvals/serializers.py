@@ -1184,6 +1184,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     invoices = serializers.SerializerMethodField()
     permits = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
+    display_create_sticker_action = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
@@ -1200,6 +1201,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'invoices',
             'permits',
             'stickers',
+            'display_create_sticker_action',
             )
         datatables_always_serialize = (
             'id',
@@ -1214,14 +1216,21 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'invoices',
             'permits',
             'stickers',
+            'display_create_sticker_action',
             )
 
     def get_stickers(self, obj):
         stickers = []
-        for sticker in obj.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,]):
+        for sticker in obj.stickers.filter(status__in=Sticker.EXPOSED_STATUS):
             serializer = StickerSerializer(sticker)
             stickers.append(serializer.data)
         return stickers
+
+    def get_display_create_sticker_action(self, obj):
+        display = True
+        if obj.stickers.exclude(status__in=[Sticker.STICKER_STATUS_LOST,]).count():
+            display = False
+        return display
 
     def get_permits(self, obj):
         permit_urls = []
