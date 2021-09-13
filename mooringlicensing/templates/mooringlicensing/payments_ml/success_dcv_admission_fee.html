@@ -25,9 +25,11 @@
                         </tr>
                     </table>
                     {% for arrival in dcv_admission.dcv_admission_arrivals.all %}
-                    <div>
-                        For payment of daily admissions for your private visit for {{ arrival.arrival_date }} click <a :href="daily_admission_url" target="_blank">here</a>
-                    </div>
+                    {% if arrival.private_visit %}
+                        <div>
+                            For payment of daily admissions for your private visit for {{ arrival.arrival_date }} click <a :href="daily_admission_url" target="_blank">here</a>
+                        </div>
+                    {% endif %}
                     {% endfor %}
                     <br/>
                     <!-- label>Please note that it may take up to 21 business days to process your application.<br/><br/>If there is any missing information, the Department may assign this application back to you to complete. In that case you will be notified by email.</label -->

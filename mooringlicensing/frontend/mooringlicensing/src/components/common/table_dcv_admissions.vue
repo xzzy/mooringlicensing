@@ -200,7 +200,13 @@ export default {
                 'render': function(row, type, full){
                     let ret = ''
                     for (let arrival of full.arrivals){
-                        ret += '<div>' + arrival.arrival_date + '</div>'
+                        if (arrival){
+                            ret += '<div>' + moment(arrival.arrival_date).format('DD/MM/YYYY') + '</div>'
+                        }
+                        else {
+                            ret += ''
+                        }
+
                     }
                     return ret
                 }
