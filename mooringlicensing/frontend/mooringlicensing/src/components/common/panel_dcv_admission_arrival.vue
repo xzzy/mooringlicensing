@@ -44,14 +44,11 @@
                             <div><strong>You have an AAP/AUP/ML for the vessel.  Please submit the DCV Admission.</strong></div>
                         </div>
                     </div>
-<!--
                     <div v-else class="row">
                         <div class="col-sm-12">
-                            <div><strong>Please click <a :href="daily_admission_url" target="_blank">here</a> to pay for a daily admission permit.</strong></div>
-                            <div><strong>After paying for your daily admission please click Submit to complete this DCV Admission.</strong></div>
+                            <div><strong>You will be asked to pay the daily admission for your private visit after successful submission of the DCV admission.</strong></div>
                         </div>
                     </div>
--->
                 </template>
                 <template v-else>
                     <div class="row form-group">
