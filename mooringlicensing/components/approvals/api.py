@@ -47,7 +47,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer,
     EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
-    ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer,
+    ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer, StickerForDcvSaveSerializer,
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
@@ -938,11 +938,25 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create_new_sticker(self, request, *args, **kwargs):
         instance = self.get_object()
-        data = request.data
 
-        # TODO: create a new sticker for the DcvPermit
+        mailed_date = None
+        if request.data['mailed_date']:
+            mailed_date = datetime.strptime(request.data['mailed_date'], '%d/%m/%Y').date()
 
-        return Response({})
+        sticker_number = request.data['sticker_number']
+        sticker_number = int(sticker_number)
+
+        data = {}
+        data['number'] = sticker_number
+        data['mailing_date'] = mailed_date
+        data['dcv_permit'] = instance.id
+        data['status'] = Sticker.STICKER_STATUS_CURRENT
+
+        serializer = StickerForDcvSaveSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        sticker = serializer.save()
+
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         data = request.data
