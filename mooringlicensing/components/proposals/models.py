@@ -3001,7 +3001,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
-    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    #vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -3025,7 +3025,8 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
 
     @property
     def vessel_applicable_length(self):
-        return self.vessel_overall_length
+        #return self.vessel_overall_length
+        return self.vessel_length
 
 
 class CompanyOwnership(models.Model):
