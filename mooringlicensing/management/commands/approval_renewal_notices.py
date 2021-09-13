@@ -58,7 +58,8 @@ class Command(BaseCommand):
             queries &= Q(replaced_by__isnull=True)
             queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
 
-        for a in approval_class.objects.filter(queries):
+        approvals = approval_class.objects.filter(queries)
+        for a in approvals:
             try:
                 if approval_class == DcvPermit:
                     send_approval_renewal_email_notification_dcvp(a)
