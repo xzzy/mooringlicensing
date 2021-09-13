@@ -205,6 +205,7 @@ class GlobalSettings(models.Model):
     KEY_APPROVAL_TEMPLATE_FILE = 'approval_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
+    KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
 
     keys_for_file = (
         KEY_DCV_PERMIT_TEMPLATE_FILE,
@@ -217,6 +218,7 @@ class GlobalSettings(models.Model):
         (KEY_APPROVAL_TEMPLATE_FILE, 'Approval template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
+        (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit')
     )
     default_values = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
@@ -224,11 +226,12 @@ class GlobalSettings(models.Model):
         (KEY_APPROVAL_TEMPLATE_FILE, ''),
         (KEY_MINIMUM_VESSEL_LENGTH, 3.75),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 6.50),
+        (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 200000)
     )
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
     value = models.CharField(max_length=255)
-    _file = models.FileField(upload_to='dcv_permit_template', null=True, blank=True)
+    _file = models.FileField(upload_to='approval_permit_template', null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'

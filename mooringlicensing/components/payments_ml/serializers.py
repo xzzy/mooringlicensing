@@ -115,6 +115,33 @@ class NumberOfPeopleSerializer(serializers.ModelSerializer):
         )
 
 
+class FeeSeasonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeeSeason
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class DcvPermitSimpleSerializer(serializers.ModelSerializer):
+    fee_season = FeeSeasonSerializer()
+
+    class Meta:
+        model = DcvPermit
+        fields = (
+            'lodgement_number',
+            'fee_season',
+        )
+
+    # def get_fee_season(self, obj):
+    #     if obj.fee_season:
+    #         serializer = FeeSeasonSerializer(obj.fee_season)
+    #         return serializer.data
+    #     else:
+    #         return ''
+
+
 class DcvPermitSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
     dcv_organisation_id = serializers.IntegerField(required=True)
@@ -187,15 +214,6 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'start_date',
             'end_date',
             # 'permits',
-        )
-
-
-class FeeSeasonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FeeSeason
-        fields = (
-            'id',
-            'name'
         )
 
 
