@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 Dear {{ endorser.first_name }} {{ endorser.last_name }},
 
 Your endorsement for an Authorised User Permit application submitted by {{ applicant.first_name }} {{ applicant.last_name }} for your mooring {{ mooring_name }} is due by {{ due_date }}.
@@ -11,4 +11,4 @@ Please click <a href="{{ decline_url }}">here2</a> if you want to decline the ap
 Please click <a href="{{ proposal_url }}">here</a> if you want to view the application details before endorsing or declining.
 
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
-{%  endblock %}
+{% endblock %}
