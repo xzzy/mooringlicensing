@@ -198,33 +198,6 @@ export default {
                 }
             }
         },
-
-        /*
-        column_invoice: function(){
-            let vm = this
-            return {
-                // 7. Invoice
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let links = '';
-                    if (full.invoices){
-                        for (let invoice of full.invoices){
-                            links += '<div>'
-                            links +=  `<a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a>`;
-                            if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
-                            }
-                            links += '</div>'
-                        }
-                    }
-                    return links
-                }
-            }
-        },
-        */
         column_action: function(){
             let vm = this
             return {
@@ -245,7 +218,9 @@ export default {
                                 links += '</div>'
                             }
                         }
-                        links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
+                        if (full.display_create_sticker_action){
+                            links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
+                        }
                     }
                     return links
                 }
@@ -311,17 +286,16 @@ export default {
     },
     methods: {
         sendData: function(params){
-            console.log('params: ')
-            console.log(params)
-
             let vm = this
             vm.$http.post('/api/dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
                 res => {
                     console.log('res.body')
                     console.log(res.body)
+                    vm.$refs.create_new_sticker_modal.isModalOpen = false
                 },
                 err => {
                     console.log(err)
+                    vm.$refs.create_new_sticker_modal.isModalOpen = false
                 }
             )
         },
