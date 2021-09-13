@@ -36,7 +36,7 @@ from mooringlicensing.components.approvals.email import (
 #from mooringlicensing.utils import search_keys, search_multiple_keys
 from mooringlicensing.helpers import is_customer
 #from mooringlicensing.components.approvals.email import send_referral_email_notification
-from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
+from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT
 
 logger = logging.getLogger('log')
 logger_for_payment = logging.getLogger('payment_checkout')
@@ -1486,6 +1486,25 @@ class DcvPermit(RevisionedMixin):
         return False
 
     @property
+    def fee_season(self):
+        if self.dcv_permit_fees.count() < 1:
+            return None
+        elif self.dcv_permit_fees.count() == 1:
+            dcv_permit_fee = self.dcv_permit_fees.first()
+            try:
+                for fee_item in dcv_permit_fee.fee_items.all():
+                    if fee_item.fee_period and fee_item.fee_period.fee_season:
+                        return fee_item.fee_period.fee_season
+                return None
+            except:
+                return None
+        else:
+            msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self,
+                                                                                        self.dcv_permit_fees.count())
+            logger.error(msg)
+            raise ValidationError(msg)
+
+    @property
     def invoice(self):
         if self.dcv_permit_fees.count() < 1:
             return None
@@ -1683,9 +1702,13 @@ class Sticker(models.Model):
 
     @property
     def next_number(self):
-        ids = map(int, [i for i in Sticker.objects.all().values_list('number', flat=True) if i])
-        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
-        return max(ids) + 1 if ids else 1
+        # ids = map(int, [i for i in Sticker.objects.all().values_list('number', flat=True) if i])
+        try:
+            ids = [int(i) for i in Sticker.objects.all().values_list('number', flat=True) if i and int(i) < MIN_DCV_STICKER_NUMBER]
+            # ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
+            return max(ids) + 1 if ids else 1
+        except Exception as e:
+            print(e)
 
     def save(self, *args, **kwargs):
         super(Sticker, self).save(*args, **kwargs)

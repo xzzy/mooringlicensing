@@ -5,8 +5,8 @@
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                 <div class="row form-group">
                     <label class="col-sm-2 control-label" for="sticker_number">Sticker Number</label>
-                    <div class="col-sm-9">
-                        <input type="text" class="col-sm-9 form-control" name="sticker_number" id="sticker_number" v-model="sticker_number"></textarea>
+                    <div class="col-sm-3">
+                        <input type="number" class="col-sm-9 form-control" name="sticker_number" id="sticker_number" v-model="sticker_number" />
                     </div>
                 </div>
                 <div class="row form-group">
