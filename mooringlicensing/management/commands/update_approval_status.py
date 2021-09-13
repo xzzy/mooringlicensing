@@ -3,7 +3,10 @@ from django.utils import timezone
 from django.db.models import Q
 
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import Approval, ApprovalUserAction
+from mooringlicensing.components.approvals.models import (
+    Approval,
+    ApprovalUserAction,
+)
 from mooringlicensing.components.proposals.models import ProposalUserAction
 from ledger.accounts.models import EmailUser
 import datetime
