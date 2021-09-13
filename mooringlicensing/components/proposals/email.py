@@ -575,8 +575,8 @@ def send_endorser_reminder_email(proposal, request=None):
     # 15
     email = TemplateEmailBase(
         subject='Your endorsement of an Authorised User Permit application is due',
-        html_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html',
-        txt_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt',
+        html_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.html',
+        txt_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.txt',
     )
 
     url = settings.SITE_URL if settings.SITE_URL else ''
