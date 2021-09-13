@@ -246,7 +246,9 @@ CODE_DAYS_BEFORE_PERIOD_MLA = 'MLApplicationSubmitNotification'
 CODE_DAYS_IN_PERIOD_MLA = 'MLApplicationSubmitPeriod'
 CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLADocumentsSubmitPeriod'
 CODE_DAYS_FOR_ENDORSER_AUA = 'AUAEndorseDeclinePeriod'
-CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'
+CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'  # Split this into 5 (WL, AA, AU, ML and DCVP)
+
+
 
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     {
