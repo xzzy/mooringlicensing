@@ -144,7 +144,14 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
+                    if (full.approval){
+                        return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
+                    } else if (full.dcv_permit) {
+                        return '<span class="dcv_permit_lodgement_number">' + full.dcv_permit.lodgement_number + '</span>'
+                    } else {
+                        return ''
+                    }
+
                 },
                 name: 'approval__lodgement_number'
             }
@@ -190,9 +197,15 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log('column_year')
+                    console.log(full.dcv_permit)
                     if (full.fee_constructor){
                         if (full.fee_constructor.fee_season){
                             return full.fee_constructor.fee_season.name
+                        }
+                    } else if (full.dcv_permit) {
+                        if (full.dcv_permit.fee_season){
+                            return full.dcv_permit.fee_season.name
                         }
                     }
                     return ''
@@ -607,5 +620,8 @@ export default {
     text-indent: 0 !important;
     font-family: 'Courier New', Courier monospace;
     margin: 5px;
+}
+.dcv_permit_lodgement_number {
+    padding: 8px 10px;
 }
 </style>
