@@ -37,6 +37,10 @@
                 />
             </div>
         </div>
+        <CreateNewStickerModal
+            ref="create_new_sticker_modal"
+            @sendData="sendData"
+        />
     </div>
 </template>
 
@@ -44,6 +48,7 @@
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
+import CreateNewStickerModal from "@/components/common/create_new_sticker_modal.vue"
 
 export default {
     name: 'TableDcvPermits',
@@ -72,7 +77,8 @@ export default {
         }
     },
     components:{
-        datatable
+        datatable,
+        CreateNewStickerModal,
     },
     watch: {
         filterDcvOrganisation: function() {
@@ -92,15 +98,9 @@ export default {
             return this.level == 'internal'
         },
         datatable_headers: function(){
-            /*
-            if (this.is_external){
-                return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
-            }
             if (this.is_internal){
-                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
+                return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Sticker', 'Action']
             }
-            */
-            return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Action']
         },
         column_id: function(){
             return {
@@ -183,6 +183,17 @@ export default {
                 }
             }
         },
+        column_sticker: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return '(TODO)'
+                }
+            }
+        },
 
         /*
         column_invoice: function(){
@@ -220,14 +231,17 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     let links = '';
-                    if (full.invoices){
-                        for (let invoice of full.invoices){
-                            links += '<div>'
-                            if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                    if (vm.is_internal){
+                        if (full.invoices){
+                            for (let invoice of full.invoices){
+                                links += '<div>'
+                                if (!vm.is_external){
+                                    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                                }
+                                links += '</div>'
                             }
-                            links += '</div>'
                         }
+                        links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
                     }
                     return links
                 }
@@ -243,6 +257,7 @@ export default {
                 vm.column_organisation,
                 vm.column_status,
                 vm.column_year,
+                vm.column_sticker,
                 vm.column_action,
             ]
             let search = true
@@ -291,43 +306,38 @@ export default {
         }
     },
     methods: {
+        sendData: function(params){
+            console.log('params: ')
+            console.log(params)
+
+            let vm = this
+            vm.$http.post('/api/dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
+                res => {
+                    console.log('res.body')
+                    console.log(res.body)
+                },
+                err => {
+                    console.log(err)
+                }
+            )
+        },
+        createNewSticker: function(dcv_permit_id){
+            console.log('dcv_permit_id')
+            console.log(dcv_permit_id)
+            this.$refs.create_new_sticker_modal.dcv_permit_id = dcv_permit_id
+            this.$refs.create_new_sticker_modal.isModalOpen = true
+        },
         new_application_button_clicked: function(){
             this.$router.push({
                 name: 'apply_proposal'
             })
-        },
-        discardProposal: function(proposal_id) {
-            let vm = this;
-            swal({
-                title: "Discard Application",
-                text: "Are you sure you want to discard this proposal?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Discard Application',
-                confirmButtonColor:'#dc3545'
-            }).then(() => {
-                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-                .then((response) => {
-                    swal(
-                        'Discarded',
-                        'Your proposal has been discarded',
-                        'success'
-                    )
-                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.application_datatable.vmDataTable.draw();
-                }, (error) => {
-                    console.log(error);
-                });
-            },(error) => {
-
-            });
         },
         fetchFilterLists: function(){
             let vm = this;
 
             // DcvOrganisation list
             vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
-                vm.dcv_organisations = response.body.results
+                vm.dcv_organisations = response.body
             },(error) => {
                 console.log(error);
             })
@@ -341,10 +351,12 @@ export default {
         },
         addEventListeners: function(){
             let vm = this
-            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
+
+            //External Request New Sticker listener
+            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-create-new-sticker]', function(e) {
                 e.preventDefault();
-                let id = $(this).attr('data-discard-proposal');
-                vm.discardProposal(id)
+                var id = $(this).attr('data-create-new-sticker');
+                vm.createNewSticker(id);
             });
         },
     },
