@@ -157,6 +157,8 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
             self.template_name = 'mooringlicensing/proposals/authorised_user_application_endorsed.html'
             proposal.endorse_approved(request)
             # TODO: Upon endorsement, the applicant and site licensee receive an email
+            from mooringlicensing.components.proposals.email import send_notification_email_upon_submit_to_assessor
+            send_notification_email_upon_submit_to_assessor(request, proposal)
         elif action == 'decline':
             self.template_name = 'mooringlicensing/proposals/authorised_user_application_declined.html'
             proposal.endorse_declined(request)

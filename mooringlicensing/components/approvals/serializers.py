@@ -7,7 +7,7 @@ from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer, \
-    DcvAdmissionArrivalSerializer
+    DcvAdmissionArrivalSerializer, DcvPermitSimpleSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -1088,6 +1088,35 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
         )
 
 
+class StickerForDcvSaveSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Sticker
+        fields = (
+            'status',
+            'number',
+            'dcv_permit',
+            'mailing_date',
+        )
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        from mooringlicensing.components.main.models import GlobalSettings
+        min_number = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT).value
+        if data['number'] < min_number:
+            field_errors['number'] = ['DCV Sticker number must be greater than ' + GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT,]
+
+        # Raise errors
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
+
+
 class StickerSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     approval = ApprovalSimpleSerializer()
@@ -1096,6 +1125,7 @@ class StickerSerializer(serializers.ModelSerializer):
     fee_constructor = FeeConstructorSerializer()
     vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
     moorings = serializers.SerializerMethodField()
+    dcv_permit = DcvPermitSimpleSerializer()
 
     class Meta:
         model = Sticker
@@ -1111,6 +1141,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'fee_constructor',
             'vessel_rego_no',
             'moorings',
+            'dcv_permit',
         )
         datatables_always_serialize = (
             'id',
@@ -1124,6 +1155,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'fee_constructor',
             'vessel_rego_no',
             'moorings',
+            'dcv_permit',
         )
 
     def get_moorings(self, obj):
