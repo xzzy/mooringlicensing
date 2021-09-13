@@ -1485,24 +1485,24 @@ class DcvPermit(RevisionedMixin):
             return True
         return False
 
-    @property
-    def fee_season(self):
-        if self.dcv_permit_fees.count() < 1:
-            return None
-        elif self.dcv_permit_fees.count() == 1:
-            dcv_permit_fee = self.dcv_permit_fees.first()
-            try:
-                for fee_item in dcv_permit_fee.fee_items.all():
-                    if fee_item.fee_period and fee_item.fee_period.fee_season:
-                        return fee_item.fee_period.fee_season
-                return None
-            except:
-                return None
-        else:
-            msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self,
-                                                                                        self.dcv_permit_fees.count())
-            logger.error(msg)
-            raise ValidationError(msg)
+    # @property
+    # def fee_season(self):
+    #     if self.dcv_permit_fees.count() < 1:
+    #         return None
+    #     elif self.dcv_permit_fees.count() == 1:
+    #         dcv_permit_fee = self.dcv_permit_fees.first()
+    #         try:
+    #             for fee_item in dcv_permit_fee.fee_items.all():
+    #                 if fee_item.fee_period and fee_item.fee_period.fee_season:
+    #                     return fee_item.fee_period.fee_season
+    #             return None
+    #         except:
+    #             return None
+    #     else:
+    #         msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self,
+    #                                                                                     self.dcv_permit_fees.count())
+    #         logger.error(msg)
+    #         raise ValidationError(msg)
 
     @property
     def invoice(self):

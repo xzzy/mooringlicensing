@@ -7,7 +7,7 @@ from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer, \
-    DcvAdmissionArrivalSerializer
+    DcvAdmissionArrivalSerializer, DcvPermitSimpleSerializer
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -1125,7 +1125,7 @@ class StickerSerializer(serializers.ModelSerializer):
     fee_constructor = FeeConstructorSerializer()
     vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
     moorings = serializers.SerializerMethodField()
-    # dcv_permit = DcvPermitSerializer()
+    dcv_permit = DcvPermitSimpleSerializer()
 
     class Meta:
         model = Sticker
@@ -1141,7 +1141,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'fee_constructor',
             'vessel_rego_no',
             'moorings',
-            # 'dcv_permit',
+            'dcv_permit',
         )
         datatables_always_serialize = (
             'id',
@@ -1155,7 +1155,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'fee_constructor',
             'vessel_rego_no',
             'moorings',
-            # 'dcv_permit',
+            'dcv_permit',
         )
 
     def get_moorings(self, obj):

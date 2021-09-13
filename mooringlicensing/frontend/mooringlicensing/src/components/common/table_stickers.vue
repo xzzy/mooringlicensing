@@ -197,9 +197,15 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log('column_year')
+                    console.log(full.dcv_permit)
                     if (full.fee_constructor){
                         if (full.fee_constructor.fee_season){
                             return full.fee_constructor.fee_season.name
+                        }
+                    } else if (full.dcv_permit) {
+                        if (full.dcv_permit.fee_season){
+                            return full.dcv_permit.fee_season.name
                         }
                     }
                     return ''
