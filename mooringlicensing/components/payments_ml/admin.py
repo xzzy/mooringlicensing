@@ -238,12 +238,13 @@ class FeeConstructorForm(forms.ModelForm):
             # Exclude the instance itself (allow edit)
             existing_fee_constructors = existing_fee_constructors.exclude(id=self.instance.id)
         for existing_fc in existing_fee_constructors:
-            if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
-                # Season overwrapps
-                raise forms.ValidationError('The season applied overwraps the existing season: {} ({} to {})'.format(
-                    existing_fc.fee_season,
-                    existing_fc.fee_season.start_date,
-                    existing_fc.fee_season.end_date))
+            if existing_fc.fee_season.start_date and existing_fc.fee_season.end_date:
+                if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
+                    # Season overwrapps
+                    raise forms.ValidationError('The season applied overwraps the existing season: {} ({} to {})'.format(
+                        existing_fc.fee_season,
+                        existing_fc.fee_season.start_date,
+                        existing_fc.fee_season.end_date))
 
         # Check if the season start and end date of the annual admission fee_constructor match those of the authorised user fee_constructor and mooring licence fee_constructor.
         application_types_aa_au_ml = ApplicationType.objects.filter(code__in=(AnnualAdmissionApplication.code, AuthorisedUserApplication.code, MooringLicenceApplication.code))
