@@ -321,9 +321,9 @@ class Approval(RevisionedMixin):
 
         #stickers = self.stickers.all()
         #stickers = self.stickers.filter(status__in=['current', 'awaiting_printing'])
-        # stickers = self.stickers.filter(status__in=['ready', 'current', 'awaiting_printing'])
-        # for sticker in stickers:
-        #     new_approval_history_entry.stickers.add(sticker)
+        stickers = self.stickers.filter(status__in=['ready', 'current', 'awaiting_printing'])
+        for sticker in stickers:
+            new_approval_history_entry.stickers.add(sticker)
 
         approval_history = self.approvalhistory_set.all()
         ## rewrite history
@@ -475,8 +475,8 @@ class Approval(RevisionedMixin):
         return max(ids) + 1 if ids else 1
 
     def save(self, *args, **kwargs):
-        if self.lodgement_number == '':
-            self.lodgement_number = self.child_obj.prefix + '{0:06d}'.format(self.next_id)
+        #if self.lodgement_number == '':
+         #   self.lodgement_number = self.child_obj.prefix + '{0:06d}'.format(self.next_id)
             #self.save()
         super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
@@ -878,7 +878,10 @@ class WaitingListAllocation(Approval):
     #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
         super(Approval, self).save(*args, **kwargs)
+        #super(WaitingListAllocation, self).save(*args, **kwargs)
 
     def manage_stickers(self, proposal):
         # No stickers for WL
@@ -909,6 +912,9 @@ class AnnualAdmissionPermit(Approval):
     #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+        #super(AnnualAdmissionPermit, self).save(*args, **kwargs)
         super(Approval, self).save(*args, **kwargs)
         #self.approval.refresh_from_db()
 
@@ -974,7 +980,10 @@ class AuthorisedUserPermit(Approval):
     #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
         super(Approval, self).save(*args, **kwargs)
+        #super(AuthorisedUserPermit, self).save(*args, **kwargs)
 
     def internal_reissue(self):
         ## now reissue approval
@@ -1132,7 +1141,10 @@ class MooringLicence(Approval):
     #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
+        if self.lodgement_number == '':
+            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
         super(Approval, self).save(*args, **kwargs)
+        #super(MooringLicence, self).save(*args, **kwargs)
 
     def internal_reissue(self):
         ## now reissue approval
