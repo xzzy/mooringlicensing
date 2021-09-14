@@ -358,7 +358,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
 
-def send_create_mooring_licence_application_email_notification(request, approval):
+def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
     # 6
     email = TemplateEmailBase(
         subject='Invitation to apply for a mooring licence',
@@ -366,12 +366,12 @@ def send_create_mooring_licence_application_email_notification(request, approval
         txt_template='mooringlicensing/emails/create_mooring_licence_application_notification.txt',
     )
 
-    proposal = approval.current_proposal
-    ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
+    # proposal = waiting_list_allocation.current_proposal
+    ria_generated_proposal = waiting_list_allocation.ria_generated_proposal.all()[0] if waiting_list_allocation.ria_generated_proposal.all() else None
     #url=settings.SITE_URL if settings.SITE_URL else ''
     #url += reverse('external')
 
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id}))
     if "-internal" in url:
         # remove '-internal'. This email is for external submitters
         url = ''.join(url.split('-internal'))
@@ -384,9 +384,9 @@ def send_create_mooring_licence_application_email_notification(request, approval
 
     context = {
         'public_url': get_public_url(request),
-        'approval': approval,
-        'proposal': proposal,
-        'recipient': proposal.submitter,
+        'approval': waiting_list_allocation,
+        'proposal': mooring_licence_application,
+        'recipient': mooring_licence_application.submitter,
         'application_period': days_setting_application_period.number_of_days,
         'documents_period': days_setting_documents_period.number_of_days,
         'mla_proposal': ria_generated_proposal,
@@ -401,8 +401,8 @@ def send_create_mooring_licence_application_email_notification(request, approval
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
     attachments = []
-    if approval.waiting_list_offer_documents.all():
-        for doc in approval.waiting_list_offer_documents.all():
+    if waiting_list_allocation.waiting_list_offer_documents.all():
+        for doc in waiting_list_allocation.waiting_list_offer_documents.all():
             #file_name = doc._file.name
             file_name = doc.name
             attachment = (file_name, doc._file.file.read())
@@ -410,7 +410,7 @@ def send_create_mooring_licence_application_email_notification(request, approval
 
     bcc = request.data.get('cc_email')
     bcc_list = bcc.split(',')
-    msg = email.send(proposal.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
+    msg = email.send(mooring_licence_application.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
     #msg = email.send(proposal.submitter.email, attachments=attachments, context=context)
     sender = settings.DEFAULT_FROM_EMAIL
     #_log_approval_email(msg, approval, sender=sender_user)
