@@ -1345,7 +1345,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                         )
             if new_proposal:
                 # send email
-                send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
+                send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)
                 # update waiting_list_allocation
                 waiting_list_allocation.internal_status = 'offered'
                 ## BB 20210609 - we no longer reset wla_queue_date
