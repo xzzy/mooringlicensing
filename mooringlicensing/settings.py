@@ -246,7 +246,11 @@ CODE_DAYS_BEFORE_PERIOD_MLA = 'MLApplicationSubmitNotification'
 CODE_DAYS_IN_PERIOD_MLA = 'MLApplicationSubmitPeriod'
 CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLADocumentsSubmitPeriod'
 CODE_DAYS_FOR_ENDORSER_AUA = 'AUAEndorseDeclinePeriod'
-CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'
+CODE_DAYS_FOR_RENEWAL_WLA = 'RenewalNotificationWLA'
+CODE_DAYS_FOR_RENEWAL_AAP = 'RenewalNotificationAAP'
+CODE_DAYS_FOR_RENEWAL_AUP = 'RenewalNotificationAUP'
+CODE_DAYS_FOR_RENEWAL_ML = 'RenewalNotificationML'
+CODE_DAYS_FOR_RENEWAL_DCVP = 'RenewalNotificationDCVP'
 
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     {
@@ -292,10 +296,34 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
         'default': 28
     },
     {
-        'code': CODE_DAYS_FOR_RENEWAL,
-        'name': 'AAP, AUP and ML Renewal notification',
+        'code': CODE_DAYS_FOR_RENEWAL_WLA,
+        'name': 'WLA Renewal notification',
         'description': 'Number of days before expiry date of the approvals to email',
-        'default': 28
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_AAP,
+        'name': 'AAP Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_AUP,
+        'name': 'AUP Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_ML,
+        'name': 'ML Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_DCVP,
+        'name': 'DCVP Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
     },
 ]
 
