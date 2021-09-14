@@ -208,7 +208,8 @@ class Approval(RevisionedMixin):
         #(INTERNAL_STATUS_LICENCE_APPROVED, 'Mooring Licence approved'),
         #(INTERNAL_STATUS_LICENCE_DECLINED, 'Mooring Licence declined'),
         )
-    lodgement_number = models.CharField(max_length=9, blank=True, default='')
+    #lodgement_number = models.CharField(max_length=9, blank=True, default='')
+    lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
     internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
@@ -466,13 +467,29 @@ class Approval(RevisionedMixin):
     def title(self):
         return self.current_proposal.title
 
+    @property
+    def next_id(self):
+        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in Approval.objects.all().values_list('lodgement_number', flat=True) if i])
+        ids = list(ids)
+        return max(ids) + 1 if ids else 1
+
     def save(self, *args, **kwargs):
+        if self.lodgement_number == '':
+            self.lodgement_number = self.child_obj.prefix + '{0:06d}'.format(self.next_id)
+            #self.save()
         super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
         if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled', 'surrendered']:
-        #if self.status != 'current':
-            ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
             self.child_obj.update_auth_user_permits()
+
+    # old
+    #def save(self, *args, **kwargs):
+    #    super(Approval, self).save(*args, **kwargs)
+    #    self.child_obj.refresh_from_db()
+    #    if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled', 'surrendered']:
+    #    #if self.status != 'current':
+    #        ## remove cancelled mooring from any current auth user permits and notify auth user permit holder
+    #        self.child_obj.update_auth_user_permits()
 
     def __str__(self):
         return self.lodgement_number
@@ -846,18 +863,21 @@ class WaitingListAllocation(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
-    @property
-    def next_id(self):
-        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in WaitingListAllocation.objects.all().values_list('lodgement_number', flat=True) if i])
-        ids = list(ids)
-        return max(ids) + 1 if ids else 1
+    #@property
+    #def next_id(self):
+    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in WaitingListAllocation.objects.all().values_list('lodgement_number', flat=True) if i])
+    #    ids = list(ids)
+    #    return max(ids) + 1 if ids else 1
+
+    #def save(self, *args, **kwargs):
+    #    super(WaitingListAllocation, self).save(*args, **kwargs)
+    #    if self.lodgement_number == '':
+    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+    #        self.save()
+    #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
-        super(WaitingListAllocation, self).save(*args, **kwargs)
-        if self.lodgement_number == '':
-            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-            self.save()
-        self.approval.refresh_from_db()
+        super(Approval, self).save(*args, **kwargs)
 
     def manage_stickers(self, proposal):
         # No stickers for WL
@@ -874,18 +894,22 @@ class AnnualAdmissionPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
-    @property
-    def next_id(self):
-        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AnnualAdmissionPermit.objects.all().values_list('lodgement_number', flat=True) if i])
-        ids = list(ids)
-        return max(ids) + 1 if ids else 1
+    #@property
+    #def next_id(self):
+    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AnnualAdmissionPermit.objects.all().values_list('lodgement_number', flat=True) if i])
+    #    ids = list(ids)
+    #    return max(ids) + 1 if ids else 1
+
+    #def save(self, *args, **kwargs):
+    #    super(AnnualAdmissionPermit, self).save(*args, **kwargs)
+    #    if self.lodgement_number == '':
+    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+    #        self.save()
+    #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
-        super(AnnualAdmissionPermit, self).save(*args, **kwargs)
-        if self.lodgement_number == '':
-            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-            self.save()
-        self.approval.refresh_from_db()
+        super(Approval, self).save(*args, **kwargs)
+        #self.approval.refresh_from_db()
 
     def manage_stickers(self, proposal):
         # Retrieve all the stickers regardless of the status
@@ -935,18 +959,21 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
-    @property
-    def next_id(self):
-        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AuthorisedUserPermit.objects.all().values_list('lodgement_number', flat=True) if i])
-        ids = list(ids)
-        return max(ids) + 1 if ids else 1
+    #@property
+    #def next_id(self):
+    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AuthorisedUserPermit.objects.all().values_list('lodgement_number', flat=True) if i])
+    #    ids = list(ids)
+    #    return max(ids) + 1 if ids else 1
+
+    #def save(self, *args, **kwargs):
+    #    super(AuthorisedUserPermit, self).save(*args, **kwargs)
+    #    if self.lodgement_number == '':
+    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+    #        self.save()
+    #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
-        super(AuthorisedUserPermit, self).save(*args, **kwargs)
-        if self.lodgement_number == '':
-            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-            self.save()
-        self.approval.refresh_from_db()
+        super(Approval, self).save(*args, **kwargs)
 
     def internal_reissue(self):
         ## now reissue approval
@@ -1090,18 +1117,21 @@ class MooringLicence(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
-    @property
-    def next_id(self):
-        ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in MooringLicence.objects.all().values_list('lodgement_number', flat=True) if i])
-        ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
-        return max(ids) + 1 if ids else 1
+    #@property
+    #def next_id(self):
+    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in MooringLicence.objects.all().values_list('lodgement_number', flat=True) if i])
+    #    ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
+    #    return max(ids) + 1 if ids else 1
+
+    #def save(self, *args, **kwargs):
+    #    super(MooringLicence, self).save(*args, **kwargs)
+    #    if self.lodgement_number == '':
+    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
+    #        self.save()
+    #    self.approval.refresh_from_db()
 
     def save(self, *args, **kwargs):
-        super(MooringLicence, self).save(*args, **kwargs)
-        if self.lodgement_number == '':
-            self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-            self.save()
-        self.approval.refresh_from_db()
+        super(Approval, self).save(*args, **kwargs)
 
     def internal_reissue(self):
         ## now reissue approval
@@ -1318,7 +1348,7 @@ class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
-    lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     skipper = models.CharField(max_length=50, blank=True, null=True)
     contact_number = models.CharField(max_length=50, blank=True, null=True)
@@ -1469,7 +1499,7 @@ class DcvPermit(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits')
-    lodgement_number = models.CharField(max_length=10, blank=True, default='')
+    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits')
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
