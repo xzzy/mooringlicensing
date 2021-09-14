@@ -246,7 +246,6 @@ CODE_DAYS_BEFORE_PERIOD_MLA = 'MLApplicationSubmitNotification'
 CODE_DAYS_IN_PERIOD_MLA = 'MLApplicationSubmitPeriod'
 CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLADocumentsSubmitPeriod'
 CODE_DAYS_FOR_ENDORSER_AUA = 'AUAEndorseDeclinePeriod'
-CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'  # Split this into 5 (WL, AA, AU, ML and DCVP)
 CODE_DAYS_FOR_RENEWAL_WLA = 'RenewalNotificationWLA'
 CODE_DAYS_FOR_RENEWAL_AAP = 'RenewalNotificationAAP'
 CODE_DAYS_FOR_RENEWAL_AUP = 'RenewalNotificationAUP'
@@ -294,12 +293,6 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
         'code': CODE_DAYS_FOR_ENDORSER_AUA,
         'name': 'AUA endorse/decline period',
         'description': 'Number of days after initial submit for the endorser to endorse/decline',
-        'default': 28
-    },
-    {
-        'code': CODE_DAYS_FOR_RENEWAL,
-        'name': 'AAP, AUP and ML Renewal notification',
-        'description': 'Number of days before expiry date of the approvals to email',
         'default': 28
     },
     {
