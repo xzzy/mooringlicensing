@@ -1252,7 +1252,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # TODO if it is an ammendment proposal then check appropriately
                 # approval, created = self.create_approval(current_datetime=current_datetime)
-                approval, created = self.child_obj.update_or_create_approval(current_datetime)
+                #approval, created = self.child_obj.update_or_create_approval(current_datetime)
+                created = None
+                if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+                    approval = self.approval
+                    approval.current_proposal=self
+                    approval.wla_queue_date = current_datetime
+                    approval.issue_date = current_datetime
+                    approval.start_date = current_datetime.date()
+                    approval.expiry_date = self.end_date
+                    approval.submitter = self.submitter
+                    approval.save()
+                else:
+                    approval, created = self.approval_class.objects.update_or_create(
+                    #approval, created = cls.objects.update_or_create(
+                        current_proposal=self,
+                        defaults={
+                            'issue_date': current_datetime,
+                            'wla_queue_date': current_datetime,
+                            'start_date': current_datetime.date(),
+                            'expiry_date': self.end_date,
+                            'submitter': self.submitter,
+                            'internal_status': 'waiting',
+                        }
+                    )
+                    if created:
+                        self.approval = approval
+                        self.save()
+                # write approval history
+                approval.write_approval_history()
+                # set wla order
+                approval = approval.set_wla_order()
+
                 checking_proposal = self
                 # always reset this flag
                 approval.renewal_sent = False
@@ -1362,29 +1393,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # Ledger skips the payment step, which calling the function below
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
-                    # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                    from mooringlicensing.components.payments_ml.models import FeeItem
-                    fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-                    try:
-                        fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
-                    except:
-                        fee_item_additional = None
+                    else:
 
-                    with transaction.atomic():
+                        # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                        from mooringlicensing.components.payments_ml.models import FeeItem
+                        fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
                         try:
-                            logger.info('Creating invoice for the application: {}'.format(self))
+                            fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                        except:
+                            fee_item_additional = None
 
-                            basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
-                            order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
-                                basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
-                            invoice = Invoice.objects.get(order_number=order.number)
+                        with transaction.atomic():
+                            try:
+                                logger.info('Creating invoice for the application: {}'.format(self))
 
-                            line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                        except Exception as e:
-                            err_msg = 'Failed to create annual site fee confirmation'
-                            logger.error('{}\n{}'.format(err_msg, str(e)))
-                            # errors.append(err_msg)
+                                basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
+                                order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
+                                    basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
+                                invoice = Invoice.objects.get(order_number=order.number)
 
+                                line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                            except Exception as e:
+                                err_msg = 'Failed to create annual site fee confirmation'
+                                logger.error('{}\n{}'.format(err_msg, str(e)))
+                                # errors.append(err_msg)
+
+                # move below to update_or_create_approval
                 if self.approval and self.approval.reissued and not total_amount > 0:
                     # TODO: we assume no payment for reissue - what about "request amendment"?
                     from mooringlicensing.components.approvals.models import ApprovalUserAction
