@@ -1201,11 +1201,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                # current_date = current_datetime.date()
-                # target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
-
                 self.proposed_decline_status = False
 
+                # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
@@ -1233,31 +1231,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     else:
                         self.proposed_issuance_approval = {}
                 self.save()
-                # self.process_after_approval()
-                # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
-                # if self.application_type.code == WaitingListApplication.code:
-                #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                #     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-                # elif self.application_type.code == AnnualAdmissionApplication.code:
-                #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                # else:
-                #     raise # Should not reach here.  ApplicationType must be either WLA or AAA
 
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
-                # Log entry for organisation
-                applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
-
-                # TODO if it is an ammendment proposal then check appropriately
-                # approval, created = self.create_approval(current_datetime=current_datetime)
-                #approval, created = self.child_obj.update_or_create_approval(current_datetime)
+                # Create/update approval
                 created = None
                 if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
                     approval = self.approval
                     approval.current_proposal=self
-                    approval.wla_queue_date = current_datetime
+                    if type(self.child_obj) == WaitingListApplication:
+                        approval.wla_queue_date = current_datetime
                     approval.issue_date = current_datetime
                     approval.start_date = current_datetime.date()
                     approval.expiry_date = self.end_date
@@ -1269,25 +1250,52 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         current_proposal=self,
                         defaults={
                             'issue_date': current_datetime,
-                            'wla_queue_date': current_datetime,
+                            #'wla_queue_date': current_datetime,
                             'start_date': current_datetime.date(),
                             'expiry_date': self.end_date,
                             'submitter': self.submitter,
-                            'internal_status': 'waiting',
+                            #'internal_status': 'waiting',
                         }
                     )
+                    if type(self.child_obj) == WaitingListApplication:
+                        approval.wla_queue_date = current_datetime
+                        approval.internal_status = 'waiting'
+                        approval.save()
                     if created:
                         self.approval = approval
                         self.save()
-                # write approval history
-                approval.write_approval_history()
-                # set wla order
-                approval = approval.set_wla_order()
 
-                checking_proposal = self
                 # always reset this flag
                 approval.renewal_sent = False
                 approval.save()
+
+                ## set proposal status
+                from mooringlicensing.components.approvals.models import Sticker
+                awaiting_payment = False
+                awaiting_printing = False
+
+                for application_fee in self.application_fees.all():
+                    if application_fee.unpaid:
+                        awaiting_payment = True
+
+                if self.approval:
+                    stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                    if stickers.count() >0:
+                        awaiting_printing = True
+
+                if awaiting_payment:
+                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                elif awaiting_printing:
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                    # Log proposal action
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                self.save()
+
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 if created:
@@ -1312,21 +1320,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if approval_compliances:
                         for c in approval_compliances:
                             c.delete()
-                    ## TODO: 20210518 - add this after approval.expiry_date is set
-                    #self.generate_compliances(approval, request)
                     # Log proposal action
                     self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
                     # Log entry for organisation
                     applicant_field = getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
 
-                self.approval = approval
+                #self.approval = approval
 
                 # Update stickers
                 moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
 
+                # write approval history
+                approval.write_approval_history()
+                # set wla order
+                approval = approval.set_wla_order()
+
                 # Update stickers of the approval-history
-                self.approval.update_approval_history_by_stickers()
+                #self.approval.update_approval_history_by_stickers()
 
                 # send Proposal approval email with attachment
                 send_application_processed_email(self, 'approved', request, stickers_to_be_returned)
@@ -1334,8 +1345,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.approval.documents.all().update(can_delete=False)
 
                 # TEST
-                self.child_obj.update_status()
+                #self.child_obj.update_status()
 
+                # TODO: do we need to return anything?
                 return self
 
             except:
@@ -1349,6 +1361,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 current_date = current_datetime.date()
 
+                # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
