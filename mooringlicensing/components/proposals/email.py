@@ -575,8 +575,8 @@ def send_endorser_reminder_email(proposal, request=None):
     # 15
     email = TemplateEmailBase(
         subject='Your endorsement of an Authorised User Permit application is due',
-        html_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html',
-        txt_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt',
+        html_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.html',
+        txt_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.txt',
     )
 
     url = settings.SITE_URL if settings.SITE_URL else ''
@@ -616,6 +616,39 @@ def send_endorser_reminder_email(proposal, request=None):
     sender = get_user_as_email_user(msg.from_email)
     log_proposal_email(msg, proposal, sender)
     return msg
+
+
+def send_approval_renewal_email_notification_dcvp(dcv_permit):
+    # 16
+    email = TemplateEmailBase(
+        subject='Renewal notice for your DCV Permit {}'.format(dcv_permit.lodgement_number),
+        html_template='mooringlicensing/emails/approval_renewal_notification_dcvp.html',
+        txt_template='mooringlicensing/emails/approval_renewal_notification_dcvp.txt',
+    )
+    # proposal = approval.current_proposal
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    dashboard_url = url + reverse('external')
+
+    context = {
+        'public_url': get_public_url(),
+        'approval': dcv_permit,
+        # 'proposal': approval.current_proposal,
+        'recipient': dcv_permit.submitter,
+        'url': dashboard_url,
+        'expiry_date': dcv_permit.end_date,
+    }
+    sender = settings.DEFAULT_FROM_EMAIL
+
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+
+    to = dcv_permit.submitter.email
+    all_ccs = []
+
+    msg = email.send(to, cc=all_ccs, attachments=[], context=context)
 
 
 def send_approval_renewal_email_notification(approval):
@@ -660,6 +693,7 @@ def send_approval_renewal_email_notification(approval):
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
+
     _log_approval_email(msg, approval, sender=sender_user)
     #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
     if approval.org_applicant:
