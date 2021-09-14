@@ -53,24 +53,6 @@ class ApprovalVesselNominationReminderEmail(TemplateEmailBase):
         self.subject = self.subject.format(approval.lodgement_number)
 
 
-# class ApprovalReinstateNotificationEmail(TemplateEmailBase):
-#     subject = 'Approval reinstated'
-#     html_template = 'mooringlicensing/emails/approval_reinstate_notification.html'
-#     txt_template = 'mooringlicensing/emails/approval_reinstate_notification.txt'
-#
-#     def __init__(self, approval):
-#         self.subject = '{} - {} reinstated.'.format(settings.RIA_NAME, approval.child_obj.description)
-
-
-class CreateMooringLicenceApplicationEmail(TemplateEmailBase):
-    subject = 'Approval created'
-    html_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.html'
-    txt_template = 'mooringlicensing/emails/create_mooring_licence_application_notification.txt'
-
-    def __init__(self, approval):
-        self.subject = '{} - {} created.'.format(settings.RIA_NAME, approval.child_obj.description)
-
-
 class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
     subject = 'No moorings remaining'  # This is default and should be overwitten
     html_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.html'
