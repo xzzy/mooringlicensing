@@ -340,7 +340,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_id = models.IntegerField(null=True,blank=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
     vessel_name = models.CharField(max_length=400, blank=True)
-    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    #vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -1269,6 +1269,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approval.renewal_sent = False
                 approval.save()
 
+                # Update stickers
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+
+                # write approval history
+                approval.write_approval_history()
+                # set wla order
+                approval = approval.set_wla_order()
+
                 ## set proposal status
                 from mooringlicensing.components.approvals.models import Sticker
                 awaiting_payment = False
@@ -1294,7 +1302,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 else:
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-                self.save()
 
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
@@ -1327,14 +1334,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
 
                 #self.approval = approval
-
-                # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
-
-                # write approval history
-                approval.write_approval_history()
-                # set wla order
-                approval = approval.set_wla_order()
 
                 # Update stickers of the approval-history
                 #self.approval.update_approval_history_by_stickers()
@@ -1820,7 +1819,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # Vessel Details and rego
                     self.vessel_details.vessel != self.previous_application_status_filter.vessel_details.vessel or 
                     self.vessel_details.vessel_type != self.previous_application_status_filter.vessel_details.vessel_type or
-                    self.vessel_details.vessel_overall_length != self.previous_application_status_filter.vessel_details.vessel_overall_length or
+                    #self.vessel_details.vessel_overall_length != self.previous_application_status_filter.vessel_details.vessel_overall_length or
                     self.vessel_details.vessel_length != self.previous_application_status_filter.vessel_details.vessel_length or
                     self.vessel_details.vessel_draft != self.previous_application_status_filter.vessel_details.vessel_draft or
                     self.vessel_details.vessel_beam != self.previous_application_status_filter.vessel_details.vessel_beam or
