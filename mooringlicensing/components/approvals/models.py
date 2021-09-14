@@ -23,7 +23,8 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import StickerActionFee
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
     StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
-from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document#, ApplicationType
+from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document, \
+    GlobalSettings  # , ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
     send_approval_cancel_email_notification,
@@ -1706,8 +1707,10 @@ class Sticker(models.Model):
     @property
     def next_number(self):
         # ids = map(int, [i for i in Sticker.objects.all().values_list('number', flat=True) if i])
+        min_dcv_sticker_number = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT).value
+        min_dcv_sticker_number = int(min_dcv_sticker_number)
         try:
-            ids = [int(i) for i in Sticker.objects.all().values_list('number', flat=True) if i and int(i) < MIN_DCV_STICKER_NUMBER]
+            ids = [int(i) for i in Sticker.objects.all().values_list('number', flat=True) if i and int(i) < min_dcv_sticker_number]
             # ids = list(ids)  # In python 3, map returns map object.  Therefore before 'if ids' it should be converted to the list(/tuple,...) otherwise 'if ids' is always True
             return max(ids) + 1 if ids else 1
         except Exception as e:
