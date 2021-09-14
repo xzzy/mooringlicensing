@@ -735,7 +735,7 @@ def send_application_processed_email(proposal, decision, request, stickers_to_be
             all_ccs = cc_list.split(',')
 
         attachments = []
-        licence_document= proposal.approval.licence_document._file
+        licence_document = proposal.approval.licence_document._file
         if licence_document is not None:
             file_name = proposal.approval.licence_document.name
             attachment = (file_name, licence_document.file.read(), 'application/pdf')
@@ -888,9 +888,11 @@ def send_aua_processed_email(proposal, decision, request, stickers_to_be_returne
     # 20 AUA new/renewal, approval/decline
     # 21 AUA amendment(no payment), approval/decline
     # 22 AUA amendment(payment), approval/decline
+    from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
+
     all_ccs = []
     all_bccs = []
-    if decision == 'approved':
+    if decision in ['approved', 'paid',]:
         subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -913,10 +915,27 @@ def send_aua_processed_email(proposal, decision, request, stickers_to_be_returne
         html_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.html'
         txt_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.txt'
 
-        # if require_payment:
-        #     pass  # TODO: or generating payment_url below should be enough?
-        # else:
-        #     pass  # TODO: or generating payment_url below should be enough?
+    # TODO: Attachment
+    attachments = []
+    attache_invoice = True
+    attache_licence_doc = True
+    if proposal.invoice:
+        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice,)
+        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_bytes, 'application/pdf')
+        attachments.append(attachment)
+    if proposal.approval and proposal.approval.licence_document:
+        licence_document = proposal.approval.licence_document._file
+        if licence_document is not None:
+            file_name = proposal.approval.licence_document.name
+            attachment = (file_name, licence_document.file.read(), 'application/pdf')
+            attachments.append(attachment)
+
+            # add requirement documents
+            for requirement in proposal.requirements.exclude(is_deleted=True):
+                for doc in requirement.requirement_documents.all():
+                    file_name = doc._file.name
+                    attachment = (file_name, doc._file.file.read())
+                    attachments.append(attachment)
 
     # Generate payment_url if needed
     payment_url = ''
@@ -945,12 +964,11 @@ def send_aua_processed_email(proposal, decision, request, stickers_to_be_returne
         html_template=html_template,
         txt_template=txt_template,
     )
-    # TODO: attachments???
 
     to_address = proposal.submitter.email
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_user_as_email_user(msg.from_email)
