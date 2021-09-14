@@ -24,10 +24,11 @@
                             <td><strong>{{dcv_admission.lodgement_datetime}}</strong></td>
                         </tr>
                     </table>
+                    <br />
                     {% for arrival in dcv_admission.dcv_admission_arrivals.all %}
                     {% if arrival.private_visit %}
                         <p>
-                            For payment of daily admissions for your private visit for {{ arrival.arrival_date }} click <a :href="daily_admission_url" target="_blank">here</a>
+                            For payment of daily admissions for your private visit for {{ arrival.arrival_date }} click <a href="daily_admission_url" target="_blank">here</a>
                         </p>
                     {% endif %}
                     {% endfor %}
