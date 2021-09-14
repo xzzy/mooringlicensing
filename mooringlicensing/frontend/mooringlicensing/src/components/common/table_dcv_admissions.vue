@@ -259,8 +259,6 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log('---')
-                    console.log(full)
                     /*
                     let links = '';
                     if (!vm.is_external){
