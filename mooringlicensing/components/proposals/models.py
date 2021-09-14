@@ -340,7 +340,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_id = models.IntegerField(null=True,blank=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
     vessel_name = models.CharField(max_length=400, blank=True)
-    vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
+    #vessel_overall_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # exists in MB as 'size'
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -1201,11 +1201,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                # current_date = current_datetime.date()
-                # target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
-
                 self.proposed_decline_status = False
 
+                # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
@@ -1233,30 +1231,78 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     else:
                         self.proposed_issuance_approval = {}
                 self.save()
-                # self.process_after_approval()
-                # from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit
-                # if self.application_type.code == WaitingListApplication.code:
-                #     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                #     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-                # elif self.application_type.code == AnnualAdmissionApplication.code:
-                #     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                #     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                # else:
-                #     raise # Should not reach here.  ApplicationType must be either WLA or AAA
 
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
-                # Log entry for organisation
-                applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
+                # Create/update approval
+                created = None
+                if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+                    approval = self.approval
+                    approval.current_proposal=self
+                    if type(self.child_obj) == WaitingListApplication:
+                        approval.wla_queue_date = current_datetime
+                    approval.issue_date = current_datetime
+                    approval.start_date = current_datetime.date()
+                    approval.expiry_date = self.end_date
+                    approval.submitter = self.submitter
+                    approval.save()
+                else:
+                    approval, created = self.approval_class.objects.update_or_create(
+                    #approval, created = cls.objects.update_or_create(
+                        current_proposal=self,
+                        defaults={
+                            'issue_date': current_datetime,
+                            #'wla_queue_date': current_datetime,
+                            'start_date': current_datetime.date(),
+                            'expiry_date': self.end_date,
+                            'submitter': self.submitter,
+                            #'internal_status': 'waiting',
+                        }
+                    )
+                    if type(self.child_obj) == WaitingListApplication:
+                        approval.wla_queue_date = current_datetime
+                        approval.internal_status = 'waiting'
+                        approval.save()
+                    if created:
+                        self.approval = approval
+                        self.save()
 
-                # TODO if it is an ammendment proposal then check appropriately
-                # approval, created = self.create_approval(current_datetime=current_datetime)
-                approval, created = self.child_obj.update_or_create_approval(current_datetime)
-                checking_proposal = self
                 # always reset this flag
                 approval.renewal_sent = False
                 approval.save()
+
+                # Update stickers
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+
+                # write approval history
+                approval.write_approval_history()
+                # set wla order
+                approval = approval.set_wla_order()
+
+                ## set proposal status
+                from mooringlicensing.components.approvals.models import Sticker
+                awaiting_payment = False
+                awaiting_printing = False
+
+                for application_fee in self.application_fees.all():
+                    if application_fee.unpaid:
+                        awaiting_payment = True
+
+                if self.approval:
+                    stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                    if stickers.count() >0:
+                        awaiting_printing = True
+
+                if awaiting_payment:
+                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                elif awaiting_printing:
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                    # Log proposal action
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 if created:
@@ -1281,21 +1327,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if approval_compliances:
                         for c in approval_compliances:
                             c.delete()
-                    ## TODO: 20210518 - add this after approval.expiry_date is set
-                    #self.generate_compliances(approval, request)
                     # Log proposal action
                     self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
                     # Log entry for organisation
                     applicant_field = getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
 
-                self.approval = approval
-
-                # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+                #self.approval = approval
 
                 # Update stickers of the approval-history
-                self.approval.update_approval_history_by_stickers()
+                #self.approval.update_approval_history_by_stickers()
 
                 # send Proposal approval email with attachment
                 send_application_processed_email(self, 'approved', request, stickers_to_be_returned)
@@ -1303,8 +1344,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.approval.documents.all().update(can_delete=False)
 
                 # TEST
-                self.child_obj.update_status()
+                #self.child_obj.update_status()
 
+                # TODO: do we need to return anything?
                 return self
 
             except:
@@ -1318,6 +1360,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 current_date = current_datetime.date()
 
+                # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                     # for 'Awaiting Payment' approval. External/Internal user fires this method after full payment via Make/Record Payment
                     pass
@@ -1362,29 +1405,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # Ledger skips the payment step, which calling the function below
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
-                    # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
-                    from mooringlicensing.components.payments_ml.models import FeeItem
-                    fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-                    try:
-                        fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
-                    except:
-                        fee_item_additional = None
+                    else:
 
-                    with transaction.atomic():
+                        # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
+                        from mooringlicensing.components.payments_ml.models import FeeItem
+                        fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
                         try:
-                            logger.info('Creating invoice for the application: {}'.format(self))
+                            fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
+                        except:
+                            fee_item_additional = None
 
-                            basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
-                            order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
-                                basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
-                            invoice = Invoice.objects.get(order_number=order.number)
+                        with transaction.atomic():
+                            try:
+                                logger.info('Creating invoice for the application: {}'.format(self))
 
-                            line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                        except Exception as e:
-                            err_msg = 'Failed to create annual site fee confirmation'
-                            logger.error('{}\n{}'.format(err_msg, str(e)))
-                            # errors.append(err_msg)
+                                basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
+                                order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
+                                    basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
+                                invoice = Invoice.objects.get(order_number=order.number)
 
+                                line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                            except Exception as e:
+                                err_msg = 'Failed to create annual site fee confirmation'
+                                logger.error('{}\n{}'.format(err_msg, str(e)))
+                                # errors.append(err_msg)
+
+                # move below to update_or_create_approval
                 if self.approval and self.approval.reissued and not total_amount > 0:
                     # TODO: we assume no payment for reissue - what about "request amendment"?
                     from mooringlicensing.components.approvals.models import ApprovalUserAction
@@ -1773,7 +1819,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # Vessel Details and rego
                     self.vessel_details.vessel != self.previous_application_status_filter.vessel_details.vessel or 
                     self.vessel_details.vessel_type != self.previous_application_status_filter.vessel_details.vessel_type or
-                    self.vessel_details.vessel_overall_length != self.previous_application_status_filter.vessel_details.vessel_overall_length or
+                    #self.vessel_details.vessel_overall_length != self.previous_application_status_filter.vessel_details.vessel_overall_length or
                     self.vessel_details.vessel_length != self.previous_application_status_filter.vessel_details.vessel_length or
                     self.vessel_details.vessel_draft != self.previous_application_status_filter.vessel_details.vessel_draft or
                     self.vessel_details.vessel_beam != self.previous_application_status_filter.vessel_details.vessel_beam or
