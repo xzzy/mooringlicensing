@@ -66,7 +66,7 @@ import logging
 
 
 logger = logging.getLogger(__name__)
-logger_for_payment = logging.getLogger('payment_checkout')
+logger_for_payment = logging.getLogger('mooringlicensing')
 
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):

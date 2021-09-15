@@ -392,7 +392,7 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_current_and_future_fee_constructors_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        logger = logging.getLogger('payment_checkout')
+        logger = logging.getLogger('mooringlicensing')
 
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
@@ -419,7 +419,7 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_season(cls, application_type, fee_season):
-        logger = logging.getLogger('payment_checkout')
+        logger = logging.getLogger('mooringlicensing')
 
         try:
             fee_constructor_qs = cls.objects.filter(application_type=application_type, fee_season=fee_season, enabled=True)
@@ -440,7 +440,7 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        logger = logging.getLogger('payment_checkout')
+        logger = logging.getLogger('mooringlicensing')
 
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
