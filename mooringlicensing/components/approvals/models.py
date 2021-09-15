@@ -40,7 +40,6 @@ from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT
 
 logger = logging.getLogger('log')
-logger_for_payment = logging.getLogger('payment_checkout')
 
 
 def update_waiting_list_offer_doc_filename(instance, filename):
@@ -819,7 +818,7 @@ class Approval(RevisionedMixin):
                         fee_items.append(fee_item)
                 else:
                     # Should not reach here, however the data generated at the early stage of the development may reach here.
-                    logger_for_payment.error('ApplicationFee: {} does not have any fee_item.  It should have at least one.')
+                    logger.error('ApplicationFee: {} does not have any fee_item.  It should have at least one.')
         return fee_items
 
     @property
