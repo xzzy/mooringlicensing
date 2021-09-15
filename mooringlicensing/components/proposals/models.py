@@ -1261,21 +1261,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval.wla_queue_date = current_datetime
                         approval.internal_status = 'waiting'
                         approval.save()
-                    if created:
-                        self.approval = approval
-                        self.save()
+                    #if created:
+                self.approval = approval
+                self.save()
 
                 # always reset this flag
                 approval.renewal_sent = False
                 approval.save()
-
-                # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
-
-                # write approval history
-                approval.write_approval_history()
-                # set wla order
-                approval = approval.set_wla_order()
 
                 ## set proposal status
                 from mooringlicensing.components.approvals.models import Sticker
@@ -1302,6 +1294,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 else:
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                     self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                self.save()
 
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
@@ -1334,18 +1327,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     applicant_field = getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
 
-                #self.approval = approval
+                # Update stickers
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
 
-                # Update stickers of the approval-history
-                #self.approval.update_approval_history_by_stickers()
+                # write approval history
+                approval.write_approval_history()
+                # set wla order
+                approval = approval.set_wla_order()
 
                 # send Proposal approval email with attachment
                 send_application_processed_email(self, 'approved', request, stickers_to_be_returned)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
-
-                # TEST
-                #self.child_obj.update_status()
 
                 # TODO: do we need to return anything?
                 return self
@@ -1463,7 +1456,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             if fee_item_additional:
                                 application_fee.fee_items.add(fee_item_additional)
 
-                            self.send_emails_for_payment_required(request, invoice)
+                            #self.send_emails_for_payment_required(request, invoice)
+                            send_application_processed_email(self, 'approved', request)
 
                             #line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
                         except Exception as e:
