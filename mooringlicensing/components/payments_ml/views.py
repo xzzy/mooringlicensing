@@ -39,7 +39,16 @@ from mooringlicensing.components.proposals.models import Proposal, ProposalUserA
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
 
-logger = logging.getLogger('payment_checkout')
+# logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('ledger_bpoint')
+# logger = logging.getLogger()
+# logger.error('(none)')
+# logger = logging.getLogger('')
+# logger.error('(blank)')
+# logger = logging.getLogger('django')
+# logger.error('django')
+# logger = logging.getLogger('ledger_bpoint')
+# logger.error('ledger_bpoint')
 
 
 class DcvAdmissionFeeView(TemplateView):
@@ -699,7 +708,7 @@ class ApplicationFeeSuccessView(TemplateView):
                         approval.update_approval_history_by_stickers()
 
                         # send Proposal approval email with attachment
-                        send_application_processed_email(proposal, 'approved', request, stickers_to_be_returned)
+                        send_application_processed_email(proposal, 'paid', request, stickers_to_be_returned)
                         proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
                         proposal.approval.documents.all().update(can_delete=False)
 
