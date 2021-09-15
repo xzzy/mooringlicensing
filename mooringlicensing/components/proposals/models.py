@@ -1269,33 +1269,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approval.renewal_sent = False
                 approval.save()
 
-                ## set proposal status
-                from mooringlicensing.components.approvals.models import Sticker
-                awaiting_payment = False
-                awaiting_printing = False
-
-                for application_fee in self.application_fees.all():
-                    if application_fee.unpaid:
-                        awaiting_payment = True
-
-                if self.approval:
-                    stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-                    if stickers.count() >0:
-                        awaiting_printing = True
-
-                if awaiting_payment:
-                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-                elif awaiting_printing:
-                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-                    # Log proposal action
-                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
-                else:
-                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-                self.save()
-
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 #if created:
@@ -1329,6 +1302,33 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # Update stickers
                 moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+
+                ## set proposal status
+                from mooringlicensing.components.approvals.models import Sticker
+                awaiting_payment = False
+                awaiting_printing = False
+
+                for application_fee in self.application_fees.all():
+                    if application_fee.unpaid:
+                        awaiting_payment = True
+
+                if self.approval:
+                    stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                    if stickers.count() >0:
+                        awaiting_printing = True
+
+                if awaiting_payment:
+                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                elif awaiting_printing:
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                    # Log proposal action
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
+                else:
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                self.save()
 
                 # write approval history
                 approval.write_approval_history()
@@ -1382,9 +1382,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
                         # Ledger skips the payment step, which calling the function below
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-
                     else:
-
                         # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                         from mooringlicensing.components.payments_ml.models import FeeItem
                         fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
@@ -1418,6 +1416,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             err_msg = 'Failed to create invoice'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
+                else:
+                    # system reissue
+                    approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
                 return self
 
@@ -1964,49 +1965,6 @@ class WaitingListApplication(Proposal):
             raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
         self.save()
 
-    #def update_status(self):
-    #    # this works only when called after approved/success-payment
-    #    from mooringlicensing.components.approvals.models import Sticker
-    #    awaiting_payment = False
-    #    awaiting_printing = False
-
-    #    for application_fee in self.application_fees.all():
-    #        if application_fee.unpaid:
-    #            awaiting_payment = True
-
-    #    if self.approval:
-    #        stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
-    #        if stickers.count() >0:
-    #            awaiting_printing = True
-
-    #    if awaiting_payment:
-    #        self.proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-    #        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-    #    elif awaiting_printing:
-    #        self.proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-    #        self.proposal.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
-    #    else:
-    #        if self.proposal.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
-    #            # THis function is being accessed by the payment-success
-    #            self.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-    #            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
-    #        elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
-    #            # Should not reach here
-    #            # WHen with_assessor to with_assessor_requirements, this function should not be called
-    #            pass
-    #        elif self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
-    #            # This function is being accessed by the approval
-    #            self.proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-    #            self.proposal.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
-    #        else:
-    #            # Should not reach here
-    #            pass
-    #    self.proposal.save()
-    #    self.refresh_from_db()
-
-    #    print('Awaiting Payment: ' + str(awaiting_payment))
-    #    print('Sticker Printing: ' + str(awaiting_printing))
-
     @property
     def does_accept_null_vessel(self):
         if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL):
@@ -2346,6 +2304,33 @@ class AuthorisedUserApplication(Proposal):
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
 
+        ## set proposal status
+        from mooringlicensing.components.approvals.models import Sticker
+        awaiting_payment = False
+        awaiting_printing = False
+
+        for application_fee in self.application_fees.all():
+            if application_fee.unpaid:
+                awaiting_payment = True
+
+        if self.approval:
+            stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+            if stickers.count() >0:
+                awaiting_printing = True
+
+        if awaiting_payment:
+            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        elif awaiting_printing:
+            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+            # Log proposal action
+            self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
+        else:
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        self.save()
+
         # Log proposal action
         if request:
             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
@@ -2569,22 +2554,22 @@ class MooringLicenceApplication(Proposal):
                         c.delete()
 
             # log Mooring action
-            ## TODO: rework switch licence logic
-            if existing_mooring_licence and existing_mooring_licence is not approval.child_obj:
-                mooring.log_user_action(
-                        MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
-                            str(existing_mooring_licence),
-                            str(approval),
-                            ),
-                        request
-                        )
-            else:
-                mooring.log_user_action(
-                        MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
-                            str(approval),
-                            ),
-                        request
-                        )
+            ## TODO: action is for mooring swap logic
+            #if existing_mooring_licence and existing_mooring_licence is not approval.child_obj:
+            #    mooring.log_user_action(
+            #            MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
+            #                str(existing_mooring_licence),
+            #                str(approval),
+            #                ),
+            #            request
+            #            )
+            #else:
+            mooring.log_user_action(
+                    MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
+                        str(approval),
+                        ),
+                    request
+                    )
             # always reset this flag
             approval.renewal_sent = False
             approval.save()
