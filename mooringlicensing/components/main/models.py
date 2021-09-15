@@ -203,6 +203,10 @@ class GlobalSettings(models.Model):
     KEY_DCV_PERMIT_TEMPLATE_FILE = 'dcv_permit_template_file'
     KEY_DCV_ADMISSION_TEMPLATE_FILE = 'dcv_admission_template_file'
     KEY_APPROVAL_TEMPLATE_FILE = 'approval_template_file'
+    KEY_WLA_TEMPLATE_FILE = 'wla_template_file'
+    KEY_AAP_TEMPLATE_FILE = 'aap_template_file'
+    KEY_AUP_TEMPLATE_FILE = 'aup_template_file'
+    KEY_ML_TEMPLATE_FILE = 'ml_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
     KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
@@ -211,11 +215,19 @@ class GlobalSettings(models.Model):
         KEY_DCV_PERMIT_TEMPLATE_FILE,
         KEY_DCV_ADMISSION_TEMPLATE_FILE,
         KEY_APPROVAL_TEMPLATE_FILE,
+        KEY_WLA_TEMPLATE_FILE,
+        KEY_AAP_TEMPLATE_FILE,
+        KEY_AUP_TEMPLATE_FILE,
+        KEY_ML_TEMPLATE_FILE,
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, 'DcvAdmission template file'),
         (KEY_APPROVAL_TEMPLATE_FILE, 'Approval template file'),
+        (KEY_WLA_TEMPLATE_FILE, 'Waiting List Allocation template file'),
+        (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
+        (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit tempalte file'),
+        (KEY_ML_TEMPLATE_FILE, 'Mooring Licence template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit')
@@ -224,6 +236,10 @@ class GlobalSettings(models.Model):
         (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, ''),
         (KEY_APPROVAL_TEMPLATE_FILE, ''),
+        (KEY_WLA_TEMPLATE_FILE, ''),
+        (KEY_AAP_TEMPLATE_FILE, ''),
+        (KEY_AUP_TEMPLATE_FILE, ''),
+        (KEY_ML_TEMPLATE_FILE, ''),
         (KEY_MINIMUM_VESSEL_LENGTH, 3.75),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 6.50),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 200000)
