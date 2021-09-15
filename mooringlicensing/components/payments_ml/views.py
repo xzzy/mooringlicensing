@@ -663,15 +663,6 @@ class ApplicationFeeSuccessView(TemplateView):
 
                     if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
                         # For AUA or MLA, as payment has been done, create approval
-                        # if proposal.proposal_type == PROPOSAL_TYPE_RENEWAL:
-                        #     # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                        #     pass
-                        # elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                        #     # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                        #     pass
-                        # else:
-                        #     # approval, created = proposal.create_approval(current_datetime=datetime.datetime.now(pytz.timezone(TIME_ZONE)))
-
                         approval, created = proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                         if created:
@@ -711,6 +702,9 @@ class ApplicationFeeSuccessView(TemplateView):
                         send_application_processed_email(proposal, 'paid', request, stickers_to_be_returned)
                         proposal.save(version_comment='Final Approval: {}'.format(proposal.approval.lodgement_number))
                         proposal.approval.documents.all().update(can_delete=False)
+                    else:
+                        # When WLA / AAA
+                        send_application_processed_email(proposal, 'paid', request)
 
                 else:
                     logger.error('Invoice payment status is {}'.format(invoice.payment_status))
@@ -720,8 +714,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 request.session[self.LAST_APPLICATION_FEE_ID] = application_fee.id
                 delete_session_application_invoice(request.session)
 
-                # send_application_fee_invoice_apiary_email_notification(request, proposal, invoice, recipients=[recipient])
-                #send_application_fee_confirmation_apiary_email_notification(request, application_fee, invoice, recipients=[recipient])
                 context = {
                     'proposal': proposal,
                     'submitter': submitter,

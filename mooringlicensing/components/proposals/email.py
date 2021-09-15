@@ -785,7 +785,16 @@ def send_wla_processed_email(proposal, decision, request):
     all_ccs = []
     all_bccs = []
 
+    if decision == 'paid':
+        # External user submitted and paid for the WLA
+        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+        details = ''
+        cc_list = ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+
     if decision == 'approved':
+        # Internal user approved WLA
         subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -793,6 +802,7 @@ def send_wla_processed_email(proposal, decision, request):
             all_ccs = cc_list.split(',')
 
     elif decision == 'declined':
+        # Internal user declined WLA
         subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
@@ -834,7 +844,7 @@ def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returne
     # 19 amendment, approval/decline
     all_ccs = []
     all_bccs = []
-    if decision == 'approved':
+    if decision in ['approved', 'paid']:
         subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -982,7 +992,7 @@ def send_mla_processed_email(proposal, decision, request, stickers_to_be_returne
     # 25 ML amendment(payment), approval/decline
     all_ccs = []
     all_bccs = []
-    if decision == 'approved':
+    if decision in ['approved', 'paid']:
         subject = 'Your mooring licence application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
