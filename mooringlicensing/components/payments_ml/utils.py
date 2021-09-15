@@ -19,7 +19,7 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCo
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
     AnnualAdmissionApplication, ProposalType
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('mooringlicensing')
 
 
 def checkout(request, email_user, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
