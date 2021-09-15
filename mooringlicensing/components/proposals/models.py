@@ -1305,8 +1305,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-                if created:
-                    if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                #if created:
+                    #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                if self.previous_application:
                         approval_compliances = Compliance.objects.filter(approval=previous_approval,
                                                                          proposal=self.previous_application,
                                                                          processing_status='future')
@@ -1390,10 +1391,40 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         }
                         self.save()
 
+                if self.child_obj.code == MooringLicenceApplication.code:
+                    # updating checkboxes
+                    #if self.approval:
+                    for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
+                        for vo2 in self.approval.child_obj.vessel_ownership_list:
+                        #for vo2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                            # convert proposed_issuance_approval to an end_date
+                            if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
+                                vo2.mooring_licence_end_date = current_datetime.date()
+                                vo2.save()
+                else:
+                    # Create MooringOnApproval records
+                    ## also see logic in approval.add_mooring()
+                    existing_mooring_count = approval.mooringonapproval_set.count()
+                    if ria_selected_mooring:
+                        moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
+                    else:
+                        if approval.current_proposal.mooring:
+                            moa, created = approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+                    # updating checkboxes
+                    #if self.approval:
+                    for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
+                        for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                            # convert proposed_issuance_approval to an end_date
+                            if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
+                                moa2.end_date = current_datetime.date()
+                                moa2.save()
+
                 approval = None
+                # if no request, must be a system reissue - skip payment section
                 if request:
                     from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
+                    # create fee lines tells us whether a payment is required
                     line_items, db_operations = create_fee_lines(self)
 
                     total_amount = 0
@@ -1440,15 +1471,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             # errors.append(err_msg)
 
-                        #if self.approval and self.approval.reissued:
-                        #    # TODO: we assume no payment for reissue - what about "request amendment"?
-                        #    from mooringlicensing.components.approvals.models import ApprovalUserAction
-                        #    approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-                        #    self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.approval.lodgement_number), request)
-
-                        #if request:
-                            #self.child_obj.process_after_approval(request, total_amount)
-
                 return self
 
             except:
@@ -1475,7 +1497,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         timedelta = datetime.timedelta
         from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
         #For amendment type of Proposal, check for copied requirements from previous proposal
-        if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+        #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+        if self.previous_application:
             try:
                 for r in self.requirements.filter(copied_from__isnull=False):
                     cs=[]
@@ -2305,23 +2328,36 @@ class AuthorisedUserApplication(Proposal):
             approval.expiry_notice_sent = False
             approval.renewal_count += 1
             approval.save()
-
-        # Create MooringOnApproval records
-        ## also see logic in approval.add_mooring()
-        existing_mooring_count = approval.mooringonapproval_set.count()
-        if ria_selected_mooring:
-            moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
+        # Generate compliances
+        from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+        #if created:
+            #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+        if self.previous_application:
+                approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                                 proposal=self.previous_application,
+                                                                 processing_status='future')
+                if approval_compliances:
+                    for c in approval_compliances:
+                        c.delete()
+            # Log creation
+            # Generate the document
+            approval.generate_doc(request.user)
+            self.generate_compliances(approval, request)
+            # send the doc and log in approval and org
         else:
-            if approval.current_proposal.mooring:
-                moa, created = approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
-        # updating checkboxes
-        #if self.approval:
-        for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
-            for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-                # convert proposed_issuance_approval to an end_date
-                if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
-                    moa2.end_date = current_datetime.date()
-                    moa2.save()
+            # Generate the document
+            approval.generate_doc(request.user)
+            # Delete the future compliances if Approval is reissued and generate the compliances again.
+            approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+                                                             processing_status='future')
+            if approval_compliances:
+                for c in approval_compliances:
+                    c.delete()
+
+        # always reset this flag
+        approval.renewal_sent = False
+        approval.save()
+
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
 
@@ -2458,11 +2494,6 @@ class MooringLicenceApplication(Proposal):
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
             existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
-            # find any current ML for this submitter on the same mooring
-            #if (self.allocated_mooring.mooring_licence and 
-            #        self.allocated_mooring.mooring_licence.submitter == self.submitter and 
-            #        self.allocated_mooring.mooring_licence.processing_status == 'current'):
-            #    approval = self.allocated_mooring.mooring_licence
 
             if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
                 approval = self.approval
@@ -2473,23 +2504,10 @@ class MooringLicenceApplication(Proposal):
                 approval.submitter = self.submitter
                 approval.save()
             else:
-                # TODO: ensure ML amendment apps are created correctly
-                # test if user sets self.approval on proposal creation
-                #if self.approval:
-                #    approval = self.approval
-                #    approval.issue_date = current_datetime
-                #    approval.current_proposal = self
-                #    # change start and expiry dates???
-                #    approval.start_date = current_datetime.date()
-                #    approval.expiry_date = self.end_date
-                #    approval.save()
-                #else:
                 approval, created = self.approval_class.objects.update_or_create(
                     current_proposal=self,
                     defaults={
                         'issue_date': current_datetime,
-                        #'start_date': current_date.strftime('%Y-%m-%d'),
-                        #'expiry_date': self.end_date.strftime('%Y-%m-%d'),
                         'start_date': current_datetime.date(),
                         'expiry_date': self.end_date,
                         'submitter': self.submitter,
@@ -2511,15 +2529,31 @@ class MooringLicenceApplication(Proposal):
                     self.waiting_list_allocation.save()
                     self.waiting_list_allocation.set_wla_order()
 
-            # updating checkboxes
-            #if self.approval:
-            for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
-                for vo2 in self.approval.child_obj.vessel_ownership_list:
-                #for vo2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-                    # convert proposed_issuance_approval to an end_date
-                    if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
-                        vo2.mooring_licence_end_date = current_datetime.date()
-                        vo2.save()
+            # Generate compliances
+            from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+            #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+            if self.previous_application:
+                    approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                                     proposal=self.previous_application,
+                                                                     processing_status='future')
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                # Log creation
+                # Generate the document
+                approval.generate_doc(request.user)
+                self.generate_compliances(approval, request)
+                # send the doc and log in approval and org
+            else:
+                # Generate the document
+                approval.generate_doc(request.user)
+                # Delete the future compliances if Approval is reissued and generate the compliances again.
+                approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+                                                                 processing_status='future')
+                if approval_compliances:
+                    for c in approval_compliances:
+                        c.delete()
+
             # log Mooring action
             ## TODO: rework switch licence logic
             if existing_mooring_licence and existing_mooring_licence is not approval.child_obj:
