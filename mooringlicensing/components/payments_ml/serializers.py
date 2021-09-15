@@ -154,7 +154,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
         if not self.partial:
             if not data['fee_season_id']:
-                field_errors['year'] = ['Please select a year.',]
+                field_errors['Season'] = ['Please select a season.',]
             # if not data['period_to']:
             #     field_errors['Period to'] = ['Please select a date.',]
             # # if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
