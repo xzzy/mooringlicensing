@@ -101,7 +101,18 @@ def create_dcv_admission_pdf_tytes(dcv_admission):
 
 
 def create_approval_doc_bytes(approval):
-    licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE)
+    from mooringlicensing.components.approvals.models import AuthorisedUserPermit, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence
+
+    global_setting_key = GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE
+    if approval.code == WaitingListAllocation.code:
+        global_setting_key = GlobalSettings.KEY_WLA_TEMPLATE_FILE
+    elif approval.code == AnnualAdmissionPermit.code:
+        global_setting_key = GlobalSettings.KEY_AAP_TEMPLATE_FILE
+    elif approval.code == AuthorisedUserPermit.code:
+        global_setting_key = GlobalSettings.KEY_AUP_TEMPLATE_FILE
+    elif approval.code == MooringLicence.code:
+        global_setting_key = GlobalSettings.KEY_ML_TEMPLATE_FILE
+    licence_template = GlobalSettings.objects.get(key=global_setting_key)
 
     if licence_template._file:
         path_to_template = licence_template._file.path
