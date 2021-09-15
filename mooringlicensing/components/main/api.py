@@ -46,7 +46,7 @@ import logging
 
 from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX, SYSTEM_NAME
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('mooringlicensing')
 
 
 #class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
