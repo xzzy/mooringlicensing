@@ -17,7 +17,7 @@ from django.core.management import call_command
 from mooringlicensing.components.main.utils import add_cache_control
 
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('mooringlicensing')
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
