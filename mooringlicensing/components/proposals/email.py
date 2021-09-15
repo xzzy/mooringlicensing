@@ -716,68 +716,7 @@ def send_application_processed_email(proposal, decision, request, stickers_to_be
         send_mla_processed_email(proposal, decision, request, stickers_to_be_returned)
     else:
         # Should not reach here
-        html_template = 'mooringlicensing/emails/send_wla_processed.html'
-        txt_template = 'mooringlicensing/emails/send_wla_processed.txt'
-        if decision == 'approved':
-            subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
-        elif decision == 'declined':
-            subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
-
-        email = TemplateEmailBase(
-            subject=subject,
-            html_template=html_template,
-            txt_template=txt_template,
-        )
-
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
-        all_ccs = []
-        if cc_list:
-            all_ccs = cc_list.split(',')
-
-        attachments = []
-        licence_document = proposal.approval.licence_document._file
-        if licence_document is not None:
-            file_name = proposal.approval.licence_document.name
-            attachment = (file_name, licence_document.file.read(), 'application/pdf')
-            attachments.append(attachment)
-
-            # add requirement documents
-            for requirement in proposal.requirements.exclude(is_deleted=True):
-                for doc in requirement.requirement_documents.all():
-                    file_name = doc._file.name
-                    #attachment = (file_name, doc._file.file.read(), 'image/*')
-                    attachment = (file_name, doc._file.file.read())
-                    attachments.append(attachment)
-
-        url = request.build_absolute_uri(reverse('external'))
-        if "-internal" in url:
-            # remove '-internal'. This email is for external submitters
-            url = ''.join(url.split('-internal'))
-        # if proposal.is_filming_licence:
-        #     handbook_url= settings.COLS_FILMING_HANDBOOK_URL
-        # else:
-        #     handbook_url= settings.COLS_HANDBOOK_URL
-        context = {
-            'public_url': get_public_url(request),
-            'proposal': proposal,
-            'recipient': proposal.submitter,
-            'num_requirement_docs': len(attachments) - 1,
-            'url': url,
-            # 'handbook_url': handbook_url
-        }
-
-        msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
-        sender = get_user_as_email_user(msg.from_email)
-        # sender = msg.from_email
-
-        email_entry =_log_proposal_email(msg, proposal, sender=sender)
-        path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
-        email_entry.documents.get_or_create(_file=path_to_file, name=file_name)
-
-        if proposal.org_applicant:
-            _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-        else:
-            _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+        logger.warning('The type of the proposal {} is unknown'.format(proposal.lodgement_number))
 
 
 def send_wla_processed_email(proposal, decision, request):
@@ -792,6 +731,8 @@ def send_wla_processed_email(proposal, decision, request):
         cc_list = ''
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = True
+        attach_licence_doc = False
 
     if decision == 'approved':
         # Internal user approved WLA
@@ -800,6 +741,8 @@ def send_wla_processed_email(proposal, decision, request):
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = True
 
     elif decision == 'declined':
         # Internal user declined WLA
@@ -808,6 +751,11 @@ def send_wla_processed_email(proposal, decision, request):
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = False
+
+    # Attachments
+    attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
 
     html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
     txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
@@ -826,12 +774,11 @@ def send_wla_processed_email(proposal, decision, request):
         html_template=html_template,
         txt_template=txt_template,
     )
-     # TODO: attachments???
 
     to_address = proposal.submitter.email
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_user_as_email_user(msg.from_email)
@@ -844,18 +791,36 @@ def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returne
     # 19 amendment, approval/decline
     all_ccs = []
     all_bccs = []
-    if decision in ['approved', 'paid']:
+    attach_invoice = False
+    attach_licence_doc = False
+
+    if decision == 'paid':
+        subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
+        details = ''
+        cc_list = ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attach_invoice = True
+        attach_licence_doc = False
+    elif decision == 'approved':
         subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = True
     elif decision == 'declined':
         subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = False
+
+    # Attachments
+    attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
 
     if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
         # New / Renewal
@@ -881,7 +846,6 @@ def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returne
         html_template=html_template,
         txt_template=txt_template,
     )
-    # TODO: attachments???
 
     to_address = proposal.submitter.email
 
@@ -898,22 +862,39 @@ def send_aua_processed_email(proposal, decision, request, stickers_to_be_returne
     # 20 AUA new/renewal, approval/decline
     # 21 AUA amendment(no payment), approval/decline
     # 22 AUA amendment(payment), approval/decline
-    from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
     all_ccs = []
     all_bccs = []
-    if decision in ['approved', 'paid',]:
+    attach_invoice = False
+    attach_licence_doc = False
+
+    if decision == 'paid':
+        subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
+        details = ''
+        cc_list = ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attach_invoice = True
+        attach_licence_doc = True
+    elif decision == 'approved':
         subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = True  # TODO: when amount is 0, we don't have invoice?
+        attach_licence_doc = False  # TODO: when amount is 0, always attach licence?
     elif decision == 'declined':
         subject = 'Your authorised user application {} has been declined'.format(proposal.lodgement_number)
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = False
+
+    # Attachments
+    attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
 
     if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
         # New / Renewal
@@ -924,28 +905,6 @@ def send_aua_processed_email(proposal, decision, request, stickers_to_be_returne
         # Amendment
         html_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.html'
         txt_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.txt'
-
-    # TODO: Attachment
-    attachments = []
-    attache_invoice = True
-    attache_licence_doc = True
-    if proposal.invoice:
-        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice,)
-        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_bytes, 'application/pdf')
-        attachments.append(attachment)
-    if proposal.approval and proposal.approval.licence_document:
-        licence_document = proposal.approval.licence_document._file
-        if licence_document is not None:
-            file_name = proposal.approval.licence_document.name
-            attachment = (file_name, licence_document.file.read(), 'application/pdf')
-            attachments.append(attachment)
-
-            # add requirement documents
-            for requirement in proposal.requirements.exclude(is_deleted=True):
-                for doc in requirement.requirement_documents.all():
-                    file_name = doc._file.name
-                    attachment = (file_name, doc._file.file.read())
-                    attachments.append(attachment)
 
     # Generate payment_url if needed
     payment_url = ''
@@ -984,6 +943,32 @@ def send_aua_processed_email(proposal, decision, request, stickers_to_be_returne
     sender = get_user_as_email_user(msg.from_email)
     log_proposal_email(msg, proposal, sender)
     return msg
+
+
+def get_attachments(attach_invoice, attach_licence_doc, proposal):
+    from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
+
+    attachments = []
+    if attach_invoice and proposal.invoice:
+        # Attach invoice
+        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
+        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_bytes, 'application/pdf')
+        attachments.append(attachment)
+    if attach_licence_doc and proposal.approval and proposal.approval.licence_document:
+        # Attach licence document
+        licence_document = proposal.approval.licence_document._file
+        if licence_document is not None:
+            file_name = proposal.approval.licence_document.name
+            attachment = (file_name, licence_document.file.read(), 'application/pdf')
+            attachments.append(attachment)
+
+            # add requirement documents
+            for requirement in proposal.requirements.exclude(is_deleted=True):
+                for doc in requirement.requirement_documents.all():
+                    file_name = doc._file.name
+                    attachment = (file_name, doc._file.file.read())
+                    attachments.append(attachment)
+    return attachments
 
 
 def send_mla_processed_email(proposal, decision, request, stickers_to_be_returned):
