@@ -63,7 +63,7 @@ from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_REN
     PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
-logger_for_payment = logging.getLogger('payment_checkout')
+logger_for_payment = logging.getLogger('mooringlicensing')
 
 
 def update_proposal_doc_filename(instance, filename):
