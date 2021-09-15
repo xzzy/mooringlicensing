@@ -213,8 +213,17 @@ APPLICATION_TYPES = [
     APPLICATION_TYPE_REPLACEMENT_STICKER,
     APPLICATION_TYPE_MOORING_SWAP,
 ]
+# Add a handler
+LOGGING['handlers']['file_mooringlicensing'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'mooringlicensing.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+# define logger
 LOGGING['loggers']['mooringlicensing'] = {
-    'handlers': ['file'],
+    'handlers': ['file_mooringlicensing'],
     'level': 'INFO'
 }
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
