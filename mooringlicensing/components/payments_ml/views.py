@@ -39,16 +39,7 @@ from mooringlicensing.components.proposals.models import Proposal, ProposalUserA
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
 
-# logger = logging.getLogger('payment_checkout')
-logger = logging.getLogger('ledger_bpoint')
-# logger = logging.getLogger()
-# logger.error('(none)')
-# logger = logging.getLogger('')
-# logger.error('(blank)')
-# logger = logging.getLogger('django')
-# logger.error('django')
-# logger = logging.getLogger('ledger_bpoint')
-# logger.error('ledger_bpoint')
+logger = logging.getLogger('mooringlicensing')
 
 
 class DcvAdmissionFeeView(TemplateView):
