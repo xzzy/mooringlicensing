@@ -1308,12 +1308,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #if created:
                     #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                 if self.previous_application:
-                        approval_compliances = Compliance.objects.filter(approval=previous_approval,
-                                                                         proposal=self.previous_application,
-                                                                         processing_status='future')
-                        if approval_compliances:
-                            for c in approval_compliances:
-                                c.delete()
+                    approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                                     proposal=self.previous_application,
+                                                                     processing_status='future')
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
                     # Log creation
                     # Generate the document
                     approval.generate_doc(request.user)
@@ -2333,12 +2333,12 @@ class AuthorisedUserApplication(Proposal):
         #if created:
             #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
         if self.previous_application:
-                approval_compliances = Compliance.objects.filter(approval=previous_approval,
-                                                                 proposal=self.previous_application,
-                                                                 processing_status='future')
-                if approval_compliances:
-                    for c in approval_compliances:
-                        c.delete()
+            approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                             proposal=self.previous_application,
+                                                             processing_status='future')
+            if approval_compliances:
+                for c in approval_compliances:
+                    c.delete()
             # Log creation
             # Generate the document
             approval.generate_doc(request.user)
@@ -2533,12 +2533,12 @@ class MooringLicenceApplication(Proposal):
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
             #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
             if self.previous_application:
-                    approval_compliances = Compliance.objects.filter(approval=previous_approval,
-                                                                     proposal=self.previous_application,
-                                                                     processing_status='future')
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
+                approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                                                                 proposal=self.previous_application,
+                                                                 processing_status='future')
+                if approval_compliances:
+                    for c in approval_compliances:
+                        c.delete()
                 # Log creation
                 # Generate the document
                 approval.generate_doc(request.user)
