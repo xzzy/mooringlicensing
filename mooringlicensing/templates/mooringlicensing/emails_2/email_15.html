@@ -1,0 +1,12 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+<p>Dear {{ licensee.first_name }} {{ licensee.last_name}},</p>
+<p>{{ applicant.first_name }} {{ applicant.last_name}} has submitted an application for authorised use of your mooring site {{ mooring.name }}. Your endorsement of this application is due by {{ endorsement_due_date }}.
+<ul>
+    <li>Please click <a href="{{ endorse_url }}">here</a> if you want to endorse the application.</li>
+    <li>Please click <a href="{{ decline_url }}">here</a> if you want to decline the application.</li>
+    <li>Please click <a href="{{ proposal_url }}">here</a> if you want to view the application details before endorsing or declining.</li>
+</ul>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}
