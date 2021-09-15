@@ -1425,15 +1425,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def send_emails_for_payment_required(self, request, invoice):
-        attachments = []
-        if invoice:
-            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
-            attachments.append(attachment)
-        # ret_value = send_emails_for_payment_required(request, self, attachments)
-        ret_value = send_application_processed_email(self, 'approved', request)
-        return ret_value
+    #def send_emails_for_payment_required(self, request, invoice):
+    #    attachments = []
+    #    if invoice:
+    #        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+    #        attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+    #        attachments.append(attachment)
+    #    # ret_value = send_emails_for_payment_required(request, self, attachments)
+    #    ret_value = send_application_processed_email(self, 'approved', request)
+    #    return ret_value
 
     def final_approval(self, request=None, details=None):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
