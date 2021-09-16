@@ -1300,26 +1300,31 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     applicant_field = getattr(self, self.applicant_field)
                     applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
 
+                # set proposal status to approved - can change later after manage_stickers
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+                self.save()
+
                 # Update stickers
                 moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
 
-                ## set proposal status
+                ## set proposal status after manage_stickers
                 from mooringlicensing.components.approvals.models import Sticker
-                awaiting_payment = False
+                #awaiting_payment = False
                 awaiting_printing = False
 
-                for application_fee in self.application_fees.all():
-                    if application_fee.unpaid:
-                        awaiting_payment = True
+                #for application_fee in self.application_fees.all():
+                 #   if application_fee.unpaid:
+                  #      awaiting_payment = True
 
                 if self.approval:
                     stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
                     if stickers.count() >0:
                         awaiting_printing = True
 
-                if awaiting_payment:
-                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-                    self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                #if awaiting_payment:
+                 #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                  #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
                 elif awaiting_printing:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
@@ -1383,6 +1388,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # Ledger skips the payment step, which calling the function below
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
                     else:
+                        ## proposal type must be awaiting payment
+                        self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+                        self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+                        self.save()
+
                         # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                         from mooringlicensing.components.payments_ml.models import FeeItem
                         fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
@@ -2301,27 +2311,32 @@ class AuthorisedUserApplication(Proposal):
         approval.renewal_sent = False
         approval.save()
 
+        # set proposal status to approved - can change later after manage_stickers
+        self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+        self.save()
+
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
 
-        ## set proposal status
+        ## set proposal status after manage _stickers
         from mooringlicensing.components.approvals.models import Sticker
-        awaiting_payment = False
+        #awaiting_payment = False
         awaiting_printing = False
 
-        for application_fee in self.application_fees.all():
-            if application_fee.unpaid:
-                awaiting_payment = True
+        #for application_fee in self.application_fees.all():
+         #   if application_fee.unpaid:
+          #      awaiting_payment = True
 
         if self.approval:
             stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
             if stickers.count() >0:
                 awaiting_printing = True
 
-        if awaiting_payment:
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-            self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        elif awaiting_printing:
+        #if awaiting_payment:
+         #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+          #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+        if awaiting_printing:
             self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
             # Log proposal action
@@ -2573,9 +2588,35 @@ class MooringLicenceApplication(Proposal):
             # always reset this flag
             approval.renewal_sent = False
             approval.save()
-
             # manage stickers
             moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+
+            ## set proposal status after manage _stickers
+            from mooringlicensing.components.approvals.models import Sticker
+            #awaiting_payment = False
+            awaiting_printing = False
+
+            #for application_fee in self.application_fees.all():
+             #   if application_fee.unpaid:
+              #      awaiting_payment = True
+
+            if self.approval:
+                stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
+                if stickers.count() >0:
+                    awaiting_printing = True
+
+            #if awaiting_payment:
+             #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
+              #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
+            if awaiting_printing:
+                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), request)
+            else:
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            self.save()
 
             # Log proposal action
             if request:
