@@ -152,6 +152,8 @@ class ApprovalHistory(RevisionedMixin):
         app_label = 'mooringlicensing'
         ordering = ['-id',]
 
+    def __str__(self):
+        return '{}, {}'.format(self.id, self.reason)
 
 ## Should be VesselOwnershipOnApproval ???
 #class VesselOnApproval(RevisionedMixin):
