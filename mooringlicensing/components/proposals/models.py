@@ -1274,7 +1274,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #if created:
                     #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                 if self.previous_application:
-                    approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                    approval_compliances = Compliance.objects.filter(approval=self.approval,
                                                                      proposal=self.previous_application,
                                                                      processing_status='future')
                     if approval_compliances:
@@ -2286,7 +2286,7 @@ class AuthorisedUserApplication(Proposal):
         #if created:
             #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
         if self.previous_application:
-            approval_compliances = Compliance.objects.filter(approval=previous_approval,
+            approval_compliances = Compliance.objects.filter(approval=self.approval,
                                                              proposal=self.previous_application,
                                                              processing_status='future')
             if approval_compliances:
@@ -2547,7 +2547,7 @@ class MooringLicenceApplication(Proposal):
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
             #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
             if self.previous_application:
-                approval_compliances = Compliance.objects.filter(approval=previous_approval,
+                approval_compliances = Compliance.objects.filter(approval=self.approval,
                                                                  proposal=self.previous_application,
                                                                  processing_status='future')
                 if approval_compliances:
