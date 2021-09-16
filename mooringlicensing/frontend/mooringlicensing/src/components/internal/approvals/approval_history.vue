@@ -255,6 +255,8 @@ export default {
                 responsive: true,
                 //serverSide: true,
                 searching: true,
+                ordering: true,
+                order: [[0, 'desc']],
                 ajax: {
                     //"url": api_endpoints.proposals_paginated_list + '?format=datatables',
                     "url": api_endpoints.lookupApprovalHistory(this.approvalId),
@@ -297,7 +299,6 @@ export default {
         },
         fetchApprovalDetails: async function() {
             const res = await this.$http.get(api_endpoints.lookupApprovalDetails(this.approvalId));
-            console.log(res);
             if (res.ok) {
                 this.approvalDetails = Object.assign({}, res.body);
             }
