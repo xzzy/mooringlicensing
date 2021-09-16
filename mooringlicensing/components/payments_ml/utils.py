@@ -282,6 +282,10 @@ def set_session_application_invoice(session, application_fee):
     session.modified = True
 
 
+class ItemNotSetInSessionException(Exception):
+    pass
+
+
 def get_session_application_invoice(session):
     print('in get_session_application_invoice')
 
@@ -289,12 +293,13 @@ def get_session_application_invoice(session):
     if NAME_SESSION_APPLICATION_INVOICE in session:
         application_fee_id = session[NAME_SESSION_APPLICATION_INVOICE]
     else:
-        raise Exception('Application not in Session')
+        # Reach here when the ApplicationFeeSuccessView is accessed 2nd time.  Which is correct.
+        raise ItemNotSetInSessionException('Application not in Session')
 
     try:
         return ApplicationFee.objects.get(id=application_fee_id)
     except ApplicationFee.DoesNotExist:
-        raise Exception('Application not found for application {}'.format(application_fee_id))
+        raise
 
 
 def delete_session_application_invoice(session):
