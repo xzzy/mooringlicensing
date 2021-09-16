@@ -237,7 +237,7 @@ export default {
                                 if (invoice.payment_status.toLowerCase() === 'paid'){
                                     links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
                                 } else {
-                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
+                                    //links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
                                 }
                             }
                             links += '</div>'
