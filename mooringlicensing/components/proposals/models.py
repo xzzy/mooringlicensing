@@ -1374,6 +1374,26 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # if no request, must be a system reissue - skip payment section
                 if request:
+                    ## update proposed_issuance_approval
+                    ria_mooring_name = ''
+                    mooring_id = details.get('mooring_id')
+                    if mooring_id:
+                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+
+                    self.proposed_issuance_approval = {
+                        # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
+                        # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
+                        'mooring_bay_id': details.get('mooring_bay_id'),
+                        'mooring_id': mooring_id,
+                        'ria_mooring_name': ria_mooring_name,
+                        'details': details.get('details'),
+                        'cc_email': details.get('cc_email'),
+                        'mooring_on_approval': details.get('mooring_on_approval'),
+                        'vessel_ownership': details.get('vessel_ownership'),
+                    }
+                    self.save()
+
+                    ## prepare invoice
                     from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
                     # create fee lines tells us whether a payment is required
@@ -1386,7 +1406,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if total_amount == 0:
                         # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
                         # Ledger skips the payment step, which calling the function below
-                        approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                        approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=request)
                     else:
                         ## proposal type must be awaiting payment
                         self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
@@ -2193,10 +2213,6 @@ class AuthorisedUserApplication(Proposal):
         # This function is called after payment success for new/amendment/renewal application
 
         created = None
-        mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
-        ria_selected_mooring = None
-        if mooring_id_pk:
-            ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
 
         ## find any current AUP for this submitter with the same vessel
         #au_list = self.approval_class.objects.filter(
@@ -2247,25 +2263,13 @@ class AuthorisedUserApplication(Proposal):
 
         # update proposed_issuance_approval and MooringOnApproval if not system reissue
         if request:
-            ria_mooring_name = ''
-            mooring_id = details.get('mooring_id')
-            if mooring_id:
-                ria_mooring_name = Mooring.objects.get(id=mooring_id).name
-            self.proposed_issuance_approval = {
-                # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                'mooring_bay_id': details.get('mooring_bay_id'),
-                'mooring_id': mooring_id,
-                'ria_mooring_name': ria_mooring_name,
-                'details': details.get('details'),
-                'cc_email': details.get('cc_email'),
-                'mooring_on_approval': details.get('mooring_on_approval'),
-                'vessel_ownership': details.get('vessel_ownership'),
-            }
-            self.save()
-
             # Create MooringOnApproval records
             ## also see logic in approval.add_mooring()
+            mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
+            ria_selected_mooring = None
+            if mooring_id_pk:
+                ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+
             existing_mooring_count = approval.mooringonapproval_set.count()
             if ria_selected_mooring:
                 moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
@@ -2516,23 +2520,6 @@ class MooringLicenceApplication(Proposal):
 
             # update proposed_issuance_approval and VesselOwnership if not system reissue
             if request:
-                ria_mooring_name = ''
-                mooring_id = details.get('mooring_id')
-                if mooring_id:
-                    ria_mooring_name = Mooring.objects.get(id=mooring_id).name
-                self.proposed_issuance_approval = {
-                    # 'start_date' : details.get('start_date').strftime('%d/%m/%Y'),
-                    # 'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
-                    'mooring_bay_id': details.get('mooring_bay_id'),
-                    'mooring_id': mooring_id,
-                    'ria_mooring_name': ria_mooring_name,
-                    'details': details.get('details'),
-                    'cc_email': details.get('cc_email'),
-                    'mooring_on_approval': details.get('mooring_on_approval'),
-                    'vessel_ownership': details.get('vessel_ownership'),
-                }
-                self.save()
-
                 # updating checkboxes
                 #if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
