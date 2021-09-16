@@ -33,7 +33,7 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
-    delete_session_sticker_action_invoice
+    delete_session_sticker_action_invoice, ItemNotSetInSessionException
 from mooringlicensing.components.proposals.email import send_application_processed_email
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
@@ -649,8 +649,8 @@ class ApplicationFeeSuccessView(TemplateView):
                 update_payments(invoice_ref)
 
                 if proposal and invoice.payment_status in ('paid', 'over_paid',):
-                    proposal.child_obj.process_after_payment_success(request)
-                    self.adjust_db_operations(db_operations)
+                    logger.info('The fee for the proposal: {} has been fully paid'.format(proposal.lodgement_number))
+                    # proposal.child_obj.process_after_payment_success(request)
 
                     if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
                         # For AUA or MLA, as payment has been done, create approval
@@ -695,14 +695,24 @@ class ApplicationFeeSuccessView(TemplateView):
                         #proposal.approval.documents.all().update(can_delete=False)
                     else:
                         # When WLA / AAA
+                        if proposal.application_type.code == WaitingListApplication.code:
+                            proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+
+                            ret1 = proposal.send_emails_after_payment_success(request)
+                            if not ret1:
+                                raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+                            proposal.save()
+
                         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                         proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                         proposal.save()
                         send_application_processed_email(proposal, 'paid', request)
 
                 else:
-                    logger.error('Invoice payment status is {}'.format(invoice.payment_status))
-                    raise
+                    msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, invoice.payment_status)
+                    logger.error(msg)
+                    raise Exception(msg)
 
                 application_fee.save()
                 request.session[self.LAST_APPLICATION_FEE_ID] = application_fee.id
@@ -715,19 +725,30 @@ class ApplicationFeeSuccessView(TemplateView):
                 }
                 return render(request, self.template_name, context)
 
-        except Exception as e:
-            print('in ApplicationFeeSuccessView.get() Exception')
-            print(e)
-            if (self.LAST_APPLICATION_FEE_ID in request.session) and ApplicationFee.objects.filter(id=request.session[self.LAST_APPLICATION_FEE_ID]).exists():
-                application_fee = ApplicationFee.objects.get(id=request.session[self.LAST_APPLICATION_FEE_ID])
-                proposal = application_fee.proposal
-                submitter = proposal.submitter
-                if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
-                    #proposal.child_obj.auto_approve(request)
-                    proposal.auto_approve(request)
-
+        except ItemNotSetInSessionException as e:
+            if self.LAST_APPLICATION_FEE_ID in request.session:
+                if ApplicationFee.objects.filter(id=request.session[self.LAST_APPLICATION_FEE_ID]).exists():
+                    application_fee = ApplicationFee.objects.get(id=request.session[self.LAST_APPLICATION_FEE_ID])
+                    proposal = application_fee.proposal
+                    submitter = proposal.submitter
+                    if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
+                        proposal.auto_approve(request)
+                else:
+                    msg = 'ApplicationFee with id: {} does not exist in the database'.format(str(request.session[self.LAST_APPLICATION_FEE_ID]))
+                    logger.error(msg)
+                    return redirect('home')  # Should be 'raise' rather than redirect?
+                    # raise Exception(msg)
             else:
-                return redirect('home')
+                msg = '{} is not set in session'.format(self.LAST_APPLICATION_FEE_ID)
+                logger.error(msg)
+                return redirect('home')  # Should be 'raise' rather than redirect?
+                # raise Exception(msg)
+        except Exception as e:
+            # Should not reach here
+            msg = 'Failed to process the payment. {}'.format(str(e))
+            logger.error(msg)
+            # return redirect('home')
+            raise Exception(msg)
 
         context = {
             'proposal': proposal,
@@ -735,11 +756,6 @@ class ApplicationFeeSuccessView(TemplateView):
             'fee_invoice': application_fee,
         }
         return render(request, self.template_name, context)
-
-    @staticmethod
-    def adjust_db_operations(db_operations):
-        print(db_operations)
-        return
 
 
 class DcvAdmissionPDFView(View):

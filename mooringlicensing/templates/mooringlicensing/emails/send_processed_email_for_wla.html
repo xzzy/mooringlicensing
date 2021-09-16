@@ -1,6 +1,25 @@
 {%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {%  block content_body %}
+This is TEST by KATSU.
+<p>Dear {{ recipient.first_name }} {{ recipient.last_name}},</p>
+<p>Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.</p>
+
+{% if payment_made %}
+<p>Please find your invoice attached to this email.</p>
+{% endif %}
+
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}
+
+
+
+
+
+{% comment %}
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
 Dear {{ recipient.first_name }} {{ recipient.last_name}},
 
 {% if decision == 'paid' %}
@@ -10,16 +29,17 @@ Details: {{ details }}
 {% endif %}
 
 {% if decision == 'approved' %}
-    Your waiting list allocation application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.
+Your waiting list allocation application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.
 
-    Details: {{ details }}
+Details: {{ details }}
 {% endif %}
 
 {% if decision == 'declined' %}
-    Your waiting list allocation application {{ proposal.lodgement_number }} has been declined.
+Your waiting list allocation application {{ proposal.lodgement_number }} has been declined.
 
-    Details: {{ details }}
+Details: {{ details }}
 {% endif %}
 
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}
+{% endcomment %}
