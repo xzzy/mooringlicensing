@@ -656,38 +656,38 @@ class ApplicationFeeSuccessView(TemplateView):
                         # For AUA or MLA, as payment has been done, create approval
                         approval, created = proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
-                        if created:
-                            if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                                # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
-                                pass
-                            # Log creation
-                            # Generate the document
-                            approval.generate_doc(request.user)
-                            proposal.generate_compliances(approval, request)
-                            # send the doc and log in approval and org
-                        else:
-                            # Generate the document
-                            approval.generate_doc(request.user)
+                        #if created:
+                        #    if proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                        #        # TODO implemenmt (refer to Proposal.final_approval_for_AUA_MLA)
+                        #        pass
+                        #    # Log creation
+                        #    # Generate the document
+                        #    approval.generate_doc(request.user)
+                        #    proposal.generate_compliances(approval, request)
+                        #    # send the doc and log in approval and org
+                        #else:
+                        #    # Generate the document
+                        #    approval.generate_doc(request.user)
 
-                            # Delete the future compliances if Approval is reissued and generate the compliances again.
-                            approval_compliances = Compliance.objects.filter(approval=approval, proposal=proposal, processing_status='future')
-                            for compliance in approval_compliances:
-                                compliance.delete()
+                        #    # Delete the future compliances if Approval is reissued and generate the compliances again.
+                        #    approval_compliances = Compliance.objects.filter(approval=approval, proposal=proposal, processing_status='future')
+                        #    for compliance in approval_compliances:
+                        #        compliance.delete()
 
-                            proposal.generate_compliances(approval, request)
+                        #    proposal.generate_compliances(approval, request)
 
-                            # Log proposal action
-                            proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
+                        #    # Log proposal action
+                        #    proposal.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
 
-                            # Log entry for organisation
-                            applicant_field = getattr(proposal, proposal.applicant_field)
-                            applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
+                        #    # Log entry for organisation
+                        #    applicant_field = getattr(proposal, proposal.applicant_field)
+                        #    applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(proposal.id), request)
 
-                        proposal.approval = approval
+                        #proposal.approval = approval
 
-                        proposal.child_obj.update_status()  # To calculate the manage_stickers() below correctly, proposal's status must be updated
-                        moas_to_be_reallocated, stickers_to_be_returned = approval.child_obj.manage_stickers(proposal)
-                        approval.update_approval_history_by_stickers()
+                        #proposal.child_obj.update_status()  # To calculate the manage_stickers() below correctly, proposal's status must be updated
+                        #moas_to_be_reallocated, stickers_to_be_returned = approval.child_obj.manage_stickers(proposal)
+                        #approval.update_approval_history_by_stickers()
 
                         # send Proposal approval email with attachment
                         send_application_processed_email(proposal, 'paid', request, stickers_to_be_returned)
@@ -695,6 +695,9 @@ class ApplicationFeeSuccessView(TemplateView):
                         proposal.approval.documents.all().update(can_delete=False)
                     else:
                         # When WLA / AAA
+                        proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                        proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+                        proposal.save()
                         send_application_processed_email(proposal, 'paid', request)
 
                 else:
@@ -725,8 +728,6 @@ class ApplicationFeeSuccessView(TemplateView):
 
             else:
                 return redirect('home')
-
-        proposal.child_obj.update_status()
 
         context = {
             'proposal': proposal,
