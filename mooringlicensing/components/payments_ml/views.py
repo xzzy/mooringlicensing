@@ -695,7 +695,7 @@ class ApplicationFeeSuccessView(TemplateView):
                         #proposal.approval.documents.all().update(can_delete=False)
                     else:
                         # When WLA / AAA
-                        if proposal.application_type.code == WaitingListApplication.code:
+                        if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code]:
                             proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                             proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
