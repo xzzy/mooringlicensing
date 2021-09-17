@@ -12,7 +12,7 @@ from django.db import connection, transaction
 from django.db.models import Q
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
-    MooringLicence
+    MooringLicence, Approval
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
         MooringBay, 
@@ -23,7 +23,8 @@ from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
+logger = logging.getLogger('mooringlicensing')
 
 def add_cache_control(response):
     response['Cache-Control'] = 'private, no-store'
@@ -443,4 +444,52 @@ def get_dot_vessel_information(request,json_string):
     auth=auth=HTTPBasicAuth(settings.DOT_USERNAME,settings.DOT_PASSWORD)
     r = requests.get(DOT_URL+"?paramGET="+paramGET+"&client_ip="+client_ip, auth=auth)
     return r.text
+
+def export_to_mooring_booking(approval_id):
+    #status = cancelled, active
+    #licence_type =  1=Licence  2=Authorised User  3=Annual Admission
+    try:
+        url = settings.MOORING_BOOKINGS_API_URL + "licence-create-update/" + settings.MOORING_BOOKINGS_API_KEY + '/' 
+        approval = Approval.objects.get(id=approval_id)
+        status = 'active' if approval.status == 'current' else 'cancelled'
+        licence_type = None
+        if type(approval.child_obj) == MooringLicence:
+            licence_type = 1
+        elif type(approval.child_obj) == AuthorisedUserPermit:
+            licence_type = 2
+        elif type(approval.child_obj) == AnnualAdmissionPermit:
+            licence_type = 3
+        if approval and type(approval.child_obj) in [AnnualAdmissionPermit, AuthorisedUserPermit]:
+            myobj = {
+                    'vessel_rego': approval.current_proposal.vessel_ownership.vessel.rego_no,
+                    'licence_id': approval.id,
+                    'licence_type': licence_type,
+                    'start_date': approval.start_date.strftime('%Y-%m-%d'),
+                    'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d'),
+                    'status' : status,
+                    }
+            resp = requests.post(url, data = myobj)
+            print (resp.text)
+            logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
+            return resp.text
+        elif approval and type(approval.child_obj) == MooringLicence:
+            for vessel_ownership in approval.child_obj.vessel_ownership_list:
+                vessels_return_values = []
+                myobj = {
+                        'vessel_rego': vessel_ownership.vessel.rego_no,
+                        'licence_id': approval.id,
+                        'licence_type': licence_type,
+                        'start_date': approval.start_date.strftime('%Y-%m-%d'),
+                        'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d'),
+                        'status' : status,
+                        }
+                print (resp.text)
+                resp = requests.post(url, data = myobj)
+                logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
+                vessels_return_values.append(resp.text)
+            return vessels_return_values
+    except Exception as e:
+        print(str(e))
+        logger.error(str(e))
+        raise e
 
