@@ -213,18 +213,32 @@ class GetMooringPerBay(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.approvals.models import AuthorisedUserPermit
+        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, WaitingListAllocation
         #import ipdb; ipdb.set_trace()
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
+        wla_id = request.GET.get('wla_id')
         aup_id = request.GET.get('aup_id')
         search_term = request.GET.get('term', '')
         #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
+            #import ipdb; ipdb.set_trace()
             if available_moorings:
                 if mooring_bay_id:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                    # WLA offer
+                    if wla_id:
+                        wla = WaitingListAllocation.objects.get(id=int(wla_id))
+                        vessel_details_id = wla.current_proposal.vessel_details.id
+                        ## restrict search results to suitable vessels
+                        vessel_details = VesselDetails.objects.get(id=vessel_details_id)
+                        data = Mooring.available_moorings.filter(
+                                name__icontains=search_term).filter(
+                                mooring_bay__id=mooring_bay_id).filter(
+                                vessel_size_limit__gte=vessel_details.vessel_applicable_length).filter(
+                                vessel_draft_limit__gte=vessel_details.vessel_draft).values('id', 'name')[:10]
+                    else:
+                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
                 else:
                     data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
             else:
