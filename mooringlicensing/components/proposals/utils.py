@@ -712,7 +712,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
     elif (not vessel_ownership_data.get('individual_owner') and not 
-            vessel_ownership_data.get("company_ownership").get("company").get("name")
+            vessel_ownership_data.get("company_ownership", {}).get("company", {}).get("name")
             ):
         raise serializers.ValidationError({"Missing information": "You must supply the company name"})
     company_ownership = None
