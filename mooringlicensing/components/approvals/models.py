@@ -622,8 +622,11 @@ class Approval(RevisionedMixin):
     #                raise
     #    return copied_data
 
-    def log_user_action(self, action, request):
-       return ApprovalUserAction.log_action(self, action, request.user)
+    def log_user_action(self, action, request=None):
+        if request:
+            return ApprovalUserAction.log_action(self, action, request.user)
+        else:
+            return ApprovalUserAction.log_action(self, action)
 
     def expire_approval(self, user):
         with transaction.atomic():
@@ -997,7 +1000,7 @@ class AuthorisedUserPermit(Approval):
         self.save()
         # Create a log entry for the proposal and approval
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
-        self.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
+        self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
         ## final approval
         self.current_proposal.final_approval()
 
@@ -1158,7 +1161,7 @@ class MooringLicence(Approval):
         self.save()
         # Create a log entry for the proposal and approval
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
-        self.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
+        self.approval.log_user_action(ApprovalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number))
         ## final approval
         self.current_proposal.final_approval()
 
