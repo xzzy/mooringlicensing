@@ -27,6 +27,7 @@ from mooringlicensing.components.proposals.models import (
     Proposal,
     Company,
     CompanyOwnership,
+    Mooring
 )
 from mooringlicensing.components.proposals.serializers import (
         SaveVesselDetailsSerializer,
@@ -575,9 +576,20 @@ def submit_vessel_data(instance, request, vessel_data):
     instance.vessel_details = vessel_details
     instance.save()
     ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
-    if type(instance.child_obj) in [AnnualAdmissionApplication, AuthorisedUserApplication]:
+    if type(instance.child_obj) == AnnualAdmissionApplication:
         if instance.vessel_details.vessel_applicable_length < min_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+    elif type(instance.child_obj) == AuthorisedUserApplication:
+        if instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+        # proposal
+        proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+        mooring_id = proposal_data.get('mooring_id')
+        if mooring_id and proposal_data.get('site_licensee_email'):
+            mooring = Mooring.objects.get(id=mooring_id)
+            if (instance.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
+            instance.vessel_details.vessel_draft > mooring.vessel_draft_limit):
+                raise serializers.ValidationError("Vessel unsuitable for mooring")
     elif type(instance.child_obj) == WaitingListApplication:
         if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
@@ -712,7 +724,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
     elif (not vessel_ownership_data.get('individual_owner') and not 
-            vessel_ownership_data.get("company_ownership").get("company").get("name")
+            vessel_ownership_data.get("company_ownership", {}).get("company", {}).get("name")
             ):
         raise serializers.ValidationError({"Missing information": "You must supply the company name"})
     company_ownership = None

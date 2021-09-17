@@ -293,6 +293,7 @@ export default {
                         //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
+                            /*
                             let disabled_str = ''
                             if (vm.readonly || !full.mooring_licence_current || !full.suitable_for_mooring){
                                 disabled_str = ' disabled '
@@ -303,6 +304,14 @@ export default {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + '/>'
                             }
                             return '';
+                            */
+                            if (full.checked){
+                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + ' checked/>'
+                            } else {
+                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + '/>'
+                            }
+                            return '';
+
                         }
                     },
                     {
