@@ -264,6 +264,7 @@ class Approval(RevisionedMixin):
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
     vessel_nomination_reminder_sent = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
+    export_to_mooring_booking = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
