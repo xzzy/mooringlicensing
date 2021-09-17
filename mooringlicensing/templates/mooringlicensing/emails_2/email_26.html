@@ -1,0 +1,7 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{%  block content_body %}
+{% include "mooringlicensing/emails/salutation.html" %}
+<p>Please find attached the DCV permit and the invoice as proof of payment.
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}
