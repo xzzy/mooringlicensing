@@ -1267,6 +1267,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # always reset this flag
                 approval.renewal_sent = False
+                if type(self.child_obj) == AnnualAdmissionApplication:
+                    approval.export_to_mooring_booking = True
                 approval.save()
 
                 # Generate compliances
@@ -1325,7 +1327,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #if awaiting_payment:
                  #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
                   #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-                elif awaiting_printing:
+                if awaiting_printing:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
                     # Log proposal action
@@ -2313,6 +2315,7 @@ class AuthorisedUserApplication(Proposal):
 
         # always reset this flag
         approval.renewal_sent = False
+        approval.export_to_mooring_booking = True
         approval.save()
 
         # set proposal status to approved - can change later after manage_stickers
@@ -2574,6 +2577,7 @@ class MooringLicenceApplication(Proposal):
                     )
             # always reset this flag
             approval.renewal_sent = False
+            approval.export_to_mooring_booking = True
             approval.save()
             # manage stickers
             moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
