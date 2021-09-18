@@ -237,7 +237,6 @@ export default {
                             available_moorings: true,
                             mooring_bay_id: vm.selectedMooringBayId,
                             wla_id: vm.wlaId,
-                            //vessel_details_id: vm.proposal.vessel_details_id,
                         }
                         return query;
                     },
