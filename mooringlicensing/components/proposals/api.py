@@ -228,7 +228,11 @@ class GetMooringPerBay(views.APIView):
                 if mooring_bay_id:
                     # WLA offer
                     if wla_id:
-                        wla = WaitingListAllocation.objects.get(id=int(wla_id))
+                        try:
+                            wla = WaitingListAllocation.objects.get(id=int(wla_id))
+                        except:
+                            logger.error("wla_id {} is not an integer".format(wla_id))
+                            raise serializers.ValidationError("wla_id is not an integer")
                         vessel_details_id = wla.current_proposal.vessel_details.id
                         ## restrict search results to suitable vessels
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id)
