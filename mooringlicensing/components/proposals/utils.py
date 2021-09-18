@@ -578,9 +578,11 @@ def submit_vessel_data(instance, request, vessel_data):
     ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
     if type(instance.child_obj) == AnnualAdmissionApplication:
         if instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
     elif type(instance.child_obj) == AuthorisedUserApplication:
         if instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
         # proposal
         proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -589,20 +591,25 @@ def submit_vessel_data(instance, request, vessel_data):
             mooring = Mooring.objects.get(id=mooring_id)
             if (instance.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
             instance.vessel_details.vessel_draft > mooring.vessel_draft_limit):
+                logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
                 raise serializers.ValidationError("Vessel unsuitable for mooring")
     elif type(instance.child_obj) == WaitingListApplication:
         if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
     else:
         ## Mooring Licence Application
         if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
         elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
         elif instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and (
                 instance.vessel_details.vessel_applicable_length > instance.approval.child_obj.mooring.vessel_size_limit or
                 instance.vessel_details.vessel_draft > instance.approval.child_obj.mooring.vessel_draft_limit
                 ):
+            logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
             raise serializers.ValidationError("Vessel unsuitable for mooring")
 
     # record ownership data
