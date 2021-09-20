@@ -1166,13 +1166,14 @@ class MooringLicence(Approval):
         self.current_proposal.final_approval()
 
     def update_auth_user_permits(self):
-        moa_set = MooringOnApproval.objects.filter(
-                mooring=self.mooring,
-                approval__status='current'
-                )
-        for moa in moa_set:
-            if type(moa.approval.child_obj) == AuthorisedUserPermit:
-                moa.approval.child_obj.update_moorings(self)
+        if hasattr(self, 'mooring'):
+            moa_set = MooringOnApproval.objects.filter(
+                    mooring=self.mooring,
+                    approval__status='current'
+                    )
+            for moa in moa_set:
+                if type(moa.approval.child_obj) == AuthorisedUserPermit:
+                    moa.approval.child_obj.update_moorings(self)
 
     def manage_stickers(self, proposal):
         # Retrieve all the stickers regardless of the status
