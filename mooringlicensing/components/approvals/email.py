@@ -145,7 +145,6 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
 
-
 def send_approval_expire_email_notification(approval):
     # if approval.is_lawful_authority:
     #     email = FilmingLawfulAuthorityApprovalExpireNotificationEmail()
