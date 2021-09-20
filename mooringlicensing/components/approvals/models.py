@@ -232,6 +232,7 @@ class Approval(RevisionedMixin):
     original_issue_date = models.DateField(auto_now_add=True)
     start_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
+    fee_item = models.ForeignKey('FeeItem', blank=True, null=True)
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
     submitter = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='mooringlicensing_approvals')
