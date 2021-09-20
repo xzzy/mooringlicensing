@@ -1267,6 +1267,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # always reset this flag
                 approval.renewal_sent = False
+                if type(self.child_obj) == AnnualAdmissionApplication:
+                    approval.export_to_mooring_booking = True
                 approval.save()
 
                 # Generate compliances
@@ -1325,7 +1327,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #if awaiting_payment:
                  #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
                   #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-                elif awaiting_printing:
+                if awaiting_printing:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                     self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
                     # Log proposal action
@@ -2262,6 +2264,7 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
 
         # update proposed_issuance_approval and MooringOnApproval if not system reissue
+        existing_mooring_count = None
         if request:
             # Create MooringOnApproval records
             ## also see logic in approval.add_mooring()
@@ -2285,34 +2288,35 @@ class AuthorisedUserApplication(Proposal):
                         moa2.end_date = current_datetime.date()
                         moa2.save()
 
-        # Generate compliances
-        from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-        #if created:
-            #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-        if self.previous_application:
-            approval_compliances = Compliance.objects.filter(approval=self.approval,
-                                                             proposal=self.previous_application,
-                                                             processing_status='future')
-            if approval_compliances:
-                for c in approval_compliances:
-                    c.delete()
-            # Log creation
-            # Generate the document
-            approval.generate_doc(request.user)
-            self.generate_compliances(approval, request)
-            # send the doc and log in approval and org
-        else:
-            # Generate the document
-            approval.generate_doc(request.user)
-            # Delete the future compliances if Approval is reissued and generate the compliances again.
-            approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
-                                                             processing_status='future')
-            if approval_compliances:
-                for c in approval_compliances:
-                    c.delete()
+            # Generate compliances
+            from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+            #if created:
+                #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+            if self.previous_application:
+                approval_compliances = Compliance.objects.filter(approval=self.approval,
+                                                                 proposal=self.previous_application,
+                                                                 processing_status='future')
+                if approval_compliances:
+                    for c in approval_compliances:
+                        c.delete()
+                # Log creation
+                # Generate the document
+                approval.generate_doc(request.user)
+                self.generate_compliances(approval, request)
+                # send the doc and log in approval and org
+            else:
+                # Generate the document
+                approval.generate_doc(request.user)
+                # Delete the future compliances if Approval is reissued and generate the compliances again.
+                approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+                                                                 processing_status='future')
+                if approval_compliances:
+                    for c in approval_compliances:
+                        c.delete()
 
         # always reset this flag
         approval.renewal_sent = False
+        approval.export_to_mooring_booking = True
         approval.save()
 
         # set proposal status to approved - can change later after manage_stickers
@@ -2530,30 +2534,30 @@ class MooringLicenceApplication(Proposal):
                             vo2.mooring_licence_end_date = current_datetime.date()
                             vo2.save()
 
-            # Generate compliances
-            from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-            #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-            if self.previous_application:
-                approval_compliances = Compliance.objects.filter(approval=self.approval,
-                                                                 proposal=self.previous_application,
-                                                                 processing_status='future')
-                if approval_compliances:
-                    for c in approval_compliances:
-                        c.delete()
-                # Log creation
-                # Generate the document
-                approval.generate_doc(request.user)
-                self.generate_compliances(approval, request)
-                # send the doc and log in approval and org
-            else:
-                # Generate the document
-                approval.generate_doc(request.user)
-                # Delete the future compliances if Approval is reissued and generate the compliances again.
-                approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
-                                                                 processing_status='future')
-                if approval_compliances:
-                    for c in approval_compliances:
-                        c.delete()
+                # Generate compliances
+                from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+                #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+                if self.previous_application:
+                    approval_compliances = Compliance.objects.filter(approval=self.approval,
+                                                                     proposal=self.previous_application,
+                                                                     processing_status='future')
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
+                    # Log creation
+                    # Generate the document
+                    approval.generate_doc(request.user)
+                    self.generate_compliances(approval, request)
+                    # send the doc and log in approval and org
+                else:
+                    # Generate the document
+                    approval.generate_doc(request.user)
+                    # Delete the future compliances if Approval is reissued and generate the compliances again.
+                    approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+                                                                     processing_status='future')
+                    if approval_compliances:
+                        for c in approval_compliances:
+                            c.delete()
 
             # log Mooring action
             ## TODO: action is for mooring swap logic
@@ -2574,7 +2578,14 @@ class MooringLicenceApplication(Proposal):
                     )
             # always reset this flag
             approval.renewal_sent = False
+            approval.export_to_mooring_booking = True
             approval.save()
+
+            # set proposal status to approved - can change later after manage_stickers
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
+            self.save()
+
             # manage stickers
             moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
 

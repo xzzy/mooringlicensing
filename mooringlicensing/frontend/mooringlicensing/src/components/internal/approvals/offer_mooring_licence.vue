@@ -236,6 +236,7 @@ export default {
                             type: 'public',
                             available_moorings: true,
                             mooring_bay_id: vm.selectedMooringBayId,
+                            wla_id: vm.wlaId,
                         }
                         return query;
                     },
