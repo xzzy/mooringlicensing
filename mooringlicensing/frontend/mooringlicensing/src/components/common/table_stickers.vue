@@ -197,8 +197,11 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log('column_year')
-                    console.log(full.dcv_permit)
+                    if (full.fee_season){
+                        console.log(full)
+                        // This should be always reached
+                        return full.fee_season
+                    }
                     if (full.fee_constructor){
                         if (full.fee_constructor.fee_season){
                             return full.fee_constructor.fee_season.name
