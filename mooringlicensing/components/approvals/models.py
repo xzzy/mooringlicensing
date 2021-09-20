@@ -1215,8 +1215,8 @@ class MooringLicence(Approval):
         vessels = []
         for proposal in self.proposal_set.all():
             if (
-                    proposal.final_status and 
-                    proposal.vessel_details and 
+                    proposal.final_status and
+                    proposal.vessel_details and
                     proposal.vessel_details.vessel not in vessels and
                     not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
                     not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
@@ -1229,7 +1229,7 @@ class MooringLicence(Approval):
         vessel_details = []
         for proposal in self.proposal_set.all():
             if (
-                    proposal.final_status and 
+                    proposal.final_status and
                     proposal.vessel_details not in vessel_details and
                     not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
                     not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
@@ -1242,7 +1242,7 @@ class MooringLicence(Approval):
         vessel_ownership = []
         for proposal in self.proposal_set.all():
             if (
-                    proposal.final_status and 
+                    proposal.final_status and
                     proposal.vessel_ownership not in vessel_ownership and
                     not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
                     not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
@@ -1255,14 +1255,14 @@ class MooringLicence(Approval):
         vessels = []
         for proposal in self.proposal_set.all():
             if (
-                    proposal.final_status and 
-                    proposal.vessel_ownership and 
-                    proposal.vessel_ownership not in vessels and 
+                    proposal.final_status and
+                    proposal.vessel_ownership and
+                    proposal.vessel_ownership not in vessels and
                     not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
                     not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
                 vessels.append({
-                    "submitted_vessel_details": proposal.vessel_details, 
+                    "submitted_vessel_details": proposal.vessel_details,
                     "submitted_vessel_ownership": proposal.vessel_ownership,
                     "rego_no": proposal.vessel_details.vessel.rego_no,
                     "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
@@ -1274,9 +1274,9 @@ class MooringLicence(Approval):
         vessels = []
         for proposal in self.proposal_set.all():
             if (
-                    proposal.final_status and 
-                    proposal.vessel_ownership and 
-                    proposal.vessel_ownership not in vessels and 
+                    proposal.final_status and
+                    proposal.vessel_ownership and
+                    proposal.vessel_ownership not in vessels and
                     not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
                     not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
                     ):
@@ -1607,6 +1607,8 @@ class DcvPermit(RevisionedMixin):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def __str__(self):
+        return f'{self.lodgement_number} (M)' if self.migrated else f'{self.lodgement_number}'
 
 def update_dcv_admission_doc_filename(instance, filename):
     return '{}/dcv_admissions/{}/admissions/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
@@ -1843,11 +1845,12 @@ class StickerActionDetail(models.Model):
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
-    for document in instance.documents.all():
-        try:
-            document.delete()
-        except:
-            pass
+    if hasattr(instance, 'documents'):
+        for document in instance.documents.all():
+            try:
+                document.delete()
+            except:
+                pass
 
 
 #import reversion
