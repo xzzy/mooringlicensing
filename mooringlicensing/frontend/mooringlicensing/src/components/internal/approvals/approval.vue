@@ -264,6 +264,7 @@ export default {
         ml_vessels_datatable_headers: [
                 //'Id',
                 'Vessel',
+                'Rego No',
                 'Sticker',
                 'Owner',
                 'Mobile',
@@ -276,6 +277,9 @@ export default {
             columns: [
                 {
                     data: "vessel_name",
+                },
+                {
+                    data: "rego_no",
                 },
                 {
                     data: "sticker_numbers",
@@ -428,6 +432,7 @@ export default {
             this.$refs.ml_vessels_datatable.vmDataTable.row.add(
                 {
                     'vessel_name': mlv.vessel_name,
+                    'rego_no': mlv.rego_no,
                     'sticker_numbers': mlv.sticker_numbers,
                     'owner': mlv.owner,
                     'mobile': mlv.mobile,
