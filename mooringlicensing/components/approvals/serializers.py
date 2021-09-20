@@ -434,7 +434,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     "id": moa.id,
                     "lodgement_number": approval.lodgement_number,
                     "vessel_name": (
-                        approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name 
+                        approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
                         if approval.current_proposal.vessel_details else ''
                         ),
                     "holder": approval.submitter.get_full_name(),
@@ -543,7 +543,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         link = ''
         if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
-                    obj.id, 
+                    obj.id,
                     obj.id,
                     obj.current_proposal.preferred_bay.id,
                     )
@@ -558,8 +558,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_length(self, obj):
         vessel_length = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -569,8 +569,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_registration(self, obj):
         vessel_rego = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -580,8 +580,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_name(self, obj):
         vessel_name = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -591,8 +591,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_draft(self, obj):
         vessel_draft = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -690,6 +690,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
+            'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -732,6 +733,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
             'id',
+            'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -871,7 +873,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         link = ''
         if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
-                    obj.id, 
+                    obj.id,
                     obj.id,
                     obj.current_proposal.preferred_bay.id,
                     )
@@ -886,8 +888,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_length(self, obj):
         vessel_length = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -897,8 +899,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_registration(self, obj):
         vessel_rego = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -908,8 +910,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_name(self, obj):
         vessel_name = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -919,8 +921,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_draft(self, obj):
         vessel_draft = ''
         if (
-                obj.current_proposal and 
-                obj.current_proposal.vessel_details and 
+                obj.current_proposal and
+                obj.current_proposal.vessel_details and
                 obj.current_proposal.vessel_ownership and
                 not obj.current_proposal.vessel_ownership.end_date
                 ):
@@ -965,8 +967,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         holder_str = ''
         if obj.submitter:
             holder_str = '<span>{}</br>{}</br>{}</br></span>'.format(
-                    obj.submitter.get_full_name(), 
-                    obj.submitter.mobile_number, 
+                    obj.submitter.get_full_name(),
+                    obj.submitter.mobile_number,
                     obj.submitter.email
                     )
         return holder_str
@@ -1190,11 +1192,12 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
         model = DcvPermit
         fields = (
             'id',
+            'migrated',
             'lodgement_number',
-            'lodgement_datetime',            
-            'fee_season',            
+            'lodgement_datetime',
+            'fee_season',
             'start_date',
-            'end_date', 
+            'end_date',
             'dcv_organisation_name',
             'status',
             'fee_invoice_url',
@@ -1205,11 +1208,12 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             )
         datatables_always_serialize = (
             'id',
+            'migrated',
             'lodgement_number',
-            'lodgement_datetime',            
-            'fee_season',            
+            'lodgement_datetime',
+            'fee_season',
             'start_date',
-            'end_date', 
+            'end_date',
             'dcv_organisation_name',
             'status',
             'fee_invoice_url',
@@ -1252,9 +1256,12 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
         return url
 
     def get_dcv_organisation_name(self, obj):
-        if obj.dcv_organisation:
-            return obj.dcv_organisation.name
-        else:
+        try:
+            if obj.dcv_organisation:
+                return obj.dcv_organisation.name
+            else:
+                return obj.submitter.get_full_name() + ' (P)'
+        except:
             return ''
 
     def get_status(self, obj):
@@ -1285,7 +1292,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
-            'lodgement_date',            
+            'lodgement_date',
             'fee_invoice_url',
             'invoices',
             'admission_urls',
@@ -1294,7 +1301,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         datatables_always_serialize = (
             'id',
             'lodgement_number',
-            'lodgement_date',            
+            'lodgement_date',
             'fee_invoice_url',
             'invoices',
             'admission_urls',
@@ -1360,7 +1367,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
         model = ApprovalHistory
         fields = (
                 'id',
-                'approval_lodgement_number', 
+                'approval_lodgement_number',
                 'approval_type_description',
                 'approval_status',
                 'holder',
@@ -1374,7 +1381,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
                 )
         datatables_always_serialize = (
                 'id',
-                'approval_lodgement_number', 
+                'approval_lodgement_number',
                 'approval_type_description',
                 'approval_status',
                 'holder',
