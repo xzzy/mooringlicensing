@@ -82,20 +82,29 @@
                               <div class="navbar navbar-fixed-bottom"  style="background-color: #f5f5f5;">
                                   <div class="navbar-inner">
                                     <div v-if="proposal && !proposal.readonly" class="container">
-                                      <p class="pull-right" style="margin-top:5px">
-                                        <button v-if="saveExitProposal" type="button" class="btn btn-primary" disabled>Save and Exit&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit" :disabled="savingProposal || paySubmitting"/>
-                                        <button v-if="savingProposal" type="button" class="btn btn-primary" disabled>Save and Continue&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
+                                        <p class="pull-right" style="margin-top:5px">
+                                            <input type="checkbox" v-model="terms_and_conditions_checked" id="terms_and_conditions_checked" />
+                                            <label for="terms_and_conditions_checked">
+                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc">RIA Terms and Conditions</a>
+                                            </label>
 
-                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>{{ submit_text() }}&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <!-- <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="!proposal.training_completed || saveExitProposal || savingProposal"/> -->
-                                        <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="saveExitProposal || savingProposal"/>
-                                        <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                                      </p>
+                                            <button v-if="saveExitProposal || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
+                                                Save and Exit&nbsp;<i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                            </button>
+                                            <input v-else type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit" :disabled="savingProposal || paySubmitting"/>
+
+                                            <button v-if="savingProposal || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
+                                                Save and Continue&nbsp;<i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                            </button>
+                                            <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
+
+                                            <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
+                                                {{ submit_text() }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                            </button>
+                                            <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="saveExitProposal || savingProposal"/>
+
+                                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                                        </p>
                                     </div>
                                     <div v-else class="container">
                                       <p class="pull-right" style="margin-top:5px;">
@@ -147,6 +156,7 @@ export default {
       pBody: 'pBody',
       missing_fields: [],
       proposal_parks:null,
+        terms_and_conditions_checked: false,
     }
   },
   components: {
