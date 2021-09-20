@@ -397,6 +397,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return fee_items
 
     @property
+    def fee_period(self):
+        fee_items = self.get_fee_items_paid()
+        if len(fee_items):
+            fee_item = fee_items[0]
+            return fee_item.fee_period
+
+    @property
     def vessel_removed(self):
         # for AUP, AAP manage_stickers
         #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
@@ -1261,7 +1268,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval.wla_queue_date = current_datetime
                         approval.internal_status = 'waiting'
                         approval.save()
-                    #if created:
+                    # if created:
+                    #     approval.fee_period = self.fee_period  # It's better to
+                    #     approval.save()
                 self.approval = approval
                 self.save()
 
