@@ -1,7 +1,12 @@
 <template lang="html">
     <div class="container" >
         <!--button type="button" @click="createML">Mooring Licence Application</button-->
-        <div class="row">
+        <div class="row" v-if="applicationsLoading">
+            <div class="col-sm-3">
+                <i class='fa fa-5x fa-spinner fa-spin pull-right'></i>
+            </div>
+        </div>
+        <div v-else class="row">
             <div class="col-sm-12">
                 <form class="form-horizontal" name="personal_form" method="post">
                     <FormSection label="Apply for">
@@ -211,6 +216,7 @@ export default {
   data: function() {
     let vm = this;
     return {
+        applicationsLoading: false,
         "proposal": null,
         profile: {
         },
@@ -520,6 +526,7 @@ export default {
 
   },
   mounted: async function() {
+    this.applicationsLoading = true;
     //let vm = this;
     await this.fetchApplicationTypes();
     //await this.fetchExistingMooringLicences();
@@ -531,6 +538,7 @@ export default {
     this.parseAua();
     this.parseMl();
     this.form = document.forms.new_proposal;
+    this.applicationsLoading = false;
   },
   beforeRouteEnter: function(to, from, next) {
 
