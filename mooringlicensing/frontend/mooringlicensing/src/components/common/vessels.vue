@@ -104,6 +104,7 @@
                     class="form-control" 
                     id="ownership_percentage_company" 
                     placeholder="" 
+                    :key="companyOwnershipName"
                     v-model="vessel.vessel_ownership.company_ownership.percentage" 
                     required=""
                     />
@@ -289,6 +290,14 @@ from '@/utils/hooks'
         },
         */
         computed: {
+            companyOwnershipName: function() {
+                //console.log(this.vessel.vessel_ownership.company_ownership);
+                let companyName = null;
+                if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.company_ownership && this.vessel.vessel_ownership.company_ownership.company) {
+                    companyName = this.vessel.vessel_ownership.company_ownership.company.name;
+                }
+                return companyName
+            },
             existingVesselOwnership: function() {
                 if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
                     return true;
@@ -536,8 +545,8 @@ from '@/utils/hooks'
                                     name: text,
                                 }
                             }
-                            vm.vessel.vessel_ownership.company_ownership = Object.assign({}, companyOwnership);
-                            console.log(data)
+                            //vm.vessel.vessel_ownership.company_ownership = Object.assign({}, companyOwnership);
+                            vm.vessel.vessel_ownership = Object.assign({}, vm.vessel.vessel_ownership, {company_ownership: companyOwnership});
                         }
                     });
                 }).
