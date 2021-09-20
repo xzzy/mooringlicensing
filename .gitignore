@@ -7,7 +7,9 @@ node_modules/
 #cronjobs
 .ropeproject/
 mooring/cache/*
-mooringlicensing/utils/lotus_notes/*
+lotus_notes*
+tmp/*
+#mooringlicensing/utils/lotus_notes/*
 mooringlicensing/utils/tests
 .ropeproject/
 

@@ -77,8 +77,8 @@ class WaitingListMigration(object):
         added = []
         errors = []
         with transaction.atomic():
-            #for idx, record in enumerate(self.waitlist[:15], 1):
-            for idx, record in enumerate(self.waitlist, 1):
+            for idx, record in enumerate(self.waitlist[:15], 1):
+            #for idx, record in enumerate(self.waitlist, 1):
                 try:
                     #import ipdb; ipdb.set_trace()
                     pers_no = record.get('PersNo')
@@ -128,7 +128,7 @@ class WaitingListMigration(object):
                     date_applied = record.get('DateApplied')
                     position_no = int(record.get('BayPosNo'))
                     trim_no = record.get('TrimNo')
-                    percentage = 100
+                    percentage = None # force user to set at renewal time
 
 
                     items = address.split(',')
@@ -166,7 +166,6 @@ class WaitingListMigration(object):
                         vessel_type=vessel_type,
                         vessel=vessel,
                         vessel_name=vessel_name,
-                        vessel_overall_length=vessel_overall_length,
                         vessel_length=vessel_overall_length,
                         vessel_draft=vessel_draft,
                         vessel_weight= vessel_weight,
@@ -182,7 +181,6 @@ class WaitingListMigration(object):
                         rego_no=rego_no,
                         vessel_type=vessel_type,
                         vessel_name=vessel_name,
-                        vessel_overall_length=vessel_overall_length,
                         vessel_length=vessel_overall_length,
                         vessel_draft=vessel_draft,
                         #vessel_beam='',
