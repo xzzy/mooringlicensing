@@ -831,6 +831,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     authorised_user_moorings = serializers.SerializerMethodField()
     reissued = serializers.SerializerMethodField()
     current_vessels_rego_list = serializers.SerializerMethodField()
+    application_type_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -898,11 +899,15 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'reissued',
                 'dot_name',
                 'current_vessels_rego_list',
+                'application_type_code',
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_application_type_code(self, obj):
+        return obj.application_type_code
 
     def get_current_vessels_rego_list(self, obj):
         vessels = []
