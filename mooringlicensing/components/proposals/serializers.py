@@ -919,7 +919,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else 
                         '<span style="color:{}">Historical</span>'.format(color),
                     #"checked": True if not moa.end_date else False,
-                    "checked": True if not moa.end_date else False,
+                    "checked": True if suitable_for_mooring and not moa.end_date else False,
                     "suitable_for_mooring": suitable_for_mooring,
                     "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
                     })
