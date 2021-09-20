@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Change the status of Approvals to Expired/Surrender/ Cancelled/ Suspended.'
+    help = 'Change the status of Approvals to Expired / Surrender/ Cancelled/ Suspended.'
 
     def handle(self, *args, **options):
         try:
