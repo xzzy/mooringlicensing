@@ -459,35 +459,47 @@ def export_to_mooring_booking(approval_id):
             licence_type = 2
         elif type(approval.child_obj) == AnnualAdmissionPermit:
             licence_type = 3
+        errors = []
+        updates = []
         if approval and type(approval.child_obj) in [AnnualAdmissionPermit, AuthorisedUserPermit]:
             myobj = {
                     'vessel_rego': approval.current_proposal.vessel_ownership.vessel.rego_no,
                     'licence_id': approval.id,
                     'licence_type': licence_type,
-                    'start_date': approval.start_date.strftime('%Y-%m-%d'),
-                    'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d'),
+                    'start_date': approval.start_date.strftime('%Y-%m-%d') if approval.start_date else '',
+                    'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d') if approval.expiry_date else '',
                     'status' : status,
                     }
             resp = requests.post(url, data = myobj)
-            print (resp.text)
+            resp_dict = json.loads(resp.text)
             logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
-            return resp.text
+            if resp_dict.get("status") == 200:
+                updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
+                approval.export_to_mooring_booking = False
+                approval.save()
+            else:
+                errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
         elif approval and type(approval.child_obj) == MooringLicence:
             for vessel_ownership in approval.child_obj.vessel_ownership_list:
-                vessels_return_values = []
                 myobj = {
                         'vessel_rego': vessel_ownership.vessel.rego_no,
                         'licence_id': approval.id,
                         'licence_type': licence_type,
-                        'start_date': approval.start_date.strftime('%Y-%m-%d'),
-                        'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d'),
+                        'start_date': approval.start_date.strftime('%Y-%m-%d') if approval.start_date else '',
+                        'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d') if approval.expiry_date else '',
                         'status' : status,
                         }
-                print (resp.text)
                 resp = requests.post(url, data = myobj)
+                resp_dict = json.loads(resp.text)
                 logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
-                vessels_return_values.append(resp.text)
-            return vessels_return_values
+                if resp_dict.get("status") == 200:
+                    updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
+                else:
+                    errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
+            if not errors:
+                approval.export_to_mooring_booking = False
+                approval.save()
+        return errors, updates
     except Exception as e:
         print(str(e))
         logger.error(str(e))

@@ -22,7 +22,9 @@ class Command(BaseCommand):
             updates = []
             approvals_to_process = approvals_to_export[:10]
             for approval in approvals_to_process:
-                export_to_mooring_booking(approval_id)
+                approval_errors, approval_updates = export_to_mooring_booking(approval.id)
+                errors.extend(approval_errors)
+                updates.extend(approval_updates)
             # write email
             cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
             err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
