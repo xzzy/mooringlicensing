@@ -249,7 +249,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     end_date = serializers.ReadOnlyField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
     previous_application_preferred_bay_id = serializers.SerializerMethodField()
-    mooring_licence_vessels = serializers.SerializerMethodField()
+    current_vessels_rego_list = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_vessel_rego_no = serializers.SerializerMethodField()
     waiting_list_application_id = serializers.SerializerMethodField()
@@ -331,7 +331,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'previous_application_id',
                 'previous_application_vessel_details_id',
                 'previous_application_preferred_bay_id',
-                'mooring_licence_vessels',
+                #'mooring_licence_vessels',
+                'current_vessels_rego_list',
                 'approval_lodgement_number',
                 'approval_vessel_rego_no',
                 'waiting_list_application_id',
@@ -368,7 +369,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             lodgement_number = obj.approval.lodgement_number
         return lodgement_number
 
-    def get_mooring_licence_vessels(self, obj):
+    #def get_mooring_licence_vessels(self, obj):
+    def get_current_vessels_rego_list(self, obj):
         vessels = []
         if obj.approval and type(obj.approval.child_obj) is MooringLicence:
             vessels = obj.approval.child_obj.current_vessels_rego
@@ -828,6 +830,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     mooring_licence_vessels = serializers.SerializerMethodField()
     authorised_user_moorings = serializers.SerializerMethodField()
     reissued = serializers.SerializerMethodField()
+    current_vessels_rego_list = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -894,11 +897,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'authorised_user_moorings',
                 'reissued',
                 'dot_name',
+                'current_vessels_rego_list',
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_current_vessels_rego_list(self, obj):
+        vessels = []
+        if obj.approval and type(obj.approval.child_obj) is MooringLicence:
+            vessels = obj.approval.child_obj.current_vessels_rego
+        return vessels
 
     def get_reissued(self, obj):
         return obj.approval.reissued if obj.approval else False
