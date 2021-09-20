@@ -14,7 +14,7 @@
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
                                     <label>Waiting List</label>
-                                    <div v-if="wlaApprovals.length<=1 && newWlaAllowed">
+                                    <div v-if="wlaApprovals.length<=1">
                                         <div v-for="(application_type, index) in wlaChoices">
                                             <input 
                                             type="radio" 
@@ -322,7 +322,7 @@ export default {
           } else {
               // add wla approval to wlaChoices
               for (let app of this.application_types) {
-                  if (app.code === 'wla') {
+                  if (app.code === 'wla' && (this.newWlaAllowed || app.approval_id)) {
                       this.wlaChoices.push(app);
                   }
               }
