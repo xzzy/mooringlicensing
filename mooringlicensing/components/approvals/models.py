@@ -951,6 +951,7 @@ class AnnualAdmissionPermit(Approval):
                     vessel_ownership=proposal.vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
                     proposal_initiated=proposal,
+                    fee_season=self.latest_applied_season,
                 )
             stickers_required.append(sticker)
 
@@ -1119,6 +1120,7 @@ class AuthorisedUserPermit(Approval):
                     vessel_ownership=moa_to_be_replaced.sticker.vessel_ownership if moa_to_be_replaced.sticker else proposal.vessel_ownership,
                     fee_constructor=proposal.fee_constructor if proposal.fee_constructor else moa_to_be_replaced.sticker.fee_constructor if moa_to_be_replaced.sticker else None,
                     proposal_initiated=proposal,
+                    fee_season=self.latest_applied_season,
                 )
             moa_to_be_replaced.sticker = sticker_to_be_filled  # Update moa
             moa_to_be_replaced.save()
@@ -1200,6 +1202,7 @@ class MooringLicence(Approval):
                     vessel_ownership=proposal.vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
                     proposal_initiated=proposal,
+                    fee_season=self.latest_applied_season,
                 )
             stickers_required.append(sticker)
 
@@ -1690,6 +1693,7 @@ class Sticker(models.Model):
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
     # vessel_details = models.ForeignKey('VesselDetails', blank=True, null=True)
     fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
+    fee_season = models.ForeignKey('FeeSeason', blank=True, null=True)
     #vessel = models.ForeignKey('Vessel', blank=True, null=True)
     vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
     proposal_initiated = models.ForeignKey('Proposal', blank=True, null=True)  # This propposal created this sticker object.  Can be None when sticker created by RequestNewSticker action or so.
@@ -1718,6 +1722,7 @@ class Sticker(models.Model):
             approval=self.approval,
             vessel_ownership=self.vessel_ownership,
             fee_constructor=self.fee_constructor,
+            fee_season=self.approval.latest_applied_season,
         )
 
         return new_sticker
