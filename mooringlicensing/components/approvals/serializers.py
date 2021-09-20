@@ -462,6 +462,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                 vessel_details.append({
                     "id": vessel.id,
                     "vessel_name": vessel.latest_vessel_details.vessel_name,
+                    "rego_no": vessel.rego_no,
                     "sticker_numbers": sticker_numbers,
                     "owner": vessel_ownership.owner.emailuser.get_full_name(),
                     "mobile": vessel_ownership.owner.emailuser.mobile_number,
