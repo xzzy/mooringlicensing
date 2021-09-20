@@ -58,13 +58,25 @@ export default {
             }
         },
     },
+    methods: {
+        switchPanelChevronClass: function() {
+            if (this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right") {
+                this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
+            } else {
+                this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
+            }
+        },
+    },
     mounted: function() {
         let vm = this;
         $('#' + vm.custom_id).on('click',function () {
+            vm.switchPanelChevronClass();
+            /*
             var chev = $(this).children()[0];
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
             }, 100);
+            */
         });
     },
     updated:function () {
