@@ -548,7 +548,7 @@ class Approval(RevisionedMixin):
     @property
     def amend_or_renew(self):
         try:
-            if not self.status in ['current', 'suspended']:
+            if not self.status in ['current', 'suspended', 'fulfilled']:
                 return None
             amend_renew = 'amend'
             ## test whether any renewal or amendment applications have been created
