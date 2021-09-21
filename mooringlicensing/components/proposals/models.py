@@ -42,8 +42,7 @@ from mooringlicensing.components.proposals.email import (
     send_amendment_email_notification,
     send_confirmation_email_upon_submit,
     # send_external_submit_email_notification,
-    send_approver_decline_email_notification,
-    send_approver_approve_email_notification,
+    send_approver_approve_decline_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
@@ -1015,7 +1014,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field = getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
-                send_approver_decline_email_notification(reason, request, self)
+                send_approver_approve_decline_email_notification(request, self)
             except:
                 raise
 
@@ -1170,7 +1169,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field = getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
 
-                send_approver_approve_email_notification(request, self)
+                send_approver_approve_decline_email_notification(request, self)
                 return self
 
             except:

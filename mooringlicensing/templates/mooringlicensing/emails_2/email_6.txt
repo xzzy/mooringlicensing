@@ -1,0 +1,12 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{%  block content_body %}
+{% include "mooringlicensing/emails/salutation.html" %}
+We are pleased to advise that a mooring has become available in your nominated waitlist bay, and you are the next eligible waitlisted applicant {{ wla.lodgement_number }}.
+We hereby invite you to apply for a mooring site licence below offer.
+To accept this offer, you are required to submit your application for a mooring site licence within {{ application_period }} number of days and submit any additional documents within {{ documents_period }} number of days thereafter.
+If your application is not submitted within the timeframes specified, it will be taken to indicate your intention to decline. The offer will lapse, and your name will be removed from the waiting list of your nominated bay. The mooring site licence will then be offered to the next eligible applicant on the waiting list.
+{% if details %}Details: {{ details }}{% endif %}
+Please access {{ proposal_external_url }} to access the application.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
