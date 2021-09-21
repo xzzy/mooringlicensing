@@ -106,9 +106,10 @@ from '@/utils/hooks'
         },
         computed: {
             mooringLicenceCurrentVesselDisplayText: function() {
-                if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
+                //if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
+                if (this.proposal && this.proposal.current_vessels_rego_list && this.proposal.current_vessels_rego_list.length > 0) {
                     return `Your mooring licence ${this.proposal.approval_lodgement_number} 
-                    currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}. 
+                    currently lists the following vessels ${this.proposal.current_vessels_rego_list.toString()}. 
                        Do you want to list another vessel on your Mooring Licence?`;
                 }
                 //return '';
