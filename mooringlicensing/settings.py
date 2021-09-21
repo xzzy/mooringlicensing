@@ -74,6 +74,7 @@ MIDDLEWARE_CLASSES += [
     'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
     'mooringlicensing.middleware.CacheControlMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
