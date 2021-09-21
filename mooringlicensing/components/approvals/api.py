@@ -16,10 +16,10 @@ from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 from datetime import datetime
 
+from django.core.cache import cache
 from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
-from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
@@ -124,15 +124,24 @@ class GetApprovalTypeDict(views.APIView):
     def get(self, request, format=None):
         include_codes = request.GET.get('include_codes', '')
         include_codes = include_codes.split(',')
-        types = Approval.approval_types_dict(include_codes)
-        return Response(types)
+        #types = Approval.approval_types_dict(include_codes)
+        data = cache.get('approval_type_dict')
+        if not data:
+            cache.set('approval_type_dict',Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('approval_type_dict')
+        return Response(data)
+        #return Response(types)
 
 
 class GetApprovalStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES]
+        #data = [{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES]
+        data = cache.get('approval_statuses_dict')
+        if not data:
+            cache.set('approval_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('approval_statuses_dict')
         return Response(data)
 
 
@@ -430,7 +439,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         existing_licences = []
         l_list = Approval.objects.filter(
                 submitter=request.user,
-                status='current',
+                #status='current',
+                status__in=['current', 'fulfilled'],
                 )
         for l in l_list:
             lchild = l.child_obj
@@ -1060,7 +1070,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
         dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
 
-        return add_cache_control(Response(dcv_vessel_data))
+        return Response(dcv_vessel_data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler

@@ -17,6 +17,7 @@
             <template v-if="isRepeatable || (!isRepeatable && num_documents()==0) && !show_spinner">
                 <input 
                     :id="name + n" 
+                    :key="name + n" 
                     :name="name" type="file" 
                     :data-que="n" 
                     :accept="fileTypes" 
@@ -182,8 +183,14 @@ export default {
             this.show_spinner = false;
 
         },
-
+        delete_all_documents: function(){
+            for (let item of this.documents){
+                this.delete_document(item)
+            }
+        },
         delete_document: async function(file) {
+            console.log('file')
+            console.log(file)
             this.show_spinner = true;
 
             var formData = new FormData();

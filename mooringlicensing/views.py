@@ -14,7 +14,6 @@ from mooringlicensing.components.proposals.models import (
         )
 from mooringlicensing.components.compliances.models import Compliance
 from django.core.management import call_command
-from mooringlicensing.components.main.utils import add_cache_control
 
 
 logger = logging.getLogger('mooringlicensing')
@@ -149,7 +148,7 @@ def first_time(request):
         context['redirect_url'] = '/'
     context['dev'] = settings.DEV_STATIC
     context['dev_url'] = settings.DEV_STATIC_URL
-    return add_cache_control(render(request, 'mooringlicensing/dash/index.html', context))
+    return render(request, 'mooringlicensing/dash/index.html', context)
 
 
 class HelpView(LoginRequiredMixin, TemplateView):
