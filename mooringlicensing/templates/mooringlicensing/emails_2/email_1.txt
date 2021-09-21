@@ -1,7 +1,7 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {%  block content_body %}
-{% include "mooringlicensing/emails_2/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 {% if payment_made %}
 <p>Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.</p>
 <p>Once your application has been assessed, you will be notified of the outcome via email. You can check the progress of your application at any time by logging into to your online account <a href="{{ dashboad_external_url }}">here</a>.</p>
@@ -9,5 +9,5 @@
 <p>Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.  Please find your invoice as proof of payment attached to this email.</p>
 <p>Once your application has been assessed, you will be notified of the outcome via email. You can check the progress of your application at any time by logging into to your online account <a href="{{ dashboad_external_url }}">here</a>.</p>
 {% endif %}
-{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}
