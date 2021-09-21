@@ -16,6 +16,7 @@ from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 from datetime import datetime
 
+from django.core.cache import cache
 from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
@@ -123,15 +124,24 @@ class GetApprovalTypeDict(views.APIView):
     def get(self, request, format=None):
         include_codes = request.GET.get('include_codes', '')
         include_codes = include_codes.split(',')
-        types = Approval.approval_types_dict(include_codes)
-        return Response(types)
+        #types = Approval.approval_types_dict(include_codes)
+        data = cache.get('approval_type_dict')
+        if not data:
+            cache.set('approval_type_dict',Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('approval_type_dict')
+        return Response(data)
+        #return Response(types)
 
 
 class GetApprovalStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES]
+        #data = [{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES]
+        data = cache.get('approval_statuses_dict')
+        if not data:
+            cache.set('approval_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('approval_statuses_dict')
         return Response(data)
 
 

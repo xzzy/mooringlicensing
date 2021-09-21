@@ -22,6 +22,7 @@ from mooringlicensing.components.main.utils import (
         get_bookings,
         )
 
+from django.core.cache import cache
 from django.urls import reverse
 from django.shortcuts import redirect
 from mooringlicensing.components.proposals.models import (
@@ -330,7 +331,12 @@ class GetApplicationTypeDescriptions(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        return Response(Proposal.application_type_descriptions())
+        data = cache.get('application_type_descriptions')
+        if not data:
+            cache.set('application_type_descriptions',Proposal.application_type_descriptions(), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('application_type_descriptions')
+        return Response(data)
+        #return Response(Proposal.application_type_descriptions())
 
 
 class GetStickerReplacementFeeItem(views.APIView):
@@ -366,16 +372,26 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        return Response(Proposal.application_types_dict(apply_page=apply_page))
+        data = cache.get('application_type_dict')
+        if not data:
+            cache.set('application_type_dict',Proposal.application_types_dict(apply_page=apply_page), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('application_type_dict')
+        return Response(data)
+        #return Response(Proposal.application_types_dict(apply_page=apply_page))
 
 
 class GetApplicationStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data_ext = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
-        data_int = [{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES]
-        data = {'internal_statuses': data_int, 'external_statuses': data_ext}
+        if not cache.get('application_internal_statuses_dict') or not cache.get('application_external_statuses_dict'):
+            cache.set('application_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            data['internal_statuses'] = cache.get('application_internal_statuses_dict')
+            cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            data['external_statuses'] = cache.get('application_external_statuses_dict')
+        #data_ext = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
+        #data_int = [{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES]
+        #data = {'internal_statuses': data_int, 'external_statuses': data_ext}
         return Response(data)
 
 
@@ -383,15 +399,24 @@ class GetVesselTypesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
+        data = cache.get('vessel_type_dict')
+        if not data:
+            cache.set('vessel_type_dict',[{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES], settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('vessel_type_dict')
         return Response(data)
+        #data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
+        #return Response(data)
 
 
 class GetInsuranceChoicesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES]
+        data = cache.get('insurance_choice_dict')
+        if not data:
+            cache.set('insurance_choice_dict',[{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('insurance_choice_dict')
+        #data = [{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES]
         return Response(data)
 
 
