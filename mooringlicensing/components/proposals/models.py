@@ -2256,6 +2256,7 @@ class AuthorisedUserApplication(Proposal):
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
+            # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
             # approval.expiry_date = self.end_date
             approval.submitter = self.submitter
             approval.save()
@@ -2497,12 +2498,21 @@ class MooringLicenceApplication(Proposal):
             existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
 
-            if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+            if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                 approval = self.approval
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
                 approval.expiry_date = self.end_date
+                approval.submitter = self.submitter
+                approval.save()
+            elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+                approval = self.approval
+                approval.current_proposal=self
+                approval.issue_date = current_datetime
+                approval.start_date = current_datetime.date()
+                # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
+                # approval.expiry_date = self.end_date
                 approval.submitter = self.submitter
                 approval.save()
             else:
