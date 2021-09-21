@@ -26,9 +26,9 @@ import logging
 #logger = logging.getLogger(__name__)
 logger = logging.getLogger('mooringlicensing')
 
-def add_cache_control(response):
-    response['Cache-Control'] = 'private, no-store'
-    return response
+#def add_cache_control(response):
+ #   response['Cache-Control'] = 'private, no-store'
+  #  return response
 
 #def retrieve_department_users():
 #    try:
