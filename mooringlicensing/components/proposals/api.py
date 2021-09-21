@@ -384,11 +384,12 @@ class GetApplicationStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        data = {}
         if not cache.get('application_internal_statuses_dict') or not cache.get('application_external_statuses_dict'):
             cache.set('application_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
-            data['internal_statuses'] = cache.get('application_internal_statuses_dict')
             cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
-            data['external_statuses'] = cache.get('application_external_statuses_dict')
+        data['external_statuses'] = cache.get('application_external_statuses_dict')
+        data['internal_statuses'] = cache.get('application_internal_statuses_dict')
         #data_ext = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
         #data_int = [{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES]
         #data = {'internal_statuses': data_int, 'external_statuses': data_ext}
