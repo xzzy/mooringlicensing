@@ -997,10 +997,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     raise ValidationError('You cannot propose to decline if it is not with assessor')
 
-                reason = details.get('reason')
+                reason = details.get('reason', '')
                 ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
-                    defaults={'officer': request.user, 'reason': reason, 'cc_email': details.get('cc_email', None)}
+                    defaults={
+                        'officer': request.user,
+                        'reason': reason,
+                        'cc_email': details.get('cc_email', None)
+                    }
                 )
                 self.proposed_decline_status = True
                 approver_comment = ''
@@ -1031,8 +1035,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise ValidationError('You cannot decline if it is not with approver')
 
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
-                    proposal = self,
-                    defaults={'officer':request.user,'reason':details.get('reason'),'cc_email':details.get('cc_email',None)}
+                    proposal=self,
+                    defaults={
+                        'officer': request.user,
+                        'reason': details.get('reason', ''),
+                        'cc_email': details.get('cc_email',None)
+                    }
                 )
                 self.proposed_decline_status = True
                 self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
