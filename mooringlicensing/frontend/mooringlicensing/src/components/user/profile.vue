@@ -35,13 +35,13 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Given name(s)</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
+                                <input :readonly="firstNameReadOnly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Surname</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
+                                <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                             </div>
                           </div>
                           <div class="form-group">
@@ -193,7 +193,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Email</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
+                                <input :readonly="emailReadOnly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
                             </div>
                           </div>
                           <div class="form-group">
@@ -356,6 +356,27 @@ export default {
         },
     },
     computed: {
+        firstNameReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.first_name) {
+                readonly = true;
+            }
+            return readonly
+        },
+        lastNameReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.last_name) {
+                readonly = true;
+            }
+            return readonly
+        },
+        emailReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.email) {
+                readonly = true;
+            }
+            return readonly
+        },
         postalAddressReadonly: function() {
             if (this.readonly || this.profile.postal_same_as_residential) {
                 return true;
