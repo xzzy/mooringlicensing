@@ -199,23 +199,25 @@ def get_public_url(request=None):
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
     # 1
     email = TemplateEmailBase(
-        subject='Successful submission of application',
-        html_template='mooringlicensing/emails/send_confirmation_email_upon_submit.html',
-        txt_template='mooringlicensing/emails/send_confirmation_email_upon_submit.txt',
+        subject='Submission Received: Rottnest Island Boating Application {}'.format(proposal.lodgement_number),
+        # html_template='mooringlicensing/emails/send_confirmation_email_upon_submit.html',
+        # txt_template='mooringlicensing/emails/send_confirmation_email_upon_submit.txt',
+        html_template='mooringlicensing/emails_2/email_1.html',
+        txt_template='mooringlicensing/emails_2/email_1.txt',
     )
 
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    if "-internal" not in url:
+    # url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+        # url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
     # Configure recipients, contents, etc
     context = {
-        'public_url': get_public_url(request),
+        'dashboard_external_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'payment_made': payment_made,
-        'url': url,
+        # 'url': url,
     }
     to_address = proposal.submitter.email
     cc = []
