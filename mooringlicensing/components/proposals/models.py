@@ -397,6 +397,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return fee_items
 
     @property
+    def fee_period(self):
+        fee_items = self.get_fee_items_paid()
+        if len(fee_items):
+            fee_item = fee_items[0]
+            return fee_item.fee_period
+
+    @property
     def vessel_removed(self):
         # for AUP, AAP manage_stickers
         #from mooringlicensing.components.approvals.models import AuthorisedUserPermit, AnnualAdmissionPermit
@@ -996,10 +1003,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                     raise ValidationError('You cannot propose to decline if it is not with assessor')
 
-                reason = details.get('reason')
+                reason = details.get('reason', '')
                 ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
-                    defaults={'officer': request.user, 'reason': reason, 'cc_email': details.get('cc_email', None)}
+                    defaults={
+                        'officer': request.user,
+                        'reason': reason,
+                        'cc_email': details.get('cc_email', None)
+                    }
                 )
                 self.proposed_decline_status = True
                 approver_comment = ''
@@ -1030,8 +1041,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise ValidationError('You cannot decline if it is not with approver')
 
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
-                    proposal = self,
-                    defaults={'officer':request.user,'reason':details.get('reason'),'cc_email':details.get('cc_email',None)}
+                    proposal=self,
+                    defaults={
+                        'officer': request.user,
+                        'reason': details.get('reason', ''),
+                        'cc_email': details.get('cc_email',None)
+                    }
                 )
                 self.proposed_decline_status = True
                 self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
@@ -1267,7 +1282,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval.wla_queue_date = current_datetime
                         approval.internal_status = 'waiting'
                         approval.save()
-                    #if created:
+                    # if created:
+                    #     approval.fee_period = self.fee_period  # It's better to
+                    #     approval.save()
                 self.approval = approval
                 self.save()
 
@@ -2253,6 +2270,7 @@ class AuthorisedUserApplication(Proposal):
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
+            # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
             # approval.expiry_date = self.end_date
             approval.submitter = self.submitter
             approval.save()
@@ -2362,9 +2380,9 @@ class AuthorisedUserApplication(Proposal):
 
         # Log proposal action
         if request:
-            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
-        else:
             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+        else:
+            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
 
         # Write approval history
         if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
@@ -2494,12 +2512,21 @@ class MooringLicenceApplication(Proposal):
             existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
             created = None
 
-            if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+            if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                 approval = self.approval
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
                 approval.expiry_date = self.end_date
+                approval.submitter = self.submitter
+                approval.save()
+            elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+                approval = self.approval
+                approval.current_proposal=self
+                approval.issue_date = current_datetime
+                approval.start_date = current_datetime.date()
+                # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
+                # approval.expiry_date = self.end_date
                 approval.submitter = self.submitter
                 approval.save()
             else:
@@ -2624,9 +2651,9 @@ class MooringLicenceApplication(Proposal):
 
             # Log proposal action
             if request:
-                self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
-            else:
                 self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+            else:
+                self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
 
             # write approval history
             if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:

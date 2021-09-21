@@ -26,32 +26,32 @@ import logging
 #logger = logging.getLogger(__name__)
 logger = logging.getLogger('mooringlicensing')
 
-def add_cache_control(response):
-    response['Cache-Control'] = 'private, no-store'
-    return response
+#def add_cache_control(response):
+ #   response['Cache-Control'] = 'private, no-store'
+  #  return response
 
-def retrieve_department_users():
-    try:
-        #res = requests.get('{}/api/v3/departmentuser?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        res = requests.get('{}/api/v3/departmentuser/'.format(settings.CMS_URL), auth=(settings.LEDGER_USER, settings.LEDGER_PASS))
-        res.raise_for_status()
-        #import ipdb; ipdb.set_trace()
-        #cache.set('department_users',json.loads(res.content).get('objects'),10800)
-        cache.set('department_users',json.loads(res.content), 10800)
-    except:
-        raise
-
-def get_department_user(email):
-    try:
-        res = requests.get('{}/api/users?email={}'.format(settings.CMS_URL,email), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        res.raise_for_status()
-        data = json.loads(res.content).get('objects')
-        if len(data) > 0:
-            return data[0]
-        else:
-            return None
-    except:
-        raise
+#def retrieve_department_users():
+#    try:
+#        #res = requests.get('{}/api/v3/departmentuser?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        res = requests.get('{}/api/v3/departmentuser/'.format(settings.CMS_URL), auth=(settings.LEDGER_USER, settings.LEDGER_PASS))
+#        res.raise_for_status()
+#        #import ipdb; ipdb.set_trace()
+#        #cache.set('department_users',json.loads(res.content).get('objects'),10800)
+#        cache.set('department_users',json.loads(res.content), 10800)
+#    except:
+#        raise
+#
+#def get_department_user(email):
+#    try:
+#        res = requests.get('{}/api/users?email={}'.format(settings.CMS_URL,email), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        res.raise_for_status()
+#        data = json.loads(res.content).get('objects')
+#        if len(data) > 0:
+#            return data[0]
+#        else:
+#            return None
+#    except:
+#        raise
 
 def to_local_tz(_date):
     local_tz = pytz.timezone(settings.TIME_ZONE)
@@ -338,28 +338,29 @@ def sticker_export():
             for sticker in stickers:
                 try:
                     # column: Moorings
-                    mooring_names = []
-                    if sticker.approval.code == AnnualAdmissionPermit.code:
-                        # No associated moorings
-                        pass
-                    elif sticker.approval.code == AuthorisedUserPermit.code:
-                        valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
-                        for moa in valid_moas:
-                            mooring_names.append(moa.mooring.name)
+                    #if sticker.approval.code == AnnualAdmissionPermit.code:
+                    #    # No associated moorings
+                    #    pass
+                    #elif sticker.approval.code == AuthorisedUserPermit.code:
+                    #    valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
+                    #    for moa in valid_moas:
+                    #        mooring_names.append(moa.mooring.name)
 
-                        # for mooring in sticker.approval.moorings.all():
-                        #     mooring_names.append(mooring.name)
-                    elif sticker.approval.code == MooringLicence.code:
-                        if hasattr(sticker.approval, 'mooring'):
-                            mooring_names.append(sticker.approval.mooring.name)
-                        else:
-                            # Should not reach here
-                            pass
-                    else:
-                        # Should not reach here
-                        pass
+                    #    # for mooring in sticker.approval.moorings.all():
+                    #    #     mooring_names.append(mooring.name)
+                    #elif sticker.approval.code == MooringLicence.code:
+                    #    if hasattr(sticker.approval, 'mooring'):
+                    #        mooring_names.append(sticker.approval.mooring.name)
+                    #    else:
+                    #        # Should not reach here
+                    #        logger.error('Failed to export a sticker {} because the MooringLicence {} does not have a mooring'.format(sticker.number, sticker.approval.lodgement_number))
+                    #        pass
+                    #else:
+                    #    # Should not reach here
+                    #    pass
+                    moorings = sticker.get_moorings()
+                    mooring_names = [mooring.name for mooring in moorings]
                     mooring_names = ', '.join(mooring_names)
-                    print(mooring_names)
 
                     ws1.append([
                         today.strftime('%d/%m/%Y'),
@@ -459,35 +460,47 @@ def export_to_mooring_booking(approval_id):
             licence_type = 2
         elif type(approval.child_obj) == AnnualAdmissionPermit:
             licence_type = 3
+        errors = []
+        updates = []
         if approval and type(approval.child_obj) in [AnnualAdmissionPermit, AuthorisedUserPermit]:
             myobj = {
                     'vessel_rego': approval.current_proposal.vessel_ownership.vessel.rego_no,
                     'licence_id': approval.id,
                     'licence_type': licence_type,
-                    'start_date': approval.start_date.strftime('%Y-%m-%d'),
-                    'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d'),
+                    'start_date': approval.start_date.strftime('%Y-%m-%d') if approval.start_date else '',
+                    'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d') if approval.expiry_date else '',
                     'status' : status,
                     }
             resp = requests.post(url, data = myobj)
-            print (resp.text)
+            resp_dict = json.loads(resp.text)
             logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
-            return resp.text
+            if resp_dict.get("status") == 200:
+                updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
+                approval.export_to_mooring_booking = False
+                approval.save()
+            else:
+                errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
         elif approval and type(approval.child_obj) == MooringLicence:
             for vessel_ownership in approval.child_obj.vessel_ownership_list:
-                vessels_return_values = []
                 myobj = {
                         'vessel_rego': vessel_ownership.vessel.rego_no,
                         'licence_id': approval.id,
                         'licence_type': licence_type,
-                        'start_date': approval.start_date.strftime('%Y-%m-%d'),
-                        'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d'),
+                        'start_date': approval.start_date.strftime('%Y-%m-%d') if approval.start_date else '',
+                        'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d') if approval.expiry_date else '',
                         'status' : status,
                         }
-                print (resp.text)
                 resp = requests.post(url, data = myobj)
+                resp_dict = json.loads(resp.text)
                 logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
-                vessels_return_values.append(resp.text)
-            return vessels_return_values
+                if resp_dict.get("status") == 200:
+                    updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
+                else:
+                    errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
+            if not errors:
+                approval.export_to_mooring_booking = False
+                approval.save()
+        return errors, updates
     except Exception as e:
         print(str(e))
         logger.error(str(e))

@@ -168,6 +168,7 @@ export default {
         },
         cancel:function () {
             this.close()
+            this.$refs.waiting_list_offer_documents.delete_all_documents()
         },
         close: function () {
             this.isModalOpen = false;
