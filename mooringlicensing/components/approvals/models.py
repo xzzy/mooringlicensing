@@ -1703,6 +1703,26 @@ class Sticker(models.Model):
         app_label = 'mooringlicensing'
         ordering = ['-number']
 
+    def get_moorings(self):
+        moorings = []
+
+        if self.approval.code == AnnualAdmissionPermit.code:
+            # No associated moorings
+            pass
+        elif self.approval.code == AuthorisedUserPermit.code:
+            valid_moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True))
+            for moa in valid_moas:
+                moorings.append(moa.mooring)
+        elif self.approval.code == MooringLicence.code:
+            if hasattr(self.approval.child_obj, 'mooring'):
+                moorings.append(self.approval.child_obj.mooring)
+            else:
+                logger.error(
+                    'Failed to retrieve the mooring for the sticker {} because the associated MooringLicence {} does not have a mooring'.format(
+                        self.number, self.approval.lodgement_number))
+
+        return moorings
+
     def __str__(self):
         return '{} ({})'.format(self.number, self.status)
 

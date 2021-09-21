@@ -183,8 +183,14 @@ export default {
             this.show_spinner = false;
 
         },
-
+        delete_all_documents: function(){
+            for (let item of this.documents){
+                this.delete_document(item)
+            }
+        },
         delete_document: async function(file) {
+            console.log('file')
+            console.log(file)
             this.show_spinner = true;
 
             var formData = new FormData();
