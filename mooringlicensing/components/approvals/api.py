@@ -430,7 +430,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         existing_licences = []
         l_list = Approval.objects.filter(
                 submitter=request.user,
-                status='current',
+                #status='current',
+                status__in=['current', 'fulfilled'],
                 )
         for l in l_list:
             lchild = l.child_obj

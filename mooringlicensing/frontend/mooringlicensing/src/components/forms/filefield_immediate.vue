@@ -17,6 +17,7 @@
             <template v-if="isRepeatable || (!isRepeatable && num_documents()==0) && !show_spinner">
                 <input 
                     :id="name + n" 
+                    :key="name + n" 
                     :name="name" type="file" 
                     :data-que="n" 
                     :accept="fileTypes" 
