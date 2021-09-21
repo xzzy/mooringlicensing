@@ -19,7 +19,6 @@ from datetime import datetime
 from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler
-from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
@@ -1061,7 +1060,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
         dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
 
-        return add_cache_control(Response(dcv_vessel_data))
+        return Response(dcv_vessel_data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler

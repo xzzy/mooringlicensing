@@ -19,7 +19,6 @@ from mooringlicensing.components.proposals.utils import (
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
 from mooringlicensing.components.main.utils import (
-        add_cache_control,
         get_bookings,
         )
 
@@ -152,7 +151,7 @@ class GetDcvVesselRegoNos(views.APIView):
             data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no', 'dcv_permits')[:10]
             data_transform = [{'id': rego['id'], 'text': rego['rego_no'], 'dcv_permits': rego['dcv_permits']} for rego in data]
             return Response({"results": data_transform})
-        return add_cache_control(Response())
+        return Response()
 
 
 class GetVessel(views.APIView):
@@ -269,35 +268,6 @@ class GetMooringPerBay(views.APIView):
         return Response()
 
 
-#class GetVesselRegoNos(views.APIView):
-#    renderer_classes = [JSONRenderer, ]
-#
-#    def get(self, request, format=None):
-#        #import ipdb; ipdb.set_trace()
-#        search_term = request.GET.get('term', '')
-#        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-#        org_name = request.GET.get('org_name', '')
-#        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
-#        if search_term:
-#            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-#            data_transform = []
-#            owner_set = Owner.objects.filter(emailuser=request.user)
-#            if create_vessel and owner_set:
-#                for rego in data:
-#                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-#                    vessel_ownership_set = VesselOwnership.objects.filter(
-#                        owner=owner_set[0], 
-#                        vessel=vessel, 
-#                        org_name=org_name if org_name else None
-#                        )
-#                    # request.user owns vessel
-#                    if not vessel_ownership_set:
-#                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-#            else:
-#                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data] 
-#            return Response({"results": data_transform})
-#        return add_cache_control(Response())
-
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
@@ -353,14 +323,14 @@ class GetCompanyNames(views.APIView):
             data_transform = []
             data_transform = [{'id': company['id'], 'text': company['name']} for company in data] 
             return Response({"results": data_transform})
-        return add_cache_control(Response())
+        return Response()
 
 
 class GetApplicationTypeDescriptions(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        return add_cache_control(Response(Proposal.application_type_descriptions()))
+        return Response(Proposal.application_type_descriptions())
 
 
 class GetStickerReplacementFeeItem(views.APIView):
@@ -372,14 +342,14 @@ class GetStickerReplacementFeeItem(views.APIView):
         current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
         fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
 
-        return add_cache_control(Response({'amount': fee_item.amount, 'incur_gst': fee_item.incur_gst}))
+        return Response({'amount': fee_item.amount, 'incur_gst': fee_item.incur_gst})
 
 
 class GetPaymentSystemId(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        return add_cache_control(Response({'payment_system_id': PAYMENT_SYSTEM_ID}))
+        return Response({'payment_system_id': PAYMENT_SYSTEM_ID})
 
 
 class GetApplicantsDict(views.APIView):
@@ -387,7 +357,7 @@ class GetApplicantsDict(views.APIView):
 
     def get(self, request, format=None):
         applicants = EmailUser.objects.filter(mooringlicensing_proposals__in=Proposal.objects.all()).order_by('first_name', 'last_name').distinct()
-        return add_cache_control(Response(EmailUserSerializer(applicants, many=True).data))
+        return Response(EmailUserSerializer(applicants, many=True).data)
 
 
 class GetApplicationTypeDict(views.APIView):
@@ -396,7 +366,6 @@ class GetApplicationTypeDict(views.APIView):
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
-        #return add_cache_control(Response(Proposal.application_types_dict(apply_page=apply_page)))
         return Response(Proposal.application_types_dict(apply_page=apply_page))
 
 
@@ -407,7 +376,7 @@ class GetApplicationStatusesDict(views.APIView):
         data_ext = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
         data_int = [{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES]
         data = {'internal_statuses': data_int, 'external_statuses': data_ext}
-        return add_cache_control(Response(data))
+        return Response(data)
 
 
 class GetVesselTypesDict(views.APIView):
@@ -415,7 +384,7 @@ class GetVesselTypesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
-        return add_cache_control(Response(data))
+        return Response(data)
 
 
 class GetInsuranceChoicesDict(views.APIView):
@@ -423,7 +392,7 @@ class GetInsuranceChoicesDict(views.APIView):
 
     def get(self, request, format=None):
         data = [{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES]
-        return add_cache_control(Response(data))
+        return Response(data)
 
 
 class GetMooringStatusesDict(views.APIView):
@@ -441,7 +410,7 @@ class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        return add_cache_control(Response([]))
+        return Response([])
 
 
 class VersionableModelViewSetMixin(viewsets.ModelViewSet):
@@ -459,7 +428,7 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
         _version_serializer = ProposalSerializer([v.object for v in _versions], many=True, context=_context)
         # TODO
         # check pagination
-        return add_cache_control(Response(_version_serializer.data))
+        return Response(_version_serializer.data)
 
 
 class ProposalFilterBackend(DatatablesFilterBackend):
@@ -563,7 +532,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        return add_cache_control(self.paginator.get_paginated_response(serializer.data))
+        return self.paginator.get_paginated_response(serializer.data)
 
 
 class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
@@ -591,7 +560,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return add_cache_control(Response(serialized_obj.data))
+        return Response(serialized_obj.data)
 
 
 class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
@@ -619,7 +588,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return add_cache_control(Response(serialized_obj.data))
+        return Response(serialized_obj.data)
 
 
 class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
@@ -686,7 +655,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj)
-        return add_cache_control(Response(serialized_obj.data))
+        return Response(serialized_obj.data)
 
 
 class ProposalByUuidViewSet(viewsets.ModelViewSet):
@@ -703,9 +672,9 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -714,9 +683,9 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='written_proof_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -725,9 +694,9 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='signed_licence_agreement_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -736,9 +705,9 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='proof_of_identity_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -753,7 +722,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             raise
 
         instance.process_after_submit_other_documents(request)
-        return add_cache_control(Response())
+        return Response()
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -859,20 +828,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
-
-    #@detail_route(methods=['POST'])
-    #@renderer_classes((JSONRenderer,))
-    #@basic_exception_handler
-    #def process_vessel_registration_document(self, request, *args, **kwargs):
-    #    instance = self.get_object()
-    #    returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
-    #    if returned_data:
-    #        return add_cache_control(Response(returned_data))
-    #    else:
-    #        return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -881,9 +839,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -892,9 +850,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
         if returned_data:
-            return add_cache_control(Response(returned_data))
+            return Response(returned_data)
         else:
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['GET',])
     def compare_list(self, request, *args, **kwargs):
@@ -903,7 +861,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         versions = Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
         version_ids = [i.id for i in versions]
         urls = ['?version_id2={}&version_id1={}'.format(version_ids[0], version_ids[i+1]) for i in range(len(version_ids)-1)]
-        return add_cache_control(Response(urls))
+        return Response(urls)
 
     @detail_route(methods=['GET',])
     def action_log(self, request, *args, **kwargs):
@@ -911,7 +869,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             qs = instance.action_logs.all()
             serializer = ProposalUserActionSerializer(qs,many=True)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -928,7 +886,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             qs = instance.comms_logs.all()
             serializer = ProposalLogEntrySerializer(qs,many=True)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -961,7 +919,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     document.save()
                 # End Save Documents
 
-                return add_cache_control(Response(serializer.data))
+                return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -980,7 +938,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = instance.requirements.all().exclude(is_deleted=True)
             qs=qs.order_by('order')
             serializer = ProposalRequirementSerializer(qs,many=True, context={'request':request})
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -998,7 +956,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = instance.amendment_requests
             qs = qs.filter(status = 'requested')
             serializer = AmendmentRequestDisplaySerializer(qs,many=True)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1014,7 +972,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset().exclude(processing_status='discarded')
         #serializer = DTProposalSerializer(qs, many=True)
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @list_route(methods=['GET',])
     def user_list_paginated(self, request, *args, **kwargs):
@@ -1029,7 +987,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         paginator.page_size = proposals.count()
         result_page = paginator.paginate_queryset(proposals, request)
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-        return add_cache_control(paginator.get_paginated_response(serializer.data))
+        return paginator.get_paginated_response(serializer.data)
 
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
@@ -1042,7 +1000,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # elif instance.application_type.name==ApplicationType.EVENT:
         #     serializer = InternalEventProposalSerializer(instance,context={'request':request})
         serializer = InternalProposalSerializer(instance, context={'request': request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     #@detail_route(methods=['post'])
     #@renderer_classes((JSONRenderer,))
@@ -1076,7 +1034,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
         raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',])
@@ -1095,7 +1053,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -1104,7 +1062,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.unassign(request)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1115,7 +1073,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.move_to_status(request, status, approver_comment)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1203,7 +1161,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.proposed_approval(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1211,7 +1169,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance = instance.assing_approval_level_document(request)
         serializer = InternalProposalSerializer(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1224,7 +1182,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance, context={'request': request})
         print(serializer.data)
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1235,7 +1193,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.proposed_decline(request,serializer.validated_data)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1246,53 +1204,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.final_decline(request,serializer.validated_data)
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance, context={'request':request})
-        return add_cache_control(Response(serializer.data))
-
-    #@detail_route(methods=['POST',])
-    #@renderer_classes((JSONRenderer,))
-    #def on_hold(self, request, *args, **kwargs):
-    #    try:
-    #        with transaction.atomic():
-    #            instance = self.get_object()
-    #            is_onhold =  eval(request.data.get('onhold'))
-    #            data = {}
-    #            if is_onhold:
-    #                data['type'] = u'onhold'
-    #                instance.on_hold(request)
-    #            else:
-    #                data['type'] = u'onhold_remove'
-    #                instance.on_hold_remove(request)
-
-    #            data['proposal'] = u'{}'.format(instance.id)
-    #            data['staff'] = u'{}'.format(request.user.id)
-    #            data['text'] = request.user.get_full_name() + u': {}'.format(request.data['text'])
-    #            data['subject'] = request.user.get_full_name() + u': {}'.format(request.data['text'])
-    #            serializer = ProposalLogEntrySerializer(data=data)
-    #            serializer.is_valid(raise_exception=True)
-    #            comms = serializer.save()
-
-    #            # save the files
-    #            documents_qs = instance.onhold_documents.filter(input_name='on_hold_file', visible=True)
-    #            for f in documents_qs:
-    #                document = comms.documents.create(_file=f._file, name=f.name)
-    #                #document = comms.documents.create()
-    #                #document.name = f.name
-    #                #document._file = f._file #.strip('/media')
-    #                document.input_name = f.input_name
-    #                document.can_delete = True
-    #                document.save()
-    #            # end save documents
-
-    #            return Response(serializer.data)
-    #    except serializers.ValidationError:
-    #        print(traceback.print_exc())
-    #        raise
-    #    except ValidationError as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(repr(e.error_dict))
-    #    except Exception as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(str(e))
+        return Response(serializer.data)
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -1301,7 +1213,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             save_proponent_data(instance,request,self)
-            return add_cache_control(redirect(reverse('external')))
+            return redirect(reverse('external'))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -1313,7 +1225,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #proposal_submit(instance, request)
             #return redirect(reverse('external'))
             #return Response(status_code=status.HTTP_200_OK)
-            return add_cache_control(Response())
+            return Response()
 
     @detail_route(methods=['GET',])
     def fetch_vessel(self, request, *args, **kwargs):
@@ -1348,7 +1260,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                  #   vessel_ownership_data["company_ownership"] = CompanyOwnershipSerializer(instance.company_ownership).data
             vessel_data["vessel_details"] = vessel_details_serializer.data
             vessel_data["vessel_ownership"] = vessel_ownership_data
-            return add_cache_control(Response(vessel_data))
+            return Response(vessel_data)
         except Exception as e:
             print(traceback.print_exc())
             if hasattr(e,'message'):
@@ -1360,7 +1272,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             save_assessor_data(instance,request,self)
-            return add_cache_control(redirect(reverse('external')))
+            return redirect(reverse('external'))
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1386,7 +1298,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1444,7 +1356,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance.up()
             instance.save()
             serializer = self.get_serializer(instance)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1462,7 +1374,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance.down()
             instance.save()
             serializer = self.get_serializer(instance)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1480,7 +1392,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance.is_deleted = True
             instance.save()
             serializer = self.get_serializer(instance)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1497,7 +1409,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             RequirementDocument.objects.get(id=request.data.get('id')).delete()
-            return add_cache_control(Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()]))
+            return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1541,7 +1453,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             instance = serializer.save()
             #instance.add_documents(request)
             #serializer = self.get_serializer(instance)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1566,7 +1478,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
         if search:
             queryset = queryset.filter(text__icontains=search)
         serializer = self.get_serializer(queryset, many=True)
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
@@ -1591,7 +1503,7 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         instance.generate_amendment(request)
         serializer = self.get_serializer(instance)
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
 
 #class AccreditationTypeView(views.APIView):
@@ -1629,7 +1541,7 @@ class AmendmentRequestReasonChoicesView(views.APIView):
             for c in choices:
                 #choices_list.append({'key': c[0],'value': c[1]})
                 choices_list.append({'key': c.id,'value': c.reason})
-        return add_cache_control(Response(choices_list))
+        return Response(choices_list)
 
 
 class SearchKeywordsView(views.APIView):
@@ -1644,7 +1556,7 @@ class SearchKeywordsView(views.APIView):
             qs= searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance)
         #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
-        return add_cache_control(Response(serializer.data))
+        return Response(serializer.data)
 
 class SearchReferenceView(views.APIView):
     renderer_classes = [JSONRenderer,]
@@ -1656,7 +1568,7 @@ class SearchReferenceView(views.APIView):
                 qs= search_reference(reference_number)
             #queryset = list(set(qs))
             serializer = SearchReferenceSerializer(qs)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1708,7 +1620,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_data["individual_owner"] = False if vo.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
-        return add_cache_control(Response(vessel_data))
+        return Response(vessel_data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1779,10 +1691,10 @@ class CompanyViewSet(viewsets.ModelViewSet):
             if co_list:
                 co = co_list[0]
                 serializer = CompanyOwnershipSerializer(co)
-                return add_cache_control(Response(serializer.data))
+                return Response(serializer.data)
             else:
-                return add_cache_control(Response(empty_co))
-        return add_cache_control(Response(empty_co))
+                return Response(empty_co)
+        return Response(empty_co)
 
 
 class CompanyOwnershipViewSet(viewsets.ModelViewSet):
@@ -1824,26 +1736,7 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
                 vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
-        return add_cache_control(Response(vessel_data))
-
-    ##@renderer_classes((JSONRenderer,))
-    #@basic_exception_handler
-    #def create(self, request, *args, **kwargs):
-    #    #import ipdb; ipdb.set_trace()
-    #    with transaction.atomic():
-    #        #save_bare_vessel_data(request)
-    #        vessel_data = save_bare_vessel_data(request)
-    #        return add_cache_control(Response(vessel_data))
-    #        #return add_cache_control(redirect(reverse('external')))
-
-    ##@renderer_classes((JSONRenderer,))
-    #@basic_exception_handler
-    #def update(self, request, *args, **kwargs):
-    #    #import ipdb; ipdb.set_trace()
-    #    with transaction.atomic():
-    #        instance = self.get_object()
-    #        vessel_data = save_bare_vessel_data(request, instance)
-    #        return add_cache_control(Response(vessel_data))
+        return Response(vessel_data)
 
 
 class VesselViewSet(viewsets.ModelViewSet):
@@ -1951,7 +1844,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         #instance = self.get_object()
         #qs = instance.action_logs.all()
         #serializer = ProposalUserActionSerializer(qs,many=True)
-        #return add_cache_control(Response(serializer.data))
+        #return Response(serializer.data)
         return Response([])
 
     @detail_route(methods=['POST',])
@@ -1963,10 +1856,10 @@ class VesselViewSet(viewsets.ModelViewSet):
             vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
             if vo_set:
                 serializer = VesselOwnershipSerializer(vo_set[0])
-                return add_cache_control(Response(serializer.data))
+                return Response(serializer.data)
             else:
-                return add_cache_control(Response())
-        return add_cache_control(Response())
+                return Response()
+        return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -2009,7 +1902,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
         #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
-        return add_cache_control(Response(vessel_data))
+        return Response(vessel_data)
 
     #@renderer_classes((JSONRenderer,))
     @basic_exception_handler
@@ -2018,8 +1911,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             #save_bare_vessel_data(request)
             vessel_data = save_bare_vessel_data(request)
-            return add_cache_control(Response(vessel_data))
-            #return add_cache_control(redirect(reverse('external')))
+            return Response(vessel_data)
 
     #@renderer_classes((JSONRenderer,))
     @basic_exception_handler
@@ -2028,33 +1920,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             vessel_data = save_bare_vessel_data(request, instance)
-            return add_cache_control(Response(vessel_data))
-
-    #@list_route(methods=['GET',])
-    #def list_external(self, request, *args, **kwargs):
-    #    search_text = request.GET.get('search[value]', '')
-    #    owner_qs = Owner.objects.filter(emailuser=request.user)
-    #    if owner_qs:
-    #        owner = owner_qs[0]
-    #        # rewrite following to include VesselOwnership
-    #        vessel_details_list = [vessel.latest_vessel_details for vessel in owner.vessels.all()]
-
-    #        if search_text:
-    #            search_text = search_text.lower()
-    #            search_text_vessel_detail_ids = []
-    #            matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
-    #            for vd in vessel_details_list:
-    #                if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '')
-    #                    or search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '')
-    #                    or vd.vessel_type in matching_vessel_type_choices
-    #                    ):
-    #                    search_text_vessel_detail_ids.append(vd.id)
-    #            vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
-
-    #        serializer = ListVesselSerializer(vessel_details_list, context={'request': request}, many=True)
-    #        return add_cache_control(Response(serializer.data))
-    #    else:
-    #        return Response([])
+            return Response(vessel_data)
 
     @list_route(methods=['GET',])
     def list_internal(self, request, *args, **kwargs):
@@ -2090,7 +1956,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         else:
             return Response([])
 
@@ -2122,7 +1988,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         else:
             return Response([])
 
@@ -2366,10 +2232,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['GET',])
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        #instance = self.get_object()
-        #qs = instance.action_logs.all()
-        #serializer = ProposalUserActionSerializer(qs,many=True)
-        #return add_cache_control(Response(serializer.data))
         return Response([])
 
     @list_route(methods=['GET',])
@@ -2413,7 +2275,7 @@ class ProposalAssessmentViewSet(viewsets.ModelViewSet):
                     except:
                         raise
             #instance.proposal.log_user_action(ProposalUserAction.ACTION_EDIT_VESSEL.format(instance.id),request)
-            return add_cache_control(Response(serializer.data))
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
