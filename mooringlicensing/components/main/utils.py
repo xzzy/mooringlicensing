@@ -338,28 +338,29 @@ def sticker_export():
             for sticker in stickers:
                 try:
                     # column: Moorings
-                    mooring_names = []
-                    if sticker.approval.code == AnnualAdmissionPermit.code:
-                        # No associated moorings
-                        pass
-                    elif sticker.approval.code == AuthorisedUserPermit.code:
-                        valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
-                        for moa in valid_moas:
-                            mooring_names.append(moa.mooring.name)
+                    #if sticker.approval.code == AnnualAdmissionPermit.code:
+                    #    # No associated moorings
+                    #    pass
+                    #elif sticker.approval.code == AuthorisedUserPermit.code:
+                    #    valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
+                    #    for moa in valid_moas:
+                    #        mooring_names.append(moa.mooring.name)
 
-                        # for mooring in sticker.approval.moorings.all():
-                        #     mooring_names.append(mooring.name)
-                    elif sticker.approval.code == MooringLicence.code:
-                        if hasattr(sticker.approval, 'mooring'):
-                            mooring_names.append(sticker.approval.mooring.name)
-                        else:
-                            # Should not reach here
-                            pass
-                    else:
-                        # Should not reach here
-                        pass
+                    #    # for mooring in sticker.approval.moorings.all():
+                    #    #     mooring_names.append(mooring.name)
+                    #elif sticker.approval.code == MooringLicence.code:
+                    #    if hasattr(sticker.approval, 'mooring'):
+                    #        mooring_names.append(sticker.approval.mooring.name)
+                    #    else:
+                    #        # Should not reach here
+                    #        logger.error('Failed to export a sticker {} because the MooringLicence {} does not have a mooring'.format(sticker.number, sticker.approval.lodgement_number))
+                    #        pass
+                    #else:
+                    #    # Should not reach here
+                    #    pass
+                    moorings = sticker.get_moorings()
+                    mooring_names = [mooring.name for mooring in moorings]
                     mooring_names = ', '.join(mooring_names)
-                    print(mooring_names)
 
                     ws1.append([
                         today.strftime('%d/%m/%Y'),
