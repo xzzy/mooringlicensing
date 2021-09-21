@@ -12,6 +12,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email, _log_user_email
+from mooringlicensing.components.compliances.email import _log_compliance_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
 
@@ -196,6 +197,15 @@ def get_public_url(request=None):
     return web_url
 
 
+def make_url_for_internal(url):
+    if '-internal' not in url:
+        if '-dev' in url:
+            url = url.replace('-dev', '-dev-internal')
+        elif '-uat' in url:
+            url = url.replace('-uat', '-uat-internal')
+    return url
+
+
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
     # 1
     email = TemplateEmailBase(
@@ -245,9 +255,7 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     )
 
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    if "-internal" not in url:
-        # add it. This email is for internal staff (assessors)
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    url = make_url_for_internal(url)
 
     context = {
         # 'public_url': get_public_url(request),
@@ -270,24 +278,27 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     return msg
 
 
-def send_approver_approve_email_notification(request, proposal):
+def send_approver_approve_decline_email_notification(request, proposal):
     # 3
     email = TemplateEmailBase(
-        subject='An application is ready for approval or decline',
-        html_template='mooringlicensing/emails/send_approver_approve_notification.html',
-        txt_template='mooringlicensing/emails/send_approver_approve_notification.txt',
+        subject='Approval required: an assessed application is awaiting approval or decline',
+        # html_template='mooringlicensing/emails/send_approver_approve_notification.html',
+        # txt_template='mooringlicensing/emails/send_approver_approve_notification.txt',
+        html_template='mooringlicensing/emails_2/email_3.html',
+        txt_template='mooringlicensing/emails_2/email_3.txt',
     )
 
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = make_url_for_internal(url)
 
     context = {
-        'public_url': get_public_url(request),
-        'start_date' : proposal.proposed_issuance_approval.get('start_date'),
-        'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
+        # 'public_url': get_public_url(request),
+        # 'start_date' : proposal.proposed_issuance_approval.get('start_date'),
+        # 'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
         'details': proposal.proposed_issuance_approval.get('details'),
         'proposal': proposal,
-        'recipient': proposal.submitter,
-        'url': url
+        # 'recipient': proposal.submitter,
+        'proposal_internal_url': url
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
@@ -295,56 +306,30 @@ def send_approver_approve_email_notification(request, proposal):
     sender = get_user_as_email_user(msg.from_email)
     log_proposal_email(msg, proposal, sender)
     return msg
-
-
-def send_approver_decline_email_notification(reason, request, proposal):
-    # 3
-    # email = ApproverDeclineSendNotificationEmail()
-    email = TemplateEmailBase(
-        subject='An application is ready for approval or decline',
-        html_template='mooringlicensing/emails/send_approver_decline_notification.html',
-        txt_template='mooringlicensing/emails/send_approver_decline_notification.txt',
-    )
-    url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    context = {
-        'public_url': get_public_url(request),
-        'proposal': proposal,
-        'recipient': proposal.submitter,
-        'reason': reason,
-        'url': url
-    }
-
-    msg = email.send(proposal.approver_recipients, context=context)
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
-    return msg
-
 
 # TODO: #4
+
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     # 5
     email = TemplateEmailBase(
-        subject='An amendment to your application is required',
-        html_template='mooringlicensing/emails/send_amendment_notification.html',
-        txt_template='mooringlicensing/emails/send_amendment_notification.txt',
+        subject='Amendment Required: Rottnest Island Boating Application {}'.format(proposal.lodgement_number),
+        # html_template='mooringlicensing/emails/send_amendment_notification.html',
+        # txt_template='mooringlicensing/emails/send_amendment_notification.txt',
+        html_template='mooringlicensing/emails_2/email_5.html',
+        txt_template='mooringlicensing/emails_2/email_5.txt',
     )
 
     reason = amendment_request.reason.reason
     url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
     context = {
-        'public_url': get_public_url(request),
+        # 'public_url': get_public_url(request),
         'recipient': proposal.submitter,
         'proposal': proposal,
-        'reason': reason,
-        'amendment_request_text': amendment_request.text,
-        'url': url
+        'details': reason,
+        # 'amendment_request_text': amendment_request.text,
+        'proposal_external_url': url
     }
 
     to = proposal.submitter.email
@@ -368,9 +353,11 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
     # 6
     email = TemplateEmailBase(
-        subject='Invitation to apply for a mooring licence',
-        html_template='mooringlicensing/emails/create_mooring_licence_application_notification.html',
-        txt_template='mooringlicensing/emails/create_mooring_licence_application_notification.txt',
+        subject='Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
+        # html_template='mooringlicensing/emails/create_mooring_licence_application_notification.html',
+        # txt_template='mooringlicensing/emails/create_mooring_licence_application_notification.txt',
+        html_template='mooringlicensing/emails_2/email_6.html',
+        txt_template='mooringlicensing/emails_2/email_6.txt',
     )
 
     # proposal = waiting_list_allocation.current_proposal
@@ -379,9 +366,6 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     #url += reverse('external')
 
     url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id}))
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
 
     today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
@@ -390,15 +374,15 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
 
     context = {
-        'public_url': get_public_url(request),
-        'approval': waiting_list_allocation,
-        'proposal': mooring_licence_application,
+        # 'public_url': get_public_url(request),
+        'wla': waiting_list_allocation,
+        # 'mla': mooring_licence_application,
         'recipient': mooring_licence_application.submitter,
         'application_period': days_setting_application_period.number_of_days,
         'documents_period': days_setting_documents_period.number_of_days,
-        'mla_proposal': ria_generated_proposal,
-        'url': url,
-        'message_details': request.data.get('message_details'),
+        # 'mla_proposal': ria_generated_proposal,
+        'proposal_external_url': url,
+        # 'message_details': request.data.get('message_details'),
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
@@ -429,9 +413,11 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
     # 7
     email = TemplateEmailBase(
-        subject='Upload of additional documents for mooring licence application',
-        html_template='mooringlicensing/emails/send_documents_upload_for_mla.html',
-        txt_template='mooringlicensing/emails/send_documents_upload_for_mla.txt',
+        subject='Additional Documents Required: Application for Rottnest Island Mooring Site Licence',
+        # html_template='mooringlicensing/emails/send_documents_upload_for_mla.html',
+        # txt_template='mooringlicensing/emails/send_documents_upload_for_mla.txt',
+        html_template='mooringlicensing/emails_2/email_7.html',
+        txt_template='mooringlicensing/emails_2/email_7.txt',
     )
     document_upload_url = proposal.get_document_upload_url(request)
 
@@ -444,12 +430,12 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
     # Configure recipients, contents, etc
     context = {
-        'public_url': get_public_url(request),
+        # 'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'documents_upload_url': document_upload_url,
-        'url': url,
-        'number_of_days': days_setting.number_of_days,
+        'proposal_external_url': url,
+        'num_of_days_to_submit_documents': days_setting.number_of_days,
     }
     to_address = proposal.submitter.email
     cc = []
@@ -470,6 +456,39 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
 
 #  8
+def send_comppliance_due_date_notification(approval, compliance,):
+    email = TemplateEmailBase(
+        subject='Due: Compliance Requirement for Rottnest Island Permit or Licence - Deadline {}'.format(due_date),
+        html_template='mooringlicensing/emails_2/email_8.html',
+        txt_template='mooringlicensing/emails_2/email_8.txt',
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external-compliance-detail')
+
+    context = {
+        'approval': approval,
+        'compliance': compliance,
+        'recipient': compliance.submitter,
+        'compliance_external_url': url,
+    }
+    to_address = compliance.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = get_user_as_email_user(msg.from_email)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_compliance_email(msg, compliance, sender=sender)
+    if compliance.proposal.org_applicant:
+        _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
+    else:
+        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+    return msg
+
+
+
 #  9
 # 10
 
