@@ -49,7 +49,7 @@ from mooringlicensing.components.users.serializers import   (
 from mooringlicensing.components.organisations.serializers import (
     OrganisationRequestDTSerializer,
 )
-from mooringlicensing.components.main.utils import retrieve_department_users, add_cache_control
+from mooringlicensing.components.main.utils import add_cache_control
 from mooringlicensing.components.main.models import UserSystemSettings
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -59,16 +59,16 @@ import logging
 logger = logging.getLogger('mooringlicensing')
 
 
-class DepartmentUserList(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def get(self, request, format=None):
-        data = cache.get('department_users')
-        if not data:
-            retrieve_department_users()
-            data = cache.get('department_users')
-        return add_cache_control(Response(data))
-
-        serializer  = UserSerializer(request.user)
+#class DepartmentUserList(views.APIView):
+#    renderer_classes = [JSONRenderer,]
+#    def get(self, request, format=None):
+#        data = cache.get('department_users')
+#        if not data:
+#            retrieve_department_users()
+#            data = cache.get('department_users')
+#        return add_cache_control(Response(data))
+#
+#        serializer  = UserSerializer(request.user)
 
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
