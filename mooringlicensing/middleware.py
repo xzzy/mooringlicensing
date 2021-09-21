@@ -27,7 +27,14 @@ class FirstTimeNagScreenMiddleware(object):
 
 class CacheControlMiddleware(object):
     def process_response(self, request, response):
-        return add_cache_control(response)
+        #return add_cache_control(response)
+        #print("request.path")
+        #print(request.path)
+        if request.path[:5] == '/api/':
+            response['Cache-Control'] = 'private, no-store'
+        elif request.path[:8] == '/static/':
+            response['Cache-Control'] = 'public, max-age=86400'
+        return response
 
     #def __init__(self, get_response):
     #    self.get_response = get_response
@@ -37,23 +44,6 @@ class CacheControlMiddleware(object):
     #    #print(response.__dict__)
 
     #    return response
-
-#class BookingTimerMiddleware(object):
-#    def process_request(self, request):
-#        #print ("BookingTimerMiddleware: REQUEST SESSION")
-#        #print request.session['ps_booking']
-#        if 'cols_app_invoice' in request.session:
-#            #print ("BOOKING SESSION : "+str(request.session['ps_booking']))
-#            try:
-#                application_fee = ApplicationFee.objects.get(pk=request.session['cols_app_invoice'])
-#            except:
-#                # no idea what object is in self.request.session['ps_booking'], ditch it
-#                del request.session['cols_app_invoice']
-#                return
-#            if application_fee.payment_type != ApplicationFee.PAYMENT_TYPE_TEMPORARY:
-#                # booking in the session is not a temporary type, ditch it
-#                del request.session['cols_app_invoice']
-#        return
 
 class RevisionOverrideMiddleware(RevisionMiddleware):
 
