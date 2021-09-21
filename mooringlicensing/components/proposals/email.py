@@ -237,18 +237,23 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
 def send_notification_email_upon_submit_to_assessor(request, proposal, attachments=[]):
     # 2
     email = TemplateEmailBase(
-        subject='A new application has been submitted',
-        html_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.html',
-        txt_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.txt',
+        subject='Assessment required: a new application submission is awaiting assessment',
+        # html_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.html',
+        # txt_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.txt',
+        html_template='mooringlicensing/emails_2/email_2.html',
+        txt_template='mooringlicensing/emails_2/email_2.txt',
     )
 
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    if "-internal" not in url:
+        # add it. This email is for internal staff (assessors)
+        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
     context = {
-        'public_url': get_public_url(request),
+        # 'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
-        'url': url,
+        'proposal_internal_url': url,
     }
     to_address = proposal.assessor_recipients
     cc = []
