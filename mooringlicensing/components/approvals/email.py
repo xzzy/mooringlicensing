@@ -556,8 +556,10 @@ def send_approval_suspend_email_notification(approval, request=None):
     # 29 Suspended
     email = TemplateEmailBase(
         subject='Suspension of your {} {}'.format(approval.description, approval.lodgement_number),
-        html_template='mooringlicensing/emails/approval_suspend_notification.html',
-        txt_template='mooringlicensing/emails/approval_suspend_notification.txt',
+        # html_template='mooringlicensing/emails/approval_suspend_notification.html',
+        # txt_template='mooringlicensing/emails/approval_suspend_notification.txt',
+        html_template='mooringlicensing/emails_2/email_29.html',
+        txt_template='mooringlicensing/emails_2/email_29.txt',
     )
     proposal = approval.current_proposal
 
@@ -566,9 +568,9 @@ def send_approval_suspend_email_notification(approval, request=None):
         from_date = '01/01/1970'
         to_date = '01/01/2070'
     else:
-        details = approval.suspension_details['details'],
-        from_date = approval.suspension_details['from_date'],
-        to_date = approval.suspension_details['to_date']
+        details = approval.suspension_details['details']
+        from_date = approval.suspension_details['from_date'] if 'from_date' in approval.suspension_details else ''
+        to_date = approval.suspension_details['to_date'] if 'to_date' in approval.suspension_details else ''
 
     context = {
         'approval': approval,
