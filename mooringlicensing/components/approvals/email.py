@@ -155,7 +155,7 @@ def send_approval_expire_email_notification(approval):
     email = ApprovalExpireNotificationEmail(approval)
     proposal = approval.current_proposal
 
-    url=settings.SITE_URL if settings.SITE_URL else ''
+    url = settings.SITE_URL if settings.SITE_URL else ''
     url += reverse('external')
 
     if "-internal" in url:
@@ -264,12 +264,21 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
 
 
 def send_vessel_nomination_reminder_mail(approval, request=None):
-    email = ApprovalVesselNominationReminderEmail(approval)
+    # 10
+    email = TemplateEmailBase(
+        subject='First and Final Reminder: Vessel Requirements for {} - Rottnest Island Authority'.format(approval.description),
+        html_template='mooringlicensing/emails_2/email_10.html',
+        txt_template='mooringlicensing/emails_2/email_10.txt',
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external')
+
     proposal = approval.current_proposal
 
     context = {
         'approval': approval,
-        'due_date': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
+        'date_to_nominate_new_vessel': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
+        'dashboard_external_url': url,
     }
 
     sender = settings.DEFAULT_FROM_EMAIL
@@ -282,10 +291,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     to_address = approval.submitter.email
     all_ccs = []
     bcc = []
-    # if proposal.org_applicant and proposal.org_applicant.email:
-    #     cc_list = proposal.org_applicant.email
-    #     if cc_list:
-    #         all_ccs = [cc_list]
+
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
 
     _log_approval_email(msg, approval, sender=sender_user)
@@ -295,7 +301,6 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
     return msg
-
 
 
 def _log_approval_email(email_message, approval, sender=None):

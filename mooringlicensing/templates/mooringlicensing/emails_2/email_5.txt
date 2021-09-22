@@ -1,7 +1,7 @@
 {%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {%  block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails/salutation.txt" %}
 Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.
 {% if details %}Details: {{ details }}{% endif %}
 Please access {{ proposal_external_url }} to access your application.
