@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django_countries import countries
 from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route,renderer_classes
 from rest_framework.response import Response
@@ -68,6 +69,16 @@ logger = logging.getLogger('mooringlicensing')
 #        return Response(data)
 #
 #        serializer  = UserSerializer(request.user)
+
+
+class GetCountries(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        country_list = []
+        for country in list(countries):
+            country_list.append({"name": country.name, "code": country.code})
+        return Response(country_list)
+
 
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
