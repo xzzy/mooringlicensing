@@ -455,10 +455,10 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     return msg
 
 
-#  8
 def send_comppliance_due_date_notification(approval, compliance,):
+    #  8
     email = TemplateEmailBase(
-        subject='Due: Compliance Requirement for Rottnest Island Permit or Licence - Deadline {}'.format(due_date),
+        subject='Due: Compliance Requirement for Rottnest Island Permit or Licence - Deadline {}'.format(compliance.due_date),
         html_template='mooringlicensing/emails_2/email_8.html',
         txt_template='mooringlicensing/emails_2/email_8.txt',
     )
@@ -488,27 +488,62 @@ def send_comppliance_due_date_notification(approval, compliance,):
     return msg
 
 
+def send_comliance_overdue_notification(approval, compliance,):
+    # 9
+    email = TemplateEmailBase(
+        subject='OVERDUE: Compliance Requirement for Rottnest Island Boating Permit or Licence',
+        html_template='mooringlicensing/emails_2/email_9.html',
+        txt_template='mooringlicensing/emails_2/email_9.txt',
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external-compliance-detail')
 
-#  9
+    context = {
+        'approval': approval,
+        'compliance': compliance,
+        'recipient': compliance.submitter,
+        'compliance_external_url': url,
+    }
+    to_address = compliance.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = get_user_as_email_user(msg.from_email)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_compliance_email(msg, compliance, sender=sender)
+    if compliance.proposal.org_applicant:
+        _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
+    else:
+        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+    return msg
+
 # 10
+# send_vessel_nomination_reminder_mail() at approval.email.py
 
 
 def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None):
     # 11
     email = TemplateEmailBase(
-        subject='Reminder to apply for a mooring licence',
-        html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
-        txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
+        subject='REMINDER : Your Offer for a Rottnest Island Mooring Site Licence is About to Lapse - Rottnest Island Authority',
+        # html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
+        # txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
+        html_template='mooringlicensing/emails/email_11.html',
+        txt_template='mooringlicensing/emails/email_11.txt',
     )
     # url = settings.SITE_URL if settings.SITE_URL else ''
     # proposal_url = join(url, 'external', 'proposal', str(proposal.id))
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     context = {
-        'public_url': get_public_url(request),
+        # 'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
-        'url': url,
+        'proposal_external_url': url,
         'due_date': due_date,
         'number_of_days': number_of_days,
     }
@@ -526,22 +561,46 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 
 def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
     from mooringlicensing.components.proposals.models import MooringLicenceApplication
-    # 12
+    # 12 email to mooring licence applicant when mooring licence application is not submitted within configurable
+    #    number of days after being invited to apply for a mooring licence
+    html_template = 'mooringlicensing/emails_2/email_12.html',
+    txt_template = 'mooringlicensing/emails_2/email_12.txt',
+
+    email = TemplateEmailBase(
+        subject='Lapsed: Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    dashboard_url = url + reverse('external')
+
+    # Configure recipients, contents, etc
+    context = {
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        'dashboard_url': dashboard_url,
+    }
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    # sender = settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date,):
     # 13
     # Expire mooring licence application if additional documents are not submitted within a configurable number of days
     # from the initial submit of the mooring licence application and email to inform the applicant
-    if reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS:
-        html_template='mooringlicensing/emails/send_expire_mooring_licence_application_no_documents.html',
-        txt_template='mooringlicensing/emails/send_expire_mooring_licence_application_no_documents.txt',
-    elif reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED:
-        html_template='mooringlicensing/emails/send_expire_mooring_licence_application_not_submitted.html',
-        txt_template='mooringlicensing/emails/send_expire_mooring_licence_application_not_submitted.txt',
-    else:
-        # Should not reach here
-        return
+    html_template = 'mooringlicensing/emails_2/email_13.html',
+    txt_template = 'mooringlicensing/emails_2/email_13.txt',
 
     email = TemplateEmailBase(
-        subject='Your application for a mooring licence',
+        subject='Lapsed: Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
         html_template=html_template,
         txt_template=txt_template,
     )
@@ -568,18 +627,22 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
 
 def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     # 14
+    # email to assessor group when invite to apply for a mooring licence is expired, either because mooring licence is not submitted or additional documents are not submitted
+    # (internal)
     email = TemplateEmailBase(
-        subject='Mooring licence application not submitted on time',
-        html_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.html',
-        txt_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.txt',
+        subject='Expired mooring licence application - not submitted on time',
+        # html_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.html',
+        # txt_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.txt',
+        html_template='mooringlicensing/emails_2/email_14.html',
+        txt_template='mooringlicensing/emails_2/email_14.txt',
     )
 
     mooring_name = proposal.mooring.name if proposal.mooring else ''
 
     context = {
-        'public_url': get_public_url(),
-        'proposal': proposal,
-        'recipient': proposal.submitter,
+        # 'public_url': get_public_url(),
+        # 'proposal': proposal,
+        # 'recipient': proposal.submitter,
         'applicant': proposal.submitter,
         'due_date': due_date,
         'mooring_name': mooring_name,
