@@ -1,0 +1,16 @@
+{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{%  block content_body %}
+{% include "mooringlicensing/emails/salutation.txt" %}
+{% if decision == 'approved' %}
+Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.
+The sticker for your vessel will be mailed to you in the coming days.
+You must display your annual admission permit sticker on your vessel at all times whilst within the limits of the Reserve. Penalties apply.
+Vessel stickers remain the property of RIA and must be returned or surrendered upon request, or prior to the sale or disposal of your vessel. Penalties apply.
+{% endif %}
+{% if decision == 'declined' %}
+Your annual admission application {{ proposal.lodgement_number }} has been declined.
+{% endif %}
+{% if details %}Details: {{ details }}{% endif %}
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
