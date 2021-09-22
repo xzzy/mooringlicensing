@@ -2,7 +2,7 @@
 
 {%  block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
-{% if approved %}
+{% if decision == 'approved' %}
 <p>Your amendment application {{ proposal.lodgement_number }} for mooring site licence {{ approval.lodgement_number }} has been conditionally approved pending payment of your fees. Please see attached document for more details.</p>
 <p>If you have not already done so, you are required to return your old sticker
     {% for sticker in stickers_to_be_returned %}
@@ -13,7 +13,7 @@ to the Rottnest Island Authority. Failure to return stickers to RIA upon request
 <p>Entry to the Reserve and access to the Shared Mooring System (including use of your own mooring site) is NOT approved until your current sticker is clearly displayed on the port side of your vessel. Penalties apply.</p>
 <p>Please click <a href="{{ payment_url }}">here</a> to pay the fees for your mooring site licence.</p>
 {% endif %}
-{% if declined %}
+{% if decision == 'declined' %}
 <p>Your mooring licence application {{ proposal.lodgement_number }} has been declined.</p>
 {% endif %}
 {% if details %}<p>Details: {{ details }}</p>{% endif %}
