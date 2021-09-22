@@ -18,7 +18,8 @@ from datetime import datetime
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user
-from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA
+from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
+    PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger(__name__)
 
@@ -793,46 +794,47 @@ def send_approval_renewal_email_notification(approval):
         pass
 
 
-def send_application_processed_email(proposal, decision, request, stickers_to_be_returned=[]):
+def send_application_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
     # 17 --- 25
     # email to applicant when application is issued or declined (waiting list allocation application)
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
         # 17
-        send_wla_processed_email(proposal, decision, request)  # require_payment should be always False for WLA because it should be paid at this stage.
+        send_wla_approved_or_declined_email(proposal, decision, request)  # require_payment should be always False for WLA because it should be paid at this stage.
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
         # 18, 19
-        send_aaa_processed_email(proposal, decision, request, stickers_to_be_returned)  # require_payment should be always False for AAA because it should be paid at this stage.
+        send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
         # 20, 21,22
-        send_aua_processed_email(proposal, decision, request, stickers_to_be_returned)
+        send_aua_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned)
     elif proposal.application_type.code == MooringLicenceApplication.code:
         # 23, 24, 25
-        send_mla_processed_email(proposal, decision, request, stickers_to_be_returned)
+        send_mla_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned)
     else:
         # Should not reach here
         logger.warning('The type of the proposal {} is unknown'.format(proposal.lodgement_number))
 
 
-def send_wla_processed_email(proposal, decision, request):
+def send_wla_approved_or_declined_email(proposal, decision, request):
     # 17
+    # email to applicant when application is issued or declined (waiting list allocation application)
     all_ccs = []
     all_bccs = []
 
-    if decision == 'paid':
-        # External user submitted and paid for the WLA
-        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
-        details = ''
-        cc_list = ''
-        if cc_list:
-            all_ccs = cc_list.split(',')
-        attach_invoice = True
-        attach_licence_doc = False
+#    if decision == 'paid':
+#        # External user submitted and paid for the WLA
+#        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+#        details = ''
+#        cc_list = ''
+#        if cc_list:
+#            all_ccs = cc_list.split(',')
+#        attach_invoice = True
+#        attach_licence_doc = False
 
     if decision == 'approved':
         # Internal user approved WLA
-        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+        subject = 'Confirmation: Allocation of a Position on a Mooring Site Licence Waiting List - Rottnest Island Authority'
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
@@ -842,7 +844,7 @@ def send_wla_processed_email(proposal, decision, request):
 
     elif decision == 'declined':
         # Internal user declined WLA
-        subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
+        subject = 'Declined: Application for a Position on a Mooring Site Licence Waiting List - Rottnest Island Authority'
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
@@ -884,23 +886,27 @@ def send_wla_processed_email(proposal, decision, request):
     return msg
 
 
-def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returned=[]):
+def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
     # 18 new/renewal, approval/decline
+    # email to applicant when application is issued or declined (annual admission application, new and renewal)
     # 19 amendment, approval/decline
+    # email to applicant when application is issued or declined (annual admission application, amendment)
     all_ccs = []
     all_bccs = []
     attach_invoice = False
     attach_licence_doc = False
 
-    if decision == 'paid':
-        subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
-        details = ''
-        cc_list = ''
-        if cc_list:
-            all_ccs = cc_list.split(',')
-        attach_invoice = True
-        attach_licence_doc = False
-    elif decision == 'approved':
+    # if decision == 'paid':
+    #     subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
+    #     details = ''
+    #     cc_list = ''
+    #     if cc_list:
+    #         all_ccs = cc_list.split(',')
+    #     attach_invoice = True
+    #     attach_licence_doc = False
+    subject = ''
+    details = ''
+    if decision == 'approved':
         subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -916,27 +922,35 @@ def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returne
             all_ccs = cc_list.split(',')
         attach_invoice = False
         attach_licence_doc = False
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     # Attachments
     attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
 
-    if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
+    if proposal.proposal_type.code in (PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL):
         # New / Renewal
-        html_template = 'mooringlicensing/emails/send_processed_email_for_aaa.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa.txt'
-    else:
+        # html_template = 'mooringlicensing/emails/send_processed_email_for_aaa.html'
+        # txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa.txt'
+        html_template = 'mooringlicensing/emails_2/email_18.html'
+        txt_template = 'mooringlicensing/emails_2/email_18.txt'
+    elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
         # Amendment
-        html_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.txt'
+        # html_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.html'
+        # txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.txt'
+        html_template = 'mooringlicensing/emails_2/email_19.html'
+        txt_template = 'mooringlicensing/emails_2/email_19.txt'
+    else:
+        logger.warning('ProposalType is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     context = {
-        'public_url': get_public_url(request),
+        # 'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
-        'proposal_type_code': proposal.proposal_type.code,
+        # 'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
-        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO???: if existing sticker needs to be replaced, assign sticker object here
     }
 
     email = TemplateEmailBase(
@@ -948,7 +962,7 @@ def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returne
     to_address = proposal.submitter.email
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_user_as_email_user(msg.from_email)
@@ -956,7 +970,7 @@ def send_aaa_processed_email(proposal, decision, request, stickers_to_be_returne
     return msg
 
 
-def send_aua_processed_email(proposal, decision, request, stickers_to_be_returned):
+def send_aua_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned):
     # 20 AUA new/renewal, approval/decline
     # 21 AUA amendment(no payment), approval/decline
     # 22 AUA amendment(payment), approval/decline
@@ -1069,7 +1083,7 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal):
     return attachments
 
 
-def send_mla_processed_email(proposal, decision, request, stickers_to_be_returned):
+def send_mla_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned):
     # 23 ML new/renewal, approval/decline
     # 24 ML amendment(no payment), approval/decline
     # 25 ML amendment(payment), approval/decline
