@@ -1,5 +1,8 @@
 import logging
+import mimetypes
+
 from dateutil.relativedelta import relativedelta
+from django.contrib.auth.models import Group
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -7,10 +10,14 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from datetime import timedelta
 
-from mooringlicensing.components.emails.emails import TemplateEmailBase
+from ledger.payments.pdf import create_invoice_pdf_bytes
+
+from mooringlicensing import settings
+from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
 from ledger.accounts.models import EmailUser
 
 #from mooringlicensing.components.proposals.models import ProposalApproverGroup
+from mooringlicensing.components.emails.utils import get_user_as_email_user
 
 logger = logging.getLogger(__name__)
 
@@ -511,14 +518,18 @@ def send_approval_cancel_email_notification(approval):
     # 28 Cancelled
     email = TemplateEmailBase(
         subject='Cancellation of your {} {}'.format(approval.description, approval.lodgement_number),
-        html_template='mooringlicensing/emails/approval_cancel_notification.html',
-        txt_template='mooringlicensing/emails/approval_cancel_notification.txt',
+        # html_template='mooringlicensing/emails/approval_cancel_notification.html',
+        # txt_template='mooringlicensing/emails/approval_cancel_notification.txt',
+        html_template='mooringlicensing/emails_2/email_28.html',
+        txt_template='mooringlicensing/emails_2/email_28.txt',
     )
     proposal = approval.current_proposal
 
     context = {
         'approval': approval,
+        'recipient': approval.submitter,
         'cancel_start_date': approval.cancellation_date,
+        'details': approval.cancellation_details,
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
@@ -655,4 +666,104 @@ def send_approval_reinstate_email_notification(approval, request):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 
+def send_dcv_permit_mail(dcv_permit, invoice, request):
+    # 26
+    # email to applicant upon successful payment of dcv permit application with details of issued dcv permit
+    email = TemplateEmailBase(
+        subject='Dcv Permit.',
+        # html_template='mooringlicensing/emails/dcv_permit_mail.html',
+        # txt_template='mooringlicensing/emails/dcv_permit_mail.txt',
+        html_template='mooringlicensing/emails_2/email_26.html',
+        txt_template='mooringlicensing/emails_2/email_26.txt',
+    )
 
+    context = {
+        'dcv_permit': dcv_permit,
+        'recipient': dcv_permit.submitter,
+    }
+
+    attachments = []
+
+    # attach invoice
+    contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
+    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+
+    # attach DcvPermit
+    dcv_permit_doc = dcv_permit.permits.first()
+    filename = str(dcv_permit_doc)
+    content = dcv_permit_doc._file.read()
+    mime = mimetypes.guess_type(dcv_permit_doc.filename)[0]
+    attachments.append((filename, content, mime))
+
+    to = dcv_permit.submitter.email
+    cc = []
+    bcc = []
+
+    # Update bcc if
+    dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
+    users = dcv_group.user_set.all()
+    if users:
+        bcc = [user.email for user in users]
+
+    msg = email.send(
+        to,
+        context=context,
+        attachments=attachments,
+        cc=cc,
+        bcc=bcc,
+    )
+
+    sender = get_user_as_email_user(msg.from_email)
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_dcv_admission_mail(dcv_admission, invoice, request):
+    # 27
+    # email to external user upon payment of dcv admission fees
+    email = TemplateEmailBase(
+        subject='DCV Admission fees',
+        # html_template='mooringlicensing/emails/dcv_admission_mail.html',
+        # txt_template='mooringlicensing/emails/dcv_admission_mail.txt',
+        html_template='mooringlicensing/emails_2/email_27.html',
+        txt_template='mooringlicensing/emails_2/email_27.txt',
+    )
+    summary = dcv_admission.get_summary()
+
+    context = {
+        'dcv_admission': dcv_admission,
+        'recipient': dcv_admission.submitter,
+        'summary': summary,
+    }
+
+    attachments = []
+
+    # attach invoice
+    if invoice:
+        contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
+        attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+
+    # attach DcvPermit
+    if dcv_admission.admissions:
+        dcv_admission_doc = dcv_admission.admissions.first()
+        if dcv_admission_doc:
+            filename = str(dcv_admission_doc)
+            content = dcv_admission_doc._file.read()
+            mime = mimetypes.guess_type(dcv_admission_doc.filename)[0]
+            attachments.append((filename, content, mime))
+
+    to = dcv_admission.submitter.email
+    cc = []
+    bcc = []
+
+    msg = email.send(
+        to,
+        context=context,
+        attachments=attachments,
+        cc=cc,
+        bcc=bcc,
+    )
+
+    sender = get_user_as_email_user(msg.from_email)
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data

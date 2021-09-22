@@ -21,7 +21,8 @@ from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
-from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
+from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email
+from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \

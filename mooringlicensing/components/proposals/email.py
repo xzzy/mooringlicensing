@@ -1336,7 +1336,65 @@ def send_mla_approved_or_declined_email_amendment_no_payment(proposal, decision,
 def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision, request, stickers_to_be_returned):
     # 25 ML amendment(payment), approval/decline
     # email to applicant when application is issued or declined (mooring licence application, amendment where payment is required) 
-    pass
+    all_ccs = []
+    all_bccs = []
+
+    subject = ''
+    details = ''
+    attachments = []
+    payment_url = ''
+
+    if decision == 'approved':
+        subject = 'Payment Due: Amendment Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
+
+        # Generate payment_url if needed
+        if proposal.application_fees.count():
+            application_fee = proposal.application_fees.first()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            if invoice.payment_status not in ('paid', 'over_paid'):
+                # Payment required
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+    elif decision == 'declined':
+        subject = 'Declined: Amendment Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_25.html',
+        txt_template = 'mooringlicensing/emails_2/email_25.txt',
+    )
+
+    context = {
+        # 'public_url': get_public_url(request),
+        'proposal': proposal,
+        'approval': proposal.approval,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'payment_url': payment_url,
+    }
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_other_documents_submitted_notification_email(request, proposal):
@@ -1510,10 +1568,9 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
 
 
-# 26DCVPermit
-# 27 DCVAdmission
-
 # Followings are in the approval/email
+# 26 DCVPermit
+# 27 DCVAdmission
 # 28 Cancelled
 # 29 Suspended
 # 30 Surrendered
