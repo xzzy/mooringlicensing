@@ -794,16 +794,21 @@ def send_approval_renewal_email_notification(approval):
 
 
 def send_application_processed_email(proposal, decision, request, stickers_to_be_returned=[]):
-    # 17
+    # 17 --- 25
+    # email to applicant when application is issued or declined (waiting list allocation application)
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
+        # 17
         send_wla_processed_email(proposal, decision, request)  # require_payment should be always False for WLA because it should be paid at this stage.
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
+        # 18, 19
         send_aaa_processed_email(proposal, decision, request, stickers_to_be_returned)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
+        # 20, 21,22
         send_aua_processed_email(proposal, decision, request, stickers_to_be_returned)
     elif proposal.application_type.code == MooringLicenceApplication.code:
+        # 23, 24, 25
         send_mla_processed_email(proposal, decision, request, stickers_to_be_returned)
     else:
         # Should not reach here
@@ -848,8 +853,10 @@ def send_wla_processed_email(proposal, decision, request):
     # Attachments
     attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
 
-    html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
-    txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
+    # html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
+    # txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
+    html_template = 'mooringlicensing/emails_2/email_17.html'
+    txt_template = 'mooringlicensing/emails_2/email_17.txt'
 
     context = {
         'public_url': get_public_url(request),

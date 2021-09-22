@@ -2,10 +2,10 @@
 
 {%  block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
-{% if approved %}
+{% if decision == 'approved' %}
 <p>Your waiting list allocation application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached.</p>
 {% endif %}
-{% if declined %}
+{% if decision == 'declined' %}
 <p>Your waiting list allocation application {{ approval.lodgement_number }} has been declined.</p>
 {% endif %}
 {% if details %}<p>Details: {{ details }}</p>{% endif %}
