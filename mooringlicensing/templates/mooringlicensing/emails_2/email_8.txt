@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.txt" %}
 Your compliance with requirement {{ compliance.lodgement_number }} for licence/permit {{ approval.lodgement_number }} is due on {{ compliance.due_date }}.
 Please access {{ compliance_external_url }} to view and submit the requirement.

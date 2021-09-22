@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
 Dear {{ endorser.first_name }} {{ endorser.last_name}},
 {{ applicant.first_name }} {{ applicant.last_name}} has submitted an application for authorised use of your mooring site {{ mooring_name }}. Your endorsement of this application is due by {{ due_date }}.
 

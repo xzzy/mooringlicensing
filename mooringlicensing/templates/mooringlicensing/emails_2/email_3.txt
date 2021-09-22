@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
 The {{ proposal.description }} {{ proposal.lodgement_number }} has been assessed and is ready for approval or decline.
 {% if details %}Details: {{ details }}{% endif %}
 Please access {{ proposal_internal_url }} to access the application.
