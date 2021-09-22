@@ -662,10 +662,13 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
 
 def send_endorser_reminder_email(proposal, request=None):
     # 15
+    # email to authorised user application endorser if application is not endorsed or declined within configurable number of days
     email = TemplateEmailBase(
-        subject='Your endorsement of an Authorised User Permit application is due',
-        html_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.html',
-        txt_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.txt',
+        subject='Endorsement Request: Application for Authorised Use of Mooring Site <mooring name> - Rottnest Island Authority',
+        # html_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.html',
+        # txt_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.txt',
+        html_template='mooringlicensing/emails_2/email_15.html',
+        txt_template='mooringlicensing/emails_2/email_15.txt',
     )
 
     url = settings.SITE_URL if settings.SITE_URL else ''
@@ -707,88 +710,87 @@ def send_endorser_reminder_email(proposal, request=None):
     return msg
 
 
-def send_approval_renewal_email_notification_dcvp(dcv_permit):
-    # 16
-    email = TemplateEmailBase(
-        subject='Renewal notice for your DCV Permit {}'.format(dcv_permit.lodgement_number),
-        html_template='mooringlicensing/emails/approval_renewal_notification_dcvp.html',
-        txt_template='mooringlicensing/emails/approval_renewal_notification_dcvp.txt',
-    )
-    # proposal = approval.current_proposal
-    url = settings.SITE_URL if settings.SITE_URL else ''
-    dashboard_url = url + reverse('external')
-
-    context = {
-        'public_url': get_public_url(),
-        'approval': dcv_permit,
-        # 'proposal': approval.current_proposal,
-        'recipient': dcv_permit.submitter,
-        'url': dashboard_url,
-        'expiry_date': dcv_permit.end_date,
-    }
-    sender = settings.DEFAULT_FROM_EMAIL
-
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-
-    to = dcv_permit.submitter.email
-    all_ccs = []
-
-    msg = email.send(to, cc=all_ccs, attachments=[], context=context)
+#def send_approval_renewal_email_notification_dcvp(dcv_permit):
+#    # 16
+#    # email as renewal reminders for waiting list allocations, annual admission permits, authorised user permits,
+#    # mooring licences and dcv permits a configurable number of days before the expiry date, including if the status
+#    # is suspended (technically dcv permits are not renewed, the holder is invited to apply for a new one for the next season)
+#    email = TemplateEmailBase(
+#        subject='Renewal notice for your DCV Permit {}'.format(dcv_permit.lodgement_number),
+#        html_template='mooringlicensing/emails/approval_renewal_notification_dcvp.html',
+#        txt_template='mooringlicensing/emails/approval_renewal_notification_dcvp.txt',
+#    )
+#    # proposal = approval.current_proposal
+#    url = settings.SITE_URL if settings.SITE_URL else ''
+#    dashboard_url = url + reverse('external')
+#
+#    context = {
+#        'public_url': get_public_url(),
+#        'approval': dcv_permit,
+#        'recipient': dcv_permit.submitter,
+#        'url': dashboard_url,
+#        'expiry_date': dcv_permit.end_date,
+#    }
+#    sender = settings.DEFAULT_FROM_EMAIL
+#
+#    try:
+#        sender_user = EmailUser.objects.get(email__icontains=sender)
+#    except:
+#        EmailUser.objects.create(email=sender, password='')
+#        sender_user = EmailUser.objects.get(email__icontains=sender)
+#
+#    to = dcv_permit.submitter.email
+#    all_ccs = []
+#
+#    msg = email.send(to, cc=all_ccs, attachments=[], context=context)
 
 
 def send_approval_renewal_email_notification(approval):
     # 16
+    # email as renewal reminders for waiting list allocations, annual admission permits, authorised user permits,
+    # mooring licences and dcv permits a configurable number of days before the expiry date, including if the status
+    # is suspended (technically dcv permits are not renewed, the holder is invited to apply for a new one for the next season)
     email = TemplateEmailBase(
-        subject='Renewal notice for your {} {}'.format(approval.description, approval.lodgement_number),
-        html_template='mooringlicensing/emails/approval_renewal_notification.html',
-        txt_template='mooringlicensing/emails/approval_renewal_notification.txt',
+        subject='First and Final Notice: Renewal of your Rottnest Island {} {} for {}'.format(approval.description, approval.lodgement_number, '(todo)'),  # TODO
+        html_template='mooringlicensing/emails_2/email_16.html',
+        txt_template='mooringlicensing/emails_2/email_16.txt',
     )
     proposal = approval.current_proposal
     url = settings.SITE_URL if settings.SITE_URL else ''
-    dashboard_url = url + reverse('external')
+    url = url + reverse('external')
 
     context = {
-        'public_url': get_public_url(),
         'approval': approval,
-        'proposal': approval.current_proposal,
+        'vessel_rego_no': '(todo)',  # TODO
         'recipient': proposal.submitter,
-        'url': dashboard_url,
         'expiry_date': approval.expiry_date,
+        'dashboard_external_url': url,
     }
-    sender = settings.DEFAULT_FROM_EMAIL
 
+    sender = settings.DEFAULT_FROM_EMAIL
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
-    #attach renewal notice
-    if approval.renewal_document and approval.renewal_document._file is not None:
-        renewal_document= approval.renewal_document._file
-        file_name = approval.renewal_document.name
-        attachment = (file_name, renewal_document.file.read(), 'application/pdf')
-        attachment = [attachment]
-    else:
-        attachment = []
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
+    attachments = []
+    attachment = approval.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
 
-    msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
+    msg = email.send(proposal.submitter.email, cc=[], attachments=attachments, context=context)
 
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+    from mooringlicensing.components.approvals.models import Approval
+    if isinstance(approval, Approval):
+        _log_approval_email(msg, approval, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
     else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+        # TODO: log for DcvPermit???
+        pass
 
 
 def send_application_processed_email(proposal, decision, request, stickers_to_be_returned=[]):
