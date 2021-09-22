@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.txt" %}
 Please find attached the DCV permit and the invoice as proof of payment.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}

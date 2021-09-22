@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 <p>Dear {{ endorser.first_name }} {{ endorser.last_name}},</p>
 <p>{{ applicant.first_name }} {{ applicant.last_name}} has submitted an application for authorised use of your mooring site {{ mooring_name }}. Your endorsement of this application is due by {{ due_date }}.
 <ul>

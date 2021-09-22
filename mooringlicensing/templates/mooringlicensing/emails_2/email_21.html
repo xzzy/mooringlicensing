@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
 {% if decision == 'approved' %}
 <p>Your application {{ proposal.lodgement_number }} to amend your authorised user permit has been approved. Please see attached document for more details.</p>

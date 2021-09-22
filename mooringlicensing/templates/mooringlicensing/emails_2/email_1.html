@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
 {% if payment_made %}
 <p>Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.</p>

@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
 <p>Please be reminded that you will need to nominate a new suitable vessel before {{ date_to_nominate_new_vessel }} to retain your {{ approval.description }} {{ approval.lodgement_number }}. This can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}.</p>
 <p>

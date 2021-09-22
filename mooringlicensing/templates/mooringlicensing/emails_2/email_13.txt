@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.txt" %}
 The documents required to accept the offer of a mooring site licence were not provided by the due date, and the offer has now lapsed.
 As per the Rottnest Island Regulations 1988, your name has been removed from the waiting list and the offer will be made to the next eligible waitlisted person.

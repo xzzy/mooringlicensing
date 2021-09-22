@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
 <p>You are reminded of the invitation to apply for a mooring site licence based on your current Waiting List Allocation {{ proposal.lodgement_number }}.
 <p>If you do not accept the offer within the timeframe provided the offer will lapse and your name will be removed from the waiting list. The mooring site licence will then be offered to the next eligible waitlisted person.</p>

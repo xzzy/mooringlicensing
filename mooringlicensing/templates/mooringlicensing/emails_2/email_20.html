@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
 {% if decision == 'approved' %}
 <p>Your authorised user permit application {{ proposal.lodgement_number }} has been conditionally approved pending payment of your fees. Please see attached document for more details.</p>

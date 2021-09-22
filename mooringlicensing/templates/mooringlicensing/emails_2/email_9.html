@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 {% include "mooringlicensing/emails/salutation.html" %}
 <p>Your compliance with requirement {{ compliance.lodgement_number }} for your licence/permit {{ approval.lodgement_number }} is overdue.</p>
 <p>The suspension or cancellation of your licence/permit has now been initiated.</p>
