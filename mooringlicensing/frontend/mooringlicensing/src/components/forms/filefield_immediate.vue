@@ -132,9 +132,21 @@ export default {
                 $("#" + value).trigger('click');
             }
         },
-        handleChange: function (e) {
+        handleChange: async function (e) {
             let vm = this;
+            vm.files.push(e.target.files[0]);
 
+            if (e.target.files.length > 0) {
+                //vm.upload_file(e)
+                this.$nextTick(async () => {
+                    await this.save_document(e);
+                });
+            }
+            /*
+            console.log("before")
+            await new Promise(resolve => setTimeout(resolve,2000));
+            console.log("after")
+            */
             if (vm.isRepeatable && e.target.files) {
                 let  el = $(e.target).attr('data-que');
                 let avail = $('input[name='+e.target.name+']');
@@ -154,6 +166,7 @@ export default {
             } else {
                 vm.files = [];
             }
+            /*
             vm.files.push(e.target.files[0]);
 
             if (e.target.files.length > 0) {
@@ -162,6 +175,7 @@ export default {
                     this.save_document(e);
                 });
             }
+            */
 
         },
 
@@ -255,10 +269,10 @@ export default {
                 */
                 this.$nextTick(async () => {
                     // must emit event here
-                    this.handleChange(e);
+                    await this.handleChange(e);
                 });
             } else {
-                this.handleChange(e);
+                await this.handleChange(e);
             }
         },
 

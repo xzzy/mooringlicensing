@@ -99,7 +99,7 @@ CACHES = {
     }
 }
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ml')
-STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
+#STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 if DEV_STATIC and not DEV_STATIC_URL:
@@ -387,3 +387,4 @@ DOT_URL=env('DOT_URL',None)
 DOT_USERNAME=env('DOT_USERNAME',None)
 DOT_PASSWORD=env('DOT_PASSWORD',None)
 DO_DOT_CHECK=env('DO_DOT_CHECK', False)
+LOV_CACHE_TIMEOUT=10800
