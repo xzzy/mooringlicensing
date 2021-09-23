@@ -1086,3 +1086,4 @@ def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit
 
 # 39
 # email to account holder with authentication link to complete login process
+# TODO: can we overwrite this template served by the ledger?
