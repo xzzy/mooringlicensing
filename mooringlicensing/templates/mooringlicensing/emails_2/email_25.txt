@@ -4,11 +4,13 @@
 {% include "mooringlicensing/emails/salutation.txt" %}
 {% if decision == 'approved' %}
 Your amendment application {{ proposal.lodgement_number }} for mooring site licence {{ approval.lodgement_number }} has been conditionally approved pending payment of your fees. Please see attached document for more details.
+{% if stickers_to_be_returned|length > 0 %}
 If you have not already done so, you are required to return your old sticker
     {% for sticker in stickers_to_be_returned %}
     {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
     {% endfor %}
 to the Rottnest Island Authority. Failure to return stickers to RIA upon request, or prior to the sale or disposal of your vessel, can result in the relinquishment of your mooring site licence. Once relinquished, a mooring site licence cannot be re-instated.
+{% endif %}
 The new sticker for your vessel will be mailed to you once payment has been received.
 Entry to the Reserve and access to the Shared Mooring System (including use of your own mooring site) is NOT approved until your current sticker is clearly displayed on the port side of your vessel. Penalties apply.
 Please access {{ payment_url }} to pay the fees for your mooring site licence.

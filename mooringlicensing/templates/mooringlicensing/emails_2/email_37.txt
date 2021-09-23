@@ -1,0 +1,15 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails/salutation.txt" %}
+Please be advised that the licensee of mooring site {{ mooring.name }} has recently swapped their mooring site licence with another licensee in the same bay, as allowed under the Rottnest Island Regulations 1988.
+This means that effective immediately all authorised users of {{ mooring.name }} have now been removed.
+You are now notified to return authorised user sticker(s) {{ sticker.number }} to the Rottnest Island Authority.
+Please access {{ dashboard_external_url }} if you wish to make an amendment application for an authorised user site to be endorsed by a mooring site licensee known to you.
+If you are left without any authorised user sites, and you do not hold a mooring site license in your name, access {{ dashboard_external_url }} to make an amendment application for an authorised user site to be allocated by RIA.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
+
+
+
+

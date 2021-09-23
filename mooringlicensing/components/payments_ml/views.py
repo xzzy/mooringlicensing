@@ -22,7 +22,8 @@ from oscar.apps.order.models import Order
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email
-from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail
+from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail, \
+    send_sticker_replacement_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
@@ -308,7 +309,8 @@ class StickerReplacementFeeSuccessView(TemplateView):
                 request.session[self.LAST_STICKER_ACTION_FEE_ID] = sticker_action_fee.id
                 delete_session_sticker_action_invoice(request.session)  # This leads to raise an exception at the get_session_sticker_action_invoice() above
 
-                # TODO: Email???
+                # Send email with the invoice
+                send_sticker_replacement_email(request, new_sticker, invoice)
 
                 context = {
                     'submitter': owner,
