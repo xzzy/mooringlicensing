@@ -778,6 +778,7 @@ def send_approval_reinstate_email_notification(approval, request):
 def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
     # 32 (only for ML)
     # email to licence or mooring licence holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
+    proposal = approval.current_proposal
 
     # Retrieve mooring
     mooring_name = ''
@@ -798,6 +799,11 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
         txt_template='mooringlicensing/emails_2/email_32.txt',
     )
 
+    attachments = []
+    attachment = approval.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
+
     from mooringlicensing.components.proposals.email import get_public_url
     context = {
         'recipient': approval.submitter,
@@ -807,12 +813,13 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
         'dashboard_external_url': get_public_url(request),
     }
     all_ccs = []
-    proposal = approval.current_proposal
     if proposal.org_applicant and proposal.org_applicant.email:
         cc_list = proposal.org_applicant.email
         if cc_list:
             all_ccs = [cc_list]
-    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
+
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_approval_email(msg, approval, sender=sender)
     if approval.org_applicant:
