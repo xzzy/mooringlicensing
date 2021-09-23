@@ -173,7 +173,7 @@ export default {
             approver_comment: '',
             form: null,
             members: [],
-            department_users : [],
+            //department_users : [],
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingProposal:false,
@@ -723,6 +723,7 @@ export default {
                 });
             }
         },
+        /*
         fetchDeparmentUsers: function(){
             let vm = this;
             vm.loading.push('Loading Department Users');
@@ -734,6 +735,7 @@ export default {
                 vm.loading.splice('Loading Department Users',1);
             })
         },
+        */
         initialiseAssignedOfficerSelect:function(reinit=false){
             console.log('initialiseAssignedOfficerSelect')
             let vm = this;
@@ -774,6 +776,7 @@ export default {
         initialiseSelects: function(){
             let vm = this;
             if (!vm.initialisedSelects){
+                /*
                 $(vm.$refs.department_users).select2({
                     "theme": "bootstrap",
                     allowClear: true,
@@ -787,6 +790,7 @@ export default {
                     var selected = $(e.currentTarget);
                     //vm.selected_referral = ''
                 });
+                */
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
             }
@@ -794,7 +798,7 @@ export default {
     },
     mounted: function() {
         let vm = this;
-        vm.fetchDeparmentUsers();
+        //vm.fetchDeparmentUsers();
 
     },
     updated: function(){
