@@ -108,6 +108,9 @@ class UserSerializer(serializers.ModelSerializer):
     system_settings= serializers.SerializerMethodField()
     is_payment_admin = serializers.SerializerMethodField()
     is_mooringlicensing_admin = serializers.SerializerMethodField()    
+    readonly_first_name = serializers.SerializerMethodField()    
+    readonly_last_name = serializers.SerializerMethodField()    
+    readonly_email = serializers.SerializerMethodField()    
 
     class Meta:
         model = EmailUser
@@ -132,7 +135,19 @@ class UserSerializer(serializers.ModelSerializer):
             'system_settings',
             'is_mooringlicensing_admin',
             'postal_same_as_residential',
+            'readonly_first_name',
+            'readonly_last_name',
+            'readonly_email',
         )
+
+    def get_readonly_first_name(self, obj):
+        return True if obj.first_name else False
+
+    def get_readonly_last_name(self, obj):
+        return True if obj.last_name else False
+
+    def get_readonly_email(self, obj):
+        return True if obj.email else False
 
     def get_postal_address(self, obj):
         address = {}
