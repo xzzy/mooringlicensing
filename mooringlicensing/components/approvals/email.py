@@ -831,7 +831,45 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
 def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
     # 33
     # email to licence or waitlist holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
-    pass
+    proposal = approval.current_proposal
+
+    sale_date = vessel_ownership.end_date
+    six_months = relativedelta(months=6)
+    due_date = sale_date + six_months
+
+    email = TemplateEmailBase(
+        subject='Vessel Removed from Rottnest Island Mooring Site Licence Waiting List Allocation',
+        html_template='mooringlicensing/emails_2/email_33.html',
+        txt_template='mooringlicensing/emails_2/email_33.txt',
+    )
+
+    attachments = []
+    attachment = approval.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
+
+    from mooringlicensing.components.proposals.email import get_public_url
+    context = {
+        'recipient': approval.submitter,
+        'vessel_rego_no': vessel_ownership.vessel.rego_no,
+        'stickers_to_be_returned': stickers_to_be_returned,
+        'due_date': due_date,
+        'dashboard_external_url': get_public_url(request),
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 
 def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
