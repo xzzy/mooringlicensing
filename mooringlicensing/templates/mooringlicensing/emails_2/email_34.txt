@@ -1,0 +1,18 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails/salutation.txt" %}
+Thank you for recording the date of sale for vessel {{ vessel_rego_no }}.
+{% if stickers_to_be_returned|length > 0 %}
+If you have not already done so, you are required to return all associated vessel sticker(s)
+    {% for sticker in stickers_to_be_returned %}
+    {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
+    {% endfor %}
+to the Rottnest Island Authority. Failure to return stickers to RIA upon request, or prior to the sale or disposal of your vessel, can result in the cancellation of your authorised user permit. Once revoked, authorised user permits and mooring site authorisations cannot be reinstated.
+{% endif %}
+If you wish to substitute your authorised vessel this can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}. Your mooring site authorisations (if suitable) and the fees paid can be transferred to your new vessel and will remain active until the end of the current boating season.
+If a new vessel is not nominated prior to the end of the season on 31 August, all mooring site authorisations will be revoked, and your authorised user permit automatically cancelled.
+If you do not intend to substitute your vessel and wish to surrender your authorised user permit, this can be done by logging into your account here: {{ dashboard_external_url }}. Any refunds that may be applicable to you will be calculated in accordance with the date your vessel sticker(s) are received by RIA. You can view our Cancellation and Refund Policy at www.rottnestisland.com.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
+
