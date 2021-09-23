@@ -93,8 +93,10 @@ from mooringlicensing.components.proposals.serializers import (
 
 #from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
 from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
-    DcvOrganisation
-from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main
+    DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
+from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main, \
+    send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, \
+    send_reissue_aap_after_sale_recorded_email, send_reissue_aup_after_sale_recorded_email
 from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 
         LookupApprovalSerializer,
@@ -1731,19 +1733,30 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
                 ## change Sticker status
+                stickers_to_be_returned = []
                 for approval in approval_list:
                     for a_sticker in instance.sticker_set.filter(status__in=['current', 'awaiting_printing']):
                         a_sticker.status = 'to_be_returned'
                         a_sticker.save()
+                        stickers_to_be_returned.append(a_sticker)
                     for a_sticker in instance.sticker_set.filter(status=Sticker.STICKER_STATUS_READY):
                         # vessel sold before the sticker is picked up by cron for export (very rarely happens)
                         a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
                         a_sticker.save()
                     # write approval history
                     approval.write_approval_history('vessel_sold')
-                    approval.update_approval_history_by_stickers()
+                    # approval.update_approval_history_by_stickers()
                     ## send notification email
-                    send_vessel_nomination_notification_main(approval)
+                    # send_vessel_nomination_notification_main(approval)
+                    if approval.code == WaitingListAllocation.code:
+                        send_reissue_wla_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+                    elif approval.code == AnnualAdmissionPermit.code:
+                        send_reissue_aap_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+                    elif approval.code == AuthorisedUserPermit.code:
+                        send_reissue_aup_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+                    elif approval.code == MooringLicence.code:
+                        send_reissue_ml_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+
             else:
                 raise serializers.ValidationError("Missing information: You must specify a sale date")
             return Response()
