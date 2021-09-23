@@ -1003,7 +1003,7 @@ def send_sticker_replacement_email(request, sticker, invoice):
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 
-def send_aup_revoked_due_to_mooring_swap_email(request, mooring_licence, authorised_user_permit, mooring, sticker):
+def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, mooring, stickers_to_be_returned):
     # 37
     # email to authorised user when mooring site authorisation revoked due to licensee mooring swap and to return sticker
     from mooringlicensing.components.proposals.email import get_public_url
@@ -1024,7 +1024,7 @@ def send_aup_revoked_due_to_mooring_swap_email(request, mooring_licence, authori
     context = {
         'recipient': authorised_user_permit.submitter,
         'mooring': mooring,
-        'sticker': sticker,
+        'stickers_to_be_returned': stickers_to_be_returned,
         'dashboard_external_url': get_public_url(request),
     }
 
@@ -1043,8 +1043,46 @@ def send_aup_revoked_due_to_mooring_swap_email(request, mooring_licence, authori
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
-# 38
-# email to authorised user when mooring site authorisation revoked due to mooring site licence relinquishment and to return sticker
+
+def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit, mooring, stickers_to_be_returned):
+    # 38
+    # email to authorised user when mooring site authorisation revoked due to mooring site licence relinquishment and to return sticker
+    from mooringlicensing.components.proposals.email import get_public_url
+    proposal = authorised_user_permit.current_proposal
+    approval = authorised_user_permit
+
+    email = TemplateEmailBase(
+        subject='Authorised Use of {} Cancelled Due to Relinquishment - Notice to Return Sticker(s) - Rottnest Island Authority'.format(mooring.name),
+        html_template='mooringlicensing/emails_2/email_38.html',
+        txt_template='mooringlicensing/emails_2/email_38.txt',
+    )
+
+    attachments = []
+    attachment = authorised_user_permit.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
+
+    context = {
+        'recipient': authorised_user_permit.submitter,
+        'mooring': mooring,
+        'stickers_to_be_returned': stickers_to_be_returned,
+        'dashboard_external_url': get_public_url(request),
+    }
+
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 # 39
 # email to account holder with authentication link to complete login process
