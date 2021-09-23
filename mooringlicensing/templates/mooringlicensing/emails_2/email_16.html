@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Your {{ approval.description }} {{ approval.lodgement_number }} for vessel {{ vessel_rego_no }} is due for renewal by {{ expiry_date }}.</p>
 <p>If you do not currently have a vessel nominated for your {{ approval.description }}, or you wish to change your nominated vessel for your {{ approval.description }}, you must do so PRIOR to making your application to renew. Only once your amendment application has been assessed and approved will you be able to make your application to renew. Click <a href="{{ dashboard_external_url }}">here</a> to login to your account and make an amendment application to change your vessel.</p>
 <p>If you wish to make an application for an authorised user site, either to be endorsed by a mooring site licensee, or for RIA allocation, you must do so PRIOR to making your application to renew. Only once your application has been endorsed or approved will you be able to make your application to renew. Click <a href="{{ dashboard_external_url }}">here</a> to login to your account and make an amendment application to change your vessel.</p>

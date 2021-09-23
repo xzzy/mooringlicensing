@@ -136,7 +136,7 @@ class ConfirmationView(TemplateView):
     def send_confirmation_mail(proposal, request):
         # Send invoice
         to_email_addresses = proposal.submitter.email
-        email_data = send_application_submit_confirmation_email(proposal, [to_email_addresses, ])
+        email_data = send_application_submit_confirmation_email(request, proposal, [to_email_addresses, ])
 
         # Add comms log
         # TODO: Add comms log

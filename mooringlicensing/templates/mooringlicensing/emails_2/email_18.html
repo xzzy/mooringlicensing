@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 {% if decision == 'approved' %}
 <p>Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
 <p>The sticker for your vessel will be mailed to you in the coming days.</p>

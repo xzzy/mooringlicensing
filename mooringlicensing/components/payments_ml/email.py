@@ -1,5 +1,6 @@
 from mooringlicensing import settings
 from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
+from mooringlicensing.components.emails.utils import get_public_url
 
 
 class ApplicationSubmitConfirmationEmail(TemplateEmailBase):
@@ -8,10 +9,11 @@ class ApplicationSubmitConfirmationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/application_submit_confirmation_email.txt'
 
 
-def send_application_submit_confirmation_email(proposal, to_email_addresses):
+def send_application_submit_confirmation_email(request, proposal, to_email_addresses):
     email = ApplicationSubmitConfirmationEmail()
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
     }
 

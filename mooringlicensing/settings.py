@@ -118,7 +118,7 @@ DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by 
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No rand hash provided")
 RAND_HASH = ''
-if  os.path.isdir(BASE_DIR+'/.git/') is True:
+if os.path.isdir(BASE_DIR+'/.git/') is True:
     RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
 if not len(RAND_HASH):
     RAND_HASH = os.popen('cat /app/rand_hash').read()

@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 Your {{ approval.description }} {{ approval.lodgement_number }} has been suspended as per {{ from_date }}{% if to_date %} until {{ to_date }}{% endif %}.
 {% if details %}Details: {{ details }}{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}

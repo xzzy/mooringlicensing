@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 {% if decision == 'approved' %}
 Your authorised user permit application {{ proposal.lodgement_number }} has been conditionally approved pending payment of your fees. Please see attached document for more details.
 The sticker(s) for your vessel will be mailed to you once payment has been made. Please access {{ payment_url }} to pay the fees for your authorised user permit.

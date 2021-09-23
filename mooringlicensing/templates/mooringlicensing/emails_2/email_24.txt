@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 {% if decision == 'approved' %}
 Your application {{ proposal.lodgement_number }} for amendment to your mooring site licence has been approved. Please see attached document for more details.
 Your new sticker(s) for your vessel(s) will be mailed to you in the coming days.
