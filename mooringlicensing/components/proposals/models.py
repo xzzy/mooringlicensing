@@ -1708,8 +1708,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #         self.child_obj.processes_after_approval(request, total_amount)
     #         self.refresh_from_db()  # Somehow this is needed...
 
-    def get_fee_amount_adjusted(self, fee_item, vessel_length):
-        return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
+    # def get_fee_amount_adjusted(self, fee_item, vessel_length):
+    #     return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
 
     @property
     def application_type_code(self):

@@ -365,9 +365,10 @@ class ApplicationFeeView(TemplateView):
                 return checkout_response
 
         except Exception as e:
-            logger.error('Error Creating Application Fee: {}'.format(e))
+            logger.error('Error while checking out for the proposal: {}\n{}'.format(proposal.lodgement_number, str(e)))
             if application_fee:
                 application_fee.delete()
+                logger.info('ApplicationFee: {} has been deleted'.format(application_fee))
             raise
 
 

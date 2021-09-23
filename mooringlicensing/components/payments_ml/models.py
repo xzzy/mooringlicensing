@@ -343,6 +343,10 @@ class FeeConstructor(RevisionedMixin):
         return fee_item
 
     def get_fee_item_for_adjustment(self, vessel_size_category, fee_period, proposal_type=None, age_group=None, admission_type=None):
+        logger.info('Getting fee_item for the fee_constructor: {}, fee_period: {}, vessel_size_category: {}, proposal_type: {}, age_group: {}, admission_type: {}'.format(
+            self, fee_period, vessel_size_category, proposal_type, age_group, admission_type,
+        ))
+
         fee_item = FeeItem.objects.filter(
             fee_constructor=self,
             fee_period=fee_period,
