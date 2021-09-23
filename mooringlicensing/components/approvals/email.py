@@ -918,9 +918,48 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
 
 
 def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
-    # 35
+    # 35 (only for AAP)
     # email to annual admission permit holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
-    pass
+    proposal = approval.current_proposal
+
+    # Calculate new vessle nomination due date
+    sale_date = vessel_ownership.end_date
+    six_months = relativedelta(months=6)
+    due_date = sale_date + six_months
+
+    email = TemplateEmailBase(
+        subject='Vessel Removed from Rottnest Island Annual Admission Permit - Notice to Return Sticker to RIA',
+        html_template='mooringlicensing/emails_2/email_35.html',
+        txt_template='mooringlicensing/emails_2/email_35.txt',
+    )
+
+    attachments = []
+    attachment = approval.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
+
+    from mooringlicensing.components.proposals.email import get_public_url
+    context = {
+        'recipient': approval.submitter,
+        'vessel_rego_no': vessel_ownership.vessel.rego_no,
+        'stickers_to_be_returned': stickers_to_be_returned,
+        'due_date': due_date,
+        'dashboard_external_url': get_public_url(request),
+    }
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 # 36
 # email to licence/permit holder when sticker replacement request has been submitted (with payment) 
