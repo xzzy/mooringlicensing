@@ -774,3 +774,78 @@ def send_approval_reinstate_email_notification(approval, request):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
+
+def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
+    # 32 (only for ML)
+    # email to licence or mooring licence holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
+
+    # Retrieve mooring
+    mooring_name = ''
+    if hasattr(approval, 'mooring'):
+        mooring_name = approval.mooring.name
+    else:
+        # Should not reach here
+        logger.error('Mooring not found for {} when sending the automatic re-issue email after date of sale is recorded.'.format(approval.lodgement_number))
+
+    # Calculate due date
+    sale_date = vessel_ownership.end_date
+    six_months = relativedelta(months=6)
+    due_date = sale_date + six_months
+
+    email = TemplateEmailBase(
+        subject='Vessel Removed from Rottnest Island Mooring Site Licence {} - Notice to Return Sticker to RIA'.format(mooring_name),
+        html_template='mooringlicensing/emails_2/email_32.html',
+        txt_template='mooringlicensing/emails_2/email_32.txt',
+    )
+
+    from mooringlicensing.components.proposals.email import get_public_url
+    context = {
+        'recipient': approval.submitter,
+        'vessel_rego_no': vessel_ownership.vessel.rego_no,
+        'stickers_to_be_returned': stickers_to_be_returned,
+        'due_date': due_date,
+        'dashboard_external_url': get_public_url(request),
+    }
+    all_ccs = []
+    proposal = approval.current_proposal
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
+
+
+def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
+    # 33
+    # email to licence or waitlist holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
+    pass
+
+
+def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
+    # 34
+    # email to authorised user permit holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
+    pass
+
+
+def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
+    # 35
+    # email to annual admission permit holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
+    pass
+
+# 36
+# email to licence/permit holder when sticker replacement request has been submitted (with payment) 
+
+# 37
+# email to authorised user when mooring site authorisation revoked due to licensee mooring swap and to return sticker
+
+# 38
+# email to authorised user when mooring site authorisation revoked due to mooring site licence relinquishment and to return sticker
+
+# 39
+# email to account holder with authentication link to complete login process
