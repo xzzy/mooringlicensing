@@ -961,11 +961,87 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
-# 36
-# email to licence/permit holder when sticker replacement request has been submitted (with payment) 
 
-# 37
-# email to authorised user when mooring site authorisation revoked due to licensee mooring swap and to return sticker
+def send_sticker_replacement_email(request, sticker, invoice):
+    # 36
+    # email to licence/permit holder when sticker replacement request has been submitted (with payment)
+    approval = sticker.approval
+    proposal = approval.current_proposal
+
+    email = TemplateEmailBase(
+        subject='Sticker Replacement for {} - Rottnest Island Authority'.format(approval.description),
+        html_template='mooringlicensing/emails_2/email_36.html',
+        txt_template='mooringlicensing/emails_2/email_36.txt',
+    )
+
+    # Attach invoice
+    attachments = []
+    invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', invoice, )
+    attachment = ('invoice#{}.pdf'.format(invoice.reference), invoice_bytes, 'application/pdf')
+    attachments.append(attachment)
+
+    from mooringlicensing.components.proposals.email import get_public_url
+    context = {
+        'recipient': approval.submitter,
+        'sticker': sticker,
+        'dashboard_external_url': get_public_url(request),
+    }
+
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
+
+
+def send_aup_revoked_due_to_mooring_swap_email(request, mooring_licence, authorised_user_permit, mooring, sticker):
+    # 37
+    # email to authorised user when mooring site authorisation revoked due to licensee mooring swap and to return sticker
+    from mooringlicensing.components.proposals.email import get_public_url
+    proposal = authorised_user_permit.current_proposal
+    approval = authorised_user_permit
+
+    email = TemplateEmailBase(
+        subject='Authorised Use of {} Cancelled Due to Licensee Mooring Swap - Notice to Return Sticker(s) - Rottnest Island Authority'.format(mooring.name),
+        html_template='mooringlicensing/emails_2/email_37.html',
+        txt_template='mooringlicensing/emails_2/email_37.txt',
+    )
+
+    attachments = []
+    attachment = authorised_user_permit.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
+
+    context = {
+        'recipient': authorised_user_permit.submitter,
+        'mooring': mooring,
+        'sticker': sticker,
+        'dashboard_external_url': get_public_url(request),
+    }
+
+    all_ccs = []
+    if proposal.org_applicant and proposal.org_applicant.email:
+        cc_list = proposal.org_applicant.email
+        if cc_list:
+            all_ccs = [cc_list]
+
+    msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_approval_email(msg, approval, sender=sender)
+    if approval.org_applicant:
+        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
+    else:
+        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender)
 
 # 38
 # email to authorised user when mooring site authorisation revoked due to mooring site licence relinquishment and to return sticker
