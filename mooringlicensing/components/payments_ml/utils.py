@@ -145,6 +145,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
 
 def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
+    logger.info('Creating fee lines for the proposal: {}'.format(instance.lodgement_number))
 
     # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
@@ -200,8 +201,8 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
     fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_for_aa else None
 
-    fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)
-    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_for_aa, vessel_length) if fee_item_for_aa else None
+    fee_amount_adjusted = instance.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
+    fee_amount_adjusted_additional = instance.child_obj.get_fee_amount_adjusted(fee_item_for_aa, vessel_length) if fee_item_for_aa else None
 
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
