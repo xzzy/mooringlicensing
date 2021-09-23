@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Thank you for recording the date of sale for vessel {{ vessel_rego_no }}.</p>
 {% if stickers_to_be_returned|length > 0 %}
 <p>If you have not already done so, you are required to return all associated vessel sticker(s)

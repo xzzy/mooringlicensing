@@ -11,7 +11,7 @@ from ledger.payments.pdf import create_invoice_pdf_bytes
 from mooringlicensing import settings
 from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
 from ledger.accounts.models import EmailUser
-from mooringlicensing.components.emails.utils import get_user_as_email_user
+from mooringlicensing.components.emails.utils import get_user_as_email_user, get_public_url
 from mooringlicensing.components.organisations.models import OrganisationLogEntry, Organisation
 
 
@@ -85,6 +85,7 @@ def send_auth_user_no_moorings_notification(approval):
         url = ''.join(url.split('-internal'))
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'proposal': proposal,
         'url': url
@@ -109,6 +110,7 @@ def send_auth_user_no_moorings_notification(approval):
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
 
+
 def send_auth_user_mooring_removed_notification(approval, mooring_licence):
     email = AuthorisedUserMooringRemovedNotificationEmail(approval)
     proposal = approval.current_proposal
@@ -121,6 +123,7 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
         url = ''.join(url.split('-internal'))
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'proposal': proposal,
         'mooring_licence': mooring_licence,
@@ -165,6 +168,7 @@ def send_approval_expire_email_notification(approval):
         url = ''.join(url.split('-internal'))
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'proposal': proposal,
         'url': url
@@ -202,6 +206,7 @@ def send_vessel_nomination_notification_main(approval, request=None):
         due_date = sale_date if (sale_date + six_months) < approval.expiry_date else approval.expiry_date
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'due_date': due_date,
     }
@@ -236,6 +241,7 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
     proposal = approval.current_proposal
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'due_date': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
     }
@@ -278,6 +284,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     proposal = approval.current_proposal
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'date_to_nominate_new_vessel': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
         'dashboard_external_url': url,
@@ -520,6 +527,7 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     )
 
     context = {
+        'public_url': get_public_url(request),
         'dcv_permit': dcv_permit,
         'recipient': dcv_permit.submitter,
     }
@@ -573,6 +581,7 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     summary = dcv_admission.get_summary()
 
     context = {
+        'public_url': get_public_url(request),
         'dcv_admission': dcv_admission,
         'recipient': dcv_admission.submitter,
         'summary': summary,
@@ -624,6 +633,7 @@ def send_approval_cancel_email_notification(approval):
     proposal = approval.current_proposal
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'recipient': approval.submitter,
         'cancel_start_date': approval.cancellation_date,
@@ -672,6 +682,7 @@ def send_approval_suspend_email_notification(approval, request=None):
         to_date = approval.suspension_details['to_date'] if 'to_date' in approval.suspension_details else ''
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'details': details,
         'from_date': from_date,
@@ -718,6 +729,7 @@ def send_approval_surrender_email_notification(approval, request=None):
         surrender_date = approval.surrender_details['surrender_date'],
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'recipient': approval.submitter,
         'details': details,
@@ -756,6 +768,7 @@ def send_approval_reinstate_email_notification(approval, request):
     proposal = approval.current_proposal
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'recipient': approval.submitter,
         'details': '',  # TODO
@@ -804,8 +817,8 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
     if attachment:
         attachments.append(attachment)
 
-    from mooringlicensing.components.proposals.email import get_public_url
     context = {
+        'public_url': get_public_url(request),
         'recipient': approval.submitter,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -848,8 +861,8 @@ def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownersh
     if attachment:
         attachments.append(attachment)
 
-    from mooringlicensing.components.proposals.email import get_public_url
     context = {
+        'public_url': get_public_url(request),
         'recipient': approval.submitter,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -893,8 +906,8 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
     if attachment:
         attachments.append(attachment)
 
-    from mooringlicensing.components.proposals.email import get_public_url
     context = {
+        'public_url': get_public_url(request),
         'recipient': approval.submitter,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -938,8 +951,8 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
     if attachment:
         attachments.append(attachment)
 
-    from mooringlicensing.components.proposals.email import get_public_url
     context = {
+        'public_url': get_public_url(request),
         'recipient': approval.submitter,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -980,8 +993,8 @@ def send_sticker_replacement_email(request, sticker, invoice):
     attachment = ('invoice#{}.pdf'.format(invoice.reference), invoice_bytes, 'application/pdf')
     attachments.append(attachment)
 
-    from mooringlicensing.components.proposals.email import get_public_url
     context = {
+        'public_url': get_public_url(request),
         'recipient': approval.submitter,
         'sticker': sticker,
         'dashboard_external_url': get_public_url(request),
@@ -1006,7 +1019,6 @@ def send_sticker_replacement_email(request, sticker, invoice):
 def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, mooring, stickers_to_be_returned):
     # 37
     # email to authorised user when mooring site authorisation revoked due to licensee mooring swap and to return sticker
-    from mooringlicensing.components.proposals.email import get_public_url
     proposal = authorised_user_permit.current_proposal
     approval = authorised_user_permit
 
@@ -1022,6 +1034,7 @@ def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, 
         attachments.append(attachment)
 
     context = {
+        'public_url': get_public_url(request),
         'recipient': authorised_user_permit.submitter,
         'mooring': mooring,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1047,7 +1060,6 @@ def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, 
 def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit, mooring, stickers_to_be_returned):
     # 38
     # email to authorised user when mooring site authorisation revoked due to mooring site licence relinquishment and to return sticker
-    from mooringlicensing.components.proposals.email import get_public_url
     proposal = authorised_user_permit.current_proposal
     approval = authorised_user_permit
 
@@ -1063,6 +1075,7 @@ def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit
         attachments.append(attachment)
 
     context = {
+        'public_url': get_public_url(request),
         'recipient': authorised_user_permit.submitter,
         'mooring': mooring,
         'stickers_to_be_returned': stickers_to_be_returned,

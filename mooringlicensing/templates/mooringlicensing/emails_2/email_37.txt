@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 Please be advised that the licensee of mooring site {{ mooring.name }} has recently swapped their mooring site licence with another licensee in the same bay, as allowed under the Rottnest Island Regulations 1988.
 This means that effective immediately all authorised users of {{ mooring.name }} have now been removed.
 You are now notified to return authorised user sticker(s)

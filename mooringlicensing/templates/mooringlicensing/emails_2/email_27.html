@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 <p>The following admission fees have been paid:</p>
 {% for arrival in summary %}
 <p>Arrival date: {{ arrival.arrival_date }}</p>

@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 You are reminded of the invitation to apply for a mooring site licence based on your current Waiting List Allocation {{ proposal.lodgement_number }}.
 If you do not accept the offer within the timeframe provided the offer will lapse and your name will be removed from the waiting list. The mooring site licence will then be offered to the next eligible waitlisted person.
 You are required to submit your application within {{ number_of_days }} number before {{ due_date }}.

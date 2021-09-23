@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 {% if decision == 'approved' %}
 <p>Your waiting list allocation application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached.</p>
 {% endif %}

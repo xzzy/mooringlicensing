@@ -17,7 +17,7 @@ from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.components.emails.utils import get_user_as_email_user
+from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
@@ -189,22 +189,6 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
 #####
 ### After refactoring ###
 #####
-def get_public_url(request=None):
-    if request:
-        # web_url = request.META.get('HTTP_HOST', None)
-        web_url = '{}://{}'.format(request.scheme, request.get_host())
-    else:
-        web_url = settings.SITE_URL if settings.SITE_URL else ''
-    return web_url
-
-
-def make_url_for_internal(url):
-    if '-internal' not in url:
-        if '-dev' in url:
-            url = url.replace('-dev', '-dev-internal')
-        elif '-uat' in url:
-            url = url.replace('-uat', '-uat-internal')
-    return url
 
 
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
@@ -224,6 +208,7 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(request),
         'dashboard_external_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
@@ -259,7 +244,7 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     url = make_url_for_internal(url)
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'proposal_internal_url': url,
@@ -293,7 +278,7 @@ def send_approver_approve_decline_email_notification(request, proposal):
     url = make_url_for_internal(url)
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         # 'start_date' : proposal.proposed_issuance_approval.get('start_date'),
         # 'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
         'details': proposal.proposed_issuance_approval.get('details'),
@@ -325,7 +310,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'recipient': proposal.submitter,
         'proposal': proposal,
         'details': reason,
@@ -375,7 +360,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'wla': waiting_list_allocation,
         # 'mla': mooring_licence_application,
         'recipient': mooring_licence_application.submitter,
@@ -431,7 +416,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
     # Configure recipients, contents, etc
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'documents_upload_url': document_upload_url,
@@ -467,6 +452,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
     url = url + reverse('external-compliance-detail')
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'compliance': compliance,
         'recipient': compliance.submitter,
@@ -489,7 +475,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
     return msg
 
 
-def send_comliance_overdue_notification(approval, compliance,):
+def send_comliance_overdue_notification(request, approval, compliance,):
     # 9
     email = TemplateEmailBase(
         subject='OVERDUE: Compliance Requirement for Rottnest Island Boating Permit or Licence',
@@ -500,6 +486,7 @@ def send_comliance_overdue_notification(approval, compliance,):
     url = url + reverse('external-compliance-detail')
 
     context = {
+        'public_url': get_public_url(request),
         'approval': approval,
         'compliance': compliance,
         'recipient': compliance.submitter,
@@ -541,7 +528,7 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
     url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'proposal_external_url': url,
@@ -561,7 +548,6 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 
 
 def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
-    from mooringlicensing.components.proposals.models import MooringLicenceApplication
     # 12 email to mooring licence applicant when mooring licence application is not submitted within configurable
     #    number of days after being invited to apply for a mooring licence
     html_template = 'mooringlicensing/emails_2/email_12.html',
@@ -577,6 +563,7 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'dashboard_url': dashboard_url,
@@ -610,6 +597,7 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'dashboard_url': dashboard_url,
@@ -641,7 +629,7 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     mooring_name = proposal.mooring.name if proposal.mooring else ''
 
     context = {
-        # 'public_url': get_public_url(),
+        'public_url': get_public_url(),
         # 'proposal': proposal,
         # 'recipient': proposal.submitter,
         'applicant': proposal.submitter,
@@ -761,6 +749,7 @@ def send_approval_renewal_email_notification(approval):
     url = url + reverse('external')
 
     context = {
+        'public_url': get_public_url(),
         'approval': approval,
         'vessel_rego_no': '(todo)',  # TODO
         'recipient': proposal.submitter,
@@ -807,9 +796,9 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
         send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
         # 20, 21,22
-        if proposal.proposal_type in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
+        if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
             send_aua_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned)
-        elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             payment_required = False
             if proposal.application_fees.count():
                 application_fee = proposal.application_fees.first()
@@ -824,9 +813,9 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             pass
     elif proposal.application_type.code == MooringLicenceApplication.code:
         # 23, 24, 25
-        if proposal.proposal_type in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
+        if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
             send_mla_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned)
-        elif proposal.proposal_type == PROPOSAL_TYPE_AMENDMENT:
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             payment_required = False
             if proposal.application_fees.count():
                 application_fee = proposal.application_fees.first()
@@ -973,7 +962,7 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
         logger.warning('ProposalType is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         # 'proposal_type_code': proposal.proposal_type.code,
@@ -1045,7 +1034,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
     )
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         # 'proposal_type_code': proposal.proposal_type.code,
@@ -1101,7 +1090,7 @@ def send_aua_approved_or_declined_email_amendment_no_payment(proposal, decision,
     )
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         # 'proposal_type_code': proposal.proposal_type.code,
@@ -1165,7 +1154,7 @@ def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision
     )
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         # 'proposal_type_code': proposal.proposal_type.code,
@@ -1257,7 +1246,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     )
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         # 'proposal_type_code': proposal.proposal_type.code,
@@ -1313,7 +1302,7 @@ def send_mla_approved_or_declined_email_amendment_no_payment(proposal, decision,
     )
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         # 'proposal_type_code': proposal.proposal_type.code,
@@ -1375,7 +1364,7 @@ def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision
     )
 
     context = {
-        # 'public_url': get_public_url(request),
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'approval': proposal.approval,
         'recipient': proposal.submitter,
@@ -1406,6 +1395,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'url': url,
     }
@@ -1553,6 +1543,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
         approver_comment = proposal.approver_comment
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'url': url,

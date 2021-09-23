@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 Please be advised that the mooring site licence for {{ mooring.name }} has now been relinquished.
 As per the Rottnest Island Regulations 1988 all authorised users of {{ mooring.name }} have now been removed, effective immediately.
 You are now notified to return authorised user sticker(s)

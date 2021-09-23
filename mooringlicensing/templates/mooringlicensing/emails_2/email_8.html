@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Your compliance with requirement {{ compliance.lodgement_number }} for licence/permit {{ approval.lodgement_number }} is due on {{ compliance.due_date }}.</p>
 <p>Please click <a href="{{ compliance_external_url }}">here</a> to view and submit the requirement.</p>
 <p>For further information please visit <a href="www.rottnestisland.com/boating">www.rottnestisland.com/boating</a>.</p>

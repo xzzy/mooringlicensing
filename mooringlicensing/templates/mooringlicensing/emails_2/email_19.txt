@@ -1,7 +1,7 @@
 {% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails/salutation.txt" %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
 {% if decision == 'approved' %}
 Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.
 {% if stickers_to_be_returned|length > 0 %}
