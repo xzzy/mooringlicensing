@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email.html' %}
 
-{%  block content %}
+{% block content %}
     <p>A user has requested to be linked to the following organisation:</p>
     <p><strong>Organisation: {{ request.name }}</strong></p>
     <p><strong>ABN: {{ request.abn }}</strong></p>

@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
     
     Your request to link your account to a company has been approved. Details are as follows:
     Company : {{ organisation.name }}
