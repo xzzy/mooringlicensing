@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
     Your application has been successfully submitted.
 
     Application: {{ proposal.lodgement_number }}
