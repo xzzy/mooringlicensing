@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 <p>Dear {{ recipient.first_name }} {{ recipient.last_name }},</p>
 <p>You are required to upload the following documents supporting your submitted mooring licence application {{ proposal.lodgement_number }}:</p>
 <p>1.  A copy of a current mooring report</p>
@@ -19,9 +19,9 @@
 
 
 {% comment %}
-{%  extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email.html' %}
 
-{%  block content %}
+{% block content %}
     {{ proposal.submitter }},
     <p>
         Your mooring licence application: {{ proposal.lodgement_number }} has been submitted successfully.  You will now need to submit<br />

@@ -66,8 +66,7 @@ from rest_framework import serializers
 import logging
 
 
-logger = logging.getLogger(__name__)
-logger_for_payment = logging.getLogger('mooringlicensing')
+logger = logging.getLogger('mooringlicensing')
 
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
@@ -348,6 +347,8 @@ class SpecialFieldsSearch(object):
 
 
 def save_proponent_data(instance, request, viewset):
+    if viewset.action == 'submit':
+        logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
     if type(instance.child_obj) == WaitingListApplication:
         save_proponent_data_wla(instance, request, viewset)
     elif type(instance.child_obj) == AnnualAdmissionApplication:
@@ -382,6 +383,7 @@ def save_proponent_data_aaa(instance, request, viewset):
         if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
+            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             instance.save()
@@ -411,6 +413,7 @@ def save_proponent_data_wla(instance, request, viewset):
         if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
+            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             instance.save()
@@ -1103,8 +1106,9 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     # Retrieve all the fee_items for this vessel
 
     if fee_item_being_applied:
-        logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-        logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
+        logger.info('Adjusting the fee amount for proposal: {}, fee_item: {}, vessel_length: {}'.format(
+            proposal.lodgement_number, fee_item_being_applied, vessel_length
+        ))
 
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
@@ -1146,7 +1150,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                         # fee_amount_adjusted -= fee_item_considered_paid.amount
                         if fee_item_considered_paid:
                             fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-                            logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+                            logger.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
 #        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
 #            # When proposal.approval exists, this proposal is either amendment or renewal
