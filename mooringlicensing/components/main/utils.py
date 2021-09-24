@@ -7,9 +7,7 @@ from requests.auth import HTTPBasicAuth
 import json
 import pytz
 from django.conf import settings
-from django.core.cache import cache
 from django.db import connection, transaction
-from django.db.models import Q
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
     MooringLicence, Approval
@@ -505,4 +503,5 @@ def export_to_mooring_booking(approval_id):
         print(str(e))
         logger.error(str(e))
         raise e
+
 
