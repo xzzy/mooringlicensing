@@ -353,6 +353,8 @@ export default {
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
+            const vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            console.log(autoRenew);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                 payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
@@ -672,43 +674,32 @@ export default {
     },
     submit: async function(){
         console.log('in submit()')
-        let vm = this;
-        //let formData = vm.set_formData()
-        /*
-        var missing_data= vm.can_submit();
-        if(missing_data!=true){
-          swal({
-            title: "Please fix following errors before submitting",
-            text: missing_data,
-            type:'error'
-          })
-          //vm.paySubmitting=false;
-          return false;
-        }
-        */
+        //let vm = this;
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
-        vm.submitting = true;
-        vm.paySubmitting=true;
+        this.submitting = true;
+        this.paySubmitting=true;
 
         try {
             await swal({
-                title: vm.submit_text() + " Application",
-                text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
+                title: this.submit_text() + " Application",
+                text: "Are you sure you want to " + this.submit_text().toLowerCase()+ " this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: vm.submit_text()
+                confirmButtonText: this.submit_text()
             })
         } catch (cancel) {
-            vm.submitting = false;
-            vm.paySubmitting=false;
+            this.submitting = false;
+            this.paySubmitting=false;
             return;
         }
 
-        if (!vm.proposal.fee_paid) {
-            await vm.save_and_pay()
+        if (!this.proposal.fee_paid) {
+            this.$nextTick(async () => {
+                await vm.save_and_pay();
+            });
         } else {
-            await vm.save_without_pay()
+            await vm.save_without_pay();
         }
     },
 
