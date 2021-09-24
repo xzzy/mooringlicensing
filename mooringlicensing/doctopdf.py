@@ -101,32 +101,18 @@ def create_dcv_admission_pdf_tytes(dcv_admission):
 
 
 def create_approval_doc_bytes(approval):
-    from mooringlicensing.components.approvals.models import AuthorisedUserPermit, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence
-
-    global_setting_key = GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE
-    if approval.code == WaitingListAllocation.code:
-        global_setting_key = GlobalSettings.KEY_WLA_TEMPLATE_FILE
-    elif approval.code == AnnualAdmissionPermit.code:
-        global_setting_key = GlobalSettings.KEY_AAP_TEMPLATE_FILE
-    elif approval.code == AuthorisedUserPermit.code:
-        global_setting_key = GlobalSettings.KEY_AUP_TEMPLATE_FILE
-    elif approval.code == MooringLicence.code:
-        global_setting_key = GlobalSettings.KEY_ML_TEMPLATE_FILE
+    # Retrieve a template according to the approval type
+    global_setting_key = approval.child_obj.template_file_key
     licence_template = GlobalSettings.objects.get(key=global_setting_key)
-
     if licence_template._file:
         path_to_template = licence_template._file.path
     else:
         raise Exception('DcvAdmission template file not found.')
 
+    # Rendering
     doc = DocxTemplate(path_to_template)
-    serializer_context = {
-        'approval': approval,
-    }
-    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
-    # context = context_obj.data
-    # doc.render(context)
-    doc.render(serializer_context)
+    context = approval.get_context_for_licence_permit()
+    doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
     try:
@@ -140,12 +126,12 @@ def create_approval_doc_bytes(approval):
     doc.save(new_doc_file)
     os.system("libreoffice --headless --convert-to pdf " + new_doc_file + " --outdir " + temp_directory)
 
-    file_contents = None
     with open(new_pdf_file, 'rb') as f:
         file_contents = f.read()
     os.remove(new_doc_file)
     os.remove(new_pdf_file)
     return file_contents
+
 
 # TODO: renewal specific data
 def create_renewal_doc_bytes(approval):
