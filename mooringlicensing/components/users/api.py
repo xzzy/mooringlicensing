@@ -74,10 +74,15 @@ logger = logging.getLogger('mooringlicensing')
 class GetCountries(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        country_list = []
-        for country in list(countries):
-            country_list.append({"name": country.name, "code": country.code})
-        return Response(country_list)
+        data = cache.get('country_list')
+        if not data:
+            country_list = []
+            for country in list(countries):
+                country_list.append({"name": country.name, "code": country.code})
+            cache.set('country_list',country_list, settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('country_list')
+        return Response(data)
+        #return Response(country_list)
 
 
 class GetProfile(views.APIView):
