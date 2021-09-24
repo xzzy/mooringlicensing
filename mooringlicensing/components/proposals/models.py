@@ -2217,7 +2217,7 @@ class AuthorisedUserApplication(Proposal):
             send_confirmation_email_upon_submit(request, self, False)
             send_notification_email_upon_submit_to_assessor(request, self)
 
-    def update_or_create_approval(self, current_datetime, request=None):
+    def update_or_create_approval(self, current_datetime, request=None, auto_renew=None):
         # This function is called after payment success for new/amendment/renewal application
 
         created = None
@@ -2272,7 +2272,7 @@ class AuthorisedUserApplication(Proposal):
 
         # update proposed_issuance_approval and MooringOnApproval if not system reissue
         existing_mooring_count = None
-        if request:
+        if request and not auto_renew:
             # Create MooringOnApproval records
             ## also see logic in approval.add_mooring()
             mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
@@ -2294,7 +2294,7 @@ class AuthorisedUserApplication(Proposal):
                     if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
                         moa2.end_date = current_datetime.date()
                         moa2.save()
-
+        if request:
             # Generate compliances
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
             #if created:
@@ -2351,7 +2351,7 @@ class AuthorisedUserApplication(Proposal):
         #if awaiting_payment:
          #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
           #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-        if awaiting_printing:
+        if awaiting_printing or auto_renew:
             self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
             # Log proposal action
@@ -2484,7 +2484,7 @@ class MooringLicenceApplication(Proposal):
             self.save()
             send_documents_upload_for_mooring_licence_application_email(request, self)
 
-    def update_or_create_approval(self, current_datetime, request=None):
+    def update_or_create_approval(self, current_datetime, request=None, auto_renew=None):
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
             if self.approval and self.approval.child_obj.mooring:
@@ -2539,7 +2539,7 @@ class MooringLicenceApplication(Proposal):
                     self.waiting_list_allocation.set_wla_order()
 
             # update proposed_issuance_approval and VesselOwnership if not system reissue
-            if request:
+            if request and not auto_renew:
                 # updating checkboxes
                 #if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
@@ -2549,7 +2549,7 @@ class MooringLicenceApplication(Proposal):
                         if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
                             vo2.mooring_licence_end_date = current_datetime.date()
                             vo2.save()
-
+            if request:
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -2622,7 +2622,7 @@ class MooringLicenceApplication(Proposal):
             #if awaiting_payment:
              #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
               #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
-            if awaiting_printing:
+            if awaiting_printing or auto_renew:
                 self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
                 # Log proposal action
