@@ -1,19 +1,16 @@
 import datetime
 import logging
-from decimal import Decimal
 from ledger.checkout.utils import calculate_excl_gst
 import pytz
 import json
 from ledger.settings_base import TIME_ZONE
-# from ledger.payments.pdf import create_invoice_pdf_bytes
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
 import dateutil.parser
 from django.db import transaction
 from django.http import HttpResponse
-from django import forms
-from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
 from django.views.generic import TemplateView
@@ -24,8 +21,9 @@ from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
-from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email, send_dcv_admission_mail, send_dcv_permit_mail
+from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email
+from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail, \
+    send_sticker_replacement_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
@@ -34,7 +32,6 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
     delete_session_sticker_action_invoice, ItemNotSetInSessionException
-from mooringlicensing.components.proposals.email import send_application_processed_email
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
@@ -139,7 +136,7 @@ class ConfirmationView(TemplateView):
     def send_confirmation_mail(proposal, request):
         # Send invoice
         to_email_addresses = proposal.submitter.email
-        email_data = send_application_submit_confirmation_email(proposal, [to_email_addresses, ])
+        email_data = send_application_submit_confirmation_email(request, proposal, [to_email_addresses, ])
 
         # Add comms log
         # TODO: Add comms log
@@ -312,7 +309,8 @@ class StickerReplacementFeeSuccessView(TemplateView):
                 request.session[self.LAST_STICKER_ACTION_FEE_ID] = sticker_action_fee.id
                 delete_session_sticker_action_invoice(request.session)  # This leads to raise an exception at the get_session_sticker_action_invoice() above
 
-                # TODO: Email???
+                # Send email with the invoice
+                send_sticker_replacement_email(request, new_sticker, invoice)
 
                 context = {
                     'submitter': owner,
@@ -367,9 +365,10 @@ class ApplicationFeeView(TemplateView):
                 return checkout_response
 
         except Exception as e:
-            logger.error('Error Creating Application Fee: {}'.format(e))
+            logger.error('Error while checking out for the proposal: {}\n{}'.format(proposal.lodgement_number, str(e)))
             if application_fee:
                 application_fee.delete()
+                logger.info('ApplicationFee: {} has been deleted'.format(application_fee))
             raise
 
 
@@ -707,7 +706,6 @@ class ApplicationFeeSuccessView(TemplateView):
                         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                         proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                         proposal.save()
-                        send_application_processed_email(proposal, 'paid', request)
 
                 else:
                     msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, invoice.payment_status)

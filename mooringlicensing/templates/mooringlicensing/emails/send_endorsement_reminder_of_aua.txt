@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
 Dear {{ endorser.first_name }} {{ endorser.last_name }},
 
 Your endorsement for an Authorised User Permit application submitted by {{ applicant.first_name }} {{ applicant.last_name }} for your mooring {{ mooring_name }} is due by {{ due_date }}.

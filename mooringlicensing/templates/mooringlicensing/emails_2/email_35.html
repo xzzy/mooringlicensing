@@ -1,17 +1,19 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Thank you for recording the date of sale for vessel {{ vessel_rego_no }}.</p>
+{% if stickers_to_be_returned|length > 0 %}
 <p>If you have not already done so, you are required to return all associated vessel sticker(s)
     {% for sticker in stickers_to_be_returned %}
     {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
     {% endfor %}
 to the Rottnest Island Authority.</p>
 <p>Failure to return stickers to RIA upon request, or prior to the sale or disposal of your vessel, will result in the cancellation of your permit and any refunds that may have been applicable will be forfeited.</p>
+{% endif %}
 <p>If you wish to substitute your vessel this can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}. Annual admission fees paid for {{ vessel_rego_no }} can be transferred to your new vessel and will remain active until the end of the current boating season.</p>
 <p>If a new vessel is not nominated prior to the end of the season on 31 August, your annual admission permit will expire and</p>
-<p>If you do not intend to substitute your vessel and wish to surrender your authorised user permit, this can be done by logging into your account <a href="{{ dashboard_external_url }}">here</a>. Any refunds that may be applicable to you will be calculated in accordance with the date your vessel sticker(s) are received by RIA. You can view our Cancellation and Refund Policy <a href="www.rottnestisland.com">here</a>.
+<p>If you do not intend to substitute your vessel and wish to surrender your authorised user permit, this can be done by logging into your account <a href="{{ dashboard_external_url }}">here</a>. Any refunds that may be applicable to you will be calculated in accordance with the date your vessel sticker(s) are received by RIA. You can view our Cancellation and Refund Policy <a href="www.rottnestisland.com">here</a>.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}
 
