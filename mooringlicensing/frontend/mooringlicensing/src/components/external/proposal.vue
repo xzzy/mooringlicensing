@@ -354,7 +354,7 @@ export default {
         // AUA
         } else if (this.$refs.authorised_user_application) {
             const vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
-            console.log(autoRenew);
+            console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                 payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
