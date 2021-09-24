@@ -13,7 +13,7 @@ from mooringlicensing.components.approvals.models import (
 )
 from ledger.accounts.models import EmailUser
 from datetime import timedelta
-from mooringlicensing.components.proposals.email import send_approval_renewal_email_notification, send_approval_renewal_email_notification_dcvp
+from mooringlicensing.components.proposals.email import send_approval_renewal_email_notification
 
 import logging
 
@@ -62,10 +62,11 @@ class Command(BaseCommand):
         for a in approvals:
             try:
                 if approval_class == DcvPermit:
-                    send_approval_renewal_email_notification_dcvp(a)
+                    # send_approval_renewal_email_notification_dcvp(a)
+                    pass
                 else:
                     a.generate_renewal_doc()
-                    send_approval_renewal_email_notification(a)
+                send_approval_renewal_email_notification(a)
                 a.renewal_sent = True
                 a.save()
                 logger.info('Renewal notice sent for Approval {}'.format(a.id))
