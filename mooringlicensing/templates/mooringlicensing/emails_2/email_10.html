@@ -1,7 +1,7 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Please be reminded that you will need to nominate a new suitable vessel before {{ date_to_nominate_new_vessel }} to retain your {{ approval.description }} {{ approval.lodgement_number }}. This can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}.</p>
 <p>
     The Rottnest Island Regulations 1988 state that a suitable vessel means a vessel that:
@@ -26,6 +26,6 @@
     <li>the vessel must not already be associated with any other Rottnest Island Boating annual admission or authorised user permit in a co-owner's name.</li>
     </ul>
 </p>
-<p>Please click <a href="{{ dashboad_url }}">here</a> to log in to your account.</p>
+<p>Please click <a href="{{ dashboad_external_url }}">here</a> to log in to your account.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

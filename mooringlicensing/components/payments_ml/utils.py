@@ -165,7 +165,9 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
                 accept_null_vessel = True
                 # this_is_null_vessel_app = True
             else:
-                raise Exception('No vessel specified for the application {}'.format(instance.lodgement_number))
+                msg = 'No vessel specified for the application {}'.format(instance.lodgement_number)
+                logger.error(msg)
+                raise Exception(msg)
         proposal_type = instance.proposal_type
     elif isinstance(instance, DcvPermit):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
@@ -186,17 +188,25 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
             fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
             if not fee_constructor_for_aa:
                 # Fees have not been configured for the annual admission application and date
-                raise Exception('FeeConstructor object for the Annual Admission Application not found for the date: {}'.format(target_date))
+                msg = 'FeeConstructor object for the Annual Admission Application not found for the date: {} for the application: {}'.format(target_date, instance.lodgement_number)
+                logger.error(msg)
+                raise Exception(msg)
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+            msg = 'FeeConstructor object for the ApplicationType: {} not found for the date: {} for the application: {}'.format(application_type, target_date, instance.lodgement_number)
+            logger.error(msg)
+            raise Exception(msg)
     elif isinstance(instance, DcvPermit):
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+            msg = 'FeeConstructor object for the ApplicationType: {} and the Season: {} for the application: {}'.format(application_type, instance.fee_season, instance.lodgement_number)
+            logger.error(msg)
+            raise Exception(msg)
     else:
-        raise Exception('Something went wrong when calculating the fee')
+        msg = 'Something went wrong when calculating the fee for the application: {}'.format(instance.lodgement_number)
+        logger.error(msg)
+        raise Exception(msg)
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
     fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_for_aa else None

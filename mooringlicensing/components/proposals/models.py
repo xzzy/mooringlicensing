@@ -18,37 +18,26 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from ledger.accounts.models import EmailUser, RevisionedMixin
-# from ledger.payments.invoice.models import Invoice
-
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
     Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting,
-    # Region, District, Tenure,
-    # ApplicationType,
-    # Park, Activity, ActivityCategory, AccessType, Trail, Section, Zone, RequiredDocument#, RevisionedMixin
 )
 from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.models import Invoice
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 
-# from mooringlicensing.components.payments_ml.models import FeeItem
 from mooringlicensing.components.proposals.email import (
-    # send_proposal_decline_email_notification,
-    send_application_processed_email,
-    # send_proposal_awaiting_payment_approval_email_notification,
+    send_application_approved_or_declined_email,
     send_amendment_email_notification,
     send_confirmation_email_upon_submit,
-    # send_external_submit_email_notification,
-    send_approver_decline_email_notification,
-    send_approver_approve_email_notification,
+    send_approver_approve_decline_email_notification,
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
 )
-# from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
 from mooringlicensing.ordered_model import OrderedModel
 import copy
 import subprocess
@@ -1015,7 +1004,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field = getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
-                send_approver_decline_email_notification(reason, request, self)
+                send_approver_approve_decline_email_notification(request, self)
             except:
                 raise
 
@@ -1057,7 +1046,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.waiting_list_allocation.internal_status = 'waiting'
                     self.waiting_list_allocation.save()
                 # send_proposal_decline_email_notification(self,request, proposal_decline)
-                send_application_processed_email(self, 'declined', request)
+                send_application_approved_or_declined_email(self, 'declined', request)
             except:
                 raise
 
@@ -1170,7 +1159,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field = getattr(self, self.applicant_field)
                 applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
 
-                send_approver_approve_email_notification(request, self)
+                send_approver_approve_decline_email_notification(request, self)
                 return self
 
             except:
@@ -1360,7 +1349,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approval = approval.set_wla_order()
 
                 # send Proposal approval email with attachment
-                send_application_processed_email(self, 'approved', request, stickers_to_be_returned)
+                send_application_approved_or_declined_email(self, 'approved', request, stickers_to_be_returned)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
@@ -1458,7 +1447,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 application_fee.fee_items.add(fee_item_additional)
 
                             #self.send_emails_for_payment_required(request, invoice)
-                            send_application_processed_email(self, 'approved', request)
+                            send_application_approved_or_declined_email(self, 'approved', request)
 
                             #line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
                         except Exception as e:
@@ -2005,14 +1994,14 @@ class WaitingListApplication(Proposal):
     #    approval = approval.set_wla_order()
     #    return approval, created
 
-    def process_after_payment_success(self, request):
-        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+    #def process_after_payment_success(self, request):
+    #    self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    #    self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
-        ret1 = self.send_emails_after_payment_success(request)
-        if not ret1:
-            raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-        self.save()
+    #    ret1 = self.send_emails_after_payment_success(request)
+    #    if not ret1:
+    #        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+    #    self.save()
 
     @property
     def does_accept_null_vessel(self):
@@ -2104,15 +2093,15 @@ class AnnualAdmissionApplication(Proposal):
         send_notification_email_upon_submit_to_assessor(request, self, attachments)
         return ret_value
 
-    def process_after_payment_success(self, request):
-        self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+    #def process_after_payment_success(self, request):
+    #    self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+    #    self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
-        ret1 = self.send_emails_after_payment_success(request)
-        if not ret1:
-            raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+    #    ret1 = self.send_emails_after_payment_success(request)
+    #    if not ret1:
+    #        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
 
-        self.save()
+    #    self.save()
 
     def process_after_approval(self, request=None, total_amount=0):
         pass
@@ -2152,8 +2141,8 @@ class AuthorisedUserApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
-    def process_after_payment_success(self, request):
-        pass
+    #def process_after_payment_success(self, request):
+    #    pass
 
     def get_due_date_for_endorsement_by_target_date(self, target_date=timezone.localtime(timezone.now()).date()):
         days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
@@ -2422,8 +2411,8 @@ class MooringLicenceApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
-    def process_after_payment_success(self, request):
-        pass
+    # def process_after_payment_success(self, request):
+    #     pass
 
     def get_document_upload_url(self, request):
         document_upload_url = request.build_absolute_uri(reverse('mla-documents-upload', kwargs={'uuid_str': self.uuid}))

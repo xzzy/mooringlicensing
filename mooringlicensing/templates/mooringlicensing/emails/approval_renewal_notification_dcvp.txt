@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content_body %}
+{% block content_body %}
     Dear {{ recipient.first_name }} {{ recipient.last_name }},
 
     Your DCV Permit {{ approval.lodgement_number }} is due by {{ expiry_date }}.

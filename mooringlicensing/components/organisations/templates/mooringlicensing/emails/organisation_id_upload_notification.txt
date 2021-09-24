@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
     Identification for the following organisation you are linked to has been uploaded.
 
     Organisation: {{ organisation.name }}
