@@ -39,7 +39,8 @@ module.exports = {
     users: '/api/users.json',
     //department_users: '/api/department_users',
     filtered_users: '/api/filtered_users',
-    countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    //countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    countries: '/api/countries',
 
     proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
     approvals_paginated_list: '/api/approvals_paginated',
