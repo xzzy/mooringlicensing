@@ -1145,7 +1145,7 @@ class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
 class ProposedApprovalSerializer(serializers.Serializer):
     expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
     start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
-    details = serializers.CharField(required=False)
+    details = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     cc_email = serializers.CharField(required=False, allow_null=True)
     mooring_id = serializers.IntegerField(required=False, allow_null=True)
     mooring_bay_id = serializers.IntegerField(required=False, allow_null=True)

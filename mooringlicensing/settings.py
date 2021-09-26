@@ -99,7 +99,9 @@ CACHES = {
     }
 }
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ml')
-#STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
+DEBUG_ENV = env('DEBUG', False)
+if DEBUG_ENV:
+    STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 if DEV_STATIC and not DEV_STATIC_URL:
@@ -118,7 +120,7 @@ DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by 
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No rand hash provided")
 RAND_HASH = ''
-if  os.path.isdir(BASE_DIR+'/.git/') is True:
+if os.path.isdir(BASE_DIR+'/.git/') is True:
     RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
 if not len(RAND_HASH):
     RAND_HASH = os.popen('cat /app/rand_hash').read()

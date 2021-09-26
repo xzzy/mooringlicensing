@@ -1,10 +1,10 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
-{% include "mooringlicensing/emails/salutation.html" %}
-<p>We are pleased to advise that a mooring has become available in your nominated waitlist bay, and you are the next eligible waitlisted applicant {{ proposal.lodgement_number }}.</p>
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>We are pleased to advise that a mooring has become available in your nominated waitlist bay, and you are the next eligible waitlisted applicant {{ wla.lodgement_number }}.</p>
 <p>We hereby invite you to apply for a mooring site licence below offer.</p>
-<p>To accept this offer, you are required to submit your application for a mooring site licence within {{ num_of_days_to_submit_mla }} number of days and submit any additional documents within {{ num_of_days_to_submit_documents }} number of days thereafter.</p>
+<p>To accept this offer, you are required to submit your application for a mooring site licence within {{ application_period }} number of days and submit any additional documents within {{ documents_period }} number of days thereafter.</p>
 <p>If your application is not submitted within the timeframes specified, it will be taken to indicate your intention to decline. The offer will lapse, and your name will be removed from the waiting list of your nominated bay. The mooring site licence will then be offered to the next eligible applicant on the waiting list.</p>
 {% if details %}<p>Details: {{ details }}</p>{% endif %}
 <p>Please click <a href="{{ proposal_external_url }}">here</a> to access the application.</p>

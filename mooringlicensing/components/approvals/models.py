@@ -273,6 +273,15 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
+    def get_licence_document_as_attachment(self):
+        attachment = None
+        if self.licence_document:
+            licence_document = self.licence_document._file
+            if licence_document is not None:
+                file_name = self.licence_document.name
+                attachment = (file_name, licence_document.file.read(), 'application/pdf')
+        return attachment
+
     @property
     def description(self):
         if hasattr(self, 'child_obj'):
@@ -1514,6 +1523,8 @@ class NumberOfPeople(RevisionedMixin):
 
 
 class DcvPermit(RevisionedMixin):
+    description = 'DCV Permit'
+
     DCV_PERMIT_STATUS_CURRENT = 'current'
     DCV_PERMIT_STATUS_EXPIRED = 'expired'
     STATUS_CHOICES = (
@@ -1533,8 +1544,21 @@ class DcvPermit(RevisionedMixin):
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
 
+    def get_licence_document_as_attachment(self):
+        attachment = None
+        if self.permits.count():
+            licence_document = self.permits.first()._file
+            if licence_document is not None:
+                file_name = self.licence_document.name
+                attachment = (file_name, licence_document.file.read(), 'application/pdf')
+        return attachment
+
     def get_target_date(self, applied_date):
         return applied_date
+
+    @property
+    def expiry_date(self):
+        return self.expiry_date
 
     @property
     def fee_paid(self):
