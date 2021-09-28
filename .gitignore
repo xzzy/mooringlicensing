@@ -7,6 +7,10 @@ node_modules/
 #cronjobs
 .ropeproject/
 mooring/cache/*
+lotus_notes*
+tmp/*
+#mooringlicensing/utils/lotus_notes/*
+mooringlicensing/utils/tests
 .ropeproject/
 
 # Byte-compiled / optimized / DLL files
