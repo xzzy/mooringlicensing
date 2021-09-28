@@ -37,6 +37,7 @@ from mooringlicensing.components.proposals.email import (
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
+    send_aua_approved_or_declined_email_new_renewal, send_mla_approved_or_declined_email_new_renewal,
 )
 from mooringlicensing.ordered_model import OrderedModel
 import copy
@@ -1296,12 +1297,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             c.delete()
                     # Log creation
                     # Generate the document
-                    approval.generate_doc(request.user)
+                    # approval.generate_doc(request.user)
                     self.generate_compliances(approval, request)
                     # send the doc and log in approval and org
                 else:
                     # Generate the document
-                    approval.generate_doc(request.user)
+                    # approval.generate_doc(request.user)
                     # Delete the future compliances if Approval is reissued and generate the compliances again.
                     approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
                                                                      processing_status='future')
@@ -1355,6 +1356,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approval = approval.set_wla_order()
 
                 # send Proposal approval email with attachment
+                approval.generate_doc(request.user)
                 send_application_approved_or_declined_email(self, 'approved', request, stickers_to_be_returned)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
@@ -1714,8 +1716,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #         self.child_obj.processes_after_approval(request, total_amount)
     #         self.refresh_from_db()  # Somehow this is needed...
 
-    # def get_fee_amount_adjusted(self, fee_item, vessel_length):
-    #     return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
+    def get_fee_amount_adjusted(self, fee_item, vessel_length):
+        return self.child_obj.get_fee_amount_adjusted(fee_item, vessel_length)
 
     @property
     def application_type_code(self):
@@ -2367,6 +2369,8 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+        send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+
         # Log proposal action
         if request:
             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
@@ -2638,6 +2642,9 @@ class MooringLicenceApplication(Proposal):
                 self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             self.save()
 
+            # Check if this is OK
+            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+
             # Log proposal action
             if request:
                 self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
@@ -2654,9 +2661,9 @@ class MooringLicenceApplication(Proposal):
             return approval, created
         except Exception as e:
             print(e)
-            raise e
-            msg = 'Payment taken for Proposal: {}, but approval creation has failed'.format(self.lodgement_number)
+            msg = 'Payment taken for Proposal: {}, but approval creation has failed\n{}'.format(self.lodgement_number, str(e))
             logger.error(msg)
+            raise e
 
     @property
     def does_accept_null_vessel(self):
