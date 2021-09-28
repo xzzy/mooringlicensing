@@ -64,7 +64,7 @@ def create_dcv_permit_pdf_tytes(dcv_permit):
     return file_contents
 
 
-def create_dcv_admission_pdf_tytes(dcv_admission):
+def create_dcv_admission_pdf_tytes(dcv_admission_arrival):
     licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_DCV_ADMISSION_TEMPLATE_FILE)
 
     if licence_template._file:
@@ -74,12 +74,13 @@ def create_dcv_admission_pdf_tytes(dcv_admission):
 
     doc = DocxTemplate(path_to_template)
     serializer_context = {
-        'dcv_admission': dcv_admission,
+        'dcv_admission': dcv_admission_arrival.dcv_admission,
     }
     # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     # context = context_obj.data
     # doc.render(context)
-    doc.render({})
+    context = dcv_admission_arrival.get_context_for_licence_permit()
+    doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
     try:
@@ -87,7 +88,7 @@ def create_dcv_admission_pdf_tytes(dcv_admission):
     except:
         os.mkdir(temp_directory)
 
-    f_name = temp_directory + 'dcv_admission' + str(dcv_admission.id)
+    f_name = temp_directory + 'dcv_admission' + str(dcv_admission_arrival.dcv_admission.id)
     new_doc_file = f_name + '.docx'
     new_pdf_file = f_name + '.pdf'
     doc.save(new_doc_file)
