@@ -1768,6 +1768,7 @@ class DcvPermit(RevisionedMixin):
 
     def get_context_for_licence_permit(self):
         context = {
+            'lodgement_number': self.lodgement_number,
             'organisation_name': self.dcv_organisation.name,
             'organisation_abn': self.dcv_organisation.abn,
             'issue_date': self.lodgement_datetime.strftime('%d/%m/%Y'),
