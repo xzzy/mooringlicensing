@@ -73,9 +73,9 @@ def create_dcv_admission_pdf_tytes(dcv_admission_arrival):
         raise Exception('DcvAdmission template file not found.')
 
     doc = DocxTemplate(path_to_template)
-    serializer_context = {
-        'dcv_admission': dcv_admission_arrival.dcv_admission,
-    }
+    # serializer_context = {
+    #     'dcv_admission': dcv_admission_arrival.dcv_admission,
+    # }
     # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     # context = context_obj.data
     # doc.render(context)
@@ -137,7 +137,9 @@ def create_approval_doc_bytes(approval):
 
 # TODO: renewal specific data
 def create_renewal_doc_bytes(approval):
-    licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE)
+    # licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE)
+    global_setting_key = approval.child_obj.template_file_key
+    licence_template = GlobalSettings.objects.get(key=global_setting_key)
 
     if licence_template._file:
         path_to_template = licence_template._file.path
@@ -145,13 +147,14 @@ def create_renewal_doc_bytes(approval):
         raise Exception('DcvAdmission template file not found.')
 
     doc = DocxTemplate(path_to_template)
-    serializer_context = {
-        'approval': approval,
-    }
+    # serializer_context = {
+    #     'approval': approval,
+    # }
     # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     # context = context_obj.data
     # doc.render(context)
-    doc.render(serializer_context)
+    context = approval.get_context_for_licence_permit()
+    doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
     try:

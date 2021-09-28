@@ -1606,8 +1606,8 @@ class DcvAdmissionArrival(RevisionedMixin):
     def get_context_for_licence_permit(self):
         context = {
             'lodgement_number': self.dcv_admission.lodgement_number,
-            'organisation_name': self.dcv_admission.dcv_organisation.name,
-            'organisation_abn': self.dcv_admission.dcv_organisation.abn,
+            'organisation_name': self.dcv_admission.dcv_vessel.dcv_organisation.name if self.dcv_admission.dcv_vessel.dcv_organisation else '',
+            'organisation_abn': self.dcv_admission.dcv_vessel.dcv_organisation.abn if self.dcv_admission.dcv_vessel.dcv_organisation else '',
             'issue_date': self.dcv_admission.lodgement_datetime.strftime('%d/%m/%Y'),
             'vessel_rego_no': self.dcv_admission.dcv_vessel.rego_no,
             'vessel_name': self.dcv_admission.dcv_vessel.vessel_name,
