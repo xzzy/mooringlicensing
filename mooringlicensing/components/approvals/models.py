@@ -283,6 +283,76 @@ class Approval(RevisionedMixin):
         return attachment
 
     @property
+    def postal_address_line1(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.line1
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.line1
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.line1
+        return ret_value
+
+    @property
+    def postal_address_line2(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.line2
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.line2
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.line2
+        return ret_value
+
+    @property
+    def postal_address_state(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.state
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.state
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.state
+        return ret_value
+
+    @property
+    def postal_address_suburb(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.locality
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.locality
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.locality
+        return ret_value
+
+    @property
+    def postal_address_postcode(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.postcode
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.postcode
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.postcode
+        return ret_value
+
+    @property
     def description(self):
         if hasattr(self, 'child_obj'):
             return self.child_obj.description
@@ -876,22 +946,28 @@ class WaitingListAllocation(Approval):
     code = 'wla'
     prefix = 'WLA'
     description = 'Waiting List Allocation'
+    template_file_key = GlobalSettings.KEY_WLA_TEMPLATE_FILE
 
     class Meta:
         app_label = 'mooringlicensing'
 
-    #@property
-    #def next_id(self):
-    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in WaitingListAllocation.objects.all().values_list('lodgement_number', flat=True) if i])
-    #    ids = list(ids)
-    #    return max(ids) + 1 if ids else 1
-
-    #def save(self, *args, **kwargs):
-    #    super(WaitingListAllocation, self).save(*args, **kwargs)
-    #    if self.lodgement_number == '':
-    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-    #        self.save()
-    #    self.approval.refresh_from_db()
+    def get_context_for_licence_permit(self):
+        # Return context for the licence/permit document
+        context = {
+            'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_name': self.submitter.get_full_name(),
+            'applicant_full_name': self.submitter.get_full_name(),
+            'bay_name': self.current_proposal.preferred_bay.name,
+            'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y'),
+            'position_number': self.wla_order,
+            'vessel_rego_no': self.current_proposal.vessel_details.vessel.rego_no,
+            'vessel_name': self.current_proposal.vessel_details.vessel_name,
+            'vessel_length': self.current_proposal.vessel_details.vessel_applicable_length,
+            'vessel_draft': self.current_proposal.vessel_details.vessel_draft,
+        }
+        return context
 
     def save(self, *args, **kwargs):
         if self.lodgement_number == '':
@@ -910,22 +986,29 @@ class AnnualAdmissionPermit(Approval):
     prefix = 'AAP'
     description = 'Annual Admission Permit'
     sticker_colour = 'blue'
+    template_file_key = GlobalSettings.KEY_AAP_TEMPLATE_FILE
 
     class Meta:
         app_label = 'mooringlicensing'
 
-    #@property
-    #def next_id(self):
-    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AnnualAdmissionPermit.objects.all().values_list('lodgement_number', flat=True) if i])
-    #    ids = list(ids)
-    #    return max(ids) + 1 if ids else 1
-
-    #def save(self, *args, **kwargs):
-    #    super(AnnualAdmissionPermit, self).save(*args, **kwargs)
-    #    if self.lodgement_number == '':
-    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-    #        self.save()
-    #    self.approval.refresh_from_db()
+    def get_context_for_licence_permit(self):
+        # Return context for the licence/permit document
+        context = {
+            'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_name': self.submitter.get_full_name(),
+            'p_address_line1': self.postal_address_line1,
+            'p_address_line2': self.postal_address_line2,
+            'p_address_suburb': self.postal_address_suburb,
+            'p_address_state': self.postal_address_state,
+            'p_address_postcode': self.postal_address_postcode,
+            'vessel_rego_no': self.current_proposal.vessel_details.vessel.rego_no,
+            'vessel_name': self.current_proposal.vessel_details.vessel_name,
+            'vessel_length': self.current_proposal.vessel_details.vessel_applicable_length,
+            'expiry_date': self.expiry_date.strftime('%d/%m/%Y')
+        }
+        return context
 
     def save(self, *args, **kwargs):
         if self.lodgement_number == '':
@@ -979,22 +1062,45 @@ class AuthorisedUserPermit(Approval):
     prefix = 'AUP'
     description = 'Authorised User Permit'
     sticker_colour = 'yellow'
+    template_file_key = GlobalSettings.KEY_AUP_TEMPLATE_FILE
 
     class Meta:
         app_label = 'mooringlicensing'
 
-    #@property
-    #def next_id(self):
-    #    ids = map(int, [re.sub('^[A-Za-z]*', '', i) for i in AuthorisedUserPermit.objects.all().values_list('lodgement_number', flat=True) if i])
-    #    ids = list(ids)
-    #    return max(ids) + 1 if ids else 1
+    def get_context_for_licence_permit(self):
+        # Return context for the licence/permit document
+        moorings = []
+        for mooring in self.current_moorings:
+            m = {}
+            # calculate phone number(s)
+            numbers = []
+            if mooring.mooring_licence.submitter.phone_number:
+                numbers.append(mooring.mooring_licence.submitter.phone_number)
+            if mooring.mooring_licence.submitter.mobile_number:
+                numbers.append(mooring.mooring_licence.submitter.mobile_number)
+            m['name'] = mooring.name
+            m['licensee_full_name'] = mooring.mooring_licence.submitter.get_full_name()
+            m['licensee_email'] = mooring.mooring_licence.submitter.email
+            m['licensee_phone'] = ','.join(numbers)
+            moorings.append(m)
 
-    #def save(self, *args, **kwargs):
-    #    super(AuthorisedUserPermit, self).save(*args, **kwargs)
-    #    if self.lodgement_number == '':
-    #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
-    #        self.save()
-    #    self.approval.refresh_from_db()
+        context = {
+            'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_name': self.submitter.get_full_name(),
+            'p_address_line1': self.postal_address_line1,
+            'p_address_line2': self.postal_address_line2,
+            'p_address_suburb': self.postal_address_suburb,
+            'p_address_state': self.postal_address_state,
+            'p_address_postcode': self.postal_address_postcode,
+            'vessel_rego_no': self.current_proposal.vessel_details.vessel.rego_no,
+            'vessel_name': self.current_proposal.vessel_details.vessel_name,
+            'vessel_length': self.current_proposal.vessel_details.vessel_applicable_length,
+            'moorings': moorings,  # m.name, m.licensee_full_name, m.licensee_email, m.licensee_phone
+            'expiry_date': self.expiry_date.strftime('%d/%m/%Y')
+        }
+        return context
 
     def save(self, *args, **kwargs):
         if self.lodgement_number == '':
@@ -1031,6 +1137,14 @@ class AuthorisedUserPermit(Approval):
                 ## send email to auth user
                 send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         self.internal_reissue()
+
+    @property
+    def current_moorings(self):
+        moorings = []
+        moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT))
+        for moa in moas:
+            moorings.append(moa.mooring)
+        return moorings
 
     def manage_stickers(self, proposal):
         moas_to_be_reallocated = []  # MooringOnApproval objects to have new stickers
@@ -1141,6 +1255,7 @@ class MooringLicence(Approval):
     prefix = 'MOL'
     description = 'Mooring Licence'
     sticker_colour = 'red'
+    template_file_key = GlobalSettings.KEY_ML_TEMPLATE_FILE
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1157,6 +1272,43 @@ class MooringLicence(Approval):
     #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
     #        self.save()
     #    self.approval.refresh_from_db()
+    def get_context_for_licence_permit(self):
+        # Return context for the licence/permit document
+        licenced_vessel = None
+        additional_vessels = []
+
+        max_vessel_length = 0
+        for vessel in self.current_vessels:
+            v = {}
+            v['vessel_rego_no'] = vessel['rego_no']
+            v['vessel_name'] = vessel['latest_vessel_details'].vessel_name
+            v['vessel_length'] = vessel['latest_vessel_details'].vessel_applicable_length
+            v['vessel_draft'] = vessel['latest_vessel_details'].vessel_draft
+            if not licenced_vessel:
+                # No licenced vessel stored yet
+                licenced_vessel = v
+            else:
+                if licenced_vessel['vessel_length'] < v['vessel_length']:
+                    # Found a larger vessel than the one stored as a licenced.  Replace it by the larger one.
+                    additional_vessels.append(licenced_vessel)
+                    licenced_vessel = v
+
+        context = {
+            'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_name': self.submitter.get_full_name(),
+            'p_address_line1': self.postal_address_line1,
+            'p_address_line2': self.postal_address_line2,
+            'p_address_suburb': self.postal_address_suburb,
+            'p_address_state': self.postal_address_state,
+            'p_address_postcode': self.postal_address_postcode,
+            'licenced_vessel': licenced_vessel,  # vessel_rego_no, vessel_name, vessel_length, vessel_draft
+            'additional_vessels': additional_vessels,
+            'mooring': self.mooring,
+            'expiry_date': self.expiry_date.strftime('%d/%m/%Y')
+        }
+        return context
 
     def save(self, *args, **kwargs):
         if self.lodgement_number == '':
@@ -1427,7 +1579,9 @@ class DcvAdmission(RevisionedMixin):
         super(DcvAdmission, self).save(**kwargs)
 
     def generate_dcv_admission_doc(self):
-        permit_document = create_dcv_admission_document(self)
+        for arrival in self.dcv_admission_arrivals.all():
+            # Document is created per arrival
+            permit_document = create_dcv_admission_document(arrival)
 
     def get_summary(self):
         summary = []
@@ -1448,6 +1602,18 @@ class DcvAdmissionArrival(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_context_for_licence_permit(self):
+        context = {
+            'lodgement_number': self.dcv_admission.lodgement_number,
+            'organisation_name': self.dcv_admission.dcv_vessel.dcv_organisation.name if self.dcv_admission.dcv_vessel.dcv_organisation else '',
+            'organisation_abn': self.dcv_admission.dcv_vessel.dcv_organisation.abn if self.dcv_admission.dcv_vessel.dcv_organisation else '',
+            'issue_date': self.dcv_admission.lodgement_datetime.strftime('%d/%m/%Y'),
+            'vessel_rego_no': self.dcv_admission.dcv_vessel.rego_no,
+            'vessel_name': self.dcv_admission.dcv_vessel.vessel_name,
+            'arrival': self.get_summary(),
+        }
+        return context
 
     def __str__(self):
         return '{} ({}-{})'.format(self.dcv_admission, self.arrival_date, self.departure_date)
@@ -1544,6 +1710,93 @@ class DcvPermit(RevisionedMixin):
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
 
+    @property
+    def postal_address_line1(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.line1
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.line1
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.line1
+        return ret_value
+
+    @property
+    def postal_address_line2(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.line2
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.line2
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.line2
+        return ret_value
+
+    @property
+    def postal_address_state(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.state
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.state
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.state
+        return ret_value
+
+    @property
+    def postal_address_suburb(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.locality
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.locality
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.locality
+        return ret_value
+
+    @property
+    def postal_address_postcode(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.postcode
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.postcode
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.postcode
+        return ret_value
+
+    def get_context_for_licence_permit(self):
+        context = {
+            'lodgement_number': self.lodgement_number,
+            'organisation_name': self.dcv_organisation.name,
+            'organisation_abn': self.dcv_organisation.abn,
+            'issue_date': self.lodgement_datetime.strftime('%d/%m/%Y'),
+            'p_address_line1': self.postal_address_line1,
+            'p_address_line2': self.postal_address_line2,
+            'p_address_suburb': self.postal_address_suburb,
+            'p_address_state': self.postal_address_state,
+            'p_address_postcode': self.postal_address_postcode,
+            'vessel_rego_no': self.dcv_vessel.rego_no,
+            'vessel_name': self.dcv_vessel.vessel_name,
+            'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+        }
+        return context
+
     def get_licence_document_as_attachment(self):
         attachment = None
         if self.permits.count():
@@ -1565,25 +1818,6 @@ class DcvPermit(RevisionedMixin):
         if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
             return True
         return False
-
-    # @property
-    # def fee_season(self):
-    #     if self.dcv_permit_fees.count() < 1:
-    #         return None
-    #     elif self.dcv_permit_fees.count() == 1:
-    #         dcv_permit_fee = self.dcv_permit_fees.first()
-    #         try:
-    #             for fee_item in dcv_permit_fee.fee_items.all():
-    #                 if fee_item.fee_period and fee_item.fee_period.fee_season:
-    #                     return fee_item.fee_period.fee_season
-    #             return None
-    #         except:
-    #             return None
-    #     else:
-    #         msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self,
-    #                                                                                     self.dcv_permit_fees.count())
-    #         logger.error(msg)
-    #         raise ValidationError(msg)
 
     @property
     def invoice(self):
