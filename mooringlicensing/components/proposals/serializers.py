@@ -244,7 +244,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
-    #company_ownership = CompanyOwnershipSerializer() 
+    #company_ownership = CompanyOwnershipSerializer()
     start_date = serializers.ReadOnlyField()
     end_date = serializers.ReadOnlyField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
@@ -304,8 +304,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 ## vessel fields
                 'rego_no',
                 'vessel_id',
-                'vessel_details_id', 
-                'vessel_ownership_id', 
+                'vessel_details_id',
+                'vessel_ownership_id',
                 'vessel_type',
                 'vessel_name',
                 #'vessel_overall_length',
@@ -358,8 +358,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     def get_approval_vessel_rego_no(self, obj):
         rego_no = None
         if obj.approval and type(obj.approval) is not MooringLicence:
-            rego_no = (obj.approval.current_proposal.vessel_details.vessel.rego_no if 
-                    obj.approval and obj.approval.current_proposal and obj.approval.current_proposal.vessel_details 
+            rego_no = (obj.approval.current_proposal.vessel_details.vessel.rego_no if
+                    obj.approval and obj.approval.current_proposal and obj.approval.current_proposal.vessel_details
                     else None)
         return rego_no
 
@@ -468,6 +468,7 @@ class ListProposalSerializer(BaseProposalSerializer):
         model = Proposal
         fields = (
                 'id',
+                'migrated',
                 # 'application_type',
                 'application_type_dict',
                 'proposal_type',
@@ -510,6 +511,7 @@ class ListProposalSerializer(BaseProposalSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
                 'id',
+                'migrated',
                 'proposal_type',
                 # 'activity',
                 # 'title',
@@ -640,7 +642,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
+            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and
              #       not self.instance.vessel_registration_documents.all()):
               #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
@@ -665,7 +667,7 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
             # Vessel docs
-            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not 
+            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not
              #       self.instance.vessel_registration_documents.all()):
               #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
@@ -701,7 +703,7 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             # Vessel docs
-            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and 
+            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and
              #       not self.instance.vessel_registration_documents.all()):
               #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
@@ -765,8 +767,8 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
         fields = (
                 'rego_no',
                 'vessel_id',
-                #'vessel_details_id', 
-                #'vessel_ownership_id', 
+                #'vessel_details_id',
+                #'vessel_ownership_id',
                 'vessel_type',
                 'vessel_name',
                 #'vessel_overall_length',
@@ -837,6 +839,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
         model = Proposal
         fields = (
                 'id',
+                'migrated',
                 'start_date',
                 'end_date',
                 'application_type',
@@ -882,8 +885,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'fee_paid',
                 'requirements_completed',
                 'application_type_dict',
-                'vessel_details_id', 
-                'vessel_ownership_id', 
+                'vessel_details_id',
+                'vessel_ownership_id',
                 'insurance_choice',
                 'preferred_bay_id',
                 'silent_elector',
@@ -929,9 +932,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     "id": moa.id,
                     "mooring_name": '<span style="color:{}">{}</span>'.format(color, moa.mooring.name),
                     "bay": '<span style="color:{}">{}</span>'.format(color, str(moa.mooring.mooring_bay)),
-                    "site_licensee": '<span style="color:{}">RIA Allocated</span>'.format(color) if not moa.site_licensee else 
+                    "site_licensee": '<span style="color:{}">RIA Allocated</span>'.format(color) if not moa.site_licensee else
                         '<span style="color:{}">User Requested</span>'.format(color),
-                    "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else 
+                    "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else
                         '<span style="color:{}">Historical</span>'.format(color),
                     #"checked": True if not moa.end_date else False,
                     "checked": True if suitable_for_mooring and not moa.end_date else False,
@@ -1150,12 +1153,12 @@ class ProposedApprovalSerializer(serializers.Serializer):
     ria_mooring_name = serializers.CharField(required=False, allow_blank=True)
     mooring_on_approval = serializers.ListField(
             child=serializers.JSONField(),
-            required=False, 
+            required=False,
             #allow_blank=True,
             )
     vessel_ownership = serializers.ListField(
             child=serializers.JSONField(),
-            required=False, 
+            required=False,
             #allow_blank=True,
             )
 
@@ -1246,7 +1249,7 @@ class ListVesselDetailsSerializer(serializers.ModelSerializer):
                 'vessel_id',
                 'vessel_type',
                 'rego_no', # link to rego number
-                'vessel_name', 
+                'vessel_name',
                 #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
@@ -1353,7 +1356,7 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
     #def get_read_only(self, obj):
     #    ro = True
     #    if obj.status == 'draft' and (
-    #        not obj.blocking_proposal 
+    #        not obj.blocking_proposal
     #        # WG advised to remove 20210505
     #        #or obj.blocking_proposal.submitter == self.context.get('request').user
     #        ):
@@ -1368,7 +1371,7 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
         fields = (
                 'vessel_type',
                 'vessel', # link to rego number
-                'vessel_name', 
+                'vessel_name',
                 #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
@@ -1386,7 +1389,7 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
 
 
 class VesselOwnershipSerializer(serializers.ModelSerializer):
-    company_ownership = CompanyOwnershipSerializer() 
+    company_ownership = CompanyOwnershipSerializer()
 
     class Meta:
         model = VesselOwnership
@@ -1394,7 +1397,7 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
 
 
 class VesselFullOwnershipSerializer(serializers.ModelSerializer):
-    company_ownership = CompanyOwnershipSerializer() 
+    company_ownership = CompanyOwnershipSerializer()
     owner_full_name = serializers.SerializerMethodField()
     applicable_percentage = serializers.SerializerMethodField()
     start_date = serializers.SerializerMethodField()

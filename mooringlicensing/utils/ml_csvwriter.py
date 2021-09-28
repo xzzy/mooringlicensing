@@ -1,5 +1,3 @@
-## execute in shell_plus with "import mooringlicensing.utils.ml_csvwriter"
-
 import csv
 from datetime import datetime
 import pytz
