@@ -13,18 +13,18 @@ from mooringlicensing.components.proposals.models import (
     Owner,
     VesselOwnership,
     VesselDetails,
-    AuthorisedUserApplication,
+    MooringLicenceApplication,
     ProposalUserAction,
     Mooring,
     MooringBay,
 )
-from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringOnApproval, AuthorisedUserPermit
+from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
 
 
-class AuthUserPermitMigration(object):
+class MooringLicenceMigration(object):
     '''
-        from mooringlicensing.utils.waiting_list_migrate import WaitingListMigration, GrepSearch
-        WaitingListMigration(test=False)
+        from mooringlicensing.utils.mooring_licence_migrate import MooringLicenceMigration
+        MooringLicenceMigration(test=False)
     '''
 
     def __init__(self, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes', test=False):
@@ -32,13 +32,13 @@ class AuthUserPermitMigration(object):
         self.test = test
 
         #self.waitlist = self.read_dict('Waitlist___Bay.json')
-        self.auth_users_with_L = self.read_dict('Auth_Users___Surname___with_L.json')
-        self.auth_users_No_L = self.read_dict('Auth_Users___Surname___No_L.json')
-        self.moorings = self.read_dict('Auth_Users___Surname___Moorings.json')
-
-        self._auth_users = [
-            #... can be found in directory tests/test.json
-        ]
+        self.auth_users = self.read_dict('Licencees___Auth_User.json')
+        self.mooring_no = self.read_dict('Licencees___Mooring_No.json')
+        self.surname = self.read_dict('Licencees___Surname.json')
+        #self.vessel = self.read_dict('Vessel___HIN___Current.json')
+        self.vessel = self.read_dict('Vessel___Details_All.json')
+        self.owner = self.read_dict('Owner_Details.json')
+        self.allocated = self.read_dict('Admin___Application___Pers_No.json')
 
         self.migrate()
 
@@ -66,6 +66,7 @@ class AuthUserPermitMigration(object):
 
         #submitter = EmailUser.objects.get(email='jawaid.mushtaq@dbca.wa.gov.au')
         expiry_date = datetime.date(2021,11,30)
+        start_date = datetime.date(2020,8,31)
         date_applied = '2020-08-31'
 
         address_list = []
@@ -75,32 +76,60 @@ class AuthUserPermitMigration(object):
         ownership_list = []
         details_list = []
         proposal_list = []
-        wl_list = []
         user_action_list = []
         approval_list = []
         approval_history_list = []
-        wla_list = []
 
         added = []
         errors = []
         count_no_mooring = 0
         with transaction.atomic():
-            for idx, record in enumerate(self.auth_users_with_L, 1):
-            #for idx, record in enumerate(self.auth_users_with_L[2:3], 1):
-            #for idx, record in enumerate(self.auth_users[:1], 1):
-            #for idx, record in enumerate(self.waitlist, 1):
+            for idx, record in enumerate(self.mooring_no, 1):
+            #for idx, record in enumerate(self.mooring_no[800:], 1):
                 try:
                     #import ipdb; ipdb.set_trace()
                     pers_no = record.get('PersNo')
                     address = record.get('_1')
+                    mooring = record.get('MooringNo')
+                    mooring_bay = record.get('_7')
+                    username = record.get('UserName').lower()
+                    rego_no = record.get('_4').split('-')[0].strip()
+                    vessel_name = record.get('_4').split('-')[1].strip()
 
-                    email_record = GrepSearch(pers_no).search('PersNo', 'EMail')
+                    owner_record = self.search('PersNoL', pers_no, self.owner)
+                    if owner_record:
+                        vessel_name = owner_record['VesName']
+                        rego_no = owner_record['VesRego']
+                        licence_pc = owner_record['LicPC']
+
+                    surname_record = self.search('PersNo', pers_no, self.surname)
+                    email = surname_record['EMail'].split(',')[0].strip().lower()
+                    HIN = surname_record['HIN1']
+
+                    vessel_record = self.search('PersNo', pers_no, self.vessel)
+                    if vessel_record:
+                        vessel_dot = vessel_record.get('DoTRego1')
+                        vessel_overall_length = Decimal( vessel_record.get('RegLength1') )
+                        vessel_draft = Decimal( vessel_record.get('Draft1') )
+                    else:
+                        vessel_dot = rego_no
+                        vessel_overall_length = Decimal( surname_record.get('RegLength1') )
+                        vessel_draft = Decimal( 0.0 )
+
+                    vessel_type = 'other'
+                    vessel_weight = Decimal( 0.0 )
+
+                    allocated_record = self.search('PersNo', pers_no, self.allocated)
+                    try:
+                        date_invited = datetime.datetime.strptime(allocated_record.get('DateAllocated'), '%Y-%m-%d').date() 
+                    except:
+                        date_invited = None
+
+                    #email_record = GrepSearch(pers_no).search('PersNo', 'EMail')
                     phonemobile_record = GrepSearch(pers_no).search('PersNo', 'PhoneMobile')
                     phonehome_record = GrepSearch(pers_no).search('PersNo', 'PhoneHome')
 
-                    email = email_record.get('EMail').lower()
                     mobile_no = phonemobile_record.get('PhoneMobile')
-                    username = record.get('UserName').lower()
                     firstname = username.split(' ')[-1]
                     lastname = ' '.join(username.split(' ')[:-1])
 
@@ -116,32 +145,28 @@ class AuthUserPermitMigration(object):
                     #    continue
 
  
-                    mooring_record = self.search('_1', username, self.moorings)
-                    try:
-                        mooring = mooring_record['MooringNo']
-                        vessel_name = mooring_record['VesName']
-                        rego_no = mooring_record['VesRego']
-                    except:
-                        count_no_mooring += 1
-                        print(f'*************** {idx}, {pers_no}, {username}, {count_no_mooring}')
-                        continue
-                        #vessel_name = record.get('_11').split('-')[1].strip()
-                        #rego_no = record.get('_11').split('-')[0].strip()
+#                    mooring_record = self.search('_1', username, self.moorings)
+#                    try:
+#                        mooring = mooring_record['MooringNo']
+#                        vessel_name = mooring_record['VesName']
+#                        rego_no = mooring_record['VesRego']
+#                    except:
+#                        count_no_mooring += 1
+#                        print(f'*************** {idx}, {pers_no}, {username}, {count_no_mooring}')
+#                        continue
+#                        #vessel_name = record.get('_11').split('-')[1].strip()
+#                        #rego_no = record.get('_11').split('-')[0].strip()
 
-                    vessel_type = 'other'
-                    vessel_overall_length = Decimal( record.get('RegLength1') )
-                    #vessel_draft = Decimal( record.get('Draft') )
-                    vessel_draft = Decimal( 0.0 )
-                    vessel_weight = Decimal( 0.0 )
-                    #berth_mooring = record.get('_5')
-                    #mooring = ?? # record.get('_5')
 
                     # see mooringlicensing/utils/tests/mooring_names.txt
                     if Mooring.objects.filter(name=mooring).count()>0:
                         mooring = Mooring.objects.filter(name=mooring)[0]
                     else:
-                        import ipdb; ipdb.set_trace()
+                        #import ipdb; ipdb.set_trace()
                         print(f'Mooring not found: {mooring}')
+                        errors.append(dict(idx=idx, record=record))
+                        continue
+
                         #mooring_bay = MooringBay.objects.get(name='Rottnest Island')
                         #mooring_bay = MooringBay.objects.get(name='Thomson Bay')
 
@@ -202,10 +227,10 @@ class AuthUserPermitMigration(object):
                         vessel_length=vessel_overall_length,
                         vessel_draft=vessel_draft,
                         vessel_weight= vessel_weight,
-                        #berth_mooring=berth_mooring
+                        berth_mooring='home'
                     )
 
-                    proposal=AuthorisedUserApplication.objects.create(
+                    proposal=MooringLicenceApplication.objects.create(
                         proposal_type_id=1, # new application
                         submitter=user,
                         migrated=True,
@@ -226,14 +251,20 @@ class AuthUserPermitMigration(object):
                         processing_status='approved',
                         customer_status='approved',
                         proposed_issuance_approval={
+                            "start_date": start_date.strftime('%d/%m/%Y'),
+                            "expiry_date": expiry_date.strftime('%d/%m/%Y'),
                             "details": None,
                             "cc_email": None,
                             "mooring_id": mooring.id,
                             "ria_mooring_name": mooring.name,
                             "mooring_bay_id": mooring.mooring_bay.id,
-                            "vessel_ownership": [],
+                            "vessel_ownership": [{
+                                    "dot_name": vessel_dot
+                                }],
                             "mooring_on_approval": []
                         },
+                        date_invited=date_invited,
+                        dot_name=vessel_dot,
                     )
 #>         "proposed_issuance_approval": {
 #>             "details": "dd",
@@ -256,16 +287,11 @@ class AuthUserPermitMigration(object):
                     ua=ProposalUserAction.objects.create(
                         proposal=proposal,
                         who=user,
-                        what='Authorised User Permit - Migrated Application',
+                        what='Mooring Licence - Migrated Application',
                     )
 
-                    try:
-                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
-                    except:
-                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
-
                     #approval = WaitingListAllocation.objects.create(
-                    approval = AuthorisedUserPermit.objects.create(
+                    approval = MooringLicence.objects.create(
                         status='current',
                         #internal_status=None,
                         current_proposal=proposal,
@@ -282,13 +308,13 @@ class AuthUserPermitMigration(object):
                     proposal.approval = approval
                     proposal.save()
 
-                    moa = MooringOnApproval.objects.create(
-                        approval=approval,
-                        mooring=mooring,
-                        sticker=None,
-                        site_licensee=True, # ???
-                        end_date=expiry_date
-                    )
+#                    moa = MooringOnApproval.objects.create(
+#                        approval=approval,
+#                        mooring=mooring,
+#                        sticker=None,
+#                        site_licensee=True, # ???
+#                        end_date=expiry_date
+#                    )
 
                     try:
                         start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
@@ -313,7 +339,6 @@ class AuthUserPermitMigration(object):
                     ownership_list.append(vessel_ownership.id)
                     details_list.append(vessel_details.id)
                     proposal_list.append(proposal.proposal.id)
-                    wl_list.append(proposal.id)
                     user_action_list.append(ua.id)
                     approval_list.append(approval.id)
                     approval_history_list.append(approval_history.id)
@@ -329,11 +354,10 @@ class AuthUserPermitMigration(object):
         print(f'Owner.objects.get(id__in={owner_list}).delete()')
         print(f'VesselOwnership.objects.get(id__in={ownership_list}).delete()')
         print(f'VesselDetails.objects.get(id__in={details_list}).delete()')
-        print(f'WaitingListApplication.objects.get(id__in={wl_list}).delete()')
         print(f'ProposalUserAction.objects.get(id__in={user_action_list}).delete()')
         print(f'WaitingListAllocation.objects.get(id__in={approval_list}).delete()')
         print(f'ApprovalHistory.objects.get(id__in={approval_history_list}).delete()')
-        print(f'count_no_mooring: {count_no_mooring}')
+        print(f'errors: {errors}')
 
 def clear_record():
     Address.objects.last().delete()
@@ -376,7 +400,7 @@ class GrepSearch(object):
 
         #import ipdb; ipdb.set_trace()
         # Get all files that contains string 'self.search_str1'
-        #files = self.get_files(self.search_str1)
+        #_files = self.get_files(self.search_str1)
         files=[
             self.path + os.sep + 'Vessel___Rego___Current.json',
             self.path + os.sep + 'PeopleNo.json',
@@ -397,6 +421,7 @@ class GrepSearch(object):
                         #import ipdb; ipdb.set_trace()
                         if key2=='_1' and len(record['_1'].split(',')) <= 1:
                             continue
+                        #print(f'fname: {fname}, key2: {key2}')
                         return record
 
 

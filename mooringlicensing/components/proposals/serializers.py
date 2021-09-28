@@ -839,6 +839,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
         model = Proposal
         fields = (
                 'id',
+                'migrated',
                 'start_date',
                 'end_date',
                 'application_type',
