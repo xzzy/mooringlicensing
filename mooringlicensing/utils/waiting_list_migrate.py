@@ -82,18 +82,18 @@ class WaitingListMigration(object):
                 try:
                     #import ipdb; ipdb.set_trace()
                     pers_no = record.get('PersNo')
-                    email_record = GrepSearch(pers_no).search('PersNo', 'EMail')
-                    address_record = GrepSearch(pers_no).search('PersNo', '_1')
+                    email_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'EMail')
+                    address_record = GrepSearch(pers_no, path=self.path).search('PersNo', '_1')
 
                     phonemobile_record = {}
                     if 'PhoneMobile' not in address_record:
-                        phonemobile_record = GrepSearch(pers_no).search('PersNo', 'PhoneMobile')
+                        phonemobile_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneMobile')
                     else:
                         phonemobile_record = address_record
 
                     phonehome_record = {}
                     if 'PhoneHome' not in address_record:
-                        phonehome_record = GrepSearch(pers_no).search('PersNo', 'PhoneHome')
+                        phonehome_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneHome')
                     else:
                         phonehome_record = address_record
 
