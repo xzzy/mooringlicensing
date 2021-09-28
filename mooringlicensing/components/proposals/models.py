@@ -411,7 +411,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
             raise ValidationError("Only for AUP, AAA")
         changed = False
-        if (self.vessel_ownership and self.previous_application and self.previous_application.vessel_ownership and 
+        if (self.vessel_ownership and self.previous_application and self.previous_application.vessel_ownership and
                 self.vessel_ownership.vessel.rego_no != self.previous_application.vessel_ownership.vessel.rego_no):
             changed = True
         return changed
@@ -489,6 +489,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def start_date(self):
+        if self.migrated:
+            return datetime.datetime(2020,9,1).date()
+
         if self.application_fees.count() < 1:
             return None
         elif self.application_fees.count() == 1:
@@ -504,6 +507,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def end_date(self):
+        if self.migrated:
+            return datetime.datetime(2021,11,30).date()
+
         if self.application_fees.count() < 1:
             return None
         elif self.application_fees.count() == 1:
@@ -521,7 +527,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         editable = True
         #if self.vessel_details:
         #    if self.vessel_details.status == 'draft' and (
-        #            self.vessel_details.blocking_proposal != self or 
+        #            self.vessel_details.blocking_proposal != self or
         #            not self.vessel_details.blocking_proposal):
         #        editable = False
         return editable
@@ -760,7 +766,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def is_assessor(self, user):
         return self.child_obj.is_assessor(user)
         #return self.__assessor_group() in user.proposalassessorgroup_set.all()
-        #return 
+        #return
 
     #Check if the user is member of assessor group for the Proposal
     def is_approver(self, user):
@@ -1220,7 +1226,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if not self.applicant_address:
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                    if self.application_fees.count() < 1:
+                    if self.application_fees.count() < 1 and not self.migrated:
                         raise ValidationError('Payment record not found for the Annual Admission Application: {}'.format(self))
                     elif self.application_fees.count() > 1:
                         raise ValidationError('More than 1 payment records found for the Annual Admission Application: {}'.format(self))
@@ -1803,7 +1809,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             ## compare current vessel data to previous application's vessel data
             elif (
                     # Vessel Details and rego
-                    self.vessel_details.vessel != self.previous_application_status_filter.vessel_details.vessel or 
+                    self.vessel_details.vessel != self.previous_application_status_filter.vessel_details.vessel or
                     self.vessel_details.vessel_type != self.previous_application_status_filter.vessel_details.vessel_type or
                     #self.vessel_details.vessel_overall_length != self.previous_application_status_filter.vessel_details.vessel_overall_length or
                     self.vessel_details.vessel_length != self.previous_application_status_filter.vessel_details.vessel_length or
@@ -2226,8 +2232,8 @@ class AuthorisedUserApplication(Proposal):
 
         ## find any current AUP for this submitter with the same vessel
         #au_list = self.approval_class.objects.filter(
-        #        status='current', 
-        #        submitter=self.submitter, 
+        #        status='current',
+        #        submitter=self.submitter,
         #        current_proposal__vessel_details__vessel=self.vessel_details.vessel,
         #        )
         #if au_list:
@@ -2733,7 +2739,7 @@ class AvailableMooringManager(models.Manager):
         #latest_ids = Mooring.objects.values("vessel").annotate(id=Max('id')).values_list('id', flat=True)
         # nor that are on a mooring licence application that is in status other than approved, declined or discarded.
         #lookups = (
-         #       Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current')) 
+         #       Q(mooring_bookings_mooring_specification=2) & (Q(mooring_licence__isnull=True) | ~Q(mooring_licence__status='current'))
           #      & (Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) | Q(ria_generated_proposal=None))
            #     )
         available_ids = []
@@ -2870,17 +2876,17 @@ class Vessel(models.Model):
     ## at submit
     def check_blocking_ownership(self, vessel_ownership, proposal_being_processed):
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
-        # Requirement: If vessel is owned by multiple parties then there must be no other application 
+        # Requirement: If vessel is owned by multiple parties then there must be no other application
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
-        proposals = [proposal.child_obj for proposal in 
+        proposals = [proposal.child_obj for proposal in
                 # Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
                 Proposal.objects.filter(vessel_ownership__vessel=self).exclude(
-                    Q(vessel_ownership=vessel_ownership) | 
+                    Q(vessel_ownership=vessel_ownership) |
                     Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
                     Q(id=proposal_being_processed.id))]
         if proposals:
             raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
-        # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered 
+        # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
         filtered_approvals = []
         for approval in Approval.objects.exclude(status__in=['cancelled', 'expired', 'surrendered']):
@@ -2889,7 +2895,7 @@ class Vessel(models.Model):
                 for ownership in approval.child_obj.vessel_ownership_list:
                     if ownership.vessel == self and ownership != vessel_ownership:
                         filtered_approvals.append(approval)
-            elif (approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel == self and 
+            elif (approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel == self and
                     approval.current_proposal.vessel_ownership != vessel_ownership):
                 filtered_approvals.append(approval)
         if filtered_approvals:
