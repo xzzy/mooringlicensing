@@ -44,6 +44,15 @@
                                 <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                             </div>
                           </div>
+                          <div class="row form-group">
+                              <label for="" class="col-sm-3 control-label">Date of Birth</label>
+                              <div class="col-sm-3 input-group date" ref="dobDatePicker">
+                                  <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
+                                  <span class="input-group-addon">
+                                      <span class="glyphicon glyphicon-calendar ml-1"></span>
+                                  </span>
+                              </div>
+                          </div>
                           <div class="form-group">
                             <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
@@ -253,6 +262,11 @@ import $ from 'jquery'
 import { api_endpoints, helpers } from '@/utils/hooks'
 import FormSection from '@/components/forms/section_toggle.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
+import 'eonasdan-bootstrap-datetimepicker';
+//require("moment");
+require('eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css');
+require('eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js');
+
 export default {
     name: 'Profile',
     props:{
@@ -358,6 +372,13 @@ export default {
         },
     },
     computed: {
+        dobReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.readonly_dob) {
+                readonly = true;
+            }
+            return readonly
+        },
         firstNameReadOnly: function() {
             let readonly = false;
             if (this.readonly || this.profile.readonly_first_name) {
@@ -420,6 +441,35 @@ export default {
         },
     },
     methods: {
+        addEventListeners: function () {
+            let vm = this;
+            let elDob = $(vm.$refs.dobDatePicker);
+            //const now = Date.now()
+
+            let options = {
+                format: "DD/MM/YYYY",
+                showClear: true ,
+                useCurrent: false,
+                maxDate: moment(),
+            };
+
+            elDob.datetimepicker(options);
+
+            elDob.on("dp.change", function(e) {
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.profile.dob = selected_date;
+                    //elDob.data('DateTimePicker').maxDate(true);
+                } else {
+                    // Date not selected
+                    vm.profile.dob = selected_date;
+                    //elDob.data('DateTimePicker').maxDate(false);
+                }
+            });
+        },
+
         uploadProofElectoralRoll: function() {
             console.log("proof");
         },
@@ -498,6 +548,7 @@ export default {
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
             }, (error) => {
                 console.log(error);
                 vm.updatingPersonal = false;
@@ -582,6 +633,7 @@ export default {
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
             }, (error) => {
                 console.log(error);
                 vm.updatingContact = false;
@@ -624,6 +676,7 @@ export default {
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
             } catch (error) {
                 swal({
                     title: "Please fix these errors before saving",
@@ -896,6 +949,7 @@ export default {
             this.profile = Object.assign(response.body);
             if (this.profile.residential_address == null){ this.profile.residential_address = Object.assign({country:'AU'}); }
             if (this.profile.postal_address == null){ this.profile.postal_address = Object.assign({}); }
+            if (this.profile.dob) { this.profile.dob = moment(this.profile.dob).format('DD/MM/YYYY'); }
             this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
             this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
 
@@ -924,6 +978,7 @@ export default {
         await this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
         await this.$nextTick(() => {
             this.$emit('profile-fetched', this.profile);
+            this.addEventListeners();
         });
         this.personal_form = document.forms.personal_form;
         $('.panelClicker[data-toggle="collapse"]').on('click', function () {
@@ -962,6 +1017,9 @@ export default {
 }
 .mb-3 {
     margin-bottom: 1em !important;
+}
+.ml-1 {
+    margin-left: 1em !important;
 }
 .electoral-label {
     margin-bottom: 25px !important;

@@ -1,6 +1,6 @@
 <template lang="html">
     <div :class="headerCSS">
-        <label :id="id" :num_files="numDocuments">{{label}}</label>
+        <!--label :id="id" :num_files="numDocuments">{{label}}</label-->
         <!--template v-if="files"-->
         <div v-if="numDocuments > 0">
             <div v-for="v in documents">
