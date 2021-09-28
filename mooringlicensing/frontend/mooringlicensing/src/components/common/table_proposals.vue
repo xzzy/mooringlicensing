@@ -149,7 +149,11 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.lodgement_number
+                    if (full.migrated){
+                        return full.lodgement_number + ' (M)'
+                    } else {
+                        return full.lodgement_number
+                    }
                 },
                 name: 'lodgement_number',
             }
