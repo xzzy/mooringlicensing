@@ -77,8 +77,8 @@ class WaitingListMigration(object):
         added = []
         errors = []
         with transaction.atomic():
-            for idx, record in enumerate(self.waitlist[:15], 1):
-            #for idx, record in enumerate(self.waitlist, 1):
+            #for idx, record in enumerate(self.waitlist[165:], 1):
+            for idx, record in enumerate(self.waitlist, 1):
                 try:
                     #import ipdb; ipdb.set_trace()
                     pers_no = record.get('PersNo')
@@ -97,9 +97,9 @@ class WaitingListMigration(object):
                     else:
                         phonehome_record = address_record
 
-                    email = email_record.get('EMail')
+                    email = email_record.get('EMail').lower()
                     mobile_no = phonemobile_record.get('PhoneMobile')
-                    username = record.get('UserName')
+                    username = record.get('UserName').lower()
                     firstname = username.split(' ')[-1]
                     lastname = ' '.join(username.split(' ')[:-1])
 
@@ -307,7 +307,19 @@ class GrepSearch(object):
 
         #import ipdb; ipdb.set_trace()
         # Get all files that contains string 'self.search_str1'
-        files = self.get_files(self.search_str1)
+        #files = self.get_files(self.search_str1)
+        files=[
+            self.path + os.sep + 'Admin___EContacts___6_Waitlist.json',
+            self.path + os.sep + 'People___Trim_File.json',
+            self.path + os.sep + 'Vessel___Rego___Current.json',
+            self.path + os.sep + 'Vessel___Vessel_Name___Current.json',
+            self.path + os.sep + 'Auth_Users___Surname___No_L.json',
+            self.path + os.sep + 'PeopleNo.json',
+            self.path + os.sep + 'Admin___Labels___Postal.json',
+            self.path + os.sep + 'Admin___Interrogation___Lic___WL_DOB_check.json',
+            self.path + os.sep + 'Auth_Users___Surname___No_L.json',
+            self.path + os.sep + 'Auth_Users___Surname___with_L.json',
+        ]
 
         for fname in files:
             with open(fname) as f:
@@ -321,40 +333,7 @@ class GrepSearch(object):
                         #import ipdb; ipdb.set_trace()
                         if key2=='_1' and len(record['_1'].split(',')) <= 1:
                             continue
+                        print(f'fname: {fname}, key2: {key2}')
                         return record
 
-class GrepSearch2(object):
-
-    def __init__(self, search_str1, search_str2, path='mooringlicensing/utils/lotus_notes'):
-        self.path = path
-        self.search_str1 = search_str1
-        self.search_str2 = search_str2
-        #self.search()
-
-    def get_files(self, search_str):
-        ''' Read all files in directory '''
-        r=subprocess.check_output(['grep', '-rl', search_str, self.path])
-        files = [i for i in r.decode('UTF-8').split('\n') if i.endswith(".json") ]
-        return files
-
-    def search(self, key):
-        ''' Iteratively search for key:value pair in grep'd files '''
-
-        def find(key, value, records):
-            for record in records:
-                if value == record.get(key):
-                    return record
-            return None
-
-        file_list1 = self.get_files(self.search_str1)
-        file_list2 = self.get_files(self.search_str2)
-        files = list(set(file_list1).intersection(file_list2))
-
-        for fname in files:
-            with open(fname) as f:
-                f_json = json.load(f)
-                if self.search_str2 in f_json[0]:
-                    record = find(key, self.search_str1, f_json)
-                    if record:
-                        return record
 

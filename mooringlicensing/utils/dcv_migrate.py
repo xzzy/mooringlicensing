@@ -95,7 +95,7 @@ class DcvMigration(object):
 
                     surname_record = self.search('PersNo', pers_no, self.surname)
 
-                    username = surname_record.get('_2')
+                    username = surname_record.get('_2').lower()
                     firstname = username.split(' ')[-1]
                     lastname = ' '.join(username.split(' ')[:-1])
 
@@ -215,7 +215,14 @@ class GrepSearch(object):
 
         #import ipdb; ipdb.set_trace()
         # Get all files that contains string 'self.search_str1'
-        files = self.get_files(self.search_str1)
+        #files = self.get_files(self.search_str1)
+        files=[
+            self.path + os.sep + 'Vessel___Rego___Current.json',
+            self.path + os.sep + 'PeopleNo.json',
+            self.path + os.sep + 'People___Trim_File.json',
+            self.path + os.sep + 'Admin___EContacts___5_Licencee.json',
+            self.path + os.sep + 'Admin___Labels___Postal.json',
+        ]
 
         for fname in files:
             with open(fname) as f:
