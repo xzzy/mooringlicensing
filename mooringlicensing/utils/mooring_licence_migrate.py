@@ -126,8 +126,8 @@ class MooringLicenceMigration(object):
                         date_invited = None
 
                     #email_record = GrepSearch(pers_no).search('PersNo', 'EMail')
-                    phonemobile_record = GrepSearch(pers_no).search('PersNo', 'PhoneMobile')
-                    phonehome_record = GrepSearch(pers_no).search('PersNo', 'PhoneHome')
+                    phonemobile_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneMobile')
+                    phonehome_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneHome')
 
                     mobile_no = phonemobile_record.get('PhoneMobile')
                     firstname = username.split(' ')[-1]
