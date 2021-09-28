@@ -94,9 +94,9 @@ class AuthUserPermitMigration(object):
                     pers_no = record.get('PersNo')
                     address = record.get('_1')
 
-                    email_record = GrepSearch(pers_no).search('PersNo', 'EMail')
-                    phonemobile_record = GrepSearch(pers_no).search('PersNo', 'PhoneMobile')
-                    phonehome_record = GrepSearch(pers_no).search('PersNo', 'PhoneHome')
+                    email_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'EMail')
+                    phonemobile_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneMobile')
+                    phonehome_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneHome')
 
                     email = email_record.get('EMail').lower()
                     mobile_no = phonemobile_record.get('PhoneMobile')
