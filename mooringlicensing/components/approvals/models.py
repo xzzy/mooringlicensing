@@ -1580,6 +1580,7 @@ class DcvAdmission(RevisionedMixin):
 
     def generate_dcv_admission_doc(self):
         for arrival in self.dcv_admission_arrivals.all():
+            # Document is created per arrival
             permit_document = create_dcv_admission_document(arrival)
 
     def get_summary(self):
