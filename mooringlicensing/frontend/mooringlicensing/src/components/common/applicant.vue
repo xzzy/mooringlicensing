@@ -125,7 +125,7 @@
                                         <label for="" class="col-sm-3 control-label" >Country</label>
                                         <div class="col-sm-4">
                                             <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="email_user.residential_address.country">
-                                                <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                                <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                             </select>
                                         </div>
                                       </div>
@@ -167,7 +167,7 @@
                                         <label for="" class="col-sm-3 control-label" >Country</label>
                                         <div class="col-sm-4">
                                             <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="email_user.postal_address.country">
-                                                <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                                <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                             </select>
                                         </div>
                                       </div>
@@ -343,13 +343,13 @@ from '@/utils/hooks'
         methods:{
             fetchCountries:function (){
                 let vm =this;
-                vm.loading.push('fetching countries');
+                //vm.loading.push('fetching countries');
                 vm.$http.get(api_endpoints.countries).then((response)=>{
                     vm.countries = response.body;
-                    vm.loading.splice('fetching countries',1);
+                    //vm.loading.splice('fetching countries',1);
                 },(response)=>{
                     //console.log(response);
-                    vm.loading.splice('fetching countries',1);
+                    //vm.loading.splice('fetching countries',1);
                 });
             },
 
@@ -367,6 +367,7 @@ from '@/utils/hooks'
         },
         mounted: function(){
             let vm=this;
+            this.fetchCountries();
             if (!vm.panelClickersInitialised){
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {
                 var chev = $(this).children()[0];
