@@ -202,7 +202,6 @@ class Question(models.Model):
 class GlobalSettings(models.Model):
     KEY_DCV_PERMIT_TEMPLATE_FILE = 'dcv_permit_template_file'
     KEY_DCV_ADMISSION_TEMPLATE_FILE = 'dcv_admission_template_file'
-    KEY_APPROVAL_TEMPLATE_FILE = 'approval_template_file'
     KEY_WLA_TEMPLATE_FILE = 'wla_template_file'
     KEY_AAP_TEMPLATE_FILE = 'aap_template_file'
     KEY_AUP_TEMPLATE_FILE = 'aup_template_file'
@@ -214,7 +213,6 @@ class GlobalSettings(models.Model):
     keys_for_file = (
         KEY_DCV_PERMIT_TEMPLATE_FILE,
         KEY_DCV_ADMISSION_TEMPLATE_FILE,
-        KEY_APPROVAL_TEMPLATE_FILE,
         KEY_WLA_TEMPLATE_FILE,
         KEY_AAP_TEMPLATE_FILE,
         KEY_AUP_TEMPLATE_FILE,
@@ -223,7 +221,6 @@ class GlobalSettings(models.Model):
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, 'DcvAdmission template file'),
-        (KEY_APPROVAL_TEMPLATE_FILE, 'Approval template file'),
         (KEY_WLA_TEMPLATE_FILE, 'Waiting List Allocation template file'),
         (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
         (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit tempalte file'),
@@ -232,18 +229,18 @@ class GlobalSettings(models.Model):
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit')
     )
-    default_values = (
-        (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
-        (KEY_DCV_ADMISSION_TEMPLATE_FILE, ''),
-        (KEY_APPROVAL_TEMPLATE_FILE, ''),
-        (KEY_WLA_TEMPLATE_FILE, ''),
-        (KEY_AAP_TEMPLATE_FILE, ''),
-        (KEY_AUP_TEMPLATE_FILE, ''),
-        (KEY_ML_TEMPLATE_FILE, ''),
-        (KEY_MINIMUM_VESSEL_LENGTH, 3.75),
-        (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 6.50),
-        (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 200000)
-    )
+    template_folder = 'mooringlicensing/management/templates'
+    default_values = {
+        KEY_DCV_PERMIT_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - DCVP.docx'),
+        KEY_DCV_ADMISSION_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - DCVA.docx'),
+        KEY_WLA_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - WLA.docx'),
+        KEY_AAP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AAP.docx'),
+        KEY_AUP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AUP.docx'),
+        KEY_ML_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML.docx'),
+        KEY_MINIMUM_VESSEL_LENGTH: 3.75,
+        KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.50,
+        KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
+    }
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
     value = models.CharField(max_length=255)
