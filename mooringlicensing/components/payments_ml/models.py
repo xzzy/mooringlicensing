@@ -550,7 +550,7 @@ class FeeItemStickerReplacement(RevisionedMixin):
     incur_gst = models.BooleanField(default=True)
 
     @staticmethod
-    def get_fee_item_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+    def get_fee_item_by_date(target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
         try:
             fee_item = FeeItemStickerReplacement.objects.filter(date_of_enforcement__lte=target_date, enabled=True).order_by('-date_of_enforcement').first()
             return fee_item
