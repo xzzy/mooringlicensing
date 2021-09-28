@@ -156,7 +156,8 @@ export default {
       pBody: 'pBody',
       missing_fields: [],
       proposal_parks:null,
-        terms_and_conditions_checked: false,
+      terms_and_conditions_checked: false,
+      vesselChanged: false,
     }
   },
   components: {
@@ -172,7 +173,11 @@ export default {
   },
   computed: {
       autoRenew: function() {
-          return true;
+          let renew = false;
+          if (this.vesselChanged) {
+              renew = true;
+          }
+          return renew;
       },
       submitterId: function() {
           let submitter = null;
@@ -353,8 +358,8 @@ export default {
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
-            const vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
-            console.log(vesselChanged);
+            this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                 payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
@@ -381,6 +386,8 @@ export default {
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
+            this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
                 payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;
@@ -446,16 +453,18 @@ export default {
         console.log('in save_and_pay')
         try {
             const res = await this.save(false, this.proposal_submit_url);
-            if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
-                await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-            } else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
-                await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
-            } else {
-                await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                //this.$router.push({
-                //    name: 'external-dashboard'
-                //});
-            }
+            this.$nextTick(async () => {
+                if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+                    await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                } else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                    await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
+                } else {
+                    await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    //this.$router.push({
+                    //    name: 'external-dashboard'
+                    //});
+                }
+            });
         } catch(err) {
             console.log(err)
             console.log(typeof(err.body))
