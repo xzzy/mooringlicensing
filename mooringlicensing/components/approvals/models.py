@@ -1696,6 +1696,92 @@ class DcvPermit(RevisionedMixin):
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
 
+    @property
+    def postal_address_line1(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.line1
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.line1
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.line1
+        return ret_value
+
+    @property
+    def postal_address_line2(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.line2
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.line2
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.line2
+        return ret_value
+
+    @property
+    def postal_address_state(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.state
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.state
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.state
+        return ret_value
+
+    @property
+    def postal_address_suburb(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.locality
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.locality
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.locality
+        return ret_value
+
+    @property
+    def postal_address_postcode(self):
+        ret_value = ''
+        if self.submitter:
+            if self.submitter.postal_same_as_residential:
+                ret_value = self.submitter.residential_address.postcode
+            else:
+                if self.submitter.postal_address:
+                    ret_value = self.submitter.postal_address.postcode
+            if not ret_value:
+                # Shouldn't reach here, but if so, just return residential address
+                ret_value = self.submitter.residential_address.postcode
+        return ret_value
+
+    def get_context_for_licence_permit(self):
+        context = {
+            'organisation_name': self.dcv_organisation.name,
+            'organisation_abn': self.dcv_organisation.abn,
+            'issue_date': self.lodgement_datetime.strftime('%d/%m/%Y'),
+            'p_address_line1': self.postal_address_line1,
+            'p_address_line2': self.postal_address_line2,
+            'p_address_suburb': self.postal_address_suburb,
+            'p_address_state': self.postal_address_state,
+            'p_address_postcode': self.postal_address_postcode,
+            'vessel_rego_no': self.dcv_vessel.rego_no,
+            'vessel_name': self.dcv_vessel.vessel_name,
+            'expiry_date': self.end_date.strftime('%d/%m/%Y'),
+        }
+        return context
+
     def get_licence_document_as_attachment(self):
         attachment = None
         if self.permits.count():
@@ -1717,25 +1803,6 @@ class DcvPermit(RevisionedMixin):
         if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
             return True
         return False
-
-    # @property
-    # def fee_season(self):
-    #     if self.dcv_permit_fees.count() < 1:
-    #         return None
-    #     elif self.dcv_permit_fees.count() == 1:
-    #         dcv_permit_fee = self.dcv_permit_fees.first()
-    #         try:
-    #             for fee_item in dcv_permit_fee.fee_items.all():
-    #                 if fee_item.fee_period and fee_item.fee_period.fee_season:
-    #                     return fee_item.fee_period.fee_season
-    #             return None
-    #         except:
-    #             return None
-    #     else:
-    #         msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self,
-    #                                                                                     self.dcv_permit_fees.count())
-    #         logger.error(msg)
-    #         raise ValidationError(msg)
 
     @property
     def invoice(self):

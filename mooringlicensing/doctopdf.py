@@ -41,7 +41,8 @@ def create_dcv_permit_pdf_tytes(dcv_permit):
     # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
     # context = context_obj.data
     # doc.render(context)
-    doc.render({})
+    context = dcv_permit.get_context_for_licence_permit()
+    doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
     try:
