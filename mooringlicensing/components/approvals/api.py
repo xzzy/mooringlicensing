@@ -859,6 +859,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                     raise forms.ValidationError('Email addresses do not match')
 
         data['submitter'] = submitter.id
+        data['dcv_vessel_id'] = dcv_vessel.id
         # data['fee_sid'] = fee_season_requested.get('id')
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
