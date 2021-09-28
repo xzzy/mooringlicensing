@@ -1024,13 +1024,20 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
+    elif decision == 'approved_paid':
+        subject = 'Approved: Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     email = TemplateEmailBase(
         subject=subject,
         html_template='mooringlicensing/emails_2/email_20.html',
-        txt_template = 'mooringlicensing/emails_2/email_20.txt',
+        txt_template='mooringlicensing/emails_2/email_20.txt',
     )
 
     context = {
@@ -1229,13 +1236,19 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
             if invoice.payment_status not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
-
     elif decision == 'declined':
         subject = 'Declined: Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
+    elif decision == 'approved_paid':
+        subject = 'Approved: Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
