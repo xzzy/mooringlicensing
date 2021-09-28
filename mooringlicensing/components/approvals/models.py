@@ -1579,7 +1579,8 @@ class DcvAdmission(RevisionedMixin):
         super(DcvAdmission, self).save(**kwargs)
 
     def generate_dcv_admission_doc(self):
-        permit_document = create_dcv_admission_document(self)
+        for arrival in self.dcv_admission_arrivals.all():
+            permit_document = create_dcv_admission_document(arrival)
 
     def get_summary(self):
         summary = []
@@ -1600,6 +1601,18 @@ class DcvAdmissionArrival(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_context_for_licence_permit(self):
+        context = {
+            'lodgement_number': self.dcv_admission.lodgement_number,
+            'organisation_name': self.dcv_admission.dcv_organisation.name,
+            'organisation_abn': self.dcv_admission.dcv_organisation.abn,
+            'issue_date': self.dcv_admission.lodgement_datetime.strftime('%d/%m/%Y'),
+            'vessel_rego_no': self.dcv_admission.dcv_vessel.rego_no,
+            'vessel_name': self.dcv_admission.dcv_vessel.vessel_name,
+            'arrival': self.get_summary(),
+        }
+        return context
 
     def __str__(self):
         return '{} ({}-{})'.format(self.dcv_admission, self.arrival_date, self.departure_date)
