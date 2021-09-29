@@ -211,7 +211,8 @@ class ApplicationFee(Payment):
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
     # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
-    fee_items = models.ManyToManyField('FeeItem', related_name='application_fees')
+    fee_items = models.ManyToManyField('FeeItem', related_name='application_fees')  # For WL/AA/AU/ML
+    fee_items_additional_aa = models.ManyToManyField('FeeItem', related_name='application_fees_additional_aa')  # For additional AA when AU/ML
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)

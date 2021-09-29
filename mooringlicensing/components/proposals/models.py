@@ -386,6 +386,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     fee_items.append(fee_item)
         return fee_items
 
+    def get_fee_items_paid_additional_aa(self):
+        fee_items = []
+        for application_fee in self.application_fees.all():
+            if application_fee.paid:
+                for fee_item in application_fee.fee_items_additional_aa.all():
+                    fee_items.append(fee_item)
+        return fee_items
+
     @property
     def fee_period(self):
         fee_items = self.get_fee_items_paid()
@@ -2673,6 +2681,9 @@ class MooringLicenceApplication(Proposal):
 
     def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
+
+        # TODO: Check if adjusting is required or not.  For example, it is not required when adding a new vessel
+
         return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
     def does_have_valid_associations(self):
