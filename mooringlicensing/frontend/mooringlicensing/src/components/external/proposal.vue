@@ -358,7 +358,9 @@ export default {
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
-            this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            if (this.proposal.proposal_type.code ==='renewal') {
+                this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            }
             //console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
@@ -386,7 +388,9 @@ export default {
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
-            this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            if (this.proposal.proposal_type.code ==='renewal') {
+                this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            }
             //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
@@ -705,10 +709,10 @@ export default {
 
         if (!this.proposal.fee_paid) {
             this.$nextTick(async () => {
-                await vm.save_and_pay();
+                await this.save_and_pay();
             });
         } else {
-            await vm.save_without_pay();
+            await this.save_without_pay();
         }
     },
 
