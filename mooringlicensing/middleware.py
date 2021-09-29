@@ -16,7 +16,7 @@ CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 class FirstTimeNagScreenMiddleware(object):
     def process_request(self, request):
         #print ("FirstTimeNagScreenMiddleware: REQUEST SESSION")
-        if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path:
+        if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
             if (not request.user.first_name or not request.user.last_name):
                 path_ft = reverse('first_time')
                 path_logout = reverse('accounts:logout')
