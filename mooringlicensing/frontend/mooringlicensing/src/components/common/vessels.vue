@@ -436,9 +436,48 @@ from '@/utils/hooks'
                     return this.vessel.vessel_ownership.company_ownership.company.name;
                 }
             },
-
+            vesselDetails: function() {
+                return this.vessel ? this.vessel.vessel_details : {};
+            },
+            vesselOwnership: function() {
+                return this.vessel ? this.vessel.vessel_ownership : {};
+            },
+            previousApplicationVesselDetails: function() {
+                return this.proposal ? this.proposal.previous_application_vessel_details_obj : {};
+            },
+            previousApplicationVesselOwnership: function() {
+                return this.proposal ? this.proposal.previous_application_vessel_ownership_obj : {};
+            },
         },
         methods:{
+            vesselChanged: async function() {
+                let vesselChanged = false;
+                await this.$nextTick(() => {
+                    if (this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim() ||
+                        this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
+                        this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
+                        this.vesselDetails.vessel_name.trim() !== this.previousApplicationVesselDetails.vessel_name.trim() |
+                        this.vesselDetails.vessel_type !== this.previousApplicationVesselDetails.vessel_type ||
+                        this.vesselDetails.vessel_name.weight != this.previousApplicationVesselDetails.vessel_name.weight ||
+                        this.vesselOwnership.percentage != this.previousApplicationVesselOwnership.percentage ||
+                        this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim()
+                    ) {
+                        vesselChanged = true;
+                    }
+                    // company ownership
+                    if (this.previousApplicationVesselOwnership.company_ownership) {
+                        if (this.vesselOwnership.individual_owner) {
+                            vesselChanged = true;
+                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
+                            this.previousApplicationVesselOwnership.company_ownership.percentage != this.vesselOwnership.company_ownership.company.percentage) {
+                            vesselChanged = true;
+                        }
+                    } else if (!this.previousApplicationVesselOwnership.company_ownership && !this.vesselOwnership.individual_owner) {
+                        vesselChanged = true;
+                    }
+                });
+                return vesselChanged;
+            },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
                 this.temporary_document_collection_id = temp_doc_id;
             },

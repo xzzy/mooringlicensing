@@ -156,7 +156,8 @@ export default {
       pBody: 'pBody',
       missing_fields: [],
       proposal_parks:null,
-        terms_and_conditions_checked: false,
+      terms_and_conditions_checked: false,
+      vesselChanged: false,
     }
   },
   components: {
@@ -171,6 +172,13 @@ export default {
       */
   },
   computed: {
+      autoRenew: function() {
+          let renew = false;
+          if (this.vesselChanged) {
+              renew = true;
+          }
+          return renew;
+      },
       submitterId: function() {
           let submitter = null;
           if (this.proposal && this.proposal.submitter && this.proposal.submitter.id) {
@@ -350,6 +358,8 @@ export default {
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
+            this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                 payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
@@ -376,6 +386,8 @@ export default {
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
+            this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
                 payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;
@@ -441,14 +453,18 @@ export default {
         console.log('in save_and_pay')
         try {
             const res = await this.save(false, this.proposal_submit_url);
-            if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
-                await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-            } else {
-                await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                //this.$router.push({
-                //    name: 'external-dashboard'
-                //});
-            }
+            this.$nextTick(async () => {
+                if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+                    await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                } else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                    await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
+                } else {
+                    await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    //this.$router.push({
+                    //    name: 'external-dashboard'
+                    //});
+                }
+            });
         } catch(err) {
             console.log(err)
             console.log(typeof(err.body))
@@ -667,43 +683,32 @@ export default {
     },
     submit: async function(){
         console.log('in submit()')
-        let vm = this;
-        //let formData = vm.set_formData()
-        /*
-        var missing_data= vm.can_submit();
-        if(missing_data!=true){
-          swal({
-            title: "Please fix following errors before submitting",
-            text: missing_data,
-            type:'error'
-          })
-          //vm.paySubmitting=false;
-          return false;
-        }
-        */
+        //let vm = this;
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
-        vm.submitting = true;
-        vm.paySubmitting=true;
+        this.submitting = true;
+        this.paySubmitting=true;
 
         try {
             await swal({
-                title: vm.submit_text() + " Application",
-                text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
+                title: this.submit_text() + " Application",
+                text: "Are you sure you want to " + this.submit_text().toLowerCase()+ " this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: vm.submit_text()
+                confirmButtonText: this.submit_text()
             })
         } catch (cancel) {
-            vm.submitting = false;
-            vm.paySubmitting=false;
+            this.submitting = false;
+            this.paySubmitting=false;
             return;
         }
 
-        if (!vm.proposal.fee_paid) {
-            await vm.save_and_pay()
+        if (!this.proposal.fee_paid) {
+            this.$nextTick(async () => {
+                await vm.save_and_pay();
+            });
         } else {
-            await vm.save_without_pay()
+            await vm.save_without_pay();
         }
     },
 
