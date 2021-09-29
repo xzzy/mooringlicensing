@@ -27,12 +27,10 @@ class CacheControlMiddleware(object):
     def process_response(self, request, response):
         #print("request.path")
         #print(request.path)
-        if request.path[:5] == '/api/':
+        if request.path[:5] == '/api/' or request.path == '/':
             response['Cache-Control'] = 'private, no-store'
         elif request.path[:8] == '/static/':
             response['Cache-Control'] = 'public, max-age=86400'
-        elif request.path[:1] == '/':
-            response['Cache-Control'] = 'private, no-store'
         return response
 
     #def __init__(self, get_response):
