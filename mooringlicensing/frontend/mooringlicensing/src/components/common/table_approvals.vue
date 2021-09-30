@@ -735,6 +735,7 @@ export default {
                 searching: true,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
+                    //"url": api_endpoints.approvals,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering

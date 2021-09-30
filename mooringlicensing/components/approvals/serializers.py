@@ -673,8 +673,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
-    mooring_licence_vessels = serializers.SerializerMethodField()
-    authorised_user_moorings = serializers.SerializerMethodField()
+    #mooring_licence_vessels = serializers.SerializerMethodField()
+    #authorised_user_moorings = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
     can_external_action = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
@@ -690,7 +690,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
-            'migrated',
+            #'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -709,18 +709,18 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_registration',
             'vessel_name',
             'wla_order',
-            'wla_queue_date',
+            #wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
-            'mooring_licence_vessels',
-            'authorised_user_moorings',
+            #'mooring_licence_vessels',
+            #'authorised_user_moorings',
             'can_reissue',
             'can_external_action',
             'can_action',
             'can_reinstate',
             'amend_or_renew',
             'renewal_document',
-            'renewal_sent',
+            #'renewal_sent',
             'allowed_assessors_user',
             'stickers',
             'licence_document',
@@ -731,7 +731,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
             'id',
-            'migrated',
+            #'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -750,18 +750,18 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_registration',
             'vessel_name',
             'wla_order',
-            'wla_queue_date',
+            #wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
-            'mooring_licence_vessels',
-            'authorised_user_moorings',
+            #'mooring_licence_vessels',
+            #'authorised_user_moorings',
             'can_reissue',
             'can_external_action',
             'can_action',
             'can_reinstate',
             'amend_or_renew',
             'renewal_document',
-            'renewal_sent',
+            #'renewal_sent',
             'allowed_assessors_user',
             'stickers',
             'licence_document',
