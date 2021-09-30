@@ -352,7 +352,7 @@ class ApplicationFeeView(TemplateView):
                 lines, db_processes_after_success = create_fee_lines(proposal)
 
                 request.session['db_processes'] = db_processes_after_success
-                request.session['auto_renew'] = request.POST.get('auto_renew')
+                request.session['auto_renew'] = request.POST.get('auto_renew', False)
                 checkout_response = checkout(
                     request,
                     proposal.submitter,
@@ -603,8 +603,9 @@ class ApplicationFeeSuccessView(TemplateView):
             db_operations = request.session['db_processes']
             del request.session['db_processes']
             # Retrieve auto_renew stored when calculating the fee, and delete
-            auto_renew = request.session['auto_renew']
-            del request.session['auto_renew']
+            auto_renew = request.session.get('auto_renew')
+            if request.session.get('auto_renew'):
+                del request.session['auto_renew']
 
             proposal = application_fee.proposal
             recipient = proposal.applicant_email
