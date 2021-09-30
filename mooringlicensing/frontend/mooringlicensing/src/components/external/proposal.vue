@@ -174,7 +174,7 @@ export default {
   computed: {
       autoRenew: function() {
           let renew = false;
-          if (this.vesselChanged) {
+          if (!this.vesselChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
               renew = true;
           }
           return renew;
@@ -358,9 +358,7 @@ export default {
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
-            if (this.proposal.proposal_type.code ==='renewal') {
-                this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
-            }
+            this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
             //console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
@@ -388,9 +386,7 @@ export default {
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
-            if (this.proposal.proposal_type.code ==='renewal') {
-                this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
-            }
+            this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
             //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
@@ -460,7 +456,8 @@ export default {
             this.$nextTick(async () => {
                 if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
                     await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                } else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                //} else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                } else if (this.autoRenew) {
                     await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
                 } else {
                     await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
