@@ -546,6 +546,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Proposal.objects.none()
 
+    @query_debugger
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page

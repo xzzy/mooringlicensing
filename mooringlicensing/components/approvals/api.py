@@ -19,7 +19,7 @@ from datetime import datetime
 from django.core.cache import cache
 from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
-from mooringlicensing.components.main.decorators import basic_exception_handler
+from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.models import FeeSeason
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
@@ -304,6 +304,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Approval.objects.none()
 
+    @query_debugger
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
