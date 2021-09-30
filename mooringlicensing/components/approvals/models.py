@@ -273,6 +273,28 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
+    def get_max_fee_item(self, fee_season):
+        max_fee_item = None
+        for proposal in self.proposal_set.all():
+            for fee_item in proposal.get_fee_items_paid(fee_season):
+                if not max_fee_item:
+                    max_fee_item = fee_item
+                else:
+                    if max_fee_item.get_absolute_amount() < fee_item.get_absolute_amount():
+                        max_fee_item = fee_item
+        return max_fee_item
+
+    def get_max_fee_item_additional_aa(self, fee_season):
+        max_fee_item = None
+        for proposal in self.proposal_set.all():
+            for fee_item in proposal.get_fee_items_paid_additional_aa(fee_season):
+                if not max_fee_item:
+                    max_fee_item = fee_item
+                else:
+                    if max_fee_item.get_absolute_amount() < fee_item.get_absolute_amount():
+                        max_fee_item = fee_item
+        return max_fee_item
+
     def get_licence_document_as_attachment(self):
         attachment = None
         if self.licence_document:
@@ -1066,30 +1088,6 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
-
-    @property
-    def max_fee_item(self):
-        max_fee_item = None
-        for proposal in self.proposal_set.all():
-            for fee_item in proposal.get_fee_items_paid():
-                if not max_fee_item:
-                    max_fee_item = fee_item
-                else:
-                    if max_fee_item.get_absolute_amount() < fee_item.get_absolute_amount():
-                        max_fee_item = fee_item
-        return max_fee_item
-
-    @property
-    def max_fee_item_additional_aa(self):
-        max_fee_item = None
-        for proposal in self.proposal_set.all():
-            for fee_item in proposal.get_fee_items_paid_additional_aa():
-                if not max_fee_item:
-                    max_fee_item = fee_item
-                else:
-                    if max_fee_item.get_absolute_amount() < fee_item.get_absolute_amount():
-                        max_fee_item = fee_item
-        return max_fee_item
 
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
