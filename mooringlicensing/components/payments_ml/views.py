@@ -349,7 +349,7 @@ class ApplicationFeeView(TemplateView):
             with transaction.atomic():
                 set_session_application_invoice(request.session, application_fee)
 
-                lines, db_processes_after_success = create_fee_lines(proposal)
+                lines, db_processes_after_success = proposal.child_obj.create_fee_lines()
 
                 request.session['db_processes'] = db_processes_after_success
                 request.session['auto_renew'] = request.POST.get('auto_renew', False)
