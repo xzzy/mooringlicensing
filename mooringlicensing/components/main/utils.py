@@ -11,12 +11,14 @@ from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
     MooringLicence, Approval
+from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
         MooringBay, 
         Mooring,
         StickerPrintingBatch
 )
+from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
@@ -504,4 +506,9 @@ def export_to_mooring_booking(approval_id):
         logger.error(str(e))
         raise e
 
-
+@query_debugger
+def test_list_approval_serializer(approval_id):
+    #import ipdb; ipdb.set_trace()
+    approval = Approval.objects.get(id=approval_id)
+    serializer = ListApprovalSerializer(approval)
+    return serializer.data

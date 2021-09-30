@@ -456,7 +456,10 @@ export default {
                                 if (vm.is_internal && vm.wlaDash) {
                                     links += full.offer_link;
                                 }
-                                if(vm.check_assessor(full)){
+                                //if(vm.check_assessor(full)){
+                                //if (full.allowed_assessors.includes(vm.profile.id)) {
+                                //if (full.allowed_assessors_user) {
+                                if (true) {
                                     if(full.can_reissue && full.can_action){
                                         links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
                                         links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
@@ -799,7 +802,7 @@ export default {
 
             })
         },
-
+        /*
         check_assessor: function(proposal){
             let vm = this;
             //console.log(proposal.id, proposal.can_approver_reissue);
@@ -817,6 +820,7 @@ export default {
 
             return false;
         },
+        */
 
         offerMooringLicence: function(id){
             console.log('offerMooringLicence')

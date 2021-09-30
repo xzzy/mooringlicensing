@@ -678,6 +678,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             #group = self.__assessor_group()
         return group.user_set.all() if group else []
 
+    def allowed_assessors_user(self, request):
+        if self.processing_status == 'with_approver':
+            group = self.__approver_group()
+        else:
+            group = self.__assessor_group()
+        #return True if request.user in group.user_set.select_related('emailuser').all() else False
+        return True if group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
+        #groups = request.user.select_related('groups').all()
+        #return True if group in groups else False
+
     #@property
     #def compliance_assessors(self):
     #    group = self.__assessor_group()
