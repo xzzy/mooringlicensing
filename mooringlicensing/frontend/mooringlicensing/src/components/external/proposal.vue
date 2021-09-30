@@ -15,7 +15,7 @@
                       <div class="panel-body collapse in" :id="pBody">
                         <div v-for="a in amendment_request">
                           <p>Reason: {{a.reason}}</p>
-                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>  
+                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>
                       </div>
                     </div>
                   </div>
@@ -36,8 +36,8 @@
             <ProposalEvent v-else-if="proposal && proposal.application_type==application_type_event" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_event"></ProposalEvent-->
             <WaitingListApplication
             v-if="proposal && proposal.application_type_code==='wla'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="waiting_list_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
@@ -46,8 +46,8 @@
 
             <AnnualAdmissionApplication
             v-if="proposal && proposal.application_type_code==='aaa'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="annual_admission_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
@@ -55,16 +55,16 @@
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="authorised_user_application"
             :readonly="readonly"
             :submitterId="submitterId"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="mooring_licence_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
@@ -85,7 +85,7 @@
                                         <p class="pull-right" style="margin-top:5px">
                                             <input type="checkbox" v-model="terms_and_conditions_checked" id="terms_and_conditions_checked" />
                                             <label for="terms_and_conditions_checked">
-                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc">RIA Terms and Conditions</a>
+                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc" target="_blank">RIA Terms and Conditions</a>
                                             </label>
 
                                             <button v-if="saveExitProposal || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
@@ -131,7 +131,7 @@ import WaitingListApplication from '../form_wla.vue';
 import AnnualAdmissionApplication from '../form_aaa.vue';
 import AuthorisedUserApplication from '../form_aua.vue';
 import MooringLicenceApplication from '../form_mla.vue';
-import Vue from 'vue' 
+import Vue from 'vue'
 import {
   api_endpoints,
   helpers
@@ -370,16 +370,16 @@ export default {
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
             if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
-                payload.proposal.keep_existing_mooring = 
+                payload.proposal.keep_existing_mooring =
                     !this.$refs.authorised_user_application.$refs.mooring_authorisation.change_mooring;
                 if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference) {
-                    payload.proposal.mooring_authorisation_preference = 
+                    payload.proposal.mooring_authorisation_preference =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
                 }
-                if (payload.proposal.mooring_authorisation_preference === 'ria') { 
-                    payload.proposal.bay_preferences_numbered = 
+                if (payload.proposal.mooring_authorisation_preference === 'ria') {
+                    payload.proposal.bay_preferences_numbered =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
-                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') { 
+                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') {
                     payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
                     payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
@@ -512,10 +512,10 @@ export default {
 
     setAmendmentData: function(amendment_request){
       this.amendment_request = amendment_request;
-      
+
       if (amendment_request.length > 0)
         this.hasAmendmentRequest = true;
-        
+
     },
 
     splitText: function(aText){
@@ -536,7 +536,7 @@ export default {
         return null;
       }
     },
-    
+
     highlight_missing_fields: function(){
         let vm = this;
         for (var missing_field of vm.missing_fields) {
@@ -714,7 +714,7 @@ export default {
     },
 
     post_and_redirect: function(url, postData) {
-        /* http.post and ajax do not allow redirect from Django View (post method), 
+        /* http.post and ajax do not allow redirect from Django View (post method),
            this function allows redirect by mimicking a form submit.
 
            usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
@@ -747,12 +747,12 @@ export default {
   mounted: function() {
     let vm = this;
     vm.form = document.forms.new_proposal;
-      /* uncomment later - too annoying while making front end changes 
+      /* uncomment later - too annoying while making front end changes
     window.addEventListener('beforeunload', vm.leaving);
     window.addEventListener('onblur', vm.leaving);
     */
   },
-  
+
 
   beforeRouteEnter: function(to, from, next) {
     if (to.params.proposal_id) {
@@ -768,7 +768,7 @@ export default {
             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
                       vm.setAmendmentData(res.body);
                 },
-              err => { 
+              err => {
                         console.log(err);
                   });
               */
