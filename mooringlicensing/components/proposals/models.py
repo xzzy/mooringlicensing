@@ -2683,6 +2683,10 @@ class MooringLicenceApplication(Proposal):
         from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
 
         # TODO: Check if adjusting is required or not.  For example, it is not required when adding a new vessel
+        if self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            if self.vessel_details in self.approval.vessel_details_list_for_payment:
+                pass
+                # Adjust amount
 
         return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
 
