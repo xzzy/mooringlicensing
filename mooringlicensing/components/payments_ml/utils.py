@@ -209,6 +209,8 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
         raise Exception(msg)
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+
+    # Only for ML, there can be multiple fee_item_for_aa, because multiple vessels can be attached to the ML.
     fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_for_aa else None
 
     fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)

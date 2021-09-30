@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import json
 import datetime
+from _pydecimal import Decimal
+
 import pytz
 import uuid
 from ledger.settings_base import TIME_ZONE
@@ -2060,6 +2062,77 @@ class AnnualAdmissionApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
+        """
+        Create the ledger lines - line item for application fee sent to payment system
+        """
+        from mooringlicensing.components.payments_ml.models import FeeConstructor
+        from mooringlicensing.components.payments_ml.utils import generate_line_item
+        logger.info('Creating fee lines for the proposal: {}'.format(instance.lodgement_number))
+
+        # Any changes to the DB should be made after the success of payment process
+        db_processes_after_success = {}
+        accept_null_vessel = False
+
+        application_type = instance.application_type
+
+        if instance.vessel_details:
+            vessel_length = instance.vessel_details.vessel_applicable_length
+        else:
+            # No vessel specified in the application
+            if instance.child_obj.does_accept_null_vessel:
+                # For the amendment application or the renewal application, vessel field can be blank when submit.
+                vessel_length = -1
+                accept_null_vessel = True
+            else:
+                msg = 'No vessel specified for the application {}'.format(instance.lodgement_number)
+                logger.error(msg)
+                raise Exception(msg)
+        proposal_type = instance.proposal_type
+
+        current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+        current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+        target_date = instance.get_target_date(current_datetime.date())
+        annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
+
+        # Retrieve FeeItem object from FeeConstructor object
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type,
+                                                                                          target_date)
+        if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
+            # There is also annual admission fee component for the AUA/MLA.
+            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(
+                annual_admission_type, target_date)
+            if not fee_constructor_for_aa:
+                # Fees have not been configured for the annual admission application and date
+                msg = 'FeeConstructor object for the Annual Admission Application not found for the date: {} for the application: {}'.format(
+                    target_date, instance.lodgement_number)
+                logger.error(msg)
+                raise Exception(msg)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            msg = 'FeeConstructor object for the ApplicationType: {} not found for the date: {} for the application: {}'.format(
+                application_type, target_date, instance.lodgement_number)
+            logger.error(msg)
+            raise Exception(msg)
+
+        fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date,
+                                                accept_null_vessel=accept_null_vessel)
+
+        fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)
+
+        db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
+        db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
+        db_processes_after_success['datetime_for_calculating_fee'] = current_datetime_str
+        db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
+
+        line_items = []
+        line_items.append(
+            generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime))
+
+        logger.info('{}'.format(line_items))
+
+        return line_items, db_processes_after_success
+
     @property
     def assessor_group(self):
         return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
@@ -2123,9 +2196,76 @@ class AnnualAdmissionApplication(Proposal):
             return True
         return False
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
-        from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
-        return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
+    # def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length):
+    #     from mooringlicensing.components.proposals.utils import get_fee_amount_adjusted
+    #     return get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length)
+
+    def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
+        """
+        Retrieve all the fee_items for this vessel
+        """
+        from mooringlicensing.components.approvals.models import Approval
+
+        if fee_item_being_applied:
+            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+
+            if proposal.proposal_type.code not in (PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL):
+                # When this application is either new or renewal, no need to adjust the amount
+                logger.info('Adjusting the fee amount for proposal: {}, fee_item: {}, vessel_length: {}'.format(
+                    proposal.lodgement_number, fee_item_being_applied, vessel_length
+                ))
+
+                # Retrieve all the fee items paid for this vessel (through proposal.vessel_ownership)
+                fee_items_already_paid = proposal.vessel_ownership.get_fee_items_paid()
+                if proposal.approval and proposal.approval.status in (
+                        Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+                    # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
+                    for item in proposal.approval.get_fee_items():
+                        if item not in fee_items_already_paid:
+                            fee_items_already_paid.append(item)
+
+                if fee_item_being_applied in fee_items_already_paid:
+                    # Fee item being applied has been paid already
+                    # We don't charge this fee_item_being_applied
+                    return Decimal('0.0')
+                else:
+                    for fee_item in fee_items_already_paid:
+                        if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and \
+                                fee_item.fee_constructor.application_type == fee_item_being_applied.fee_constructor.application_type:
+                            # Found fee_item which has the same fee_season and the same application_type of fee_item_being_applied
+                            # This fee_item's fee_period and vessel_size_category might be different from those of the fee_item_being_applied
+
+                            if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
+                                # Find the fee_item which can be considered as already paid for this period
+                                target_fee_period = fee_item_being_applied.fee_period
+                                target_proposal_type = fee_item_being_applied.proposal_type
+                                target_vessel_size_category = fee_item.vessel_size_category
+
+                                target_fee_constructor = fee_item_being_applied.fee_constructor
+                                fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+                                    target_vessel_size_category,
+                                    target_fee_period,
+                                    proposal_type=target_proposal_type,
+                                    # Find the fee_item with same proposal type (always 'amendment')
+                                    age_group=None,
+                                    admission_type=None
+                                )
+
+                                # Applicant already partially paid for this fee item.  Deduct it.
+                                # fee_amount_adjusted -= fee_item_considered_paid.amount
+                                if fee_item_considered_paid:
+                                    fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+                                    logger.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+
+                fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
+        else:
+            if proposal.does_accept_null_vessel:
+                # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+                fee_amount_adjusted = 0
+            else:
+                raise Exception('FeeItem not found.')
+
+        return fee_amount_adjusted
 
     def does_have_valid_associations(self):
         """
