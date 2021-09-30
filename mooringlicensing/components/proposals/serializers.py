@@ -347,12 +347,12 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         read_only_fields=('documents',)
 
     def get_previous_application_vessel_details_obj(self, obj):
-        if (type(obj.child_obj) == AuthorisedUserApplication and obj.previous_application and 
+        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
                 obj.previous_application.vessel_details and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
             return VesselDetailsSerializer(obj.previous_application.vessel_details).data
 
     def get_previous_application_vessel_ownership_obj(self, obj):
-        if (type(obj.child_obj) == AuthorisedUserApplication and obj.previous_application and 
+        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
                 obj.previous_application.vessel_ownership and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
             return VesselOwnershipSerializer(obj.previous_application.vessel_ownership).data
 
