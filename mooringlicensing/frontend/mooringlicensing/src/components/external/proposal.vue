@@ -174,7 +174,7 @@ export default {
   computed: {
       autoRenew: function() {
           let renew = false;
-          if (this.vesselChanged) {
+          if (!this.vesselChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
               renew = true;
           }
           return renew;
@@ -456,7 +456,8 @@ export default {
             this.$nextTick(async () => {
                 if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
                     await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                } else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                //} else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                } else if (this.autoRenew) {
                     await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
                 } else {
                     await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
@@ -705,10 +706,10 @@ export default {
 
         if (!this.proposal.fee_paid) {
             this.$nextTick(async () => {
-                await vm.save_and_pay();
+                await this.save_and_pay();
             });
         } else {
-            await vm.save_without_pay();
+            await this.save_without_pay();
         }
     },
 

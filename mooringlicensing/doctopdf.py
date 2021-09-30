@@ -113,7 +113,7 @@ def create_approval_doc_bytes(approval):
 
     # Rendering
     doc = DocxTemplate(path_to_template)
-    context = approval.get_context_for_licence_permit()
+    context = approval.child_obj.get_context_for_licence_permit()
     doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
