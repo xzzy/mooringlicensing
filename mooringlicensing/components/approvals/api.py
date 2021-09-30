@@ -125,10 +125,13 @@ class GetApprovalTypeDict(views.APIView):
         include_codes = request.GET.get('include_codes', '')
         include_codes = include_codes.split(',')
         #types = Approval.approval_types_dict(include_codes)
-        data = cache.get('approval_type_dict')
+        cache_title = 'approval_type_dict'
+        for code in include_codes:
+            cache_title += '_' + code
+        data = cache.get(cache_title)
         if not data:
-            cache.set('approval_type_dict',Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
-            data = cache.get('approval_type_dict')
+            cache.set(cache_title, Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get(cache_title)
         return Response(data)
         #return Response(types)
 
