@@ -281,7 +281,7 @@ def send_approver_approve_decline_email_notification(request, proposal):
         'public_url': get_public_url(request),
         # 'start_date' : proposal.proposed_issuance_approval.get('start_date'),
         # 'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
-        'details': proposal.proposed_issuance_approval.get('details'),
+        'details': proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else '',
         'proposal': proposal,
         # 'recipient': proposal.submitter,
         'proposal_internal_url': url
@@ -1244,8 +1244,8 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
             all_ccs = cc_list.split(',')
     elif decision == 'approved_paid':
         subject = 'Approved: Application for Rottnest Island Mooring Site Licence'
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attachments = get_attachments(True, True, proposal)
