@@ -8,13 +8,14 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from rest_framework import viewsets, serializers, generics, views
+from rest_framework import viewsets, serializers, generics, views, status
 from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from ledger.settings_base import TIME_ZONE
 from datetime import datetime
+from collections import OrderedDict
 
 from django.core.cache import cache
 from mooringlicensing import forms
@@ -199,6 +200,7 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
 
 
 class ApprovalFilterBackend(DatatablesFilterBackend):
+    @query_debugger
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
         # status filter
@@ -252,11 +254,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
             filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
             queryset = queryset.filter(id__in=filtered_ids)
 
-        ## Filter by status
-        #filter_approval_status = request.GET.get('filter_approval_status')
-        #if filter_approval_status and not filter_approval_status.lower() == 'all':
-        #    queryset = queryset.filter(status=filter_approval_status)
-
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
@@ -264,6 +261,78 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         if len(ordering):
             queryset = queryset.order_by(*ordering)
 
+        try:
+            queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+            print(e)
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+    @query_debugger
+    def bak_filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+        filter_query = Q()
+        # status filter
+        filter_status = request.GET.get('filter_status')
+        if filter_status and not filter_status.lower() == 'all':
+            #queryset = queryset.filter(status=filter_status)
+            filter_query &= Q(status=filter_status)
+        # mooring bay filter
+        filter_mooring_bay_id = request.GET.get('filter_mooring_bay_id')
+        if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
+            #queryset = queryset.filter(current_proposal__preferred_bay__id=filter_mooring_bay_id)
+            filter_query &= Q(current_proposal__preferred_bay__id=filter_mooring_bay_id)
+        # holder id filter
+        filter_holder_id = request.GET.get('filter_holder_id')
+        if filter_holder_id and not filter_holder_id.lower() == 'all':
+            #queryset = queryset.filter(submitter__id=filter_holder_id)
+            filter_query &= Q(submitter__id=filter_holder_id)
+        # max vessel length
+        max_vessel_length = request.GET.get('max_vessel_length')
+        if max_vessel_length:
+            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
+            #queryset = queryset.filter(id__in=filtered_ids)
+            filter_query &= Q(id__in=filtered_ids)
+        # max vessel draft
+        max_vessel_draft = request.GET.get('max_vessel_draft')
+        if max_vessel_draft:
+            #queryset = queryset.filter(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
+            filter_query &= Q(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
+
+        # Filter by approval types (wla, aap, aup, ml)
+        filter_approval_type = request.GET.get('filter_approval_type')
+        #import ipdb; ipdb.set_trace()
+        if filter_approval_type and not filter_approval_type.lower() == 'all':
+            filter_approval_type_list = filter_approval_type.split(',')
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
+            #queryset = queryset.filter(id__in=filtered_ids)
+            filter_query &= Q(id__in=filtered_ids)
+        # Show/Hide expired and/or surrendered
+        show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
+        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
+        external_waiting_list = request.GET.get('external_waiting_list')
+        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
+        if external_waiting_list and not show_expired_surrendered:
+                #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
+                filter_query &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
+
+        #print(queryset)
+        # approval types filter2 - Licences dash only (excludes wla)
+        filter_approval_type2 = request.GET.get('filter_approval_type2')
+        #import ipdb; ipdb.set_trace()
+        if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
+            #filter_approval_type_list = filter_approval_type.split(',')
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
+            #queryset = queryset.filter(id__in=filtered_ids)
+            filter_query &= Q(id__in=filtered_ids)
+
+        queryset = queryset.filter(filter_query)
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
         try:
             queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
         except Exception as e:
@@ -304,7 +373,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Approval.objects.none()
 
-    @query_debugger
+    #@query_debugger
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
@@ -321,53 +390,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
-    # def get_queryset(self):
-    #     request_user = self.request.user
-    #
-    #     # Filter by Type(s) according to the tables
-    #     filter_approval_types = self.request.GET.get('filter_approval_types', '')
-    #     filter_approval_types = filter_approval_types.split(',')
-    #     q = Q()
-    #     for filter_approval_type in filter_approval_types:
-    #         if filter_approval_type:
-    #             for item in Approval.__subclasses__():
-    #                 if hasattr(item, 'code') and item.code == filter_approval_type:
-    #                     lookup = "{}__isnull".format(item._meta.model_name)
-    #                     q |= Q(**{lookup: False})
-    #     qs = Approval.objects.all()
-    #     qs = qs.filter(q).order_by('-id') if q else Approval.objects.none()
-    #
-    #     if is_internal(self.request):
-    #         return qs.all()
-    #     elif is_customer(self.request):
-    #         # Filter by to_be_endorsed
-    #         filter_by_endorsement = self.request.GET.get('filter_by_endorsement', 'false')
-    #         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
-    #         if filter_by_endorsement:
-    #             #
-    #             qs = qs.filter(authoriseduserpermit__endorsed_by=request_user)
-    #         else:
-    #             qs = qs.filter(Q(submitter=request_user))  # Not sure if the submitter is the licence holder
-    #         return qs
-    #     return qs
-    #
-    # # @list_route(methods=['GET',])
-    # def list(self, request, *args, **kwargs):
-    #     """
-    #     User is accessing /external/ page
-    #     """
-    #     qs = self.get_queryset()
-    #     qs = self.filter_queryset(qs)
-    #     # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
-    #     # applicant_id = request.GET.get('org_id')
-    #     # if applicant_id:
-    #     #     qs = qs.filter(applicant_id=applicant_id)
-    #
-    #     self.paginator.page_size = qs.count()
-    #     result_page = self.paginator.paginate_queryset(qs, request)
-    #     serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
-    #     return self.paginator.get_paginated_response(serializer.data)
-
 
 class ApprovalViewSet(viewsets.ModelViewSet):
     #queryset = Approval.objects.all()
@@ -383,59 +405,113 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return queryset
         return Approval.objects.none()
 
+    #def list(self, request, *args, **kwargs):
+    #    #queryset = self.get_queryset()
+    #    queryset = self.get_queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
+    #    # Filter by org
+    #    org_id = request.GET.get('org_id',None)
+    #    if org_id:
+    #        queryset = queryset.filter(org_applicant_id=org_id)
+    #    submitter_id = request.GET.get('submitter_id', None)
+    #    if submitter_id:
+    #        qs = qs.filter(submitter_id=submitter_id)
+    #    serializer = self.get_serializer(queryset, many=True)
+    #    return Response(serializer.data)
+
+    @query_debugger
+    def filter_queryset(self, request, queryset):
+        total_count = queryset.count()
+        # status filter
+        filter_status = request.GET.get('filter_status')
+        if filter_status and not filter_status.lower() == 'all':
+            queryset = queryset.filter(status=filter_status)
+        # mooring bay filter
+        filter_mooring_bay_id = request.GET.get('filter_mooring_bay_id')
+        if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
+            queryset = queryset.filter(current_proposal__preferred_bay__id=filter_mooring_bay_id)
+        # holder id filter
+        filter_holder_id = request.GET.get('filter_holder_id')
+        if filter_holder_id and not filter_holder_id.lower() == 'all':
+            queryset = queryset.filter(submitter__id=filter_holder_id)
+        # max vessel length
+        max_vessel_length = request.GET.get('max_vessel_length')
+        if max_vessel_length:
+            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
+            queryset = queryset.filter(id__in=filtered_ids)
+        # max vessel draft
+        max_vessel_draft = request.GET.get('max_vessel_draft')
+        if max_vessel_draft:
+            queryset = queryset.filter(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
+            #filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_draft <= max_vessel_draft]
+            #queryset = queryset.filter(id__in=filtered_ids)
+
+        # Filter by approval types (wla, aap, aup, ml)
+        filter_approval_type = request.GET.get('filter_approval_type')
+        #import ipdb; ipdb.set_trace()
+        if filter_approval_type and not filter_approval_type.lower() == 'all':
+            filter_approval_type_list = filter_approval_type.split(',')
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
+            queryset = queryset.filter(id__in=filtered_ids)
+        # Show/Hide expired and/or surrendered
+        show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
+        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
+        external_waiting_list = request.GET.get('external_waiting_list')
+        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
+        if external_waiting_list and not show_expired_surrendered:
+                #print("external")
+                #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
+                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
+                #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
+
+        #print(queryset)
+        # approval types filter2 - Licences dash only (excludes wla)
+        filter_approval_type2 = request.GET.get('filter_approval_type2')
+        #import ipdb; ipdb.set_trace()
+        if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
+            #filter_approval_type_list = filter_approval_type.split(',')
+            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
+            queryset = queryset.filter(id__in=filtered_ids)
+
+        #getter = request.query_params.get
+        #fields = self.get_fields(getter)
+        #ordering = self.get_ordering(getter, fields)
+        #queryset = queryset.order_by(*ordering)
+        #if len(ordering):
+         #   queryset = queryset.order_by(*ordering)
+
+        #try:
+        #    queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+        #except Exception as e:
+        #    print(e)
+        #setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
     def list(self, request, *args, **kwargs):
-        #queryset = self.get_queryset()
-        queryset = self.get_queryset().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
-        # Filter by org
-        org_id = request.GET.get('org_id',None)
-        if org_id:
-            queryset = queryset.filter(org_applicant_id=org_id)
-        submitter_id = request.GET.get('submitter_id', None)
-        if submitter_id:
-            qs = qs.filter(submitter_id=submitter_id)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    #@list_route(methods=['GET',])
-    #@basic_exception_handler
-    #def existing_licences(self, request, *args, **kwargs):
-    #    existing_licences = []
-    #    l_list = Approval.objects.filter(
-    #            submitter=request.user,
-    #            status='current',
-    #            )
-    #    for l in l_list:
-    #        lchild = l.child_obj
-    #        # mooring text required?
-    #        if type(lchild) == MooringLicence:
-    #            if Mooring.objects.filter(mooring_licence=lchild):
-    #                mooring = Mooring.objects.filter(mooring_licence=lchild)[0]
-    #                existing_licences.append({
-    #                    "approval_id": lchild.id,
-    #                    "current_proposal_id": lchild.current_proposal.id,
-    #                    "lodgement_number": lchild.lodgement_number,
-    #                    #"mooring": mooring.name,
-    #                    "mooring_id": mooring.id,
-    #                    #"app_type_code": lchild.code,
-    #                    #"code": 'ml_{}'.format(lchild.id),
-    #                    "code": lchild.code,
-    #                    "description": lchild.description,
-    #                    #"new_application_text": "I want to add a vessel to Mooring Licence {} on mooring {}".format(lchild.lodgement_number, mooring.name)
-    #                    "new_application_text": "I want to amend or renew my current mooring licence {}".format(lchild.lodgement_number)
-    #                    })
-    #        else:
-    #            existing_licences.append({
-    #                "approval_id": lchild.id,
-    #                "lodgement_number": lchild.lodgement_number,
-    #                "current_proposal_id": lchild.current_proposal.id,
-    #                #"lodgement_number": ml.lodgement_number,
-    #                "code": lchild.code,
-    #                "description": lchild.description,
-    #                "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
-    #                })
-
-
-    #    return Response(existing_licences)
+        #import ipdb; ipdb.set_trace()
+        draw = request.GET.get('draw') if request.GET.get('draw') else None
+        start = request.GET.get('start') if request.GET.get('draw') else 1
+        length = request.GET.get('length') if request.GET.get('draw') else 'all'
+        recordFilteredCount = 0
+        rowcount = 0
+        rowcountend = 0
+        if length != 'all': 
+            rowcountend = int(start) + int(length)
+        #queryset = self.get_queryset().filter(lodgement_number="WLA000062")
+        queryset = self.get_queryset()
+        queryset = self.filter_queryset(request, queryset)
+        serializer = ListApprovalSerializer(queryset, many=True)
+        #serializer_data = JSONRenderer().render(serializer.data)
+        #return Response(serializer.data)
+        #return Response(OrderedDict([
+        #    ('recordsTotal', recordsTotal),
+        #    ('recordsFiltered',recordsFiltered),
+        #    ('results',booking_data)
+        #]),status=status.HTTP_200_OK)
+        return Response(OrderedDict([
+            ('recordsTotal', 1),
+            ('recordsFiltered',1),
+            ('data',serializer.data)
+        ]),status=status.HTTP_200_OK)
 
     @list_route(methods=['GET',])
     @basic_exception_handler

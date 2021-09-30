@@ -460,6 +460,7 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
 
 
 class ProposalFilterBackend(DatatablesFilterBackend):
+    @query_debugger
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
