@@ -458,8 +458,8 @@ export default {
                                 }
                                 //if(vm.check_assessor(full)){
                                 //if (full.allowed_assessors.includes(vm.profile.id)) {
-                                //if (full.allowed_assessors_user) {
-                                if (true) {
+                                if (full.allowed_assessors_user) {
+                                //if (true) {
                                     if(full.can_reissue && full.can_action){
                                         links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
                                         links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
