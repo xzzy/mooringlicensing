@@ -1121,6 +1121,7 @@ class AuthorisedUserPermit(Approval):
             'vessel_rego_no': self.current_proposal.vessel_details.vessel.rego_no,
             'vessel_name': self.current_proposal.vessel_details.vessel_name,
             'vessel_length': self.current_proposal.vessel_details.vessel_applicable_length,
+            'vessel_draft': self.current_proposal.vessel_details.vessel_draft,
             'moorings': moorings,  # m.name, m.licensee_full_name, m.licensee_email, m.licensee_phone
             'expiry_date': self.expiry_date.strftime('%d/%m/%Y')
         }
