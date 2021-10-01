@@ -92,7 +92,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Expiry Date</label>
                             <div class="col-sm-3">
-                                <label for="" class="control-label pull-left">{{approval.expiry_date | formatDate}}</label>
+                                <label for="" class="control-label pull-left">{{approval.expiry_date_str}}</label>
                             </div>
 
                           </div>
