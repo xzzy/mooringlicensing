@@ -330,6 +330,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'approval_type_dict',
             'issue_date',
             'holder',
+            'start_date',
+            'issue_date',
+            'expiry_date',
             'issue_date_str',
             'expiry_date_str',
             'vessel_length',
@@ -690,7 +693,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
-            #'migrated',
+            'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -731,7 +734,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
             'id',
-            #'migrated',
+            'migrated',
             'lodgement_number',
             'status',
             'internal_status',
