@@ -460,43 +460,67 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
 
 
 class ProposalFilterBackend(DatatablesFilterBackend):
+    #@query_debugger
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
         level = request.GET.get('level', 'external')  # Check where the request comes from
+        filter_query = Q()
+
+        mla_list = MooringLicenceApplication.objects.all()
+        aua_list = AuthorisedUserApplication.objects.all()
+        aaa_list = AnnualAdmissionApplication.objects.all()
+        wla_list = WaitingListApplication.objects.all()
 
         filter_application_type = request.GET.get('filter_application_type')
+        #import ipdb; ipdb.set_trace()
         if filter_application_type and not filter_application_type.lower() == 'all':
-            q = None
-            for item in Proposal.__subclasses__():
-                if hasattr(item, 'code') and item.code == filter_application_type:
-                    lookup = "{}__isnull".format(item._meta.model_name)
-                    q = Q(**{lookup: False})
-                    break
-            queryset = queryset.filter(q) if q else queryset
+            if filter_application_type == 'mla':
+                filter_query &= Q(id__in=mla_list)
+            elif filter_application_type == 'aua':
+                filter_query &= Q(id__in=aua_list)
+            elif filter_application_type == 'aaa':
+                filter_query &= Q(id__in=aaa_list)
+            elif filter_application_type == 'wla':
+                filter_query &= Q(id__in=wla_list)
+
+            #q = None
+            #for item in Proposal.__subclasses__():
+            #    if hasattr(item, 'code') and item.code == filter_application_type:
+            #        lookup = "{}__isnull".format(item._meta.model_name)
+            #        q = Q(**{lookup: False})
+            #        break
+            #queryset = queryset.filter(q) if q else queryset
 
         filter_application_status = request.GET.get('filter_application_status')
         if filter_application_status and not filter_application_status.lower() == 'all':
             if level == 'internal':
-                queryset = queryset.filter(processing_status=filter_application_status)
+                #queryset = queryset.filter(processing_status=filter_application_status)
+                filter_query &= Q(processing_status=filter_application_status)
             else:
-                queryset = queryset.filter(customer_status=filter_application_status)
+                #queryset = queryset.filter(customer_status=filter_application_status)
+                filter_query &= Q(customer_status=filter_application_status)
 
         filter_applicant_id = request.GET.get('filter_applicant')
         if filter_applicant_id and not filter_applicant_id.lower() == 'all':
-            queryset = queryset.filter(submitter__id=filter_applicant_id)
+            #queryset = queryset.filter(submitter__id=filter_applicant_id)
+            filter_query &= Q(submitter__id=filter_applicant_id)
 
         # Filter by endorsement
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
-            queryset = queryset.filter(site_licensee_email=request.user.email)
+            #queryset = queryset.filter(site_licensee_email=request.user.email)
+            filter_query &= Q(site_licensee_email=request.user.email)
         else:
-            queryset = queryset.exclude(site_licensee_email=request.user.email)
+            #queryset = queryset.exclude(site_licensee_email=request.user.email)
+            filter_query &= ~Q(site_licensee_email=request.user.email)
         # don't show discarded applications
         if not level == 'internal':
-            queryset = queryset.exclude(customer_status='discarded')
+            #queryset = queryset.exclude(customer_status='discarded')
+            filter_query &= ~Q(customer_status='discarded')
 
+        queryset = queryset.filter(filter_query)
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
@@ -546,6 +570,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Proposal.objects.none()
 
+    #@query_debugger
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
