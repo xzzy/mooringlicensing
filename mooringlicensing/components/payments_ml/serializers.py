@@ -8,6 +8,7 @@ from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstru
 
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
+    dcv_vessel_id = serializers.IntegerField(required=True)
 
     class Meta:
         model = DcvAdmission
@@ -17,6 +18,7 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             'submitter',
             'skipper',
             'contact_number',
+            'dcv_vessel_id',
         )
         read_only_fields = (
             'id',

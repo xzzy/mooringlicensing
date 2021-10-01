@@ -30,6 +30,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication,
 )
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
@@ -254,6 +255,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     approval_vessel_rego_no = serializers.SerializerMethodField()
     waiting_list_application_id = serializers.SerializerMethodField()
     authorised_user_moorings_str = serializers.SerializerMethodField()
+    previous_application_vessel_details_obj = serializers.SerializerMethodField()
+    previous_application_vessel_ownership_obj = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -338,8 +341,20 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'waiting_list_application_id',
                 'authorised_user_moorings_str',
                 'temporary_document_collection_id',
+                'previous_application_vessel_details_obj',
+                'previous_application_vessel_ownership_obj',
                 )
         read_only_fields=('documents',)
+
+    def get_previous_application_vessel_details_obj(self, obj):
+        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
+                obj.previous_application.vessel_details and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+            return VesselDetailsSerializer(obj.previous_application.vessel_details).data
+
+    def get_previous_application_vessel_ownership_obj(self, obj):
+        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
+                obj.previous_application.vessel_ownership and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+            return VesselOwnershipSerializer(obj.previous_application.vessel_ownership).data
 
     def get_authorised_user_moorings_str(self, obj):
         moorings_str = ''

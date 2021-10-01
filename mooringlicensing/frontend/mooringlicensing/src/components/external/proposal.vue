@@ -15,7 +15,7 @@
                       <div class="panel-body collapse in" :id="pBody">
                         <div v-for="a in amendment_request">
                           <p>Reason: {{a.reason}}</p>
-                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>  
+                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>
                       </div>
                     </div>
                   </div>
@@ -36,8 +36,8 @@
             <ProposalEvent v-else-if="proposal && proposal.application_type==application_type_event" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_event"></ProposalEvent-->
             <WaitingListApplication
             v-if="proposal && proposal.application_type_code==='wla'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="waiting_list_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
@@ -46,8 +46,8 @@
 
             <AnnualAdmissionApplication
             v-if="proposal && proposal.application_type_code==='aaa'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="annual_admission_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
@@ -55,16 +55,16 @@
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="authorised_user_application"
             :readonly="readonly"
             :submitterId="submitterId"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="mooring_licence_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
@@ -85,7 +85,7 @@
                                         <p class="pull-right" style="margin-top:5px">
                                             <input type="checkbox" v-model="terms_and_conditions_checked" id="terms_and_conditions_checked" />
                                             <label for="terms_and_conditions_checked">
-                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc">RIA Terms and Conditions</a>
+                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc" target="_blank">RIA Terms and Conditions</a>
                                             </label>
 
                                             <button v-if="saveExitProposal || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
@@ -131,7 +131,7 @@ import WaitingListApplication from '../form_wla.vue';
 import AnnualAdmissionApplication from '../form_aaa.vue';
 import AuthorisedUserApplication from '../form_aua.vue';
 import MooringLicenceApplication from '../form_mla.vue';
-import Vue from 'vue' 
+import Vue from 'vue'
 import {
   api_endpoints,
   helpers
@@ -156,7 +156,8 @@ export default {
       pBody: 'pBody',
       missing_fields: [],
       proposal_parks:null,
-        terms_and_conditions_checked: false,
+      terms_and_conditions_checked: false,
+      vesselChanged: false,
     }
   },
   components: {
@@ -171,6 +172,13 @@ export default {
       */
   },
   computed: {
+      autoRenew: function() {
+          let renew = false;
+          if (!this.vesselChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
+              renew = true;
+          }
+          return renew;
+      },
       submitterId: function() {
           let submitter = null;
           if (this.proposal && this.proposal.submitter && this.proposal.submitter.id) {
@@ -350,6 +358,8 @@ export default {
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
+            this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                 payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
@@ -360,22 +370,24 @@ export default {
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
             if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
-                payload.proposal.keep_existing_mooring = 
+                payload.proposal.keep_existing_mooring =
                     !this.$refs.authorised_user_application.$refs.mooring_authorisation.change_mooring;
                 if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference) {
-                    payload.proposal.mooring_authorisation_preference = 
+                    payload.proposal.mooring_authorisation_preference =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
                 }
-                if (payload.proposal.mooring_authorisation_preference === 'ria') { 
-                    payload.proposal.bay_preferences_numbered = 
+                if (payload.proposal.mooring_authorisation_preference === 'ria') {
+                    payload.proposal.bay_preferences_numbered =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
-                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') { 
+                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') {
                     payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
                     payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
+            this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
                 payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;
@@ -441,14 +453,19 @@ export default {
         console.log('in save_and_pay')
         try {
             const res = await this.save(false, this.proposal_submit_url);
-            if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
-                await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-            } else {
-                await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                //this.$router.push({
-                //    name: 'external-dashboard'
-                //});
-            }
+            this.$nextTick(async () => {
+                if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+                    await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                //} else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                } else if (this.autoRenew) {
+                    await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
+                } else {
+                    await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    //this.$router.push({
+                    //    name: 'external-dashboard'
+                    //});
+                }
+            });
         } catch(err) {
             console.log(err)
             console.log(typeof(err.body))
@@ -495,10 +512,10 @@ export default {
 
     setAmendmentData: function(amendment_request){
       this.amendment_request = amendment_request;
-      
+
       if (amendment_request.length > 0)
         this.hasAmendmentRequest = true;
-        
+
     },
 
     splitText: function(aText){
@@ -519,7 +536,7 @@ export default {
         return null;
       }
     },
-    
+
     highlight_missing_fields: function(){
         let vm = this;
         for (var missing_field of vm.missing_fields) {
@@ -667,48 +684,37 @@ export default {
     },
     submit: async function(){
         console.log('in submit()')
-        let vm = this;
-        //let formData = vm.set_formData()
-        /*
-        var missing_data= vm.can_submit();
-        if(missing_data!=true){
-          swal({
-            title: "Please fix following errors before submitting",
-            text: missing_data,
-            type:'error'
-          })
-          //vm.paySubmitting=false;
-          return false;
-        }
-        */
+        //let vm = this;
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
-        vm.submitting = true;
-        vm.paySubmitting=true;
+        this.submitting = true;
+        this.paySubmitting=true;
 
         try {
             await swal({
-                title: vm.submit_text() + " Application",
-                text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
+                title: this.submit_text() + " Application",
+                text: "Are you sure you want to " + this.submit_text().toLowerCase()+ " this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: vm.submit_text()
+                confirmButtonText: this.submit_text()
             })
         } catch (cancel) {
-            vm.submitting = false;
-            vm.paySubmitting=false;
+            this.submitting = false;
+            this.paySubmitting=false;
             return;
         }
 
-        if (!vm.proposal.fee_paid) {
-            await vm.save_and_pay()
+        if (!this.proposal.fee_paid) {
+            this.$nextTick(async () => {
+                await this.save_and_pay();
+            });
         } else {
-            await vm.save_without_pay()
+            await this.save_without_pay();
         }
     },
 
     post_and_redirect: function(url, postData) {
-        /* http.post and ajax do not allow redirect from Django View (post method), 
+        /* http.post and ajax do not allow redirect from Django View (post method),
            this function allows redirect by mimicking a form submit.
 
            usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
@@ -741,12 +747,12 @@ export default {
   mounted: function() {
     let vm = this;
     vm.form = document.forms.new_proposal;
-      /* uncomment later - too annoying while making front end changes 
+      /* uncomment later - too annoying while making front end changes
     window.addEventListener('beforeunload', vm.leaving);
     window.addEventListener('onblur', vm.leaving);
     */
   },
-  
+
 
   beforeRouteEnter: function(to, from, next) {
     if (to.params.proposal_id) {
@@ -762,7 +768,7 @@ export default {
             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
                       vm.setAmendmentData(res.body);
                 },
-              err => { 
+              err => {
                         console.log(err);
                   });
               */
