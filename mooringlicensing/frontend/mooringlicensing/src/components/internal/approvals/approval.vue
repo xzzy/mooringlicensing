@@ -124,6 +124,7 @@
                   ref="vessel"
                   :readonly="true"
                   :is_internal="true"
+                  :keep_current_vessel="true"
                   />
             </div>
             <div class="row" v-if="approval && approval.id && authorisedUserPermit">
