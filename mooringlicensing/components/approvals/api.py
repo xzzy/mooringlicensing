@@ -29,7 +29,7 @@ from mooringlicensing.components.proposals.models import Proposal, MooringLicenc
 from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
-    WaitingListAllocation, Sticker, MooringLicence,
+    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit
 )
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -200,76 +200,7 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
 
 
 class ApprovalFilterBackend(DatatablesFilterBackend):
-    @query_debugger
     def filter_queryset(self, request, queryset, view):
-        total_count = queryset.count()
-        # status filter
-        filter_status = request.GET.get('filter_status')
-        if filter_status and not filter_status.lower() == 'all':
-            queryset = queryset.filter(status=filter_status)
-        # mooring bay filter
-        filter_mooring_bay_id = request.GET.get('filter_mooring_bay_id')
-        if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
-            queryset = queryset.filter(current_proposal__preferred_bay__id=filter_mooring_bay_id)
-        # holder id filter
-        filter_holder_id = request.GET.get('filter_holder_id')
-        if filter_holder_id and not filter_holder_id.lower() == 'all':
-            queryset = queryset.filter(submitter__id=filter_holder_id)
-        # max vessel length
-        max_vessel_length = request.GET.get('max_vessel_length')
-        if max_vessel_length:
-            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
-            queryset = queryset.filter(id__in=filtered_ids)
-        # max vessel draft
-        max_vessel_draft = request.GET.get('max_vessel_draft')
-        if max_vessel_draft:
-            queryset = queryset.filter(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
-            #filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_draft <= max_vessel_draft]
-            #queryset = queryset.filter(id__in=filtered_ids)
-
-        # Filter by approval types (wla, aap, aup, ml)
-        filter_approval_type = request.GET.get('filter_approval_type')
-        #import ipdb; ipdb.set_trace()
-        if filter_approval_type and not filter_approval_type.lower() == 'all':
-            filter_approval_type_list = filter_approval_type.split(',')
-            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
-            queryset = queryset.filter(id__in=filtered_ids)
-        # Show/Hide expired and/or surrendered
-        show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
-        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
-        external_waiting_list = request.GET.get('external_waiting_list')
-        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
-        if external_waiting_list and not show_expired_surrendered:
-                #print("external")
-                #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
-                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
-                #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
-
-        #print(queryset)
-        # approval types filter2 - Licences dash only (excludes wla)
-        filter_approval_type2 = request.GET.get('filter_approval_type2')
-        #import ipdb; ipdb.set_trace()
-        if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
-            #filter_approval_type_list = filter_approval_type.split(',')
-            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
-            queryset = queryset.filter(id__in=filtered_ids)
-
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
-        queryset = queryset.order_by(*ordering)
-        if len(ordering):
-            queryset = queryset.order_by(*ordering)
-
-        try:
-            queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
-        except Exception as e:
-            print(e)
-        setattr(view, '_datatables_total_count', total_count)
-        return queryset
-
-    @query_debugger
-    def bak_filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
         filter_query = Q()
         # status filter
@@ -299,32 +230,55 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
             #queryset = queryset.filter(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
             filter_query &= Q(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
 
+        #ml_list = list(MooringLicence.objects.values_list('id', flat=True))
+        #aup_list = list(AuthorisedUserPermit.objects.values_list('id', flat=True))
+        #aap_list = list(AnnualAdmissionPermit.objects.values_list('id', flat=True))
+        #wla_list = list(WaitingListAllocation.objects.values_list('id', flat=True))
+        ml_list = MooringLicence.objects.all()
+        aup_list = AuthorisedUserPermit.objects.all()
+        aap_list = AnnualAdmissionPermit.objects.all()
+        wla_list = WaitingListAllocation.objects.all()
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
-        #import ipdb; ipdb.set_trace()
         if filter_approval_type and not filter_approval_type.lower() == 'all':
             filter_approval_type_list = filter_approval_type.split(',')
-            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
-            #queryset = queryset.filter(id__in=filtered_ids)
-            filter_query &= Q(id__in=filtered_ids)
+            if 'wla' in filter_approval_type_list:
+                filter_query &= Q(id__in=wla_list)
+            else:
+                filter_query &= Q(
+                        Q(annualadmissionpermit__in=aap_list) |
+                        Q(authoriseduserpermit__in=aup_list) |
+                        Q(mooringlicence__in=ml_list)
+                        )
+            #for filter_option in filter_approval_type_list:
+            #    if filter_option == 'ml':
+            #        filter_query &= Q(id__in=ml_list)
+            #    if filter_option == 'aup':
+            #        filter_query &= Q(id__in=aup_list)
+            #    if filter_option == 'aap':
+            #        filter_query &= Q(id__in=aap_list)
+            #    if filter_option == 'wla':
+            #        filter_query &= Q(id__in=wla_list)
         # Show/Hide expired and/or surrendered
         show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
         external_waiting_list = request.GET.get('external_waiting_list')
         external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
         if external_waiting_list and not show_expired_surrendered:
-                #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
                 filter_query &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
 
-        #print(queryset)
         # approval types filter2 - Licences dash only (excludes wla)
-        filter_approval_type2 = request.GET.get('filter_approval_type2')
         #import ipdb; ipdb.set_trace()
+        filter_approval_type2 = request.GET.get('filter_approval_type2')
         if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
-            #filter_approval_type_list = filter_approval_type.split(',')
-            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
-            #queryset = queryset.filter(id__in=filtered_ids)
-            filter_query &= Q(id__in=filtered_ids)
+            if filter_approval_type2 == 'ml':
+                filter_query &= Q(id__in=ml_list)
+            elif filter_approval_type2 == 'aup':
+                filter_query &= Q(id__in=aup_list)
+            elif filter_approval_type2 == 'aap':
+                filter_query &= Q(id__in=aap_list)
+            elif filter_approval_type2 == 'wla':
+                filter_query &= Q(id__in=wla_list)
 
         queryset = queryset.filter(filter_query)
         getter = request.query_params.get
@@ -373,7 +327,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Approval.objects.none()
 
-    #@query_debugger
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
@@ -417,74 +370,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     #        qs = qs.filter(submitter_id=submitter_id)
     #    serializer = self.get_serializer(queryset, many=True)
     #    return Response(serializer.data)
-
-    @query_debugger
-    def filter_queryset(self, request, queryset):
-        total_count = queryset.count()
-        # status filter
-        filter_status = request.GET.get('filter_status')
-        if filter_status and not filter_status.lower() == 'all':
-            queryset = queryset.filter(status=filter_status)
-        # mooring bay filter
-        filter_mooring_bay_id = request.GET.get('filter_mooring_bay_id')
-        if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
-            queryset = queryset.filter(current_proposal__preferred_bay__id=filter_mooring_bay_id)
-        # holder id filter
-        filter_holder_id = request.GET.get('filter_holder_id')
-        if filter_holder_id and not filter_holder_id.lower() == 'all':
-            queryset = queryset.filter(submitter__id=filter_holder_id)
-        # max vessel length
-        max_vessel_length = request.GET.get('max_vessel_length')
-        if max_vessel_length:
-            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
-            queryset = queryset.filter(id__in=filtered_ids)
-        # max vessel draft
-        max_vessel_draft = request.GET.get('max_vessel_draft')
-        if max_vessel_draft:
-            queryset = queryset.filter(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
-            #filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_draft <= max_vessel_draft]
-            #queryset = queryset.filter(id__in=filtered_ids)
-
-        # Filter by approval types (wla, aap, aup, ml)
-        filter_approval_type = request.GET.get('filter_approval_type')
-        #import ipdb; ipdb.set_trace()
-        if filter_approval_type and not filter_approval_type.lower() == 'all':
-            filter_approval_type_list = filter_approval_type.split(',')
-            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code in filter_approval_type_list]
-            queryset = queryset.filter(id__in=filtered_ids)
-        # Show/Hide expired and/or surrendered
-        show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
-        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
-        external_waiting_list = request.GET.get('external_waiting_list')
-        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
-        if external_waiting_list and not show_expired_surrendered:
-                #print("external")
-                #queryset = queryset.exclude(status__in=(Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED))
-                queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
-                #queryset = queryset.filter(status__in=(Approval.APPROVAL_STATUS_CURRENT))
-
-        #print(queryset)
-        # approval types filter2 - Licences dash only (excludes wla)
-        filter_approval_type2 = request.GET.get('filter_approval_type2')
-        #import ipdb; ipdb.set_trace()
-        if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
-            #filter_approval_type_list = filter_approval_type.split(',')
-            filtered_ids = [a.id for a in Approval.objects.all() if a.child_obj.code == filter_approval_type2]
-            queryset = queryset.filter(id__in=filtered_ids)
-
-        #getter = request.query_params.get
-        #fields = self.get_fields(getter)
-        #ordering = self.get_ordering(getter, fields)
-        #queryset = queryset.order_by(*ordering)
-        #if len(ordering):
-         #   queryset = queryset.order_by(*ordering)
-
-        #try:
-        #    queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
-        #except Exception as e:
-        #    print(e)
-        #setattr(view, '_datatables_total_count', total_count)
-        return queryset
 
     def list(self, request, *args, **kwargs):
         #import ipdb; ipdb.set_trace()
