@@ -683,10 +683,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        #return True if request.user in group.user_set.select_related('emailuser').all() else False
-        return True if group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
-        #groups = request.user.select_related('groups').all()
-        #return True if group in groups else False
+        return True if group and group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
 
     #@property
     #def compliance_assessors(self):
