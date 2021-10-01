@@ -33,6 +33,20 @@
                 </div>
             </div>
 
+            <div v-if="show_dcv_organisation_fields" class="row form-group">
+                <label for="" class="col-sm-3 control-label">Organisation</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="organisation" placeholder="" v-model="dcv_admission.organisation_name">
+                </div>
+            </div>
+
+            <div v-if="show_dcv_organisation_fields" class="row form-group">
+                <label for="" class="col-sm-3 control-label">ABN / ACN</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control" name="abn_acn" placeholder="" v-model="dcv_admission.organisation_abn">
+                </div>
+            </div>
+
             <div v-if="show_email_fields" class="row form-group">
                 <label for="email_address" class="col-sm-3 control-label">Email address</label>
                 <div class="col-sm-6">
@@ -249,6 +263,11 @@ export default {
         },
         show_email_fields: function(){
             if (!this.is_authenticated && !this.does_dcv_permit_exist)
+                return true
+            return false
+        },
+        show_dcv_organisation_fields: function(){
+            if (!this.does_dcv_permit_exist)
                 return true
             return false
         },

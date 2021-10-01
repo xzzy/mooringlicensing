@@ -1,8 +1,10 @@
 import datetime
 import logging
 import pytz
+import os
 
 from django.contrib.auth.models import Group
+from django.core.files import File
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
@@ -12,7 +14,7 @@ from mooringlicensing.components.main.models import (
         NumberOfDaysType,
         NumberOfDaysSetting
         )
-from mooringlicensing.components.payments_ml.models import OracleCodeItem
+from mooringlicensing.components.payments_ml.models import OracleCodeItem, FeeItemStickerReplacement
 from mooringlicensing.components.proposals.models import (
         ProposalType, 
         Proposal, 
@@ -78,12 +80,17 @@ class DefaultDataManager(object):
         #        logger.error('{}, ProposalApproverGroup: {}'.format(e, item))
 
         # Store
-        for item in GlobalSettings.default_values:
+        for item in GlobalSettings.keys:
             try:
                 obj, created = GlobalSettings.objects.get_or_create(key=item[0])
                 if created:
-                    obj.value = item[1]
-                    obj.save()
+                    if item[0] in GlobalSettings.keys_for_file:
+                        with open(GlobalSettings.default_values[item[0]], 'rb') as doc_file:
+                            obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=True)
+                        obj.save()
+                    else:
+                        obj.value = item[1]
+                        obj.save()
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
                 logger.error('{}, Key: {}'.format(e, item[0]))
@@ -164,3 +171,17 @@ class DefaultDataManager(object):
                     logger.info("Created oracle code item: {}".format(oracle_code_item))
                 except Exception as e:
                     logger.error('{}, failed to create oracle code item'.format(application_type))
+
+        # StickerReplacementFee
+        fee_item = FeeItemStickerReplacement.get_fee_item_by_date()
+        target_date = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+        if not fee_item:
+            try:
+                fee_item = FeeItemStickerReplacement.objects.create(
+                    amount=24.00,
+                    date_of_enforcement=target_date,
+                    incur_gst=False,
+                )
+                logger.info("Created fee item sticker replacement: {}".format(fee_item))
+            except Exception as e:
+                logger.error('{}, failed to create fee item sticker replacement'.format(fee_item))

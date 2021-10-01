@@ -125,10 +125,13 @@ class GetApprovalTypeDict(views.APIView):
         include_codes = request.GET.get('include_codes', '')
         include_codes = include_codes.split(',')
         #types = Approval.approval_types_dict(include_codes)
-        data = cache.get('approval_type_dict')
+        cache_title = 'approval_type_dict'
+        for code in include_codes:
+            cache_title += '_' + code
+        data = cache.get(cache_title)
         if not data:
-            cache.set('approval_type_dict',Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
-            data = cache.get('approval_type_dict')
+            cache.set(cache_title, Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get(cache_title)
         return Response(data)
         #return Response(types)
 
@@ -833,6 +836,15 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             # 2. DcvPermit doesn't exist
 
             submitter = request.user
+            if not dcv_vessel.dcv_permits.count():
+                # No DcvPermit found, create DcvOrganisation and link it to DcvVessel
+                my_data = {}
+                my_data['organisation'] = request.data.get('organisation_name')
+                my_data['abn_acn'] = request.data.get('organisation_abn')
+                dcv_organisation = DcvPermitViewSet.handle_dcv_organisation(my_data)
+                dcv_vessel.dcv_organisation = dcv_organisation
+                dcv_vessel.save()
+
         else:
             # Anonymous user
             # 1. DcvPermit exists
@@ -845,20 +857,32 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                 email_address = request.data.get('email_address')
                 email_address_confirmation = request.data.get('email_address_confirmation')
                 skipper = request.data.get('skipper')
-                if email_address == email_address_confirmation:
-                    if skipper:
-                        this_user = EmailUser.objects.filter(email=email_address)
-                        if this_user:
-                            new_user = this_user.first()
+                if email_address and email_address_confirmation:
+                    if email_address == email_address_confirmation:
+                        if skipper:
+                            this_user = EmailUser.objects.filter(email=email_address)
+                            if this_user:
+                                new_user = this_user.first()
+                            else:
+                                new_user = EmailUser.objects.create(email=email_address, first_name=skipper)
+                            submitter = new_user
                         else:
-                            new_user = EmailUser.objects.create(email=email_address, first_name=skipper)
-                        submitter = new_user
+                            raise forms.ValidationError('Please fill the skipper field')
                     else:
-                        raise forms.ValidationError('Please fill the skipper field')
+                        raise forms.ValidationError('Email addresses do not match')
                 else:
-                    raise forms.ValidationError('Email addresses do not match')
+                    raise forms.ValidationError('Please fill the email address fields')
+
+                # No DcvPermit found, create DcvOrganisation and link it to DcvVessel
+                my_data = {}
+                my_data['organisation'] = request.data.get('organisation_name')
+                my_data['abn_acn'] = request.data.get('organisation_abn')
+                dcv_organisation = DcvPermitViewSet.handle_dcv_organisation(my_data)
+                dcv_vessel.dcv_organisation = dcv_organisation
+                dcv_vessel.save()
 
         data['submitter'] = submitter.id
+        data['dcv_vessel_id'] = dcv_vessel.id
         # data['fee_sid'] = fee_season_requested.get('id')
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -906,10 +930,10 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     serializer_class = DcvPermitSerializer
 
     @staticmethod
-    def _handle_dcv_organisation(request):
-        data = request.data
-        abn_requested = request.data.get('abn_acn', '')
-        name_requested = request.data.get('organisation', '')
+    def handle_dcv_organisation(data):
+        # data = request.data
+        abn_requested = data.get('abn_acn', '')
+        name_requested = data.get('organisation', '')
         try:
             dcv_organisation = DcvOrganisation.objects.get(abn=abn_requested)
         except DcvOrganisation.DoesNotExist:
@@ -971,7 +995,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data
 
-        dcv_organisation = self._handle_dcv_organisation(request)
+        dcv_organisation = self.handle_dcv_organisation(request.data)
         dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
         fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
 

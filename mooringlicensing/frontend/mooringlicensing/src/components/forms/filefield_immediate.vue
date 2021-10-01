@@ -1,6 +1,6 @@
 <template lang="html">
     <div :class="headerCSS">
-        <label :id="id" :num_files="numDocuments">{{label}}</label>
+        <!--label :id="id" :num_files="numDocuments">{{label}}</label-->
         <!--template v-if="files"-->
         <div v-if="numDocuments > 0">
             <div v-for="v in documents">
@@ -204,7 +204,12 @@ export default {
             this.show_spinner = false;
 
         },
-
+        delete_all_documents: function(){
+            console.log('aho')
+            for (let item of this.documents){
+                this.delete_document(item)
+            }
+        },
         delete_document: async function(file) {
             this.show_spinner = true;
 
