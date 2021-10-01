@@ -96,8 +96,8 @@ class DcvMigration(object):
                     surname_record = self.search('PersNo', pers_no, self.surname)
 
                     username = surname_record.get('_2').lower()
-                    firstname = username.split(' ')[-1]
-                    lastname = ' '.join(username.split(' ')[:-1])
+                    firstname = username.split(' ')[-1].title()
+                    lastname = ' '.join(username.split(' ')[:-1]).title()
 
                     items = address.split(',')
                     line1 = items[0].strip()
