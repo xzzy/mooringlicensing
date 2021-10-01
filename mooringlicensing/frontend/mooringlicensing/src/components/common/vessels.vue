@@ -443,16 +443,20 @@ from '@/utils/hooks'
                 return this.vessel ? this.vessel.vessel_ownership : {};
             },
             previousApplicationVesselDetails: function() {
-                return this.proposal ? this.proposal.previous_application_vessel_details_obj : {};
+                return this.proposal ? this.proposal.previous_application_vessel_details_obj : null;
             },
             previousApplicationVesselOwnership: function() {
-                return this.proposal ? this.proposal.previous_application_vessel_ownership_obj : {};
+                return this.proposal ? this.proposal.previous_application_vessel_ownership_obj : null;
             },
         },
         methods:{
             vesselChanged: async function() {
                 let vesselChanged = false;
                 await this.$nextTick(() => {
+                    // do not perform check if no previous application vessel
+                    if (!this.previousApplicationVesselDetails) {
+                        return
+                    }
                     if (this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim() ||
                         this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
                         this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||

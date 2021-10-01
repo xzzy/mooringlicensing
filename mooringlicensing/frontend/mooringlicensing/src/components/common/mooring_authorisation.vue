@@ -111,6 +111,12 @@ import draggable from 'vuedraggable';
         watch: {
         },
         methods:{
+            /*
+            mooringOptionsChanged: async function() {
+                await this.$nextTick(() => {
+                });
+            },
+            */
             fetchMooringBays: async function(){
                 const response = await this.$http.get(api_endpoints.mooring_bays);
                 // reorder array based on proposal.bay_preferences_numbered
