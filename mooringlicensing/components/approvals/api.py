@@ -250,15 +250,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                         Q(authoriseduserpermit__in=aup_list) |
                         Q(mooringlicence__in=ml_list)
                         )
-            #for filter_option in filter_approval_type_list:
-            #    if filter_option == 'ml':
-            #        filter_query &= Q(id__in=ml_list)
-            #    if filter_option == 'aup':
-            #        filter_query &= Q(id__in=aup_list)
-            #    if filter_option == 'aap':
-            #        filter_query &= Q(id__in=aap_list)
-            #    if filter_option == 'wla':
-            #        filter_query &= Q(id__in=wla_list)
         # Show/Hide expired and/or surrendered
         show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
