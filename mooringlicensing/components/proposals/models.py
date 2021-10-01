@@ -2579,12 +2579,12 @@ class MooringLicenceApplication(Proposal):
                             c.delete()
                     # Log creation
                     # Generate the document
-                    approval.generate_doc(request.user)
+                    # approval.generate_doc(request.user)
                     self.generate_compliances(approval, request)
                     # send the doc and log in approval and org
                 else:
                     # Generate the document
-                    approval.generate_doc(request.user)
+                    # approval.generate_doc(request.user)
                     # Delete the future compliances if Approval is reissued and generate the compliances again.
                     approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
                                                                      processing_status='future')
@@ -2651,6 +2651,10 @@ class MooringLicenceApplication(Proposal):
 
             # Check if this is OK
             send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+
+            if request:
+                # Creating documents should be performed at the end
+                approval.generate_doc(request.user)
 
             # Log proposal action
             if request:
