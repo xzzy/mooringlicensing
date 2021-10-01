@@ -158,6 +158,7 @@ export default {
       proposal_parks:null,
       terms_and_conditions_checked: false,
       vesselChanged: false,
+      mooringOptionsChanged: false,
     }
   },
   components: {
@@ -174,7 +175,7 @@ export default {
   computed: {
       autoRenew: function() {
           let renew = false;
-          if (!this.vesselChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
+          if (!this.vesselChanged && !this.mooringOptionsChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
               renew = true;
           }
           return renew;
@@ -359,6 +360,8 @@ export default {
         // AUA
         } else if (this.$refs.authorised_user_application) {
             this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
+            //this.mooringOptionsChanged = await this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringOptionsChanged();
+            this.mooringOptionsChanged = this.$refs.authorised_user_application.change_mooring;
             //console.log(vesselChanged);
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);

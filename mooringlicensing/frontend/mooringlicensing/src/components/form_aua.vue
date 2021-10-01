@@ -186,7 +186,7 @@
                 uuid: 0,
                 mooringAuthorisationUuid: 0,
                 keep_current_vessel: true,
-                change_mooring: true,
+                change_mooring: false,
             }
         },
         components: {
