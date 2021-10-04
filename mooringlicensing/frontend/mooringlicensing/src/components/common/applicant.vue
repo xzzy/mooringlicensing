@@ -224,6 +224,57 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-md-12" v-if="showElectoralRoll">
+                        <div class="row">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">WA State Electoral Roll
+                                        <a class="panelClicker" :href="'#'+electoralRollBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="electoralRollBody">
+                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                        </a>
+                                    </h3>
+                                </div>
+
+                                <div class="panel-body panel-collapse collapse" :id="electoralRollBody">
+                                  <form class="form-horizontal">
+                                    <div class="form-group">
+                                        <div class="col-sm-8 mb-3">
+                                            <strong>
+                                                You must be on the WA state electoral roll to make an application
+                                            </strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <input :disabled="readonly" type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
+                                            <label for="electoral_roll_yes">
+                                                Yes, I am on the 
+                                                <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
+                                            </label>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <input :disabled="readonly" class="mb-3" type="radio" id="electoral_roll_silent" :value="true" v-model="silentElector"/>
+                                            <label for="electoral_roll_silent">
+                                                I am a silent elector
+                                            </label>
+                                            <div v-if="silentElector===true">
+                                                <FileField
+                                                    :readonly="readonly"
+                                                    headerCSS="ml-3"
+                                                    label="Provide evidence"
+                                                    ref="electoral_roll_documents"
+                                                    name="electoral-roll-documents"
+                                                    :isRepeatable="true"
+                                                    :documentActionUrl="electoralRollDocumentUrl"
+                                                    :replace_button_by_text="true"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                  </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
         <!-- <Assessment :proposal="proposal" :assessment="proposal.assessor_assessment" :hasAssessorMode="hasAssessorMode" :is_internal="is_internal" :is_referral="is_referral"></Assessment> -->
     </div>
@@ -231,6 +282,8 @@
 
 <script>
 //import Assessment from './assessment.vue'
+//import FormSection from '@/components/forms/section_toggle.vue'
+import FileField from '@/components/forms/filefield_immediate.vue'
 import {
     api_endpoints,
     helpers
@@ -256,10 +309,22 @@ from '@/utils/hooks'
                 type: String,
                 required: false,
             },
+            showElectoralRoll:{
+                type: Boolean,
+                default: false
+            },
+            storedSilentElector:{
+                type: Boolean,
+            },
+            proposalId: {
+                type: Number,
+            },
         },
         data:function () {
             let vm=this;
             return{
+                electoralRollSectionIndex: 'electoral_roll_' + vm._uid,
+                silentElector: null,
                 readonly: true,
                 values:null,
                 countries: [],
@@ -267,6 +332,7 @@ from '@/utils/hooks'
                 detailsBody: 'detailsBody'+vm._uid,
                 addressBody: 'addressBody'+vm._uid,
                 contactsBody: 'contactsBody'+vm._uid,
+                electoralRollBody: 'electoralRollBody'+vm._uid,
                 panelClickersInitialised: false,
                 contacts_table_id: vm._uid+'contacts-table',
                 contacts_table_initialised: false,
@@ -309,9 +375,23 @@ from '@/utils/hooks'
             }
         },
         components: {
+            FileField,
+            //FormSection,
           //Assessment
         },
         computed:{
+            electoralRollDocumentUrl: function() {
+                let url = '';
+                //if (this.profile && this.profile.id) {
+                if (this.proposalId) {
+                    url = helpers.add_endpoint_join(
+                        '/api/proposal/',
+                        this.proposalId + '/process_electoral_roll_document/'
+                    )
+                }
+                return url;
+            },
+
             postalAddressReadonly: function() {
                 /*
                 if (this.readonly || this.email_user.postal_same_as_residential) {
@@ -381,6 +461,7 @@ from '@/utils/hooks'
                 vm.initialiseOrgContactTable();
                 
             });
+            this.silentElector = this.storedSilentElector;
         }
     }
 </script>

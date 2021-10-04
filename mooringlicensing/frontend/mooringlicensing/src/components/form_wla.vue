@@ -54,6 +54,9 @@
                         :applicantType="proposal.applicant_type" 
                         id="proposalStartApplicant"
                         :readonly="readonly"
+                        :showElectoralRoll="showElectoralRoll"
+                        :storedSilentElector="silentElector"
+                        :proposalId="proposal.id"
                     />
                   </div>
               </div>
