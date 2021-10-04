@@ -25,6 +25,11 @@ from mooringlicensing.components.main.models import (
     UserAction,
     Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting,
 )
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.models import Invoice
 from ledger.payments.invoice.utils import CreateInvoiceBasket
@@ -2889,34 +2894,39 @@ class Vessel(models.Model):
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
         # Requirement: If vessel is owned by multiple parties then there must be no other application
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
-        proposals = [proposal.child_obj for proposal in
-                # Proposal.objects.filter(vessel_ownership__vessel=self).exclude(vessel_ownership=vessel_ownership, processing_status__in=['approved', 'declined', 'discarded'])]
-                Proposal.objects.filter(vessel_ownership__vessel=self).exclude(
-                    Q(vessel_ownership=vessel_ownership) |
+        proposals_filter = Q(vessel_ownership__vessel=self) & ~Q(Q(vessel_ownership=vessel_ownership) |
                     Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
-                    Q(id=proposal_being_processed.id))]
-        if proposals:
+                    Q(id=proposal_being_processed.id))
+        #if Proposal.objects.filter(vessel_ownership__vessel=self).exclude(
+        #            Q(vessel_ownership=vessel_ownership) |
+        #            Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
+        #            Q(id=proposal_being_processed.id)):
+        #if proposals:
+        if Proposal.objects.filter(proposals_filter):
             raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
-        filtered_approvals = []
-        for approval in Approval.objects.exclude(status__in=['cancelled', 'expired', 'surrendered']):
+        filtered_mooring_licences = []
+        for ml in MooringLicence.objects.exclude(status__in=['cancelled', 'expired', 'surrendered']):
             # we must check all the vessels on a MooringLicence
-            if type(approval.child_obj) == MooringLicence:
-                for ownership in approval.child_obj.vessel_ownership_list:
-                    if ownership.vessel == self and ownership != vessel_ownership:
-                        filtered_approvals.append(approval)
-            elif (approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel == self and
-                    approval.current_proposal.vessel_ownership != vessel_ownership):
-                filtered_approvals.append(approval)
-        if filtered_approvals:
+            for ownership in ml.vessel_ownership_list:
+                if ownership.vessel == self and ownership != vessel_ownership:
+                    filtered_mooring_licences.append(ml)
+        approval_filter = Q(current_proposal__vessel_ownership__vessel=self) & ~Q(current_proposal__vessel_ownership=vessel_ownership)
+        if filtered_mooring_licences or Approval.objects.filter(approval_filter):
             raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
-        #if remove and not proposals and not filtered_approvals:
-        #    self.blocking_owner = None
-        #    self.save()
-        #else:
-        #    self.blocking_owner = vessel_ownership
-        #    self.save()
+
+        #for approval in Approval.objects.exclude(status__in=['cancelled', 'expired', 'surrendered']):
+        #    # we must check all the vessels on a MooringLicence
+        #    if type(approval.child_obj) == MooringLicence:
+        #        for ownership in approval.child_obj.vessel_ownership_list:
+        #            if ownership.vessel == self and ownership != vessel_ownership:
+        #                filtered_approvals.append(approval)
+        #    elif (approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel == self and
+        #            approval.current_proposal.vessel_ownership != vessel_ownership):
+        #        filtered_approvals.append(approval)
+        #if filtered_approvals:
+        #    raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
 
     @property
     def latest_vessel_details(self):
