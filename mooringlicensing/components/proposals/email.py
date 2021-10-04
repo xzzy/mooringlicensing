@@ -1026,8 +1026,8 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
             all_ccs = cc_list.split(',')
     elif decision == 'approved_paid':
         subject = 'Approved: Application for Rottnest Island Authorised User Permit'
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attachments = get_attachments(True, True, proposal)

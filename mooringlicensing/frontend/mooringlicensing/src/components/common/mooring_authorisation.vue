@@ -1,5 +1,5 @@
 <template lang="html">
-    <div v-if="change_mooring" id="mooring_authorisation">
+    <div v-if="change_mooring || newAua" id="mooring_authorisation">
         <FormSection label="Mooring details" Index="mooring_authorisation">
             <div class="row form-group">
                 <label for="" class="col-sm-9 control-label">Do you want to be authorised
@@ -94,6 +94,9 @@ import draggable from 'vuedraggable';
                 default: true,
             },
             change_mooring: {
+              type: Boolean,
+            },
+            newAua: {
               type: Boolean,
             },
         },
