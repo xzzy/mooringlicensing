@@ -1390,6 +1390,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # TODO: why do we need this?
         instance.previous_application = None
         instance.save()
+        ## ML
+        if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
+            instance.waiting_list_allocation.internal_status = 'waiting'
+            current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+            instance.waiting_list_allocation.wla_queue_date = current_datetime
+            instance.waiting_list_allocation.save()
+            instance.waiting_list_allocation.set_wla_order()
         return Response()
 
 
