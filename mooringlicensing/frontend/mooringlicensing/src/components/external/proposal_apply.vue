@@ -13,7 +13,7 @@
                         <div>
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
-                                    <label>Waiting List</label>
+                                    <label v-if="wlaChoices.length>0">Waiting List</label>
                                     <div v-if="wlaApprovals.length<=1">
                                         <div v-for="(application_type, index) in wlaChoices">
                                             <input 
