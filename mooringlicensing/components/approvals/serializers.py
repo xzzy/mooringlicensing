@@ -545,7 +545,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        if (
+                type(obj.child_obj) == WaitingListAllocation and 
+                obj.status == 'current' and
+                obj.current_proposal.preferred_bay and
+                obj.internal_status == 'waiting'
+                ):
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
@@ -884,7 +889,13 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        #if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        if (
+                type(obj.child_obj) == WaitingListAllocation and 
+                obj.status == 'current' and
+                obj.current_proposal.preferred_bay and
+                obj.internal_status == 'waiting'
+                ):
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
