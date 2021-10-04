@@ -2209,7 +2209,7 @@ class AuthorisedUserApplication(Proposal):
         return True
 
     def get_mooring_authorisation_preference(self):
-        if self.keep_existing_mooring:
+        if self.keep_existing_mooring and self.previous_application:
             return self.previous_application.child_obj.get_mooring_authorisation_preference()
         else:
             return self.mooring_authorisation_preference
