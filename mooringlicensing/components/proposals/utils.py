@@ -9,6 +9,11 @@ import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from mooringlicensing.components.proposals.models import (
     # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
     # ProposalUserAction,
@@ -344,7 +349,6 @@ class SpecialFieldsSearch(object):
 
             item_data[item['name']] = item_data_list
         return item_data
-
 
 def save_proponent_data(instance, request, viewset):
     if viewset.action == 'submit':
@@ -730,6 +734,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     #vessel = instance.vessel_details.vessel
     ## Vessel Ownership
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
+    #import ipdb; ipdb.set_trace()
     vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
