@@ -92,7 +92,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Expiry Date</label>
                             <div class="col-sm-3">
-                                <label for="" class="control-label pull-left">{{approval.expiry_date | formatDate}}</label>
+                                <label for="" class="control-label pull-left">{{approval.expiry_date_str}}</label>
                             </div>
 
                           </div>
@@ -124,6 +124,7 @@
                   ref="vessel"
                   :readonly="true"
                   :is_internal="true"
+                  :keep_current_vessel="true"
                   />
             </div>
             <div class="row" v-if="approval && approval.id && authorisedUserPermit">
@@ -132,12 +133,14 @@
                     label="Moorings" 
                     Index="moorings"
                 >
-                    <datatable
-                        ref="moorings_datatable"
-                        :id="moorings_datatable_id"
-                        :dtOptions="moorings_datatable_options"
-                        :dtHeaders="moorings_datatable_headers"
-                    />
+                    <div class="col-sm-9">
+                        <datatable
+                            ref="moorings_datatable"
+                            :id="moorings_datatable_id"
+                            :dtOptions="moorings_datatable_options"
+                            :dtHeaders="moorings_datatable_headers"
+                        />
+                    </div>
                 </FormSection>
             </div>
             <div class="row" v-if="approval && approval.id && mooringLicence">
@@ -152,12 +155,14 @@
                             <label for="checkbox_show_expired">Show expired and/or surrendered authorised user permits</label>
                         </div>
                     </div>
-                    <datatable
-                        ref="ml_authorised_users_datatable"
-                        :id="ml_authorised_users_datatable_id"
-                        :dtOptions="ml_authorised_users_datatable_options"
-                        :dtHeaders="ml_authorised_users_datatable_headers"
-                    />
+                    <div class="col-sm-11">
+                        <datatable
+                            ref="ml_authorised_users_datatable"
+                            :id="ml_authorised_users_datatable_id"
+                            :dtOptions="ml_authorised_users_datatable_options"
+                            :dtHeaders="ml_authorised_users_datatable_headers"
+                        />
+                    </div>
                 </FormSection>
             </div>
 
@@ -167,12 +172,14 @@
                     label="Vessels" 
                     Index="mooringLicenceVessels"
                 >
-                    <datatable
-                        ref="ml_vessels_datatable"
-                        :id="ml_vessels_datatable_id"
-                        :dtOptions="ml_vessels_datatable_options"
-                        :dtHeaders="ml_vessels_datatable_headers"
-                    />
+                    <div class="col-sm-11">
+                        <datatable
+                            ref="ml_vessels_datatable"
+                            :id="ml_vessels_datatable_id"
+                            :dtOptions="ml_vessels_datatable_options"
+                            :dtHeaders="ml_vessels_datatable_headers"
+                        />
+                    </div>
                 </FormSection>
             </div>
 
@@ -224,6 +231,7 @@ export default {
         moorings_datatable_headers: [
                 //'Id',
                 'Mooring',
+                'Sticker',
                 'Licensee',
                 'Allocated By',
                 'Mobile',
@@ -231,9 +239,14 @@ export default {
             ],
 
         moorings_datatable_options: {
+            autoWidth: false,
+            responsive: true,
             columns: [
                 {
                     data: "mooring_name",
+                },
+                {
+                    data: "sticker",
                 },
                 {
                     data: "licensee",
@@ -252,6 +265,7 @@ export default {
         ml_vessels_datatable_headers: [
                 //'Id',
                 'Vessel',
+                'Rego No',
                 'Sticker',
                 'Owner',
                 'Mobile',
@@ -259,9 +273,14 @@ export default {
             ],
 
         ml_vessels_datatable_options: {
+            autoWidth: false,
+            responsive: true,
             columns: [
                 {
                     data: "vessel_name",
+                },
+                {
+                    data: "rego_no",
                 },
                 {
                     data: "sticker_numbers",
@@ -287,6 +306,8 @@ export default {
             ],
 
         ml_authorised_users_datatable_options: {
+            autoWidth: false,
+            responsive: true,
             columns: [
                 {
                     data: "lodgement_number",
@@ -395,6 +416,7 @@ export default {
             this.$refs.moorings_datatable.vmDataTable.row.add(
                 {
                     'mooring_name': aum.mooring_name,
+                    'sticker': aum.sticker,
                     'licensee': aum.licensee,
                     'allocated_by': aum.allocated_by,
                     'mobile': aum.mobile,
@@ -411,6 +433,7 @@ export default {
             this.$refs.ml_vessels_datatable.vmDataTable.row.add(
                 {
                     'vessel_name': mlv.vessel_name,
+                    'rego_no': mlv.rego_no,
                     'sticker_numbers': mlv.sticker_numbers,
                     'owner': mlv.owner,
                     'mobile': mlv.mobile,

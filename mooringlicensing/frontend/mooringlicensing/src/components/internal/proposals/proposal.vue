@@ -1,7 +1,8 @@
 <template lang="html">
     <div v-if="proposal" class="container" id="internalProposal">
         <div class="row">
-            <h3>Application: {{ proposal.lodgement_number }}</h3>
+            <h3 v-if="proposal.migrated">Application: {{ proposal.lodgement_number }} (Migrated)</h3>
+            <h3 v-else>Application: {{ proposal.lodgement_number }}</h3>
             <h4>Application Type: {{ proposal.proposal_type.description }}</h4>
             <!--div v-if="proposal.application_type!='Apiary'">
                 <h4>Approval Level: {{ proposal.approval_level }}</h4>
@@ -35,6 +36,7 @@
                     @issueProposal="issueProposal"
                     @declineProposal="declineProposal"
                     @assignRequestUser="assignRequestUser"
+                    @assignTo="assignTo"
                 />
 
             </div>
@@ -172,7 +174,7 @@ export default {
             approver_comment: '',
             form: null,
             members: [],
-            department_users : [],
+            //department_users : [],
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingProposal:false,
@@ -280,12 +282,20 @@ export default {
                 ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
             return ret_val
         },
+        /*
         showElectoralRoll: function(){
             // TODO: implement
             return true
         },
+        */
+        showElectoralRoll: function() {
+            let show = false;
+            if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+                show = true;
+            }
+            return show;
+        },
         readonly: function() {
-            // TODO: implement
             return true
         },
         contactsURL: function(){
@@ -409,20 +419,13 @@ export default {
         },
         proposedApproval: function(){
             console.log('proposedApproval')
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+            /*
             if(this.proposal.proposed_issuance_approval == null){
-                //var test_approval={
-                //    'cc_email': this.proposal.referral_email_list
-                //};
-                //this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
-                // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
             }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
+            */
             this.uuid++;
             this.$nextTick(() => {
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
                 this.$refs.proposed_approval.isModalOpen = true;
             });
         },
@@ -455,24 +458,13 @@ export default {
                     'error'
                 )
             } else {
-                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-                this.$refs.proposed_approval.state = 'final_approval';
-                this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.start_date!=null){
-                    var start_date=new Date();
-                    start_date=moment(this.proposal.proposed_issuance_approval.start_date, 'DD/MM/YYYY')
-                    $(this.$refs.proposed_approval.$refs.start_date).data('DateTimePicker').date(start_date);
-                }
-                if(this.proposal.proposed_issuance_approval != null && this.proposal.proposed_issuance_approval.expiry_date!=null){
-                    var expiry_date=new Date();
-                    expiry_date=moment(this.proposal.proposed_issuance_approval.expiry_date, 'DD/MM/YYYY')
-                    $(this.$refs.proposed_approval.$refs.due_date).data('DateTimePicker').date(expiry_date);
-                }
-                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-                // if(this.proposal.applicant.email){
-                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-                // }
-                this.$refs.proposed_approval.isModalOpen = true;
+                this.uuid++;
+                this.$nextTick(() => {
+                    this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                    this.$refs.proposed_approval.state = 'final_approval';
+                    this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
+                    this.$refs.proposed_approval.isModalOpen = true;
+                });
             }
 
         },
@@ -641,6 +633,10 @@ export default {
             }
         },
         switchStatus: function(status){
+            console.log('in switchStatus')
+            console.log(this.proposal.processing_status)
+            console.log(status)
+
             let vm = this;
             //vm.save_wo();
             //let vm = this;
@@ -736,6 +732,7 @@ export default {
                 });
             }
         },
+        /*
         fetchDeparmentUsers: function(){
             let vm = this;
             vm.loading.push('Loading Department Users');
@@ -747,6 +744,7 @@ export default {
                 vm.loading.splice('Loading Department Users',1);
             })
         },
+        */
         initialiseAssignedOfficerSelect:function(reinit=false){
             console.log('initialiseAssignedOfficerSelect')
             let vm = this;
@@ -787,6 +785,7 @@ export default {
         initialiseSelects: function(){
             let vm = this;
             if (!vm.initialisedSelects){
+                /*
                 $(vm.$refs.department_users).select2({
                     "theme": "bootstrap",
                     allowClear: true,
@@ -800,6 +799,7 @@ export default {
                     var selected = $(e.currentTarget);
                     //vm.selected_referral = ''
                 });
+                */
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
             }
@@ -807,7 +807,7 @@ export default {
     },
     mounted: function() {
         let vm = this;
-        vm.fetchDeparmentUsers();
+        //vm.fetchDeparmentUsers();
 
     },
     updated: function(){

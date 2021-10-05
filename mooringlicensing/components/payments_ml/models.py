@@ -17,6 +17,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
     AuthorisedUserApplication
+from smart_selects.db_fields import ChainedForeignKey
 
 logger = logging.getLogger('__name__')
 
@@ -77,25 +78,34 @@ class Payment(RevisionedMixin):
         return "unpaid"
 
     def __check_payment_status(self):
-        invoices = []
+        # invoices = []
         amount = Decimal('0.0')
-        references = self.invoices.all().values('invoice_reference')
-        for r in references:
-            try:
-                invoices.append(Invoice.objects.get(reference=r.get("invoice_reference")))
-            except Invoice.DoesNotExist:
-                pass
-        for i in invoices:
-            if not i.voided:
-                amount += i.payment_amount
 
-        if amount == 0:
-            return 'unpaid'
-        elif self.cost_total < amount:
-            return 'over_paid'
-        elif self.cost_total > amount:
-            return 'partially_paid'
-        return "paid"
+        # references = self.invoices.all().values('invoice_reference')
+        # for r in references:
+        #     try:
+        #         invoices.append(Invoice.objects.get(reference=r.get("invoice_reference")))
+        #     except Invoice.DoesNotExist:
+        #         pass
+        invoice = Invoice.objects.filter(reference=self.invoice_reference)
+        if invoice:
+            invoice = invoice.first()
+            return invoice.payment_status
+        else:
+            return '---'
+            # raise Exception('No invoice found for the ApplicationFee: {}'.format(self))
+
+        # for i in invoices:
+        #     if not i.voided:
+        #         amount += i.payment_amount
+
+        # if amount == 0:
+        #     return 'unpaid'
+        # elif self.cost_total < amount:
+        #     return 'over_paid'
+        # elif self.cost_total > amount:
+        #     return 'partially_paid'
+        # return "paid"
 
 
 class DcvAdmissionFee(Payment):
@@ -154,6 +164,34 @@ class DcvPermitFee(Payment):
         app_label = 'mooringlicensing'
 
 
+class StickerActionFee(Payment):
+    PAYMENT_TYPE_INTERNET = 0
+    PAYMENT_TYPE_RECEPTION = 1
+    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_TEMPORARY = 3
+    PAYMENT_TYPE_CHOICES = (
+        (PAYMENT_TYPE_INTERNET, 'Internet booking'),
+        (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
+        (PAYMENT_TYPE_BLACK, 'Black booking'),
+        (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
+    )
+
+    # sticker_action_detail = models.ForeignKey('StickerActionDetail', on_delete=models.PROTECT, blank=True, null=True, related_name='sticker_action_fees')
+    payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
+    cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+
+    def __str__(self):
+        stickers = []
+        for sticker_action_detail in self.sticker_action_details.all():
+            stickers. append(sticker_action_detail.sticker.number)
+        return 'Sticker(s): [{}] : Invoice {}'.format(','.join(stickers), self.invoice_reference)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
@@ -190,6 +228,7 @@ class ApplicationFee(Payment):
 
 
 class FeeSeason(RevisionedMixin):
+    application_type = models.ForeignKey(ApplicationType, null=True, blank=True, limit_choices_to={'fee_by_fee_constructor': True})
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):
@@ -219,6 +258,8 @@ class FeeSeason(RevisionedMixin):
 
     @property
     def is_editable(self):
+        temp = self.fee_constructors
+        temp = self.fee_constructors.all()
         for fee_constructor in self.fee_constructors.all():
             if not fee_constructor.is_editable:
                 # This season has been used in the fee_constructor for payments at least once
@@ -232,7 +273,9 @@ class FeeSeason(RevisionedMixin):
 
     @property
     def end_date(self):
-        end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
+        end_date = None
+        if self.start_date:
+            end_date = self.start_date + relativedelta(years=1) - relativedelta(days=1)
         return end_date
 
     class Meta:
@@ -267,8 +310,17 @@ class FeePeriod(RevisionedMixin):
 
 
 class FeeConstructor(RevisionedMixin):
-    application_type = models.ForeignKey(ApplicationType, null=False, blank=False)
-    fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True})
+    # fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
+    fee_season = ChainedForeignKey(FeeSeason,
+                                   chained_field='application_type',
+                                   chained_model_field='application_type',
+                                   show_all=False,
+                                   auto_choose=True,
+                                   sort=True,
+                                   null=True,
+                                   blank=True,
+                                   related_name='fee_constructors')
     vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors')
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
@@ -291,6 +343,10 @@ class FeeConstructor(RevisionedMixin):
         return fee_item
 
     def get_fee_item_for_adjustment(self, vessel_size_category, fee_period, proposal_type=None, age_group=None, admission_type=None):
+        logger.info('Getting fee_item for the fee_constructor: {}, fee_period: {}, vessel_size_category: {}, proposal_type: {}, age_group: {}, admission_type: {}'.format(
+            self, fee_period, vessel_size_category, proposal_type, age_group, admission_type,
+        ))
+
         fee_item = FeeItem.objects.filter(
             fee_constructor=self,
             fee_period=fee_period,
@@ -340,7 +396,7 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_current_and_future_fee_constructors_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        logger = logging.getLogger('payment_checkout')
+        logger = logging.getLogger('mooringlicensing')
 
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
@@ -367,7 +423,7 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_season(cls, application_type, fee_season):
-        logger = logging.getLogger('payment_checkout')
+        logger = logging.getLogger('mooringlicensing')
 
         try:
             fee_constructor_qs = cls.objects.filter(application_type=application_type, fee_season=fee_season, enabled=True)
@@ -388,7 +444,7 @@ class FeeConstructor(RevisionedMixin):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        logger = logging.getLogger('payment_checkout')
+        logger = logging.getLogger('mooringlicensing')
 
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
@@ -487,6 +543,26 @@ class FeeConstructor(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+class FeeItemStickerReplacement(RevisionedMixin):
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='unit [$AU/Sticker]')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+    enabled = models.BooleanField(default=True)
+    incur_gst = models.BooleanField(default=True)
+
+    @staticmethod
+    def get_fee_item_by_date(target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            fee_item = FeeItemStickerReplacement.objects.filter(date_of_enforcement__lte=target_date, enabled=True).order_by('-date_of_enforcement').first()
+            return fee_item
+        except Exception as e:
+            raise ValueError('Sticker replacement fee not found for the date: {}'.format(target_date))
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        verbose_name = 'Fee (sticker replacement)'
+        verbose_name_plural = 'Fee (sticker replacement)'
+
+
 class FeeItem(RevisionedMixin):
     fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True)
     fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
@@ -534,3 +610,42 @@ class FeeItem(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+# class OracleCodeApplication(models.Model):
+#     identifier = models.CharField(max_length=50, null=True, blank=True)
+#     name = models.CharField(max_length=50, null=True, blank=True)
+#
+#     def __str__(self):
+#         return self.name
+#
+#     def get_oracle_code_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+#         try:
+#             oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+#             return oracle_code_item.value
+#         except:
+#             raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+#
+#     def get_enforcement_date_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+#         try:
+#             oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+#             return oracle_code_item.date_of_enforcement
+#         except:
+#             raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+#
+#     @staticmethod
+#     def get_current_oracle_code_by_application(oracle_code_id):
+#         oracle_code_application = OracleCodeApplication.objects.get(identifier=oracle_code_id)
+#         return oracle_code_application.get_oracle_code_by_date()
+#
+#     class Meta:
+#         app_label = 'mooringlicensing'
+#         verbose_name = 'Oracle Codes'
+
+
+class OracleCodeItem(models.Model):
+    # oracle_code_application = models.ForeignKey(OracleCodeApplication, related_name='oracle_code_items')
+    application_type = models.ForeignKey(ApplicationType, blank=True, null=True, related_name='oracle_code_items')
+    value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'

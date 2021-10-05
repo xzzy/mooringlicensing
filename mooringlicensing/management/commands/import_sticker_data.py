@@ -113,6 +113,10 @@ class Command(BaseCommand):
                     except Exception as e:
                         logger.exception('Exception has been raised when importing .xlsx file')
                         continue
+
+                # imapclient.store(num, "+FLAGS", "\\Deleted")
+                imapclient.copy(num, "Archive")
+                imapclient.store(num, "+FLAGS", "\\Deleted")
             except:
                 logger.exception('Exception has been raised when processing emails')
                 continue
@@ -228,7 +232,9 @@ def process_sticker_printing_response():
                     sticker.printing_date = printing_date_value
                     sticker.mailing_date = mailing_date_value
                     sticker.sticker_printing_response = response
-                    sticker.status = Sticker.STICKER_STATUS_CURRENT
+                    if sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
+                        # sticker shoudl not be in READY status though.
+                        sticker.status = Sticker.STICKER_STATUS_CURRENT
                     sticker.save()
 
                     updates.append(sticker.number)

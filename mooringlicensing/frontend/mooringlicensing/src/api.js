@@ -3,6 +3,7 @@ module.exports = {
     application_types:"/api/application_types",
     application_types_dict:"/api/application_types_dict",
     application_statuses_dict:"/api/application_statuses_dict",
+    wla_allowed:"/api/wla_allowed",
     applicants_dict: "/api/applicants_dict",
     vessel_types_dict:"/api/vessel_types_dict",
     insurance_choices_dict:"/api/insurance_choices_dict",
@@ -17,11 +18,16 @@ module.exports = {
     fee_configurations: "/api/fee_configurations",
     approval_types_dict:"/api/approval_types_dict",
     approval_statuses_dict:"/api/approval_statuses_dict",
+    payment_system_id: "/api/payment_system_id",
     fee_seasons_dict:"/api/fee_seasons_dict",
     compliance_statuses_dict:"/api/compliance_statuses_dict",
     mooring_statuses_dict:"/api/mooring_statuses_dict",
     mooring_bays:"/api/mooringbays.json",
+    mooring_bays_lookup:"/api/mooringbays/lookup.json",
     seasons_for_dcv_dict: "/api/seasons_for_dcv_dict",
+    daily_admission_url: "/api/daily_admission_url",
+    dcv_organisations: "/api/dcv_organisations",
+    fee_item_sticker_replacement: "/api/fee_item_sticker_replacement",
 
     profile: '/api/profile',
     submitter_profile: '/api/submitter_profile',
@@ -31,9 +37,10 @@ module.exports = {
     organisation_contacts: '/api/organisation_contacts.json',
     organisation_access_group_members: '/api/organisation_access_group_members',
     users: '/api/users.json',
-    department_users: '/api/department_users',
+    //department_users: '/api/department_users',
     filtered_users: '/api/filtered_users',
-    countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    //countries: "https://restcountries.eu/rest/v1/?fullText=true",
+    countries: '/api/countries',
 
     proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
     approvals_paginated_list: '/api/approvals_paginated',
@@ -62,6 +69,7 @@ module.exports = {
     proposal_requirements:"/api/proposal_requirements.json",
     vesselownership: '/api/vesselownership/',
     proposal_by_uuid: '/api/proposal_by_uuid/',
+    temporary_document: '/api/temporary_document/',
 
     lookupApprovalDetails: function(id) {
         return `/api/approvals/${id}/lookup_approval.json`;
@@ -96,7 +104,6 @@ module.exports = {
     campgrounds: '/api/campgrounds/campgrounds_list',
     camping_choices: '/api/mooringlicensings/camping_choices',
     filter_list: '/api/mooringlicensings/filter_list/',
-    temporary_document: '/api/temporary_document/',
     admin_data: '/admin_data/',
     */
 }

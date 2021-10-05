@@ -1,0 +1,21 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+{% if decision == 'approved' %}
+<p>Your annual admission application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
+{% if stickers_to_be_returned|length > 0 %}
+<p>If you have not already done so, you are required to return sticker
+    {% for sticker in stickers_to_be_returned %}
+    {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
+    {% endfor %}
+of your old vessel to the Rottnest Island Authority. Penalties apply for the failure to return or surrender stickers to RIA upon request, or prior to the sale or disposal of your vessel.</p>
+{% endif %}
+<p>The new sticker for your vessel will be mailed to you in the coming days. Once received, you must ensure it is displayed on your vessel at all times whilst within the limits of the Reserve. Penalties apply.</p>
+{% endif %}
+{% if decision == 'declined' %}
+<p>Your annual admission application {{ proposal.lodgement_number }} has been declined.</p>
+{% endif %}
+{% if details %}<p>Details: {{ details }}</p>{% endif %}
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}

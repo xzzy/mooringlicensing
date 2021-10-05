@@ -106,6 +106,10 @@
             />
         </div>
         <!--ApprovalHistory ref="approval_history" /-->
+        <RequestNewStickerModal
+            ref="request_new_sticker_modal"
+            @sendData="sendData"
+        />
     </div>
 </template>
 
@@ -116,9 +120,10 @@ import ApprovalCancellation from '../internal/approvals/approval_cancellation.vu
 import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
-//import ApprovalHistory from './approval_history_modal.vue';
+import RequestNewStickerModal from "@/components/common/request_new_sticker_modal.vue"
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
+
 export default {
     name: 'TableApprovals',
     props: {
@@ -176,6 +181,7 @@ export default {
         ApprovalSuspension,
         ApprovalSurrender,
         ApprovalHistory,
+        RequestNewStickerModal,
     },
     watch: {
         show_expired_surrendered: function(value){
@@ -196,6 +202,9 @@ export default {
         },
     },
     computed: {
+        csrf_token: function() {
+          return helpers.getCookie('csrftoken')
+        },
         debug: function(){
             if (this.$route.query.debug){
                 return this.$route.query.debug === 'Tru3'
@@ -244,6 +253,7 @@ export default {
                     'Number',
                     'Type',
                     'Sticker number/s',
+                    'Sticker mailed date',
                     'Status',
                     'Issue Date',
                     'Expiry Date',
@@ -265,6 +275,7 @@ export default {
                     'Action',
                     'Issue Date',
                     'Expiry Date',
+                    'Approval letter',
                     'Vessel length',
                     'Vessel draft',
                     'Vessel Rego',
@@ -276,6 +287,7 @@ export default {
                     'Number',
                     'Type',
                     'Sticker Number/s',
+                    'Sticker mailed date',
                     'Holder',
                     'Status',
                     'Issue Date',
@@ -296,6 +308,8 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log('---full---')
+                            console.log(full)
                             return full.id
                         }
                     }
@@ -308,7 +322,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            if (full.migrated){
+                                return full.lodgement_number + ' (M)'
+                            } else {
+                                return full.lodgement_number
+                            }
                         }
                     }
         },
@@ -406,6 +424,9 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             let links = '';
+                            if(vm.debug){
+                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
+                            }
                             /*
                             if (vm.is_internal && vm.wlaDash) {
                                 links += full.offer_link;
@@ -413,15 +434,20 @@ export default {
                             */
                             if (vm.is_external && full.can_reissue) {
                                 if(full.can_action || vm.debug){
-                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                     if(full.amend_or_renew === 'amend' || vm.debug){
                                        links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
-                                   }
+                                    }
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
                                 }
                                 if(full.amend_or_renew === 'renew' || vm.debug){
                                 //if(full.renewal_document && full.renewal_sent && full.can_renew) {
                                     links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
+
+                                if (full.approval_type_dict.code != 'wla') {
+                                    links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
+                                }
+
                             } else if (!vm.is_external){
                                 links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
                                 links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
@@ -431,7 +457,10 @@ export default {
                                 if (vm.is_internal && vm.wlaDash) {
                                     links += full.offer_link;
                                 }
-                                if(vm.check_assessor(full)){
+                                //if(vm.check_assessor(full)){
+                                //if (full.allowed_assessors.includes(vm.profile.id)) {
+                                if (full.allowed_assessors_user) {
+                                //if (true) {
                                     if(full.can_reissue && full.can_action){
                                         links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
                                         links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
@@ -546,8 +575,31 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            //return full.vessel_draft;
-                            return full.stickers;
+                            let ret_str = ''
+                            for (let sticker of full.stickers){
+                                ret_str += sticker.number + '<br />'
+                            }
+                            return ret_str
+                        }
+                    }
+        },
+        columnStickerMailedDate: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            let ret_str = ''
+                            for (let sticker of full.stickers){
+                                console.log(sticker.mailing_date)
+                                if (sticker.mailing_date){
+                                    ret_str += moment(sticker.mailing_date).format('DD/MM/YYYY') + '<br />'
+                                } else {
+                                    ret_str += ''
+                                }
+                            }
+                            return ret_str
                         }
                     }
         },
@@ -624,6 +676,7 @@ export default {
                     vm.columnLodgementNumber,
                     vm.columnApprovalType,
                     vm.columnStickerNumber,
+                    vm.columnStickerMailedDate,
                     vm.columnStatus,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
@@ -646,6 +699,7 @@ export default {
                     vm.columnAction,
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
+                    vm.columnApprovalLetter,
                     vm.columnVesselLength,
                     vm.columnVesselDraft,
                     vm.columnVesselRegos,
@@ -657,6 +711,7 @@ export default {
                     vm.columnLodgementNumber,
                     vm.columnApprovalType,
                     vm.columnStickerNumber,
+                    vm.columnStickerMailedDate,
                     vm.columnHolder,
                     vm.columnStatus,
                     vm.columnIssueDate,
@@ -682,6 +737,7 @@ export default {
                 searching: true,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
+                    //"url": api_endpoints.approvals,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -728,7 +784,17 @@ export default {
 
     },
     methods: {
-
+        sendData: function(params){
+            let vm = this
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
+                res => {
+                    helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
+                },
+                err => {
+                    console.log(err)
+                }
+            )
+        },
         fetchProfile: function(){
             let vm = this;
             Vue.http.get(api_endpoints.profile).then((response) => {
@@ -739,7 +805,7 @@ export default {
 
             })
         },
-
+        /*
         check_assessor: function(proposal){
             let vm = this;
             //console.log(proposal.id, proposal.can_approver_reissue);
@@ -757,6 +823,7 @@ export default {
 
             return false;
         },
+        */
 
         offerMooringLicence: function(id){
             console.log('offerMooringLicence')
@@ -864,6 +931,13 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-surrender-approval');
                 vm.surrenderApproval(id);
+            });
+
+            //External Request New Sticker listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-request-new-sticker]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-request-new-sticker');
+                vm.requestNewSticker(id);
             });
 
             // External renewal listener
@@ -989,7 +1063,6 @@ export default {
             });
         },
         cancelApproval: function(approval_id){
-
             this.$refs.approval_cancellation.approval_id = approval_id;
             this.$refs.approval_cancellation.isModalOpen = true;
         },
@@ -1001,9 +1074,12 @@ export default {
         },
 
         surrenderApproval: function(approval_id){
-
             this.$refs.approval_surrender.approval_id = approval_id;
             this.$refs.approval_surrender.isModalOpen = true;
+        },
+        requestNewSticker: function(approval_id){
+            this.$refs.request_new_sticker_modal.approval_id = approval_id
+            this.$refs.request_new_sticker_modal.isModalOpen = true
         },
         approvalHistory: function(id){
             this.approvalHistoryId = parseInt(id);
@@ -1011,9 +1087,6 @@ export default {
             this.$nextTick(() => {
                 this.$refs.approval_history.isModalOpen = true;
             });
-
-            //this.$refs.approval_history.approvalId = approvalId;
-            //this.$refs.approval_history.isModalOpen = true;
         },
 
         renewApproval:function (proposal_id) {

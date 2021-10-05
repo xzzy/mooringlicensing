@@ -6,3 +6,4 @@ class MooringlicensingConfig(AppConfig):
 
     def ready(self):
         import mooringlicensing.components.payments_ml.signals
+        import mooringlicensing.components.approvals.signals

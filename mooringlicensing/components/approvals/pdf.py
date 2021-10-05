@@ -20,13 +20,13 @@ def create_dcv_permit_document(dcv_permit):
     return document
 
 
-def create_dcv_admission_document(dcv_admission):
+def create_dcv_admission_document(dcv_admission_arrival):
     # create bytes
-    contents_as_bytes = create_dcv_admission_pdf_tytes(dcv_admission)
+    contents_as_bytes = create_dcv_admission_pdf_tytes(dcv_admission_arrival)
 
-    filename = 'dcv_admission-{}.pdf'.format(dcv_admission.lodgement_number)
+    filename = 'dcv_admission-{}.pdf'.format(dcv_admission_arrival.dcv_admission.lodgement_number)
     from mooringlicensing.components.approvals.models import DcvAdmissionDocument
-    document = DcvAdmissionDocument.objects.create(dcv_admission=dcv_admission, name=filename)
+    document = DcvAdmissionDocument.objects.create(dcv_admission=dcv_admission_arrival.dcv_admission, name=filename)
 
     # Save the bytes to the disk
     document._file.save(filename, ContentFile(contents_as_bytes), save=True)
