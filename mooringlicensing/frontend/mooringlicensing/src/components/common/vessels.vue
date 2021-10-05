@@ -265,12 +265,14 @@ from '@/utils/hooks'
                 type: Boolean,
                 default: true,
             },
+            /*
             creatingVessel:{
                 type: Boolean,
             },
             editingVessel:{
                 type: Boolean,
             },
+            */
             is_internal: {
               type: Boolean,
               default: false
