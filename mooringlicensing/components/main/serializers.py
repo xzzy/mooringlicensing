@@ -5,7 +5,7 @@ from mooringlicensing.components.main.models import (
         CommunicationsLogEntry, #Region, District, Tenure, 
         #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, Activity, ActivityCategory, Section, Zone, 
         #RequiredDocument, 
-        Question, GlobalSettings
+        Question, GlobalSettings, TemporaryDocumentCollection,
         )#, ParkPrice
 #from mooringlicensing.components.proposals.models import  ProposalParkActivity
 #from mooringlicensing.components.bookings.models import  ParkBooking
@@ -95,3 +95,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             return 'Paid'
         else:
             return 'Over Paid'
+
+class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemporaryDocumentCollection
+        fields = ('id',)
+

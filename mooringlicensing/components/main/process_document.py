@@ -100,6 +100,9 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         elif document_type == 'waiting_list_offer_document':
             document_id = request.data.get('document_id')
             document = instance.waiting_list_offer_documents.get(id=document_id)
+        elif document_type == 'temp_document':
+            document_id = request.data.get('document_id')
+            document = instance.documents.get(id=document_id)
 
         #if document_type == DeedPollDocument.DOC_TYPE_NAME:
         #    document_id = request.data.get('document_id')
@@ -242,4 +245,36 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
         document._file = path
         document.save()
+
+# For transferring files from temp doc objs to default doc objs
+def save_default_document_obj(instance, temp_document):
+    document = instance.documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        '{}/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
+def save_vessel_registration_document_obj(instance, temp_document):
+    document = instance.vessel_registration_documents.get_or_create(
+            input_name="vessel_registration_document",
+            name=temp_document.name)[0]
+    path = default_storage.save(
+        '{}/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name,
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
 

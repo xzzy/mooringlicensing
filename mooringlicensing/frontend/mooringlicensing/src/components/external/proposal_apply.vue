@@ -1,14 +1,19 @@
 <template lang="html">
     <div class="container" >
         <!--button type="button" @click="createML">Mooring Licence Application</button-->
-        <div class="row">
+        <div class="row" v-if="applicationsLoading">
+            <div class="col-sm-3">
+                <i class='fa fa-5x fa-spinner fa-spin pull-right'></i>
+            </div>
+        </div>
+        <div v-else class="row">
             <div class="col-sm-12">
                 <form class="form-horizontal" name="personal_form" method="post">
                     <FormSection label="Apply for">
                         <div>
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
-                                    <label>Waiting List</label>
+                                    <label v-if="wlaChoices.length>0">Waiting List</label>
                                     <div v-if="wlaApprovals.length<=1">
                                         <div v-for="(application_type, index) in wlaChoices">
                                             <input 
@@ -211,6 +216,7 @@ export default {
   data: function() {
     let vm = this;
     return {
+        applicationsLoading: false,
         "proposal": null,
         profile: {
         },
@@ -233,6 +239,7 @@ export default {
         auaMultiple: [],
         mlMultiple: [],
         creatingProposal: false,
+        newWlaAllowed: false,
         //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
     }
   },
@@ -315,7 +322,7 @@ export default {
           } else {
               // add wla approval to wlaChoices
               for (let app of this.application_types) {
-                  if (app.code === 'wla') {
+                  if (app.code === 'wla' && (this.newWlaAllowed || app.approval_id)) {
                       this.wlaChoices.push(app);
                   }
               }
@@ -512,19 +519,26 @@ export default {
             this.application_types.push(l)
         }
     },
+    fetchWlaAllowed: async function(){
+        const response = await this.$http.get(api_endpoints.wla_allowed);
+        this.newWlaAllowed = response.body.wla_allowed;
+    },
 
   },
   mounted: async function() {
+    this.applicationsLoading = true;
     //let vm = this;
     await this.fetchApplicationTypes();
     //await this.fetchExistingMooringLicences();
     await this.fetchExistingLicences();
+    await this.fetchWlaAllowed();
     this.parseApprovals();
     this.parseWla();
     this.parseAaa();
     this.parseAua();
     this.parseMl();
     this.form = document.forms.new_proposal;
+    this.applicationsLoading = false;
   },
   beforeRouteEnter: function(to, from, next) {
 

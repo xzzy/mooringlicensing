@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
     Please be aware that your commercial operations licence {{ approval.lodgement_number }} expired on {{ approval.expiry_date}}
     
     To apply for a new Commercial Operations Licence please click <a href="{{url}}">here</a>

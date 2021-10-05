@@ -13,16 +13,16 @@ from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem
+    DcvAdmissionFee, StickerActionFee
 
 #test
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
     AnnualAdmissionApplication, ProposalType
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('mooringlicensing')
 
 
-def checkout(request, proposal, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
+def checkout(request, email_user, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
     basket_params = {
         'products': lines,
         'vouchers': vouchers,
@@ -50,7 +50,8 @@ def checkout(request, proposal, lines, return_url_ns='public_payment_success', r
     if proxy or request.user.is_anonymous():
         #checkout_params['basket_owner'] = booking.customer.id
         # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
-        checkout_params['basket_owner'] = proposal.submitter.id
+        # anonymous_user = EmailUser.objects.get_or_create(email='aho1@mail.com')
+        checkout_params['basket_owner'] = email_user.id
 
 
     create_checkout_session(request, checkout_params)
@@ -99,6 +100,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
     application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
     vessel_length = 1  # any number greater than 0
     proposal_type = None
+    oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)
 
     line_items = []
     for dcv_admission_arrival in dcv_admission.dcv_admission_arrivals.all():
@@ -129,7 +131,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
                 dcv_admission_arrival.private_visit,
                 ', '.join(number_of_people_str),
             ),
-            'oracle_code': application_type.oracle_code,
+            'oracle_code': oracle_code,
             'price_incl_tax': total_amount,
             'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
             'quantity': 1,
@@ -143,6 +145,7 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
 
 def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
+    logger.info('Creating fee lines for the proposal: {}'.format(instance.lodgement_number))
 
     # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
@@ -162,7 +165,9 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
                 accept_null_vessel = True
                 # this_is_null_vessel_app = True
             else:
-                raise Exception('No vessel specified for the application {}'.format(instance.lodgement_number))
+                msg = 'No vessel specified for the application {}'.format(instance.lodgement_number)
+                logger.error(msg)
+                raise Exception(msg)
         proposal_type = instance.proposal_type
     elif isinstance(instance, DcvPermit):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
@@ -175,52 +180,61 @@ def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor_additional = None
+    fee_constructor_for_aa = None
     if isinstance(instance, Proposal):
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
         if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             # There is also annual admission fee component for the AUA/MLA.
-            fee_constructor_additional = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
-            if not fee_constructor_additional:
+            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+            if not fee_constructor_for_aa:
                 # Fees have not been configured for the annual admission application and date
-                raise Exception('FeeConstructor object for the Annual Admission Application not found for the date: {}'.format(target_date))
+                msg = 'FeeConstructor object for the Annual Admission Application not found for the date: {} for the application: {}'.format(target_date, instance.lodgement_number)
+                logger.error(msg)
+                raise Exception(msg)
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+            msg = 'FeeConstructor object for the ApplicationType: {} not found for the date: {} for the application: {}'.format(application_type, target_date, instance.lodgement_number)
+            logger.error(msg)
+            raise Exception(msg)
     elif isinstance(instance, DcvPermit):
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+            msg = 'FeeConstructor object for the ApplicationType: {} and the Season: {} for the application: {}'.format(application_type, instance.fee_season, instance.lodgement_number)
+            logger.error(msg)
+            raise Exception(msg)
     else:
-        raise Exception('Something went wrong when calculating the fee')
+        msg = 'Something went wrong when calculating the fee for the application: {}'.format(instance.lodgement_number)
+        logger.error(msg)
+        raise Exception(msg)
 
     fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
-    fee_item_additional = fee_constructor_additional.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_additional else None
+    fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_for_aa else None
 
     fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)
-    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_additional, vessel_length) if fee_item_additional else None
+    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_for_aa, vessel_length) if fee_item_for_aa else None
 
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
     # db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
     db_processes_after_success['datetime_for_calculating_fee'] = current_datetime_str
     db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
-    db_processes_after_success['fee_item_additional_id'] = fee_item_additional.id if fee_item_additional else 0
+    db_processes_after_success['fee_item_additional_id'] = fee_item_for_aa.id if fee_item_for_aa else 0
     # TODO: Perform db_process for additional component, too???
 
     line_items = []
-    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime_str))
+    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime))
     if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
         # There is also annual admission fee component for the AUA/MLA.
-        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_additional, instance, current_datetime_str))
+        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, instance, current_datetime))
 
     logger.info('{}'.format(line_items))
 
     return line_items, db_processes_after_success
 
 
-def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime_str):
+def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime):
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
     proposal_type_text = '({})'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
     return {
         'ledger_description': '{}({}) Fee: {} (Season: {} to {}) @{}'.format(
@@ -232,7 +246,7 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
             fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
             target_datetime_str,
         ),
-        'oracle_code': application_type.oracle_code,
+        'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
         'price_incl_tax': fee_amount_adjusted,
         'price_excl_tax': calculate_excl_gst(fee_amount_adjusted) if fee_constructor.incur_gst else fee_amount_adjusted,
         'quantity': 1,
@@ -242,6 +256,33 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
 NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
 NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
 NAME_SESSION_DCV_ADMISSION_INVOICE = 'mooringlicensing_dcv_admission_invoice'
+NAME_SESSION_STICKER_ACTION_INVOICE = 'mooringlicensing_sticker_action_invoice'
+
+
+def set_session_sticker_action_invoice(session, application_fee):
+    """ Application Fee session ID """
+    session[NAME_SESSION_STICKER_ACTION_INVOICE] = application_fee.id
+    session.modified = True
+
+
+def get_session_sticker_action_invoice(session):
+    """ Application Fee session ID """
+    if NAME_SESSION_STICKER_ACTION_INVOICE in session:
+        application_fee_id = session[NAME_SESSION_STICKER_ACTION_INVOICE]
+    else:
+        raise Exception('Application not in Session')
+
+    try:
+        return StickerActionFee.objects.get(id=application_fee_id)
+    except StickerActionFee.DoesNotExist:
+        raise Exception('StickerActionFee not found for id: {}'.format(application_fee_id))
+
+
+def delete_session_sticker_action_invoice(session):
+    """ Application Fee session ID """
+    if NAME_SESSION_STICKER_ACTION_INVOICE in session:
+        del session[NAME_SESSION_STICKER_ACTION_INVOICE]
+        session.modified = True
 
 
 def set_session_application_invoice(session, application_fee):
@@ -252,6 +293,10 @@ def set_session_application_invoice(session, application_fee):
     session.modified = True
 
 
+class ItemNotSetInSessionException(Exception):
+    pass
+
+
 def get_session_application_invoice(session):
     print('in get_session_application_invoice')
 
@@ -259,12 +304,13 @@ def get_session_application_invoice(session):
     if NAME_SESSION_APPLICATION_INVOICE in session:
         application_fee_id = session[NAME_SESSION_APPLICATION_INVOICE]
     else:
-        raise Exception('Application not in Session')
+        # Reach here when the ApplicationFeeSuccessView is accessed 2nd time.  Which is correct.
+        raise ItemNotSetInSessionException('Application not in Session')
 
     try:
         return ApplicationFee.objects.get(id=application_fee_id)
     except ApplicationFee.DoesNotExist:
-        raise Exception('Application not found for application {}'.format(application_fee_id))
+        raise
 
 
 def delete_session_application_invoice(session):
