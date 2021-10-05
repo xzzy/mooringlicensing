@@ -102,14 +102,34 @@ class Document(models.Model):
 class ApplicationType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
-    oracle_code = models.CharField(max_length=50, blank=True, null=True)
+    fee_by_fee_constructor = models.BooleanField(default=True)
 
     def __str__(self):
         # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
         return '{}'.format(self.description)
 
+    def get_oracle_code_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.value
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    def get_enforcement_date_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
+        try:
+            oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
+            return oracle_code_item.date_of_enforcement
+        except:
+            raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
+
+    @staticmethod
+    def get_current_oracle_code_by_application(code):
+        application_type = ApplicationType.objects.get(code=code)
+        return application_type.get_oracle_code_by_date()
+
     class Meta:
         app_label = 'mooringlicensing'
+        verbose_name = 'Oracle code'
 
 
 
@@ -182,33 +202,49 @@ class Question(models.Model):
 class GlobalSettings(models.Model):
     KEY_DCV_PERMIT_TEMPLATE_FILE = 'dcv_permit_template_file'
     KEY_DCV_ADMISSION_TEMPLATE_FILE = 'dcv_admission_template_file'
-    KEY_APPROVAL_TEMPLATE_FILE = 'approval_template_file'
+    KEY_WLA_TEMPLATE_FILE = 'wla_template_file'
+    KEY_AAP_TEMPLATE_FILE = 'aap_template_file'
+    KEY_AUP_TEMPLATE_FILE = 'aup_template_file'
+    KEY_ML_TEMPLATE_FILE = 'ml_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
+    KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
 
     keys_for_file = (
         KEY_DCV_PERMIT_TEMPLATE_FILE,
         KEY_DCV_ADMISSION_TEMPLATE_FILE,
-        KEY_APPROVAL_TEMPLATE_FILE,
+        KEY_WLA_TEMPLATE_FILE,
+        KEY_AAP_TEMPLATE_FILE,
+        KEY_AUP_TEMPLATE_FILE,
+        KEY_ML_TEMPLATE_FILE,
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, 'DcvAdmission template file'),
-        (KEY_APPROVAL_TEMPLATE_FILE, 'Approval template file'),
+        (KEY_WLA_TEMPLATE_FILE, 'Waiting List Allocation template file'),
+        (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
+        (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit tempalte file'),
+        (KEY_ML_TEMPLATE_FILE, 'Mooring Licence template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
+        (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit')
     )
-    default_values = (
-        (KEY_DCV_PERMIT_TEMPLATE_FILE, ''),
-        (KEY_DCV_ADMISSION_TEMPLATE_FILE, ''),
-        (KEY_APPROVAL_TEMPLATE_FILE, ''),
-        (KEY_MINIMUM_VESSEL_LENGTH, 3.75),
-        (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 6.50),
-    )
+    template_folder = 'mooringlicensing/management/templates'
+    default_values = {
+        KEY_DCV_PERMIT_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - DCVP.docx'),
+        KEY_DCV_ADMISSION_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - DCVA.docx'),
+        KEY_WLA_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - WLA.docx'),
+        KEY_AAP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AAP.docx'),
+        KEY_AUP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AUP.docx'),
+        KEY_ML_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML.docx'),
+        KEY_MINIMUM_VESSEL_LENGTH: 3.75,
+        KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.50,
+        KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
+    }
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
     value = models.CharField(max_length=255)
-    _file = models.FileField(upload_to='dcv_permit_template', null=True, blank=True)
+    _file = models.FileField(upload_to='approval_permit_template', null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -255,14 +291,13 @@ class SystemMaintenance(models.Model):
     def __str__(self):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
 
-# Not currently used
+
 class TemporaryDocumentCollection(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
 
 
-# Not currently used
 class TemporaryDocument(Document):
     temp_document_collection = models.ForeignKey(
         TemporaryDocumentCollection,
@@ -281,7 +316,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
     name = models.CharField(max_length=100, null=False, blank=False)
 
     def get_one_smaller_category(self, vessel_size_category):
-        smaller_categories = self.vessel_size_categories.filter(start_size__lt=vessel_size_category.start_size).order_by('-start_size')
+        smaller_categories = self.vessel_size_categories.filter(start_size__lt=vessel_size_category.start_size, null_vessel=False).order_by('-start_size')
         if smaller_categories:
             return smaller_categories.first()
         else:

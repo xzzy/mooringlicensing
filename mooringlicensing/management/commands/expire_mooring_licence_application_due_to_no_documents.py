@@ -9,8 +9,7 @@ from django.db.models import Q
 
 import logging
 
-from mooringlicensing.components.proposals.email import send_expire_mooring_licence_application_email, \
-    send_expire_mla_notification_to_assessor
+from mooringlicensing.components.proposals.email import send_expire_mla_notification_to_assessor, send_expire_mooring_licence_by_no_documents_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
@@ -63,8 +62,14 @@ class Command(BaseCommand):
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.customer_status = Proposal.CUSTOMER_STATUS_EXPIRED
                 a.save()
+                # update WLA internal_status and queue date
+                a.waiting_list_allocation.internal_status = 'waiting'
+                a.waiting_list_allocation.wla_queue_date = today
+                a.waiting_list_allocation.save()
+                # reset Waiting List order
+                a.waiting_list_allocation.set_wla_order()
                 due_date = a.lodgement_date + timedelta(days=days_setting.number_of_days)
-                send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS, due_date)
+                send_expire_mooring_licence_by_no_documents_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS, due_date)
                 send_expire_mla_notification_to_assessor(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS, due_date)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)

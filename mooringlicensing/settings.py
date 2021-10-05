@@ -40,6 +40,7 @@ STATIC_URL = '/static/'
 
 
 INSTALLED_APPS += [
+    'smart_selects',
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',
@@ -73,6 +74,7 @@ MIDDLEWARE_CLASSES += [
     'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
     'mooringlicensing.middleware.CacheControlMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
@@ -97,7 +99,9 @@ CACHES = {
     }
 }
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ml')
-STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
+DEBUG_ENV = env('DEBUG', False)
+if DEBUG_ENV:
+    STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'mooringlicensing', 'static')))
 DEV_STATIC = env('DEV_STATIC',False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 if DEV_STATIC and not DEV_STATIC_URL:
@@ -116,7 +120,7 @@ DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by 
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No rand hash provided")
 RAND_HASH = ''
-if  os.path.isdir(BASE_DIR+'/.git/') is True:
+if os.path.isdir(BASE_DIR+'/.git/') is True:
     RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
 if not len(RAND_HASH):
     RAND_HASH = os.popen('cat /app/rand_hash').read()
@@ -166,7 +170,7 @@ CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
 if CONSOLE_EMAIL_BACKEND:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
+PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S651')
 OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
 PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
 PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0'))
@@ -189,15 +193,40 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',
     'description': 'DCV Permit',
-    'oracle_code': 'T1 EXEMPT',
+    'fee_by_fee_constructor': True,
 }
 APPLICATION_TYPE_DCV_ADMISSION = {
     'code': 'dcv',
     'description': 'DCV Admission',
-    'oracle_code': 'T1 EXEMPT',
+    'fee_by_fee_constructor': True,
 }
+APPLICATION_TYPE_REPLACEMENT_STICKER = {
+    'code': 'replacement_sticker',
+    'description': 'Replacement sticker fees',
+    'fee_by_fee_constructor': False,
+}
+APPLICATION_TYPE_MOORING_SWAP = {
+    'code': 'mooring_swap',
+    'description': 'Mooring swap fees',
+    'fee_by_fee_constructor': False,
+}
+APPLICATION_TYPES = [
+    APPLICATION_TYPE_DCV_PERMIT,
+    APPLICATION_TYPE_DCV_ADMISSION,
+    APPLICATION_TYPE_REPLACEMENT_STICKER,
+    APPLICATION_TYPE_MOORING_SWAP,
+]
+# Add a handler
+LOGGING['handlers']['file_mooringlicensing'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'mooringlicensing.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+# define logger
 LOGGING['loggers']['mooringlicensing'] = {
-    'handlers': ['file'],
+    'handlers': ['file_mooringlicensing'],
     'level': 'INFO'
 }
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
@@ -229,7 +258,11 @@ CODE_DAYS_BEFORE_PERIOD_MLA = 'MLApplicationSubmitNotification'
 CODE_DAYS_IN_PERIOD_MLA = 'MLApplicationSubmitPeriod'
 CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA = 'MLADocumentsSubmitPeriod'
 CODE_DAYS_FOR_ENDORSER_AUA = 'AUAEndorseDeclinePeriod'
-CODE_DAYS_FOR_RENEWAL = 'AAPAUPMLRenewalNotification'
+CODE_DAYS_FOR_RENEWAL_WLA = 'RenewalNotificationWLA'
+CODE_DAYS_FOR_RENEWAL_AAP = 'RenewalNotificationAAP'
+CODE_DAYS_FOR_RENEWAL_AUP = 'RenewalNotificationAUP'
+CODE_DAYS_FOR_RENEWAL_ML = 'RenewalNotificationML'
+CODE_DAYS_FOR_RENEWAL_DCVP = 'RenewalNotificationDCVP'
 
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     {
@@ -275,10 +308,85 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
         'default': 28
     },
     {
-        'code': CODE_DAYS_FOR_RENEWAL,
-        'name': 'AAP, AUP and ML Renewal notification',
+        'code': CODE_DAYS_FOR_RENEWAL_WLA,
+        'name': 'WLA Renewal notification',
         'description': 'Number of days before expiry date of the approvals to email',
-        'default': 28
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_AAP,
+        'name': 'AAP Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_AUP,
+        'name': 'AUP Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_ML,
+        'name': 'ML Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
+    },
+    {
+        'code': CODE_DAYS_FOR_RENEWAL_DCVP,
+        'name': 'DCVP Renewal notification',
+        'description': 'Number of days before expiry date of the approvals to email',
+        'default': 10
     },
 ]
 
+# Oracle codes
+ORACLE_CODE_ID_WL = 'oracle_code_wl'
+ORACLE_CODE_ID_AA = 'oracle_code_aa'
+ORACLE_CODE_ID_AU = 'oracle_code_au'
+ORACLE_CODE_ID_ML = 'oracle_code_ml'
+ORACLE_CODE_ID_DCV_PERMIT = 'oracle_code_dcv_permit'
+ORACLE_CODE_ID_DCV_ADMISSION = 'oracle_code_dcv_admission'
+ORACLE_CODE_ID_REPLACEMENT_STICKER = 'oracle_code_replacement_sticker'
+ORACLE_CODE_ID_MOORING_SWAP = 'oracle_code_mooring_swap'
+ORACLE_CODES = [
+    {
+        'identifier': ORACLE_CODE_ID_WL,
+        'name': 'Waiting list allocation fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_AA,
+        'name': 'Annual admission fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_AU,
+        'name': 'Authorised user fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_ML,
+        'name': 'Mooring licence fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_DCV_PERMIT,
+        'name': 'DCV permit fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_DCV_ADMISSION,
+        'name': 'DCV admission fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_REPLACEMENT_STICKER,
+        'name': 'Replacement sticker fees',
+    },
+    {
+        'identifier': ORACLE_CODE_ID_MOORING_SWAP,
+        'name': 'Mooring swap fees',
+    },
+]
+# For django-smart-select
+USE_DJANGO_JQUERY = True
+## DoT vessel rego lookup
+DOT_URL=env('DOT_URL',None)
+DOT_USERNAME=env('DOT_USERNAME',None)
+DOT_PASSWORD=env('DOT_PASSWORD',None)
+DO_DOT_CHECK=env('DO_DOT_CHECK', False)
+LOV_CACHE_TIMEOUT=10800

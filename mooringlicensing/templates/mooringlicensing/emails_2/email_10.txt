@@ -1,0 +1,31 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Please be reminded that you will need to nominate a new suitable vessel before {{ date_to_nominate_new_vessel }} to retain your {{ approval.description }} {{ approval.lodgement_number }}. This can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}.
+
+    The Rottnest Island Regulations 1988 state that a suitable vessel means a vessel that:
+
+    has a length of at least 6.4 metres;
+    is a sailing vessel or has its own form of self propulsion capable of achieving a speed of 5 knots, and;
+    has adequate insurance cover.
+
+
+
+    You:
+
+    must be a registered owner of the vessel you wish to nominate, and
+    own 25% or more of its net worth
+
+
+
+    The vessel:
+
+    must not already be nominated as a licensed vessel or an additional vessel for any other mooring site, or
+    a vessel nominated under any application recorded on a waiting list, and
+    the vessel must not already be associated with any other Rottnest Island Boating annual admission or authorised user permit in a co-owner's name.
+
+
+Please access {{ dashboad_external_url }} to log in to your account.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}

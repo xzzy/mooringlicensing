@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
      Your Organisation link request has been declined from:
         Organisation : {{ organisation.name }}
         ABN : {{ organisation.abn}}
