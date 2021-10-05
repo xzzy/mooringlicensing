@@ -1,0 +1,12 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Your request to replace {{ sticker.number }} has been received. Please find attached to this email your invoice as proof of payment.
+Your replacement sticker(s) will be posted to you in the coming days. Once received, you must ensure it is displayed on your vessel at all times whilst within the limits of the Reserve.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
+
+
+
+

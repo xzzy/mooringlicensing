@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email.html' %}
 
-{%  block content %}
+{% block content %}
     <p>The address for an organisation you are linked to has been updated by {{address_updated_by.get_full_name}} ({{address_updated_by.email}}).</p>
     <p><strong>Organisation: {{ organisation.name }}</strong></p>
     <p><strong>ABN: {{ organisation.abn }}</strong></p>
