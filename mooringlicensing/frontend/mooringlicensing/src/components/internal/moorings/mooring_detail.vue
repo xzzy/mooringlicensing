@@ -51,14 +51,14 @@
                             </div>
                         </FormSection>
                         <FormSection label="Vessel limits" Index="vessel_limits">
-                            <div class="row form-group">
+                            <!--div class="row form-group">
                                 <div class="col-sm-3">
                                     <label>Vessel beam limit:</label>
                                 </div>
                                 <div class="col-sm-6">
                                     {{ mooring.vessel_beam_limit }}
                                 </div>
-                            </div>
+                            </div-->
                             <div class="row form-group">
                                 <div class="col-sm-3">
                                     <label>Vessel draft limit:</label>
@@ -84,9 +84,9 @@
                                 </div>
                             </div>
                         </FormSection>
-                        <FormSection label="Closure history" Index="closure_history">
+                        <!--FormSection label="Closure history" Index="closure_history">
                         what goes here?
-                        </FormSection>
+                        </FormSection-->
                     </div>
                     <div class="tab-pane fade" id="pills-bookings-permits" role="tabpanel" aria-labelledby="pills-bookings-permits-tab">
                         <FormSection label="Bookings/Permits" Index="bookings_permits">

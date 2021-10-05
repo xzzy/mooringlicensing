@@ -1,10 +1,19 @@
 import re
+from decimal import Decimal
 
 from django.db import transaction
 from ledger.accounts.models import EmailUser #, Document
 
 from mooringlicensing import settings
-from mooringlicensing.components.main.models import GlobalSettings
+import json
+from mooringlicensing.components.main.utils import get_dot_vessel_information
+from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
+from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from mooringlicensing.components.proposals.models import (
     # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
     # ProposalUserAction,
@@ -23,6 +32,7 @@ from mooringlicensing.components.proposals.models import (
     Proposal,
     Company,
     CompanyOwnership,
+    Mooring
 )
 from mooringlicensing.components.proposals.serializers import (
         SaveVesselDetailsSerializer,
@@ -40,12 +50,12 @@ from mooringlicensing.components.proposals.serializers import (
         )
 
 from mooringlicensing.components.approvals.models import (
-        ApprovalHistory, 
-        MooringLicence, 
-        AnnualAdmissionPermit, 
-        WaitingListAllocation, 
-        AuthorisedUserPermit
-        )
+    ApprovalHistory,
+    MooringLicence,
+    AnnualAdmissionPermit,
+    WaitingListAllocation,
+    AuthorisedUserPermit, Approval
+)
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 # from mooringlicensing.components.proposals.email import send_submit_email_notification, \
 #     send_external_submit_email_notification, send_endersement_of_authorised_user_application_email, \
@@ -61,8 +71,7 @@ from rest_framework import serializers
 import logging
 
 
-logger = logging.getLogger(__name__)
-logger_for_payment = logging.getLogger('payment_checkout')
+logger = logging.getLogger('mooringlicensing')
 
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
@@ -341,8 +350,9 @@ class SpecialFieldsSearch(object):
             item_data[item['name']] = item_data_list
         return item_data
 
-
 def save_proponent_data(instance, request, viewset):
+    if viewset.action == 'submit':
+        logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
     if type(instance.child_obj) == WaitingListApplication:
         save_proponent_data_wla(instance, request, viewset)
     elif type(instance.child_obj) == AnnualAdmissionApplication:
@@ -377,6 +387,7 @@ def save_proponent_data_aaa(instance, request, viewset):
         if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
+            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             instance.save()
@@ -406,6 +417,7 @@ def save_proponent_data_wla(instance, request, viewset):
         if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
+            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
             instance.save()
@@ -495,14 +507,63 @@ def save_vessel_data(instance, request, vessel_data):
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
     # overwrite vessel_data.id with correct value
-    serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
-    serializer.is_valid(raise_exception=True)
-    print(serializer.validated_data)
-    serializer.save()
+    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'):
+        # do not write vessel_data to proposal
+        pass
+    else:
+        serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
+        serializer.is_valid(raise_exception=True)
+        print(serializer.validated_data)
+        serializer.save()
 
+def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
+    json_string = json.dumps(payload)
+    dot_response_str = get_dot_vessel_information(request, json_string)
+    dot_response_json = json.loads(dot_response_str)
+    logger.info("dot_response_json")
+    logger.info(dot_response_json)
+    logger.info(dot_response_json.get("status"))
+    if dot_response_json.get("status") and not dot_response_json.get("status") == 200:
+        raise serializers.ValidationError("DoT Service Unavailable")
+    dot_response = dot_response_json.get("data")
+    dot_boat_length = dot_response.get("boatLength")
+    boat_found = True if dot_response.get("boatFound") == "Y" else False
+    boat_owner_match = True if dot_response.get("boatOwnerMatch") else False
+    ml_boat_length = vessel_data.get("vessel_details", {}).get("vessel_length")
+    if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
+        vessel_lookup_errors[vessel_data.get("rego_no")] = "The provided details do not match those recorded with the Department of Transport"
 
 def submit_vessel_data(instance, request, vessel_data):
     print("submit vessel data")
+    print(vessel_data)
+    # Dot vessel rego lookup
+    if settings.DO_DOT_CHECK:
+        vessel_lookup_errors = {}
+        # Mooring Licence vessel history
+        if type(instance.child_obj) == MooringLicenceApplication and instance.approval:
+            for vo in instance.approval.child_obj.vessel_ownership_list:
+                dot_name = vo.dot_name
+                owner_str = dot_name.replace(" ", "%20")
+                payload = {
+                        "boatRegistrationNumber": vo.vessel.rego_no,
+                        "owner": owner_str,
+                        "userId": str(request.user.id)
+                        }
+                dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
+
+        # current proposal vessel check
+        if vessel_data.get("rego_no"):
+            dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
+            owner_str = dot_name.replace(" ", "%20")
+            payload = {
+                    "boatRegistrationNumber": vessel_data.get("rego_no"),
+                    "owner": owner_str,
+                    "userId": str(request.user.id)
+                    }
+            dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
+
+        if vessel_lookup_errors:
+            raise serializers.ValidationError(vessel_lookup_errors)
 
     min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
     min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
@@ -522,22 +583,40 @@ def submit_vessel_data(instance, request, vessel_data):
     instance.vessel_details = vessel_details
     instance.save()
     ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
-    if type(instance.child_obj) in [AnnualAdmissionApplication, AuthorisedUserApplication]:
+    if type(instance.child_obj) == AnnualAdmissionApplication:
         if instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+    elif type(instance.child_obj) == AuthorisedUserApplication:
+        if instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+        # proposal
+        proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+        mooring_id = proposal_data.get('mooring_id')
+        if mooring_id and proposal_data.get('site_licensee_email'):
+            mooring = Mooring.objects.get(id=mooring_id)
+            if (instance.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
+            instance.vessel_details.vessel_draft > mooring.vessel_draft_limit):
+                logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
+                raise serializers.ValidationError("Vessel unsuitable for mooring")
     elif type(instance.child_obj) == WaitingListApplication:
         if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
     else:
         ## Mooring Licence Application
         if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
         elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
         elif instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and (
-                instance.vessel_details.vessel_applicable_length > instance.approval.mooring.vessel_size_limit or
-                instance.vessel_details.vessel_draft > instance.approval.mooring.vessel_draft_limit
+                instance.vessel_details.vessel_applicable_length > instance.approval.child_obj.mooring.vessel_size_limit or
+                instance.vessel_details.vessel_draft > instance.approval.child_obj.mooring.vessel_draft_limit
                 ):
+            logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
             raise serializers.ValidationError("Vessel unsuitable for mooring")
 
     # record ownership data
@@ -655,11 +734,12 @@ def store_vessel_ownership(request, vessel, instance=None):
     #vessel = instance.vessel_details.vessel
     ## Vessel Ownership
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
+    #import ipdb; ipdb.set_trace()
     vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
     elif (not vessel_ownership_data.get('individual_owner') and not 
-            vessel_ownership_data.get("company_ownership").get("company").get("name")
+            vessel_ownership_data.get("company_ownership", {}).get("company", {}).get("name")
             ):
         raise serializers.ValidationError({"Missing information": "You must supply the company name"})
     company_ownership = None
@@ -736,7 +816,34 @@ def store_vessel_ownership(request, vessel, instance=None):
       #  vessel.save()
     if instance:
         vessel.check_blocking_ownership(vessel_ownership, instance)
+    # save temp doc if exists
+    #import ipdb; ipdb.set_trace()
+    if request.data.get('proposal', {}).get('temporary_document_collection_id'):
+        handle_document(instance, vessel_ownership, request.data)
+        #vessel_ownership.refresh_from_db()
+    # Vessel docs
+    if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
+        raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
+
+def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
+    #import ipdb; ipdb.set_trace()
+    print("handle document")
+    #temporary_document_collection_dict = request_data.get('temporary_document_collection_id')
+    #temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id')
+    temporary_document_collection_id = request_data.get('proposal', {}).get('temporary_document_collection_id')
+    if temporary_document_collection_id:
+        #temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+         #       id=temporary_document_collection_id)
+        temp_doc_collection = None
+        if TemporaryDocumentCollection.objects.filter(id=temporary_document_collection_id):
+            temp_doc_collection = TemporaryDocumentCollection.objects.filter(id=temporary_document_collection_id)[0]
+        if temp_doc_collection:
+            for doc in temp_doc_collection.documents.all():
+                save_vessel_registration_document_obj(vessel_ownership, doc)
+            temp_doc_collection.delete()
+            instance.temporary_document_collection_id = None
+            instance.save()
 
 def ownership_percentage_validation(vessel_ownership):
     individual_ownership_id = None
@@ -1001,51 +1108,147 @@ def is_payment_officer(user):
 
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
-    # This logic might be true to all the four types of application
-    # If not, implement the logic specific to a certain application type under that class
-    if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
-        # This is Amendment application.  We have to adjust the fee
-        if fee_item_being_applied:
-            #logger_for_payment.log('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-            #logger_for_payment.log('FeeItem being applied: {}'.format(fee_item_being_applied))
-            logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
-            logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
+    # Retrieve all the fee_items for this vessel
 
-            # fee_amount_adjusted = fee_item_being_applied.amount
-            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+    if fee_item_being_applied:
+        logger.info('Adjusting the fee amount for proposal: {}, fee_item: {}, vessel_length: {}'.format(
+            proposal.lodgement_number, fee_item_being_applied, vessel_length
+        ))
 
-            # Adjust the fee
-            for fee_item in proposal.approval.fee_items:
-                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
-                    # Find the fee_item which can be considered as already paid for this period
-                    target_fee_period = fee_item_being_applied.fee_period
-                    target_vessel_size_category = fee_item.vessel_size_category
-                    target_proposal_type = fee_item_being_applied.proposal_type
-
-                    target_fee_constructor = fee_item_being_applied.fee_constructor
-                    fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
-                        target_vessel_size_category,
-                        target_fee_period,
-                        proposal_type=target_proposal_type,
-                        age_group=None,
-                        admission_type=None
-                    )
-
-                    # Applicant already partially paid for this fee item.  Deduct it.
-                    # fee_amount_adjusted -= fee_item_considered_paid.amount
-                    fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-                    logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
-
-            fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
-        else:
-            if proposal.does_accept_null_vessel:
-                # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
-                fee_amount_adjusted = 0
-            else:
-                raise Exception('FeeItem not found.')
-    else:
-        # This is New/Renewal Application type
-        # fee_amount_adjusted = fee_item_being_applied.amount
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
+        # Retrieve all the fee items paid for this vessel (through proposal.vessel_ownership)
+        fee_items_already_paid = proposal.vessel_ownership.get_fee_items_paid()
+        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
+            for item in proposal.approval.get_fee_items():
+                if item not in fee_items_already_paid:
+                    fee_items_already_paid.append(item)
+
+        if fee_item_being_applied in fee_items_already_paid:
+            # Fee item being applied has been paid already
+            # We don't charge this fee_item_being_applied
+            return Decimal('0.0')
+        else:
+            for fee_item in fee_items_already_paid:
+                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season and \
+                        fee_item.fee_constructor.application_type == fee_item_being_applied.fee_constructor.application_type:
+                    # Found fee_item which has the same fee_season and the same application_type of fee_item_being_applied
+                    # This fee_item's fee_period and vessel_size_category might be different from those of the fee_item_being_applied
+
+                    if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
+                        # Find the fee_item which can be considered as already paid for this period
+                        target_fee_period = fee_item_being_applied.fee_period
+                        target_proposal_type = fee_item_being_applied.proposal_type
+                        target_vessel_size_category = fee_item.vessel_size_category
+
+                        target_fee_constructor = fee_item_being_applied.fee_constructor
+                        fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+                            target_vessel_size_category,
+                            target_fee_period,
+                            proposal_type=target_proposal_type,
+                            age_group=None,
+                            admission_type=None
+                        )
+
+                        # Applicant already partially paid for this fee item.  Deduct it.
+                        # fee_amount_adjusted -= fee_item_considered_paid.amount
+                        if fee_item_considered_paid:
+                            fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+                            logger.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+
+#        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
+#            # When proposal.approval exists, this proposal is either amendment or renewal
+#
+#            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
+#            fee_items_already_paid = proposal.approval.get_fee_items()
+#            if fee_item_being_applied in fee_items_already_paid:
+#                # Fee item being applied has been paid already
+#                # We don't charge this fee_item_being_applied
+#                return Decimal('0.0')
+#            else:
+#                for fee_item in fee_items_already_paid:
+#                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:  # and fee_item.proposal_type == fee_item_being_applied.proposal_type:
+#                        # Found fee_item which has
+#                        #   same: fee_season, application_type
+#                        #   different: fee_period, vessel_size_category  (might be the same)
+#
+#                        if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
+#                            # Find the fee_item which can be considered as already paid for this period, this proposal type, but the previous vessel size category
+#                            target_fee_period = fee_item_being_applied.fee_period
+#                            target_proposal_type = fee_item_being_applied.proposal_type
+#                            target_vessel_size_category = fee_item.vessel_size_category  # <== Vessel size category should be the one of the fee item found.
+#
+#                            target_fee_constructor = fee_item_being_applied.fee_constructor
+#                            fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+#                                target_vessel_size_category,
+#                                target_fee_period,
+#                                proposal_type=target_proposal_type,
+#                                age_group=None,
+#                                admission_type=None
+#                            )
+#
+#                            # Applicant already partially paid for this fee item.  Deduct it.
+#                            # fee_amount_adjusted -= fee_item_considered_paid.amount
+#                            if fee_item_considered_paid:
+#                                fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+#                                logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+
+        fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
+    else:
+        if proposal.does_accept_null_vessel:
+            # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+            fee_amount_adjusted = 0
+        else:
+            raise Exception('FeeItem not found.')
+
     return fee_amount_adjusted
+
+
+#    # This logic might be true to all the four types of application
+#    # If not, implement the logic specific to a certain application type under that class
+#    if proposal.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
+#        # This is Amendment application.  We have to adjust the fee
+#        if fee_item_being_applied:
+#            logger_for_payment.info('Adjusting fee amount for the application: {}'.format(proposal.lodgement_number))
+#            logger_for_payment.info('FeeItem being applied: {}'.format(fee_item_being_applied))
+#
+#            fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+#
+#            # Adjust the fee
+#            for fee_item in proposal.approval.get_fee_items():
+#                if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:
+#                    # Find the fee_item which can be considered as already paid for this period
+#                    target_fee_period = fee_item_being_applied.fee_period
+#                    target_vessel_size_category = fee_item.vessel_size_category
+#                    target_proposal_type = fee_item_being_applied.proposal_type
+#
+#                    target_fee_constructor = fee_item_being_applied.fee_constructor
+#                    fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
+#                        target_vessel_size_category,
+#                        target_fee_period,
+#                        proposal_type=target_proposal_type,
+#                        age_group=None,
+#                        admission_type=None
+#                    )
+#
+#                    # Applicant already partially paid for this fee item.  Deduct it.
+#                    # fee_amount_adjusted -= fee_item_considered_paid.amount
+#                    if fee_item_considered_paid:
+#                        fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
+#                        logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+#
+#            fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
+#        else:
+#            if proposal.does_accept_null_vessel:
+#                # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+#                fee_amount_adjusted = 0
+#            else:
+#                raise Exception('FeeItem not found.')
+#    else:
+#        # This is New/Renewal Application type
+#        # fee_amount_adjusted = fee_item_being_applied.amount
+#        fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
+#
+#    return fee_amount_adjusted
+#

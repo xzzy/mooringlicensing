@@ -12,12 +12,14 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email, _log_user_email
+from mooringlicensing.components.compliances.email import _log_compliance_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.components.emails.utils import get_user_as_email_user
-from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA
+from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url
+from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
+    PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
 logger = logging.getLogger(__name__)
 
@@ -187,35 +189,31 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
 #####
 ### After refactoring ###
 #####
-def get_public_url(request=None):
-    if request:
-        # web_url = request.META.get('HTTP_HOST', None)
-        web_url = '{}://{}'.format(request.scheme, request.get_host())
-    else:
-        web_url = settings.SITE_URL if settings.SITE_URL else ''
-    return web_url
 
 
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
     # 1
     email = TemplateEmailBase(
-        subject='Successful submission of application',
-        html_template='mooringlicensing/emails/send_confirmation_email_upon_submit.html',
-        txt_template='mooringlicensing/emails/send_confirmation_email_upon_submit.txt',
+        subject='Submission Received: Rottnest Island Boating Application {}'.format(proposal.lodgement_number),
+        # html_template='mooringlicensing/emails/send_confirmation_email_upon_submit.html',
+        # txt_template='mooringlicensing/emails/send_confirmation_email_upon_submit.txt',
+        html_template='mooringlicensing/emails_2/email_1.html',
+        txt_template='mooringlicensing/emails_2/email_1.txt',
     )
 
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    if "-internal" not in url:
+    # url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+        # url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
     # Configure recipients, contents, etc
     context = {
         'public_url': get_public_url(request),
+        'dashboard_external_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'payment_made': payment_made,
-        'url': url,
+        # 'url': url,
     }
     to_address = proposal.submitter.email
     cc = []
@@ -235,18 +233,21 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
 def send_notification_email_upon_submit_to_assessor(request, proposal, attachments=[]):
     # 2
     email = TemplateEmailBase(
-        subject='A new application has been submitted',
-        html_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.html',
-        txt_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.txt',
+        subject='Assessment required: a new application submission is awaiting assessment',
+        # html_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.html',
+        # txt_template='mooringlicensing/emails/send_notification_email_upon_submit_to_assessor.txt',
+        html_template='mooringlicensing/emails_2/email_2.html',
+        txt_template='mooringlicensing/emails_2/email_2.txt',
     )
 
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = make_url_for_internal(url)
 
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
-        'url': url,
+        'proposal_internal_url': url,
     }
     to_address = proposal.assessor_recipients
     cc = []
@@ -263,24 +264,27 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     return msg
 
 
-def send_approver_approve_email_notification(request, proposal):
+def send_approver_approve_decline_email_notification(request, proposal):
     # 3
     email = TemplateEmailBase(
-        subject='An application is ready for approval or decline',
-        html_template='mooringlicensing/emails/send_approver_approve_notification.html',
-        txt_template='mooringlicensing/emails/send_approver_approve_notification.txt',
+        subject='Approval required: an assessed application is awaiting approval or decline',
+        # html_template='mooringlicensing/emails/send_approver_approve_notification.html',
+        # txt_template='mooringlicensing/emails/send_approver_approve_notification.txt',
+        html_template='mooringlicensing/emails_2/email_3.html',
+        txt_template='mooringlicensing/emails_2/email_3.txt',
     )
 
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = make_url_for_internal(url)
 
     context = {
         'public_url': get_public_url(request),
-        'start_date' : proposal.proposed_issuance_approval.get('start_date'),
-        'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
-        'details': proposal.proposed_issuance_approval.get('details'),
+        # 'start_date' : proposal.proposed_issuance_approval.get('start_date'),
+        # 'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
+        'details': proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else '',
         'proposal': proposal,
-        'recipient': proposal.submitter,
-        'url': url
+        # 'recipient': proposal.submitter,
+        'proposal_internal_url': url
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
@@ -288,56 +292,30 @@ def send_approver_approve_email_notification(request, proposal):
     sender = get_user_as_email_user(msg.from_email)
     log_proposal_email(msg, proposal, sender)
     return msg
-
-
-def send_approver_decline_email_notification(reason, request, proposal):
-    # 3
-    # email = ApproverDeclineSendNotificationEmail()
-    email = TemplateEmailBase(
-        subject='An application is ready for approval or decline',
-        html_template='mooringlicensing/emails/send_approver_decline_notification.html',
-        txt_template='mooringlicensing/emails/send_approver_decline_notification.txt',
-    )
-    url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    context = {
-        'public_url': get_public_url(request),
-        'proposal': proposal,
-        'recipient': proposal.submitter,
-        'reason': reason,
-        'url': url
-    }
-
-    msg = email.send(proposal.approver_recipients, context=context)
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
-    return msg
-
 
 # TODO: #4
+
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     # 5
     email = TemplateEmailBase(
-        subject='An amendment to your application is required',
-        html_template='mooringlicensing/emails/send_amendment_notification.html',
-        txt_template='mooringlicensing/emails/send_amendment_notification.txt',
+        subject='Amendment Required: Rottnest Island Boating Application {}'.format(proposal.lodgement_number),
+        # html_template='mooringlicensing/emails/send_amendment_notification.html',
+        # txt_template='mooringlicensing/emails/send_amendment_notification.txt',
+        html_template='mooringlicensing/emails_2/email_5.html',
+        txt_template='mooringlicensing/emails_2/email_5.txt',
     )
 
     reason = amendment_request.reason.reason
     url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
-
     context = {
         'public_url': get_public_url(request),
         'recipient': proposal.submitter,
         'proposal': proposal,
-        'reason': reason,
-        'amendment_request_text': amendment_request.text,
-        'url': url
+        'details': reason,
+        # 'amendment_request_text': amendment_request.text,
+        'proposal_external_url': url
     }
 
     to = proposal.submitter.email
@@ -358,23 +336,22 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
 
 
-def send_create_mooring_licence_application_email_notification(request, approval):
+def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
     # 6
     email = TemplateEmailBase(
-        subject='Invitation to apply for a mooring licence',
-        html_template='mooringlicensing/emails/create_mooring_licence_application_notification.html',
-        txt_template='mooringlicensing/emails/create_mooring_licence_application_notification.txt',
+        subject='Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
+        # html_template='mooringlicensing/emails/create_mooring_licence_application_notification.html',
+        # txt_template='mooringlicensing/emails/create_mooring_licence_application_notification.txt',
+        html_template='mooringlicensing/emails_2/email_6.html',
+        txt_template='mooringlicensing/emails_2/email_6.txt',
     )
 
-    proposal = approval.current_proposal
-    ria_generated_proposal = approval.ria_generated_proposal.all()[0] if approval.ria_generated_proposal.all() else None
+    # proposal = waiting_list_allocation.current_proposal
+    ria_generated_proposal = waiting_list_allocation.ria_generated_proposal.all()[0] if waiting_list_allocation.ria_generated_proposal.all() else None
     #url=settings.SITE_URL if settings.SITE_URL else ''
     #url += reverse('external')
 
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-    if "-internal" in url:
-        # remove '-internal'. This email is for external submitters
-        url = ''.join(url.split('-internal'))
+    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id}))
 
     today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
@@ -384,14 +361,14 @@ def send_create_mooring_licence_application_email_notification(request, approval
 
     context = {
         'public_url': get_public_url(request),
-        'approval': approval,
-        'proposal': proposal,
-        'recipient': proposal.submitter,
+        'wla': waiting_list_allocation,
+        # 'mla': mooring_licence_application,
+        'recipient': mooring_licence_application.submitter,
         'application_period': days_setting_application_period.number_of_days,
         'documents_period': days_setting_documents_period.number_of_days,
-        'mla_proposal': ria_generated_proposal,
-        'url': url,
-        'message_details': request.data.get('message_details'),
+        # 'mla_proposal': ria_generated_proposal,
+        'proposal_external_url': url,
+        # 'message_details': request.data.get('message_details'),
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
@@ -401,8 +378,8 @@ def send_create_mooring_licence_application_email_notification(request, approval
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
     attachments = []
-    if approval.waiting_list_offer_documents.all():
-        for doc in approval.waiting_list_offer_documents.all():
+    if waiting_list_allocation.waiting_list_offer_documents.all():
+        for doc in waiting_list_allocation.waiting_list_offer_documents.all():
             #file_name = doc._file.name
             file_name = doc.name
             attachment = (file_name, doc._file.file.read())
@@ -410,7 +387,7 @@ def send_create_mooring_licence_application_email_notification(request, approval
 
     bcc = request.data.get('cc_email')
     bcc_list = bcc.split(',')
-    msg = email.send(proposal.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
+    msg = email.send(mooring_licence_application.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
     #msg = email.send(proposal.submitter.email, attachments=attachments, context=context)
     sender = settings.DEFAULT_FROM_EMAIL
     #_log_approval_email(msg, approval, sender=sender_user)
@@ -422,9 +399,11 @@ def send_create_mooring_licence_application_email_notification(request, approval
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
     # 7
     email = TemplateEmailBase(
-        subject='Upload of additional documents for mooring licence application',
-        html_template='mooringlicensing/emails/send_documents_upload_for_mla.html',
-        txt_template='mooringlicensing/emails/send_documents_upload_for_mla.txt',
+        subject='Additional Documents Required: Application for Rottnest Island Mooring Site Licence',
+        # html_template='mooringlicensing/emails/send_documents_upload_for_mla.html',
+        # txt_template='mooringlicensing/emails/send_documents_upload_for_mla.txt',
+        html_template='mooringlicensing/emails_2/email_7.html',
+        txt_template='mooringlicensing/emails_2/email_7.txt',
     )
     document_upload_url = proposal.get_document_upload_url(request)
 
@@ -441,8 +420,8 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
         'proposal': proposal,
         'recipient': proposal.submitter,
         'documents_upload_url': document_upload_url,
-        'url': url,
-        'number_of_days': days_setting.number_of_days,
+        'proposal_external_url': url,
+        'num_of_days_to_submit_documents': days_setting.number_of_days,
     }
     to_address = proposal.submitter.email
     cc = []
@@ -462,27 +441,97 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     return msg
 
 
-#  8
-#  9
+def send_comppliance_due_date_notification(approval, compliance,):
+    #  8
+    email = TemplateEmailBase(
+        subject='Due: Compliance Requirement for Rottnest Island Permit or Licence - Deadline {}'.format(compliance.due_date),
+        html_template='mooringlicensing/emails_2/email_8.html',
+        txt_template='mooringlicensing/emails_2/email_8.txt',
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external-compliance-detail')
+
+    context = {
+        'public_url': get_public_url(),
+        'approval': approval,
+        'compliance': compliance,
+        'recipient': compliance.submitter,
+        'compliance_external_url': url,
+    }
+    to_address = compliance.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = get_user_as_email_user(msg.from_email)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_compliance_email(msg, compliance, sender=sender)
+    if compliance.proposal.org_applicant:
+        _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
+    else:
+        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+    return msg
+
+
+def send_comliance_overdue_notification(request, approval, compliance,):
+    # 9
+    email = TemplateEmailBase(
+        subject='OVERDUE: Compliance Requirement for Rottnest Island Boating Permit or Licence',
+        html_template='mooringlicensing/emails_2/email_9.html',
+        txt_template='mooringlicensing/emails_2/email_9.txt',
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external-compliance-detail')
+
+    context = {
+        'public_url': get_public_url(request),
+        'approval': approval,
+        'compliance': compliance,
+        'recipient': compliance.submitter,
+        'compliance_external_url': url,
+    }
+    to_address = compliance.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+
+    sender = get_user_as_email_user(msg.from_email)
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_compliance_email(msg, compliance, sender=sender)
+    if compliance.proposal.org_applicant:
+        _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
+    else:
+        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+    return msg
+
 # 10
+# send_vessel_nomination_reminder_mail() at approval.email.py
 
 
 def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None):
     # 11
     email = TemplateEmailBase(
-        subject='Reminder to apply for a mooring licence',
-        html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
-        txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
+        subject='REMINDER : Your Offer for a Rottnest Island Mooring Site Licence is About to Lapse - Rottnest Island Authority',
+        # html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
+        # txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
+        html_template='mooringlicensing/emails/email_11.html',
+        txt_template='mooringlicensing/emails/email_11.txt',
     )
     # url = settings.SITE_URL if settings.SITE_URL else ''
     # proposal_url = join(url, 'external', 'proposal', str(proposal.id))
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
-        'url': url,
+        'proposal_external_url': url,
         'due_date': due_date,
         'number_of_days': number_of_days,
     }
@@ -499,23 +548,13 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 
 
 def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
-    from mooringlicensing.components.proposals.models import MooringLicenceApplication
-    # 12
-    # 13
-    # Expire mooring licence application if additional documents are not submitted within a configurable number of days
-    # from the initial submit of the mooring licence application and email to inform the applicant
-    if reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS:
-        html_template='mooringlicensing/emails/send_expire_mooring_licence_application_no_documents.html',
-        txt_template='mooringlicensing/emails/send_expire_mooring_licence_application_no_documents.txt',
-    elif reason == MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED:
-        html_template='mooringlicensing/emails/send_expire_mooring_licence_application_not_submitted.html',
-        txt_template='mooringlicensing/emails/send_expire_mooring_licence_application_not_submitted.txt',
-    else:
-        # Should not reach here
-        return
+    # 12 email to mooring licence applicant when mooring licence application is not submitted within configurable
+    #    number of days after being invited to apply for a mooring licence
+    html_template = 'mooringlicensing/emails_2/email_12.html',
+    txt_template = 'mooringlicensing/emails_2/email_12.txt',
 
     email = TemplateEmailBase(
-        subject='Your application for a mooring licence',
+        subject='Lapsed: Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
         html_template=html_template,
         txt_template=txt_template,
     )
@@ -524,6 +563,41 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
 
     # Configure recipients, contents, etc
     context = {
+        'public_url': get_public_url(),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        'dashboard_url': dashboard_url,
+    }
+    to_address = proposal.submitter.email
+    cc = []
+    bcc = []
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    # sender = settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date,):
+    # 13
+    # Expire mooring licence application if additional documents are not submitted within a configurable number of days
+    # from the initial submit of the mooring licence application and email to inform the applicant
+    html_template = 'mooringlicensing/emails_2/email_13.html',
+    txt_template = 'mooringlicensing/emails_2/email_13.txt',
+
+    email = TemplateEmailBase(
+        subject='Lapsed: Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    dashboard_url = url + reverse('external')
+
+    # Configure recipients, contents, etc
+    context = {
+        'public_url': get_public_url(),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'dashboard_url': dashboard_url,
@@ -542,18 +616,22 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
 
 def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     # 14
+    # email to assessor group when invite to apply for a mooring licence is expired, either because mooring licence is not submitted or additional documents are not submitted
+    # (internal)
     email = TemplateEmailBase(
-        subject='Mooring licence application not submitted on time',
-        html_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.html',
-        txt_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.txt',
+        subject='Expired mooring licence application - not submitted on time',
+        # html_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.html',
+        # txt_template='mooringlicensing/emails/send_expire_mla_notification_to_assessor.txt',
+        html_template='mooringlicensing/emails_2/email_14.html',
+        txt_template='mooringlicensing/emails_2/email_14.txt',
     )
 
     mooring_name = proposal.mooring.name if proposal.mooring else ''
 
     context = {
         'public_url': get_public_url(),
-        'proposal': proposal,
-        'recipient': proposal.submitter,
+        # 'proposal': proposal,
+        # 'recipient': proposal.submitter,
         'applicant': proposal.submitter,
         'due_date': due_date,
         'mooring_name': mooring_name,
@@ -573,10 +651,13 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
 
 def send_endorser_reminder_email(proposal, request=None):
     # 15
+    # email to authorised user application endorser if application is not endorsed or declined within configurable number of days
     email = TemplateEmailBase(
-        subject='Your endorsement of an Authorised User Permit application is due',
-        html_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.html',
-        txt_template='mooringlicensing/emails/proposals/send_reminder_endorsement_of_aua.txt',
+        subject='Endorsement Request: Application for Authorised Use of Mooring Site <mooring name> - Rottnest Island Authority',
+        # html_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.html',
+        # txt_template='mooringlicensing/emails/send_endorsement_reminder_of_aua.txt',
+        html_template='mooringlicensing/emails_2/email_15.html',
+        txt_template='mooringlicensing/emails_2/email_15.txt',
     )
 
     url = settings.SITE_URL if settings.SITE_URL else ''
@@ -618,90 +699,501 @@ def send_endorser_reminder_email(proposal, request=None):
     return msg
 
 
+#def send_approval_renewal_email_notification_dcvp(dcv_permit):
+#    # 16
+#    # email as renewal reminders for waiting list allocations, annual admission permits, authorised user permits,
+#    # mooring licences and dcv permits a configurable number of days before the expiry date, including if the status
+#    # is suspended (technically dcv permits are not renewed, the holder is invited to apply for a new one for the next season)
+#    email = TemplateEmailBase(
+#        subject='Renewal notice for your DCV Permit {}'.format(dcv_permit.lodgement_number),
+#        html_template='mooringlicensing/emails/approval_renewal_notification_dcvp.html',
+#        txt_template='mooringlicensing/emails/approval_renewal_notification_dcvp.txt',
+#    )
+#    # proposal = approval.current_proposal
+#    url = settings.SITE_URL if settings.SITE_URL else ''
+#    dashboard_url = url + reverse('external')
+#
+#    context = {
+#        'public_url': get_public_url(),
+#        'approval': dcv_permit,
+#        'recipient': dcv_permit.submitter,
+#        'url': dashboard_url,
+#        'expiry_date': dcv_permit.end_date,
+#    }
+#    sender = settings.DEFAULT_FROM_EMAIL
+#
+#    try:
+#        sender_user = EmailUser.objects.get(email__icontains=sender)
+#    except:
+#        EmailUser.objects.create(email=sender, password='')
+#        sender_user = EmailUser.objects.get(email__icontains=sender)
+#
+#    to = dcv_permit.submitter.email
+#    all_ccs = []
+#
+#    msg = email.send(to, cc=all_ccs, attachments=[], context=context)
+
+
 def send_approval_renewal_email_notification(approval):
     # 16
+    # email as renewal reminders for waiting list allocations, annual admission permits, authorised user permits,
+    # mooring licences and dcv permits a configurable number of days before the expiry date, including if the status
+    # is suspended (technically dcv permits are not renewed, the holder is invited to apply for a new one for the next season)
     email = TemplateEmailBase(
-        subject='Renewal notice for your {} {}'.format(approval.description, approval.lodgement_number),
-        html_template='mooringlicensing/emails/approval_renewal_notification.html',
-        txt_template='mooringlicensing/emails/approval_renewal_notification.txt',
+        subject='First and Final Notice: Renewal of your Rottnest Island {} {} for {}'.format(approval.description, approval.lodgement_number, '(todo)'),  # TODO
+        html_template='mooringlicensing/emails_2/email_16.html',
+        txt_template='mooringlicensing/emails_2/email_16.txt',
     )
     proposal = approval.current_proposal
     url = settings.SITE_URL if settings.SITE_URL else ''
-    dashboard_url = url + reverse('external')
+    url = url + reverse('external')
 
     context = {
         'public_url': get_public_url(),
         'approval': approval,
-        'proposal': approval.current_proposal,
+        'vessel_rego_no': '(todo)',  # TODO
         'recipient': proposal.submitter,
-        'url': dashboard_url,
         'expiry_date': approval.expiry_date,
+        'dashboard_external_url': url,
     }
-    sender = settings.DEFAULT_FROM_EMAIL
 
+    sender = settings.DEFAULT_FROM_EMAIL
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
-    #attach renewal notice
-    if approval.renewal_document and approval.renewal_document._file is not None:
-        renewal_document= approval.renewal_document._file
-        file_name = approval.renewal_document.name
-        attachment = (file_name, renewal_document.file.read(), 'application/pdf')
-        attachment = [attachment]
+    attachments = []
+    attachment = approval.get_licence_document_as_attachment()
+    if attachment:
+        attachments.append(attachment)
+
+    msg = email.send(proposal.submitter.email, cc=[], attachments=attachments, context=context)
+
+    from mooringlicensing.components.approvals.models import Approval
+    if isinstance(approval, Approval):
+        _log_approval_email(msg, approval, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
     else:
-        attachment = []
-    all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-
-    msg = email.send(proposal.submitter.email,cc=all_ccs, attachments=attachment, context=context)
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+        # TODO: log for DcvPermit???
+        pass
 
 
-def send_application_processed_email(proposal, decision, require_payment, request):
-    # 17
+def send_application_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
+    # 17 --- 25
+    # email to applicant when application is issued or declined (waiting list allocation application)
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
-        send_wla_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for WLA because it should be paid at this stage.
+        # 17
+        send_wla_approved_or_declined_email(proposal, decision, request)  # require_payment should be always False for WLA because it should be paid at this stage.
     elif proposal.application_type.code == AnnualAdmissionApplication.code:
-        send_aaa_processed_email(proposal, decision, require_payment, request)  # require_payment should be always False for AAA because it should be paid at this stage.
+        # 18, 19
+        send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned)  # require_payment should be always False for AAA because it should be paid at this stage.
     elif proposal.application_type.code == AuthorisedUserApplication.code:
-        send_aua_processed_email(proposal, decision, require_payment, request)
+        # 20, 21,22
+        if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
+            send_aua_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned)
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            payment_required = False
+            if proposal.application_fees.count():
+                application_fee = proposal.application_fees.first()
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+                if invoice.payment_status not in ('paid', 'over_paid'):
+                    payment_required = True
+            if payment_required:
+                send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision, request, stickers_to_be_returned)
+            else:
+                send_aua_approved_or_declined_email_amendment_no_payment(proposal, decision, request, stickers_to_be_returned)
+        else:
+            pass
     elif proposal.application_type.code == MooringLicenceApplication.code:
-        send_mla_processed_email(proposal, decision, require_payment, request)
+        # 23, 24, 25
+        if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
+            send_mla_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned)
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            payment_required = False
+            if proposal.application_fees.count():
+                application_fee = proposal.application_fees.first()
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+                if invoice.payment_status not in ('paid', 'over_paid'):
+                    payment_required = True
+            if payment_required:
+                send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision, request, stickers_to_be_returned)
+            else:
+                send_mla_approved_or_declined_email_amendment_no_payment(proposal, decision, request, stickers_to_be_returned)
+        else:
+            pass
+
     else:
         # Should not reach here
-        html_template = 'mooringlicensing/emails/send_wla_processed.html'
-        txt_template = 'mooringlicensing/emails/send_wla_processed.txt'
-        if decision == 'approved':
-            subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
-        elif decision == 'declined':
-            subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
+        logger.warning('The type of the proposal {} is unknown'.format(proposal.lodgement_number))
 
-        email = TemplateEmailBase(
-            subject=subject,
-            html_template=html_template,
-            txt_template=txt_template,
-        )
 
+def send_wla_approved_or_declined_email(proposal, decision, request):
+    # 17
+    # email to applicant when application is issued or declined (waiting list allocation application)
+    all_ccs = []
+    all_bccs = []
+
+#    if decision == 'paid':
+#        # External user submitted and paid for the WLA
+#        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
+#        details = ''
+#        cc_list = ''
+#        if cc_list:
+#            all_ccs = cc_list.split(',')
+#        attach_invoice = True
+#        attach_licence_doc = False
+
+    if decision == 'approved':
+        # Internal user approved WLA
+        subject = 'Confirmation: Allocation of a Position on a Mooring Site Licence Waiting List - Rottnest Island Authority'
+        details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
-        all_ccs = []
         if cc_list:
             all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = True
 
-        attachments = []
-        licence_document= proposal.approval.licence_document._file
+    elif decision == 'declined':
+        # Internal user declined WLA
+        subject = 'Declined: Application for a Position on a Mooring Site Licence Waiting List - Rottnest Island Authority'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = False
+
+    # Attachments
+    attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
+
+    # html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
+    # txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
+    html_template = 'mooringlicensing/emails_2/email_17.html'
+    txt_template = 'mooringlicensing/emails_2/email_17.txt'
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+    }
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
+    # 18 new/renewal, approval/decline
+    # email to applicant when application is issued or declined (annual admission application, new and renewal)
+    # 19 amendment, approval/decline
+    # email to applicant when application is issued or declined (annual admission application, amendment)
+    all_ccs = []
+    all_bccs = []
+    attach_invoice = False
+    attach_licence_doc = False
+
+    # if decision == 'paid':
+    #     subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
+    #     details = ''
+    #     cc_list = ''
+    #     if cc_list:
+    #         all_ccs = cc_list.split(',')
+    #     attach_invoice = True
+    #     attach_licence_doc = False
+    subject = ''
+    details = ''
+    if decision == 'approved':
+        subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = True
+    elif decision == 'declined':
+        subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attach_invoice = False
+        attach_licence_doc = False
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    # Attachments
+    attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
+
+    if proposal.proposal_type.code in (PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL):
+        # New / Renewal
+        # html_template = 'mooringlicensing/emails/send_processed_email_for_aaa.html'
+        # txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa.txt'
+        html_template = 'mooringlicensing/emails_2/email_18.html'
+        txt_template = 'mooringlicensing/emails_2/email_18.txt'
+    elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+        # Amendment
+        # html_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.html'
+        # txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.txt'
+        html_template = 'mooringlicensing/emails_2/email_19.html'
+        txt_template = 'mooringlicensing/emails_2/email_19.txt'
+    else:
+        logger.warning('ProposalType is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO???: if existing sticker needs to be replaced, assign sticker object here
+    }
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template=html_template,
+        txt_template=txt_template,
+    )
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned):
+    # 20 AUA new/renewal, approval/decline
+    # email to applicant when application is issued or declined (authorised user application, new and renewal)
+
+    all_ccs = []
+    all_bccs = []
+    attach_invoice = False
+    attach_licence_doc = False
+
+    subject = ''
+    details = ''
+    attachments = []
+    payment_url = ''
+
+    if decision == 'approved':
+        subject = 'Payment Due: Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
+
+        # Generate payment_url if needed
+        if proposal.application_fees.count():
+            application_fee = proposal.application_fees.first()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            if invoice.payment_status not in ('paid', 'over_paid'):
+                # Payment required
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+
+    elif decision == 'declined':
+        subject = 'Declined: Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+    elif decision == 'approved_paid':
+        subject = 'Approved: Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_20.html',
+        txt_template='mooringlicensing/emails_2/email_20.txt',
+    )
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'payment_url': payment_url,
+    }
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_aua_approved_or_declined_email_amendment_no_payment(proposal, decision, request, stickers_to_be_returned):
+    #21
+    # email to applicant when application is issued or declined (authorised user application, amendment where no payment is required)
+    all_ccs = []
+    all_bccs = []
+    attach_invoice = False
+    attach_licence_doc = False
+
+    subject = ''
+    details = ''
+    attachments = []
+
+    if decision == 'approved':
+        subject = 'Approved: Amendment Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(False, True, proposal)
+    elif decision == 'declined':
+        subject = 'Declined: Amendment Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_21.html',
+        txt_template = 'mooringlicensing/emails_2/email_21.txt',
+    )
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+    }
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision, request, stickers_to_be_returned):
+    #22
+    # email to applicant when application is issued or declined (authorised user application, amendment where payment is required)
+    all_ccs = []
+    all_bccs = []
+    attach_invoice = False
+    attach_licence_doc = False
+
+    subject = ''
+    details = ''
+    attachments = []
+    payment_url = ''
+
+    if decision == 'approved':
+        subject = 'Payment Due: Amendment to Rottnest Island Authorised User Permit'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
+
+        # Generate payment_url if needed
+        if proposal.application_fees.count():
+            application_fee = proposal.application_fees.first()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            if invoice.payment_status not in ('paid', 'over_paid'):
+                # Payment required
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+    elif decision == 'declined':
+        subject = 'Declined: Amendment Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_22.html',
+        txt_template = 'mooringlicensing/emails_2/email_22.txt',
+    )
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'payment_url': payment_url,
+    }
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def get_attachments(attach_invoice, attach_licence_doc, proposal):
+    from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
+
+    attachments = []
+    if attach_invoice and proposal.invoice:
+        # Attach invoice
+        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
+        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_bytes, 'application/pdf')
+        attachments.append(attachment)
+    if attach_licence_doc and proposal.approval and proposal.approval.licence_document:
+        # Attach licence document
+        licence_document = proposal.approval.licence_document._file
         if licence_document is not None:
             file_name = proposal.approval.licence_document.name
             attachment = (file_name, licence_document.file.read(), 'application/pdf')
@@ -711,212 +1203,76 @@ def send_application_processed_email(proposal, decision, require_payment, reques
             for requirement in proposal.requirements.exclude(is_deleted=True):
                 for doc in requirement.requirement_documents.all():
                     file_name = doc._file.name
-                    #attachment = (file_name, doc._file.file.read(), 'image/*')
                     attachment = (file_name, doc._file.file.read())
                     attachments.append(attachment)
-
-        url = request.build_absolute_uri(reverse('external'))
-        if "-internal" in url:
-            # remove '-internal'. This email is for external submitters
-            url = ''.join(url.split('-internal'))
-        # if proposal.is_filming_licence:
-        #     handbook_url= settings.COLS_FILMING_HANDBOOK_URL
-        # else:
-        #     handbook_url= settings.COLS_HANDBOOK_URL
-        context = {
-            'public_url': get_public_url(request),
-            'proposal': proposal,
-            'recipient': proposal.submitter,
-            'num_requirement_docs': len(attachments) - 1,
-            'url': url,
-            # 'handbook_url': handbook_url
-        }
-
-        msg = email.send(proposal.submitter.email, bcc= all_ccs, attachments=attachments, context=context)
-        sender = get_user_as_email_user(msg.from_email)
-        # sender = msg.from_email
-
-        email_entry =_log_proposal_email(msg, proposal, sender=sender)
-        path_to_file = '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal.id, file_name)
-        email_entry.documents.get_or_create(_file=path_to_file, name=file_name)
-
-        if proposal.org_applicant:
-            _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
-        else:
-            _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+    return attachments
 
 
-def send_wla_processed_email(proposal, decision, require_payment, request):
-    # 17
+def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned):
+    # 23 ML new/renewal, approval/decline
+    # email to applicant when application is issued or declined (mooring licence application, new and renewal)
     all_ccs = []
     all_bccs = []
+    attach_invoice = False
+    attach_licence_doc = False
 
-    if decision == 'approved':
-        subject = 'Your waiting list allocation application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
-        if cc_list:
-            all_ccs = cc_list.split(',')
-
-    elif decision == 'declined':
-        subject = 'Your waiting list allocation application {} has been declined'.format(proposal.lodgement_number)
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
-        if cc_list:
-            all_ccs = cc_list.split(',')
-
-    html_template = 'mooringlicensing/emails/send_processed_email_for_wla.html'
-    txt_template = 'mooringlicensing/emails/send_processed_email_for_wla.txt'
-
-    context = {
-        'public_url': get_public_url(request),
-        'proposal': proposal,
-        'recipient': proposal.submitter,
-        'proposal_type_code': proposal.proposal_type.code,
-        'decision': decision,
-        'details': details,
-    }
-
-    email = TemplateEmailBase(
-        subject=subject,
-        html_template=html_template,
-        txt_template=txt_template,
-    )
-     # TODO: attachments???
-
-    to_address = proposal.submitter.email
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
-
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
-    return msg
-
-
-def send_aaa_processed_email(proposal, decision, require_payment, request):
-    # 18 new/renewal, approval/decline
-    # 19 amendment, approval/decline
-    all_ccs = []
-    all_bccs = []
-    if decision == 'approved':
-        subject = 'Your annual admission application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
-        if cc_list:
-            all_ccs = cc_list.split(',')
-    elif decision == 'declined':
-        subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
-        if cc_list:
-            all_ccs = cc_list.split(',')
-
-    if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
-        # New / Renewal
-        html_template = 'mooringlicensing/emails/send_processed_email_for_aaa.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa.txt'
-    else:
-        # Amendment
-        html_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_aaa_amendment.txt'
-
-    context = {
-        'public_url': get_public_url(request),
-        'proposal': proposal,
-        'recipient': proposal.submitter,
-        'proposal_type_code': proposal.proposal_type.code,
-        'decision': decision,
-        'details': details,
-        'sticker_to_be_replaced': {'number': '(TODO)'},  # TODO: if existing sticker needs to be replaced, assign sticker object here.
-    }
-
-    email = TemplateEmailBase(
-        subject=subject,
-        html_template=html_template,
-        txt_template=txt_template,
-    )
-    # TODO: attachments???
-
-    to_address = proposal.submitter.email
-
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
-
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
-    return msg
-
-
-def send_aua_processed_email(proposal, decision, require_payment, request):
-    # 20 AUA new/renewal, approval/decline
-    # 21 AUA amendment(no payment), approval/decline
-    # 22 AUA amendment(payment), approval/decline
-    all_ccs = []
-    all_bccs = []
-    if decision == 'approved':
-        subject = 'Your authorised user application {} has been approved'.format(proposal.lodgement_number)
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
-        if cc_list:
-            all_ccs = cc_list.split(',')
-    elif decision == 'declined':
-        subject = 'Your authorised user application {} has been declined'.format(proposal.lodgement_number)
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
-        if cc_list:
-            all_ccs = cc_list.split(',')
-
-    if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
-        # New / Renewal
-        # There must be always payment
-        html_template = 'mooringlicensing/emails/send_processed_email_for_aua.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_aua.txt'
-    else:
-        # Amendment
-        html_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_aua_amendment.txt'
-
-        if require_payment:
-            pass  # TODO: or generating payment_url below should be enough?
-        else:
-            pass  # TODO: or generating payment_url below should be enough?
-
-    # Generate payment_url if needed
+    subject = ''
+    details = ''
+    attachments = []
     payment_url = ''
-    if decision == 'approved' and proposal.application_fees.all():
-        application_fee = proposal.application_fees.first()
-        invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-        if invoice.payment_status in ('paid', 'over_paid'):
-            pass
-        else:
-            # Payment required
-            payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+
+    if decision == 'approved':
+        subject = 'Payment Due: Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
+
+        # Generate payment_url if needed
+        if proposal.application_fees.count():
+            application_fee = proposal.application_fees.first()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            if invoice.payment_status not in ('paid', 'over_paid'):
+                # Payment required
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+    elif decision == 'declined':
+        subject = 'Declined: Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+    elif decision == 'approved_paid':
+        subject = 'Approved: Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_23.html',
+        txt_template = 'mooringlicensing/emails_2/email_23.txt',
+    )
 
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
-        'proposal_type_code': proposal.proposal_type.code,
+        # 'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
-        'sticker_to_be_replaced': {'number': '(TODO)'},  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
         'payment_url': payment_url,
     }
 
-    email = TemplateEmailBase(
-        subject=subject,
-        html_template=html_template,
-        txt_template=txt_template,
-    )
-    # TODO: attachments???
-
     to_address = proposal.submitter.email
 
     # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_user_as_email_user(msg.from_email)
@@ -924,74 +1280,123 @@ def send_aua_processed_email(proposal, decision, require_payment, request):
     return msg
 
 
-def send_mla_processed_email(proposal, decision, require_payment, request):
-    # 23 ML new/renewal, approval/decline
+def send_mla_approved_or_declined_email_amendment_no_payment(proposal, decision, request, stickers_to_be_returned):
     # 24 ML amendment(no payment), approval/decline
-    # 25 ML amendment(payment), approval/decline
+    # email to applicant when application is issued or declined (mooring licence application, amendment where no payment is required)
     all_ccs = []
     all_bccs = []
+    attach_invoice = False
+    attach_licence_doc = False
+
+    subject = ''
+    details = ''
+    attachments = []
+
     if decision == 'approved':
-        subject = 'Your mooring licence application {} has been approved'.format(proposal.lodgement_number)
+        subject = 'Approved: Amendment Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
+        attachments = get_attachments(False, True, proposal)
     elif decision == 'declined':
-        subject = 'Your mooring licence application {} has been declined'.format(proposal.lodgement_number)
+        subject = 'Declined: Amendment Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
-
-    if proposal.proposal_type.code in (settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_RENEWAL):
-        # New / Renewal
-        # There must be always payment
-        html_template = 'mooringlicensing/emails/send_processed_email_for_mla.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_mla.txt'
     else:
-        # Amendment
-        html_template = 'mooringlicensing/emails/send_processed_email_for_mla_amendment.html'
-        txt_template = 'mooringlicensing/emails/send_processed_email_for_mla_amendment.txt'
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
-    # Generate payment_url if needed
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_24.html',
+        txt_template = 'mooringlicensing/emails_2/email_24.txt',
+    )
+
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+    }
+
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
+
+
+def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision, request, stickers_to_be_returned):
+    # 25 ML amendment(payment), approval/decline
+    # email to applicant when application is issued or declined (mooring licence application, amendment where payment is required) 
+    all_ccs = []
+    all_bccs = []
+
+    subject = ''
+    details = ''
+    attachments = []
     payment_url = ''
-    if decision == 'approved' and proposal.application_fees.all():
-        application_fee = proposal.application_fees.first()
-        invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-        if invoice.payment_status in ('paid', 'over_paid'):
-            pass
-        else:
-            # Payment required
-            payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
 
-        context = {
-            'public_url': get_public_url(request),
-            'proposal': proposal,
-            'recipient': proposal.submitter,
-            'proposal_type_code': proposal.proposal_type.code,
-            'decision': decision,
-            'details': details,
-            'sticker_to_be_replaced': {'number': '(TODO)'},
-            # TODO: if existing sticker needs to be replaced, assign sticker object here.
-            'payment_url': payment_url,
-        }
+    if decision == 'approved':
+        subject = 'Payment Due: Amendment Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposed_issuance_approval.get('details')
+        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(True, True, proposal)
 
-        email = TemplateEmailBase(
-            subject=subject,
-            html_template=html_template,
-            txt_template=txt_template,
-        )
-        # TODO: attachments???
+        # Generate payment_url if needed
+        if proposal.application_fees.count():
+            application_fee = proposal.application_fees.first()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            if invoice.payment_status not in ('paid', 'over_paid'):
+                # Payment required
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+    elif decision == 'declined':
+        subject = 'Declined: Amendment Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+    else:
+        logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
-        to_address = proposal.submitter.email
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/email_25.html',
+        txt_template = 'mooringlicensing/emails_2/email_25.txt',
+    )
 
-        # Send email
-        msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=all_bccs,)
+    context = {
+        'public_url': get_public_url(request),
+        'proposal': proposal,
+        'approval': proposal.approval,
+        'recipient': proposal.submitter,
+        # 'proposal_type_code': proposal.proposal_type.code,
+        'decision': decision,
+        'details': details,
+        'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
+        'payment_url': payment_url,
+    }
 
-        # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-        sender = get_user_as_email_user(msg.from_email)
-        log_proposal_email(msg, proposal, sender)
-        return msg
+    to_address = proposal.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
+
+    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = get_user_as_email_user(msg.from_email)
+    log_proposal_email(msg, proposal, sender)
+    return msg
 
 
 def send_other_documents_submitted_notification_email(request, proposal):
@@ -1003,6 +1408,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'url': url,
     }
@@ -1150,6 +1556,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
         approver_comment = proposal.approver_comment
 
     context = {
+        'public_url': get_public_url(request),
         'proposal': proposal,
         'recipient': proposal.submitter,
         'url': url,
@@ -1165,10 +1572,9 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
 
 
-# 26DCVPermit
-# 27 DCVAdmission
-
 # Followings are in the approval/email
+# 26 DCVPermit
+# 27 DCVAdmission
 # 28 Cancelled
 # 29 Suspended
 # 30 Surrendered

@@ -1,9 +1,9 @@
-{%  extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content_body %}
+{% block content_body %}
 Dear {{ recipient.first_name }} {{ recipient.last_name}},
 
-{% if decision == 'approved' %}
+{% if decision == 'approved' or decision == 'paid' %}
     <p>Your authorised user application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.</p>
     <p>The sticker(s) for your vessel will be mailed to you once your payment has been received. Please click <a href="{{ payment_url }}">here</a> to pay the fees for your authorised user permit.</p>
     {% if details %}

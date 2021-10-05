@@ -149,7 +149,11 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.lodgement_number
+                    if (full.migrated){
+                        return full.lodgement_number + ' (M)'
+                    } else {
+                        return full.lodgement_number
+                    }
                 },
                 name: 'lodgement_number',
             }
@@ -237,7 +241,7 @@ export default {
                                 if (invoice.payment_status.toLowerCase() === 'paid'){
                                     links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
                                 } else {
-                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
+                                    //links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
                                 }
                             }
                             links += '</div>'
@@ -338,7 +342,8 @@ export default {
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
-                            ret_str += '<div>' + item.payment_status + '</div>'
+                            //ret_str += '<div>' + item.payment_status + '</div>'
+                            ret_str += '<span>' + item.payment_status + '</span>'
                         }
                         return ret_str
                     } else {

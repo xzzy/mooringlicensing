@@ -15,7 +15,8 @@ from mooringlicensing.components.main.models import (#Region, District, Tenure,
         #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, ActivityCategory, Activity, 
         #RequiredDocument, 
         Question, 
-        GlobalSettings
+        GlobalSettings,
+        TemporaryDocumentCollection,
         )
 from mooringlicensing.components.main.serializers import (  # RegionSerializer, DistrictSerializer, TenureSerializer,
     # ApplicationTypeSerializer, #ActivityMatrixSerializer,  AccessTypeSerializer, ParkSerializer, ParkFilterSerializer, TrailSerializer, ActivitySerializer, ActivityCategorySerializer,
@@ -23,9 +24,10 @@ from mooringlicensing.components.main.serializers import (  # RegionSerializer, 
     QuestionSerializer,
     GlobalSettingsSerializer,
     OracleSerializer,
+    TemporaryDocumentCollectionSerializer,
     BookingSettlementReportSerializer,  # BookingSettlementReportSerializer, LandActivityTabSerializer, MarineActivityTabSerializer, EventsParkSerializer, TrailTabSerializer, FilmingParkSerializer
 )
-from mooringlicensing.components.main.utils import add_cache_control
+from mooringlicensing.components.main.process_document import save_document, cancel_document, delete_document
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
@@ -43,7 +45,7 @@ import logging
 
 from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX, SYSTEM_NAME
 
-logger = logging.getLogger('payment_checkout')
+logger = logging.getLogger('mooringlicensing')
 
 
 #class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -82,7 +84,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         # here may be placed additional operations for
         # extracting id of the object and using reverse()
         fallback_url = request.build_absolute_uri('/')
-        return add_cache_control(HttpResponseRedirect(redirect_to=fallback_url + '/success/'))
+        return HttpResponseRedirect(redirect_to=fallback_url + '/success/')
 
 
 class BookingSettlementReportView(views.APIView):
@@ -112,6 +114,7 @@ class BookingSettlementReportView(views.APIView):
        except Exception as e:
            traceback.print_exc()
 
+
 def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
     #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
@@ -121,6 +124,7 @@ def oracle_integration(date, override):
 
 class OracleJob(views.APIView):
     renderer_classes = [JSONRenderer,]
+
     def get(self, request, format=None):
         try:
             data = {
@@ -131,7 +135,7 @@ class OracleJob(views.APIView):
             serializer.is_valid(raise_exception=True)
             oracle_integration(serializer.validated_data['date'].strftime('%Y-%m-%d'),serializer.validated_data['override'])
             data = {'successful':True}
-            return add_cache_control(Response(data))
+            return Response(data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -140,4 +144,75 @@ class OracleJob(views.APIView):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e[0]))
+
+class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
+    queryset = TemporaryDocumentCollection.objects.all()
+    serializer_class = TemporaryDocumentCollectionSerializer
+
+    #def get_queryset(self):
+    #    # import ipdb; ipdb.set_trace()
+    #    #user = self.request.user
+    #    if is_internal(self.request):
+    #        return TemporaryDocumentCollection.objects.all()
+    #    return TemporaryDocumentCollection.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        print("create temp doc coll")
+        print(request.data)
+        try:
+            with transaction.atomic():
+                serializer = TemporaryDocumentCollectionSerializer(
+                        data=request.data, 
+                        )
+                serializer.is_valid(raise_exception=True)
+                if serializer.is_valid():
+                    instance = serializer.save()
+                    save_document(request, instance, comms_instance=None, document_type=None)
+
+                    return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_temp_document(self, request, *args, **kwargs):
+        print("process_temp_document")
+        print(request.data)
+        try:
+            instance = self.get_object()
+            action = request.data.get('action')
+            #comms_instance = None
+
+            if action == 'list':
+                pass
+
+            elif action == 'delete':
+                delete_document(request, instance, comms_instance=None, document_type='temp_document')
+
+            elif action == 'cancel':
+                cancel_document(request, instance, comms_instance=None, document_type='temp_document')
+
+            elif action == 'save':
+                save_document(request, instance, comms_instance=None, document_type='temp_document')
+
+            returned_file_data = [dict(
+                        file=d._file.url,
+                        id=d.id,
+                        name=d.name,
+                        ) for d in instance.documents.all() if d._file]
+            return Response({'filedata': returned_file_data})
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise e
 

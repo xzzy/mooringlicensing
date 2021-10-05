@@ -109,7 +109,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Number', 'Permit or Licence', 'Date sent / printed / mailed', 'Status', 'Year', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Date sent / printed / mailed', 'Status', 'Season', 'Action']
             }
         },
         column_id: function(){
@@ -141,11 +141,19 @@ export default {
             return {
                 data: "approval",
                 orderable: true,
-                searchable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
-                }
+                    if (full.approval){
+                        return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
+                    } else if (full.dcv_permit) {
+                        return '<span class="dcv_permit_lodgement_number">' + full.dcv_permit.lodgement_number + '</span>'
+                    } else {
+                        return ''
+                    }
+
+                },
+                name: 'approval__lodgement_number'
             }
         },
         column_printing_company: function(){
@@ -189,9 +197,18 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
+                    if (full.fee_season){
+                        console.log(full)
+                        // This should be always reached
+                        return full.fee_season
+                    }
                     if (full.fee_constructor){
                         if (full.fee_constructor.fee_season){
                             return full.fee_constructor.fee_season.name
+                        }
+                    } else if (full.dcv_permit) {
+                        if (full.dcv_permit.fee_season){
+                            return full.dcv_permit.fee_season.name
                         }
                     }
                     return ''
@@ -606,5 +623,8 @@ export default {
     text-indent: 0 !important;
     font-family: 'Courier New', Courier monospace;
     margin: 5px;
+}
+.dcv_permit_lodgement_number {
+    padding: 8px 10px;
 }
 </style>
