@@ -6,8 +6,12 @@
         </div>
         <div class="row form-group">
             <div class="col-sm-9" v-for="choice in insuranceChoices">
+                <div class="col-sm-1">
                 <input :disabled="readonly" type="radio" name="insuranceChoice" :id="choice.code" :value="choice.code" required=""/>
+                </div>
+                <div class="col-sm-8">
                 <label :for="choice.code">{{ choice.description }}</label>
+                </div>
             </div>
         </div>
         <div v-if="!(applicationTypeCode==='aaa')" class="row form-group">

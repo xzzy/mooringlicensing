@@ -166,7 +166,7 @@ class Remittance(Flowable):
         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
         canvas.drawString(current_x, current_y, self.invoice.reference)
         canvas.drawString(PAGE_WIDTH/4, current_y, self.invoice.created.strftime(DATE_FORMAT))
-        canvas.drawString((PAGE_WIDTH/4) * 2, current_y, currency(self.invoice.amount - calculate_excl_gst(self.invoice.amount) if not _is_gst_exempt(self.proposal, self.invoice) else 0.0))
+        canvas.drawString((PAGE_WIDTH/4) * 2, current_y, currency(self.invoice.amount - calculate_excl_gst(self.invoice.amount) if not _is_gst_exempt(self.invoice) else 0.0))
         canvas.drawString((PAGE_WIDTH/4) * 3, current_y, currency(self.invoice.amount))
 
     def draw(self):
@@ -229,7 +229,7 @@ def _create_header(canvas, doc, draw_page_number=True):
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 4, 'Total (AUD)')
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 4, currency(invoice.amount))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, 'GST included (AUD)')
-    canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, currency(invoice.amount - calculate_excl_gst(invoice.amount) if not _is_gst_exempt(proposal, invoice) else 0.0))
+    canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, currency(invoice.amount - calculate_excl_gst(invoice.amount) if not _is_gst_exempt(invoice) else 0.0))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, 'Paid (AUD)')
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, currency(invoice.payment_amount))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, 'Outstanding (AUD)')
@@ -242,17 +242,36 @@ def _create_header(canvas, doc, draw_page_number=True):
     canvas.restoreState()
 
 
-def _is_gst_exempt(proposal, invoice):
-    if not proposal:
-        return True  # Expecting this is annual site fee
-    # elif proposal.fee_invoice_reference == invoice.reference:
-    elif invoice.reference in proposal.fee_invoice_references:
-        return proposal.application_type.is_gst_exempt
+def _is_gst_exempt(invoice):
+    '''
+    Return False if there is at least one item which incur gst.  Need to rethinkt
+    '''
+    from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, DcvAdmissionFee
+
+    fees = None
+    application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
+    if application_fee:
+        fees = application_fee
     else:
-        return False
+        dcv_permit_fees = DcvPermitFee.objects.filter(invoice_reference=invoice.reference)
+        if dcv_permit_fees:
+            fees = dcv_permit_fees
+        else:
+            dcv_admission_fees = DcvAdmissionFee.objects.filter(invoice_reference=invoice.reference)
+            if dcv_admission_fees:
+                fees = dcv_admission_fees
+
+    if fees:
+        for fee_item in fees[0].fee_items.all():
+            if fee_item.fee_constructor.incur_gst:
+                return False
+        else:
+            return True
+    else:
+        raise Exception('No Fee object found')
 
 
-def _create_invoice(invoice_buffer, invoice, url_var, proposal):
+def _create_invoice(invoice_buffer, invoice, proposal):
 
     global DPAW_HEADER_LOGO
 #    if  cols_var["TEMPLATE_GROUP"] == 'rottnest':
@@ -362,11 +381,11 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
     return invoice_buffer
 
 # proposal needs to be nullable for Annual site fees
-def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
+def create_invoice_pdf_bytes(filename, invoice, proposal=None):
     invoice_buffer = BytesIO()
-    _create_invoice(invoice_buffer, invoice, url_var, proposal)
+    _create_invoice(invoice_buffer, invoice, proposal)
 
-    # Get the value of the BytesIO buffer
+#     Get the value of the BytesIO buffer
     value = invoice_buffer.getvalue()
     invoice_buffer.close()
 

@@ -235,6 +235,7 @@ def send_compliance_accept_email_notification(compliance,request, is_test=False)
     else:
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
+
 def send_external_submit_email_notification(request, compliance, is_test=False):
     email = ComplianceExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))

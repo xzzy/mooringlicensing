@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
    
     Your application for a commercial operations licence {{proposal.lodgement_number}} has been declined
     For further information please login to your account.

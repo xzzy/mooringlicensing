@@ -1,7 +1,9 @@
 from django import forms
 from django.contrib import admin
 
-from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType
+from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
+    NumberOfDaysSetting, NumberOfDaysType
+from mooringlicensing.components.payments_ml.models import OracleCodeItem
 
 
 class VesselSizeCategoryForm(forms.ModelForm):
@@ -32,8 +34,35 @@ class VesselSizeCategoryForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(VesselSizeCategoryForm, self).clean()
-
         return cleaned_data
+
+
+class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
+
+    def clean(self):
+        '''
+        Validate forms as a whole
+        '''
+        null_vessel_count = 0
+        size_list = []
+
+        if not self.instance.is_editable:
+            raise forms.ValidationError('{} cannot be changed once used for payment calculation.'.format(self.instance))
+
+        for form in self.forms:
+            if form.cleaned_data['null_vessel']:
+                null_vessel_count += 1
+            if form.cleaned_data.get('start_size') in size_list:
+                raise forms.ValidationError('There is a duplicate vessel size: {}'.format(form.cleaned_data['start_size']))
+            else:
+                size_list.append(form.cleaned_data['start_size'])
+
+        # if null_vessel_count < 1:
+        #     raise forms.ValidationError('There must be one null-vessel catergory.  There is {} defined.'.format(null_vessel_count))
+        # elif null_vessel_count > 1:
+        #     raise forms.ValidationError('There must be one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
+        if null_vessel_count > 1:
+            raise forms.ValidationError('There can be at most one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
 
 
 class VesselSizeCategoryInline(admin.TabularInline):
@@ -41,6 +70,7 @@ class VesselSizeCategoryInline(admin.TabularInline):
     extra = 0
     can_delete = True
     form = VesselSizeCategoryForm
+    formset = VesselSizeCategoryFormset
 
 
 class VesselSizeCategoryGroupForm(forms.ModelForm):
@@ -71,10 +101,24 @@ class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
     form = VesselSizeCategoryGroupForm
 
 
+class OracleCodeItemInline(admin.TabularInline):
+    model = OracleCodeItem
+    extra = 0
+    can_delete = True
+    # formset = FeePeriodFormSet
+    # form = FeePeriodForm
+
+    def has_delete_permission(self, request, obj=None):
+        if obj.oracle_code_items.count() <= 1:
+            return False
+        return True
+
+
 @admin.register(ApplicationType)
 class ApplicationTypeAdmin(admin.ModelAdmin):
-    list_display = ['__str__', 'code', 'description', 'oracle_code',]
+    list_display = ['__str__', 'code', 'description', 'get_value_today', 'get_enforcement_date',]
     readonly_fields = ['code', 'description',]
+    inlines = [OracleCodeItemInline,]
 
     def get_actions(self, request):
         actions = super(ApplicationTypeAdmin, self).get_actions(request)
@@ -87,3 +131,54 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    # def get_fields(self, request, obj=None):
+    #     fields = super(ApplicationTypeAdmin, self).get_fields(request, obj)
+    #     fields.remove('identifier')
+    #     return fields
+
+    def get_value_today(self, obj):
+        try:
+            return obj.get_oracle_code_by_date()
+        except:
+            return '(not found, please add)'
+
+    def get_enforcement_date(self, obj):
+        try:
+            return obj.get_enforcement_date_by_date()
+        except:
+            return '(not found, please add)'
+
+    get_value_today.short_description = 'Oracle code (current)'
+    get_enforcement_date.short_description = 'Since'
+
+
+class NumberOfDaysSettingInline(admin.TabularInline):
+    model = NumberOfDaysSetting
+    extra = 0
+    can_delete = True
+    # form = VesselSizeCategoryForm
+
+
+@admin.register(NumberOfDaysType)
+class NumberOfDaysTypeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'description', 'number_by_date',]
+    list_display_links = ['name',]
+    # readonly_fields = ['name',]
+    fields = ['name', 'description',]
+    inlines = [NumberOfDaysSettingInline,]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+# @admin.register(NumberOfDaysSetting)
+# class NumberOfDaysSettingAdmin(admin.ModelAdmin):
+#     list_display = [
+#         'number_of_days',
+#         'date_of_enforcement',
+#         'number_of_days_type',
+#     ]
