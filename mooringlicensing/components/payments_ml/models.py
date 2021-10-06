@@ -194,7 +194,7 @@ class StickerActionFee(Payment):
 
 class FeeItemApplicationFee(models.Model):
     """
-    This model is only used for the calculation of ML's AnnualAdmission components
+    This model is only used for the calculation of AnnualAdmission components
     """
     fee_item = models.ForeignKey('FeeItem',)
     application_fee = models.ForeignKey('ApplicationFee',)

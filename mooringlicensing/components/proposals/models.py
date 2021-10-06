@@ -1442,6 +1442,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                         # fee_constructor = FeeConstructor.objects.get(id=db_operations['fee_constructor_id'])
                         from mooringlicensing.components.payments_ml.models import FeeItem
+                        from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
+
                         fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
                         try:
                             fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
@@ -1463,7 +1465,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             )
                             application_fee.fee_items.add(fee_item)
                             if fee_item_additional:
-                                application_fee.fee_items.add(fee_item_additional)
+                                intermediate_item = FeeItemApplicationFee.objects.create(fee_item=fee_item_additional, application_fee=application_fee)
 
                             #self.send_emails_for_payment_required(request, invoice)
                             send_application_approved_or_declined_email(self, 'approved', request)

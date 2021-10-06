@@ -25,7 +25,7 @@ from mooringlicensing.components.payments_ml.email import send_application_submi
 from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail, \
     send_sticker_replacement_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement
+    DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement, FeeItemApplicationFee
 from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
@@ -630,7 +630,8 @@ class ApplicationFeeSuccessView(TemplateView):
             if 'fee_item_additional_id' in db_operations:
                 fee_item_additionals = FeeItem.objects.filter(id=db_operations['fee_item_additional_id'])
                 if fee_item_additionals:
-                    application_fee.fee_items.add(fee_item_additionals.first())
+                    intermediate_item = FeeItemApplicationFee.objects.create(fee_item=fee_item_additionals.first(),
+                                                                     application_fee=application_fee)
             application_fee.invoice_reference = invoice_ref
             application_fee.save()
 
