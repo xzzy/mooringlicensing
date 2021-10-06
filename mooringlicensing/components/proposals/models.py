@@ -392,7 +392,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         fee_items = []
         for application_fee in self.application_fees.all():
             if application_fee.paid:
-                for fee_item in application_fee.fee_items_additional_aa.filter(fee_period__fee_season=fee_season):
+                # for fee_item in application_fee.fee_items_additional_aa.filter(fee_period__fee_season=fee_season):
+                for fee_item in application_fee.fee_items_for_aa.filter(fee_period__fee_season=fee_season):
                     fee_items.append(fee_item)
         return fee_items
 
