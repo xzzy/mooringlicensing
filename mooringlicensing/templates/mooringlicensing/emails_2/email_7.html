@@ -1,0 +1,14 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>You are required to upload the following documents supporting your submitted mooring site licence application {{ proposal.lodgement_number }}:</p>
+<ol>
+  <li>A copy of the current Mooring Inspection Report (MIR) in your name.</li>
+  <li>Written proof of finalisation concerning the ownership of the mooring apparatus between yourself and the previous licensee.</li>
+</ol>
+<p>You are required to submit these documents within {{ num_of_days_to_submit_documents }} number of days.</p>
+<p>If your application is not submitted within the timeframes specified, it will be taken to indicate your intention to decline. The offer will lapse, and your name will be removed from the waiting list of your nominated bay. The mooring site licence will then be offered to the next eligible applicant on the waiting list.</p>
+<p>Please click <a href="{{ proposal_external_url }}">here</a> to access the application.</p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}

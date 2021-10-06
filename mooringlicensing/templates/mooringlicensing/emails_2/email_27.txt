@@ -1,0 +1,26 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+The following admission fees have been paid:
+{% for arrival in summary %}
+Arrival date: {{ arrival.arrival_date }}
+Number of adults (12 and over):
+- Landing: {{ arrival.adult.landing }}
+- Extended stay: {{ arrival.adult.extended_stay }}
+- Not landing: {{ arrival.adult.not_landing }}
+{% comment "Hide for now" %}
+- Approved events: {{ arrival.adult.approved_events }}
+{% endcomment %}
+Number of children (4-12)
+- Landing: {{ arrival.child.landing }}
+- Extended stay: {{ arrival.child.extended_stay }}
+- Not landing: {{ arrival.child.not_landing }}
+{% comment "Hide for now" %}
+- Approved events: {{ arrival.child.approved_events }}
+{% endcomment %}
+{% endfor %}
+Please find attached the DCV permit and the invoice for the payment.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
+

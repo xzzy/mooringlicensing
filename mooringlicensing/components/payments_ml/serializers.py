@@ -8,6 +8,7 @@ from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstru
 
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
+    dcv_vessel_id = serializers.IntegerField(required=True)
 
     class Meta:
         model = DcvAdmission
@@ -17,6 +18,7 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             'submitter',
             'skipper',
             'contact_number',
+            'dcv_vessel_id',
         )
         read_only_fields = (
             'id',
@@ -115,6 +117,33 @@ class NumberOfPeopleSerializer(serializers.ModelSerializer):
         )
 
 
+class FeeSeasonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FeeSeason
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class DcvPermitSimpleSerializer(serializers.ModelSerializer):
+    fee_season = FeeSeasonSerializer()
+
+    class Meta:
+        model = DcvPermit
+        fields = (
+            'lodgement_number',
+            'fee_season',
+        )
+
+    # def get_fee_season(self, obj):
+    #     if obj.fee_season:
+    #         serializer = FeeSeasonSerializer(obj.fee_season)
+    #         return serializer.data
+    #     else:
+    #         return ''
+
+
 class DcvPermitSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
     dcv_organisation_id = serializers.IntegerField(required=True)
@@ -127,7 +156,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
         if not self.partial:
             if not data['fee_season_id']:
-                field_errors['year'] = ['Please select a year.',]
+                field_errors['Season'] = ['Please select a season.',]
             # if not data['period_to']:
             #     field_errors['Period to'] = ['Please select a date.',]
             # # if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
@@ -187,15 +216,6 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'start_date',
             'end_date',
             # 'permits',
-        )
-
-
-class FeeSeasonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FeeSeason
-        fields = (
-            'id',
-            'name'
         )
 
 

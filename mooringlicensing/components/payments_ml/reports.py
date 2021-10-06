@@ -6,11 +6,10 @@ from django.db.models.query_utils import Q
 from ledger.payments.models import CashTransaction, BpointTransaction, BpayTransaction,Invoice
 from ledger.settings_base import TIME_ZONE
 
-from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvAdmissionFee, DcvPermitFee
 from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX
 
 
 def booking_bpoint_settlement_report(_date):
@@ -29,28 +28,22 @@ def booking_bpoint_settlement_report(_date):
         writer = csv.writer(strIO)
         writer.writerow(fieldnames)
 
-        # Retrieve all the oracle codes used in this app
-        oracle_codes = []
-        app_type_dcv_admission = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-        app_type_dcv_permit = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-        oracle_codes.append(app_type_dcv_admission.oracle_code)
-        oracle_codes.append(app_type_dcv_permit.oracle_code)
-        for item in Proposal.__subclasses__():
-            if hasattr(item, 'code'):
-                app_type = ApplicationType.objects.get(code=item.code)
-                oracle_codes.append(app_type.oracle_code)
-        oracle_codes = list(set(oracle_codes))  # Remove duplication
-
-        # crn1 starts with one of the oracle codes retrieved
-        queries = Q()
-        for oracle_code in oracle_codes:
-            queries |= Q(crn1__startswith=oracle_code)
+#        # Retrieve all the oracle codes used in this app
+#        oracle_codes = []
+#        for application_type in ApplicationType.objects.all():
+#            oracle_codes.append(application_type.get_oracle_code_by_date())
+#
+#        # crn1 starts with one of the oracle codes retrieved
+#        queries = Q()
+#        for oracle_code in oracle_codes:
+#            queries |= Q(crn1__startswith=oracle_code)
 
         bpoint = []
         bpoint.extend([x for x in BpointTransaction.objects.filter(
             Q(created__date=_date),
             Q(response_code=0),
-            queries  # crn1__startswith='0517'
+            Q(crn1__startswith=PAYMENT_SYSTEM_PREFIX),
+            # queries  # crn1__startswith='0517'
         ).exclude(crn1__endswith='_test')])
 
         for b in bpoint:
