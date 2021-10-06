@@ -14,7 +14,7 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Year</label>
+                <label for="" class="col-sm-3 control-label">Season</label>
                 <div class="col-sm-6">
                     <select class="form-control" v-model="dcv_permit.season">
                         <option value=""></option>

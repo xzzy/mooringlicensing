@@ -293,8 +293,9 @@ export default {
                         //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
+                            /*
                             let disabled_str = ''
-                            if (vm.readonly){
+                            if (vm.readonly || !full.mooring_licence_current || !full.suitable_for_mooring){
                                 disabled_str = ' disabled '
                             }
                             if (full.checked){
@@ -303,6 +304,14 @@ export default {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + '/>'
                             }
                             return '';
+                            */
+                            if (full.checked){
+                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + ' checked/>'
+                            } else {
+                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + '/>'
+                            }
+                            return '';
+
                         }
                     },
                     {
@@ -328,7 +337,8 @@ export default {
                         //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
-                            return full.site_licensee ? 'User requested' : 'RIA allocated';
+                            //return full.site_licensee ? 'User requested' : 'RIA allocated';
+                            return full.site_licensee;
                             //return '';
                         }
                     },
@@ -575,7 +585,8 @@ export default {
             this.validation_form.resetForm();
         },
         fetchMooringBays: async function() {
-            const res = await this.$http.get(api_endpoints.mooring_bays);
+            //const res = await this.$http.get(api_endpoints.mooring_bays);
+            const res = await this.$http.get(api_endpoints.mooring_bays_lookup);
             for (let bay of res.body) {
                 this.mooringBays.push(bay)
             }
@@ -657,7 +668,7 @@ export default {
                 rules: {
                     //start_date:"required",
                     //due_date:"required",
-                    approval_details:"required",
+                    //approval_details:"required",
                 },
                 messages: {
                 },
@@ -723,12 +734,12 @@ export default {
            let vm = this;
            //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
            let mooringOnApprovalId = this.getMooringOnApprovalIdFromEvent(e);
-           console.log(mooringOnApprovalId);
+           //console.log(mooringOnApprovalId);
            let checked_status = e.target.checked;
            //for (let i=0; i<this.apiary_sites_local.length; i++) {
            for (let mooring of this.authorisedUserMoorings) {
                if (mooring.id == mooringOnApprovalId) {
-                   console.log(e.target.checked)
+                   //console.log(e.target.checked)
                    mooring.checked = checked_status;
                }
            }
@@ -820,6 +831,8 @@ export default {
                             term: params.term,
                             type: 'public',
                             mooring_bay_id: vm.approval.mooring_bay_id,
+                            vessel_details_id: vm.proposal.vessel_details_id,
+                            aup_id: vm.proposal.approval_id,
                         }
                         return query;
                     },
@@ -862,7 +875,13 @@ export default {
         vm.addFormValidations();
         this.$nextTick(()=>{
             //vm.eventListeners();
-            this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
+            /*
+            // AUP reissue
+            if (!this.proposal.reissued) {
+                this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
+            }
+            */
+            //this.approval.mooring_bay_id = null;
             this.initialiseMooringLookup();
             this.addEventListeners();
             if (this.authorisedUserApplication) {

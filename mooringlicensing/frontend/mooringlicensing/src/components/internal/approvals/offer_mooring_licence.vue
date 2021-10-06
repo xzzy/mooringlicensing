@@ -168,6 +168,7 @@ export default {
         },
         cancel:function () {
             this.close()
+            this.$refs.waiting_list_offer_documents.delete_all_documents()
         },
         close: function () {
             this.isModalOpen = false;
@@ -236,6 +237,7 @@ export default {
                             type: 'public',
                             available_moorings: true,
                             mooring_bay_id: vm.selectedMooringBayId,
+                            wla_id: vm.wlaId,
                         }
                         return query;
                     },

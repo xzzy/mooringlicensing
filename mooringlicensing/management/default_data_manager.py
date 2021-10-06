@@ -1,7 +1,10 @@
 import datetime
 import logging
+import pytz
+import os
 
 from django.contrib.auth.models import Group
+from django.core.files import File
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
@@ -11,11 +14,10 @@ from mooringlicensing.components.main.models import (
         NumberOfDaysType,
         NumberOfDaysSetting
         )
+from mooringlicensing.components.payments_ml.models import OracleCodeItem, FeeItemStickerReplacement
 from mooringlicensing.components.proposals.models import (
         ProposalType, 
         Proposal, 
-        #ProposalAssessorGroup,
-        #ProposalApproverGroup, 
         StickerPrintingContact
         )
 
@@ -28,10 +30,10 @@ class DefaultDataManager(object):
         # Proposal Types
         for item in settings.PROPOSAL_TYPES_FOR_FEE_ITEM:
             try:
-                type, created = ProposalType.objects.get_or_create(code=item[0])
+                myType, created = ProposalType.objects.get_or_create(code=item[0])
                 if created:
-                    type.description = item[1]
-                    type.save()
+                    myType.description = item[1]
+                    myType.save()
                     logger.info("Created ProposalType: {}".format(item[1]))
             except Exception as e:
                 logger.error('{}, ProposalType: {}'.format(e, item[1]))
@@ -41,30 +43,21 @@ class DefaultDataManager(object):
             # Create record(s) based on the existence of the subclasses
             if hasattr(item, 'code'):
                 try:
-                    type, created = ApplicationType.objects.get_or_create(code=item.code)
+                    myType, created = ApplicationType.objects.get_or_create(code=item.code)
                     if created:
-                        type.description = item.description
-                        type.oracle_code = item.oracle_code
-                        type.save()
+                        myType.description = item.description
+                        myType.save()
                         logger.info("Created ApplicationType: {}".format(item.description))
                 except Exception as e:
                     logger.error('{}, ApplicationType: {}'.format(e, item.code))
         try:
-            # Create record for the DCV Permit
-            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-            if created:
-                type.description = settings.APPLICATION_TYPE_DCV_PERMIT['description']
-                type.oracle_code = settings.APPLICATION_TYPE_DCV_PERMIT['oracle_code']
-                type.save()
-                logger.info("Created ApplicationType: {}".format(type.description))
-
-            # Create record for the DCV Admission
-            type, created = ApplicationType.objects.get_or_create(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-            if created:
-                type.description = settings.APPLICATION_TYPE_DCV_ADMISSION['description']
-                type.oracle_code = settings.APPLICATION_TYPE_DCV_ADMISSION['oracle_code']
-                type.save()
-                logger.info("Created ApplicationType: {}".format(type.description))
+            for app_type in settings.APPLICATION_TYPES:
+                myType, created = ApplicationType.objects.get_or_create(code=app_type['code'])
+                if created:
+                    myType.description = app_type['description']
+                    logger.info("Created ApplicationType: {}".format(myType.description))
+                myType.fee_by_fee_constructor = app_type['fee_by_fee_constructor']  # In order to configure the data, which have already exist in the DB
+                myType.save()
         except Exception as e:
             logger.error('{}, ApplicationType: {}'.format(e, item.code))
 
@@ -87,12 +80,17 @@ class DefaultDataManager(object):
         #        logger.error('{}, ProposalApproverGroup: {}'.format(e, item))
 
         # Store
-        for item in GlobalSettings.default_values:
+        for item in GlobalSettings.keys:
             try:
                 obj, created = GlobalSettings.objects.get_or_create(key=item[0])
                 if created:
-                    obj.value = item[1]
-                    obj.save()
+                    if item[0] in GlobalSettings.keys_for_file:
+                        with open(GlobalSettings.default_values[item[0]], 'rb') as doc_file:
+                            obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=True)
+                        obj.save()
+                    else:
+                        obj.value = item[1]
+                        obj.save()
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
                 logger.error('{}, Key: {}'.format(e, item[0]))
@@ -110,7 +108,7 @@ class DefaultDataManager(object):
         # AgeGroup for the DcvAdmission fees
         for item in AgeGroup.NAME_CHOICES:
             try:
-                type, created = AgeGroup.objects.get_or_create(code=item[0])
+                myType, created = AgeGroup.objects.get_or_create(code=item[0])
                 if created:
                     logger.info("Created AgeGroup: {}".format(item[1]))
             except Exception as e:
@@ -119,7 +117,7 @@ class DefaultDataManager(object):
         # AdmissionType for the DcvAdmission fees
         for item in AdmissionType.TYPE_CHOICES:
             try:
-                type, created = AdmissionType.objects.get_or_create(code=item[0])
+                myType, created = AdmissionType.objects.get_or_create(code=item[0])
                 if created:
                     logger.info("Created AdmissionType: {}".format(item[1]))
             except Exception as e:
@@ -140,23 +138,50 @@ class DefaultDataManager(object):
                 types_to_be_deleted = NumberOfDaysType.objects.filter(code__isnull=True)
                 types_to_be_deleted.delete()  # Delete left overs
 
-                type, created = NumberOfDaysType.objects.get_or_create(code=item['code'])
+                myType, created = NumberOfDaysType.objects.get_or_create(code=item['code'])
                 if created:
                     # Save description
-                    type.description = item['description']
-                    type.name = item['name']
-                    type.save()
-                    logger.info("Created number of days type: {}".format(type.name))
+                    myType.description = item['description']
+                    myType.name = item['name']
+                    myType.save()
+                    logger.info("Created number of days type: {}".format(myType.name))
 
-                setting = NumberOfDaysSetting.objects.filter(number_of_days_type=type)
+                setting = NumberOfDaysSetting.objects.filter(number_of_days_type=myType)
                 if not setting:
                     # No setting for this type. Create one
                     enforcement_date = datetime.date(year=2021, month=1, day=1)
                     NumberOfDaysSetting.objects.create(
                         number_of_days=item['default'],
                         date_of_enforcement=enforcement_date,
-                        number_of_days_type=type
+                        number_of_days_type=myType
                     )
 
             except Exception as e:
-                logger.error('{}, Number of days type: {}'.format(e, type.name))
+                logger.error('{}, Number of days type: {}'.format(e, myType.name))
+
+        # Oracle account codes
+        today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+        for application_type in ApplicationType.objects.all():
+            if not application_type.oracle_code_items.count() > 0:
+                try:
+                    oracle_code_item = OracleCodeItem.objects.create(
+                        application_type=application_type,
+                        date_of_enforcement=today,
+                    )
+                    logger.info("Created oracle code item: {}".format(oracle_code_item))
+                except Exception as e:
+                    logger.error('{}, failed to create oracle code item'.format(application_type))
+
+        # StickerReplacementFee
+        fee_item = FeeItemStickerReplacement.get_fee_item_by_date()
+        target_date = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+        if not fee_item:
+            try:
+                fee_item = FeeItemStickerReplacement.objects.create(
+                    amount=24.00,
+                    date_of_enforcement=target_date,
+                    incur_gst=False,
+                )
+                logger.info("Created fee item sticker replacement: {}".format(fee_item))
+            except Exception as e:
+                logger.error('{}, failed to create fee item sticker replacement'.format(fee_item))

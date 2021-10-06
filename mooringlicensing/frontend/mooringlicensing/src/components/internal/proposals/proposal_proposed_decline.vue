@@ -158,7 +158,7 @@ export default {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
                 rules: {
-                    reason:"required",
+               //     reason:"required",
                 },
                 messages: {
                     arrival:"field is required",
