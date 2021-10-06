@@ -1414,6 +1414,22 @@ class MooringLicence(Approval):
         return vessels
 
     @property
+    def vessel_list_for_payment(self):
+        vessels = []
+        for proposal in self.proposal_set.all():
+            if (
+                    proposal.final_status and
+                    proposal.vessel_details and
+                    not proposal.vessel_ownership.end_date  # and  # vessel has not been sold by this owner
+                    # We don't worry about if existing vessel(s) is removed or not because regardless of it, payments made for that vessel.
+                    # not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+            ):
+                if proposal.vessel_details.vessel not in vessels:
+                    vessels.append(proposal.vessel_details.vessel)
+        return vessels
+
+    # This function may not be used
+    @property
     def vessel_details_list_for_payment(self):
         vessel_details = []
         for proposal in self.proposal_set.all():
