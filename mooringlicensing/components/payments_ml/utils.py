@@ -143,6 +143,67 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
     return line_items, db_processes_after_success
 
 
+def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
+    """ Create the ledger lines - line item for application fee sent to payment system """
+
+    # Any changes to the DB should be made after the success of payment process
+    db_processes_after_success = {}
+
+    if isinstance(instance, Proposal):
+        application_type = instance.application_type
+        vessel_length = instance.vessel_details.vessel_applicable_length
+        proposal_type = instance.proposal_type
+    elif isinstance(instance, DcvPermit):
+        application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
+        vessel_length = 1  # any number greater than 0
+        proposal_type = None
+
+    target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+    target_date = target_datetime.date()
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+    # Retrieve FeeItem object from FeeConstructor object
+    if isinstance(instance, Proposal):
+        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+    elif isinstance(instance, DcvPermit):
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+    else:
+        raise Exception('Something went wrong when calculating the fee')
+
+    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
+    db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
+    db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
+    db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+
+    line_items = [
+        {
+            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                fee_constructor.application_type.description,
+                instance.lodgement_number,
+                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                target_datetime_str,
+            ),
+            'oracle_code': application_type.oracle_code,
+            'price_incl_tax':  fee_item.amount,
+            'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            'quantity': 1,
+        },
+    ]
+
+    logger.info('{}'.format(line_items))
+
+    return line_items, db_processes_after_success
+
+
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime):
     target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
     proposal_type_text = '({})'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
