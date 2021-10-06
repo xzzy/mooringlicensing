@@ -1843,6 +1843,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     ):
                 auto_approve = False
                 #pass
+            ## WLA
+            if (type(self.child_obj) == WaitingListApplication and 
+                    self.preferred_bay != self.previous_application_status_filter.preferred_bay
+                    ):
+                auto_approve = False
+
             if auto_approve:
                 self.final_approval_for_WLA_AAA(request, details={}, auto_approve=auto_approve)
 
