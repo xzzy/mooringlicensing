@@ -330,6 +330,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'approval_type_dict',
             'issue_date',
             'holder',
+            'start_date',
+            'issue_date',
+            'expiry_date',
             'issue_date_str',
             'expiry_date_str',
             'vessel_length',
@@ -403,16 +406,16 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_is_approver(self, obj):
         #return_list = []
-        request = self.context['request']
+        request = self.context.get('request')
         return obj.is_approver(request.user)
 
     def get_mooring_licence_vessels(self, obj):
         #return_list = []
         links = ''
-        request = self.context['request']
+        request = self.context.get('request')
         if type(obj.child_obj) == MooringLicence:
             for vessel_details in obj.child_obj.vessel_details_list:
-                if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/vessel/{}">{}</a><br/>'.format(
                             vessel_details.vessel.id,
                             vessel_details.vessel.rego_no,
@@ -512,11 +515,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
         #import ipdb; ipdb.set_trace()
         #return_list = []
         links = ''
-        request = self.context['request']
+        request = self.context.get('request')
         if type(obj.child_obj) == AuthorisedUserPermit:
             #for mooring in obj.moorings.all():
             for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-                if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
                             moa.mooring.id,
                             str(moa.mooring),
@@ -542,7 +545,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        if (
+                type(obj.child_obj) == WaitingListAllocation and 
+                obj.status == 'current' and
+                obj.current_proposal.preferred_bay and
+                obj.internal_status == 'waiting'
+                ):
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
@@ -673,16 +681,15 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
-    mooring_licence_vessels = serializers.SerializerMethodField()
-    authorised_user_moorings = serializers.SerializerMethodField()
+    #mooring_licence_vessels = serializers.SerializerMethodField()
+    #authorised_user_moorings = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
     can_external_action = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
-    #can_renew = serializers.SerializerMethodField()
-    #can_amend = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors_user = serializers.SerializerMethodField()
+    #allowed_assessors_user = EmailUserSerializer(many=True)
     stickers = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
     vessel_regos = serializers.SerializerMethodField()
@@ -710,21 +717,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_registration',
             'vessel_name',
             'wla_order',
-            'wla_queue_date',
+            #wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
-            'mooring_licence_vessels',
-            'authorised_user_moorings',
+            #'mooring_licence_vessels',
+            #'authorised_user_moorings',
             'can_reissue',
             'can_external_action',
             'can_action',
             'can_reinstate',
-            #'can_renew',
-            #'can_amend',
             'amend_or_renew',
             'renewal_document',
-            'renewal_sent',
-            'allowed_assessors',
+            #'renewal_sent',
+            'allowed_assessors_user',
             'stickers',
             'licence_document',
             'is_approver',
@@ -753,21 +758,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_registration',
             'vessel_name',
             'wla_order',
-            'wla_queue_date',
+            #wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
-            'mooring_licence_vessels',
-            'authorised_user_moorings',
+            #'mooring_licence_vessels',
+            #'authorised_user_moorings',
             'can_reissue',
             'can_external_action',
             'can_action',
             'can_reinstate',
-            #'can_renew',
-            #'can_amend',
             'amend_or_renew',
             'renewal_document',
-            'renewal_sent',
-            'allowed_assessors',
+            #'renewal_sent',
+            'allowed_assessors_user',
             'stickers',
             'licence_document',
             'is_approver',
@@ -777,13 +780,27 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     #def get_stickers(self, obj):
      #   return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
 
+    #def get_allowed_assessors(self, obj):
+     #   return [assessor.id for assessor in obj.allowed_assessors]
+    def get_allowed_assessors_user(self, obj):
+        request = self.context.get('request')
+        if request:
+            #return EmailUserSerializer(obj.allowed_assessors, many=True).data
+            #return True
+            return obj.allowed_assessors_user(request)
+        else:
+            return False
+
     def get_current_proposal_approved(self, obj):
         return obj.current_proposal.processing_status == 'approved'
 
     def get_is_approver(self, obj):
         #return_list = []
-        request = self.context['request']
-        return obj.is_approver(request.user)
+        request = self.context.get('request')
+        if request:
+            return obj.is_approver(request.user)
+        else:
+            return False
 
     def get_stickers(self, obj):
         stickers = obj.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING])
@@ -828,10 +845,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_mooring_licence_vessels(self, obj):
         #return_list = []
         links = ''
-        request = self.context['request']
+        request = self.context.get('request')
         if type(obj.child_obj) == MooringLicence:
             for vessel_details in obj.child_obj.vessel_details_list:
-                if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/vessel/{}">{}</a><br/>'.format(
                             vessel_details.vessel.id,
                             vessel_details.vessel.rego_no,
@@ -843,10 +860,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_authorised_user_moorings(self, obj):
         #return_list = []
         links = ''
-        request = self.context['request']
+        request = self.context.get('request')
         if type(obj.child_obj) == AuthorisedUserPermit:
             for mooring in obj.moorings.all():
-                if request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
                             mooring.id,
                             str(mooring),
@@ -872,7 +889,13 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        #if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        if (
+                type(obj.child_obj) == WaitingListAllocation and 
+                obj.status == 'current' and
+                obj.current_proposal.preferred_bay and
+                obj.internal_status == 'waiting'
+                ):
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,

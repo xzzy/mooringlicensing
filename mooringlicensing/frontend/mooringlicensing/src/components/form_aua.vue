@@ -103,6 +103,7 @@
                   :id="'mooringAuthorisation' + mooringAuthorisationUuid"
                   :key="'mooringAuthorisation' + mooringAuthorisationUuid"
                   :change_mooring=change_mooring
+                  :newAua="newAua"
                   ref="mooring_authorisation"
                   :readonly="readonly"
                   />
@@ -186,7 +187,7 @@
                 uuid: 0,
                 mooringAuthorisationUuid: 0,
                 keep_current_vessel: true,
-                change_mooring: true,
+                change_mooring: false,
             }
         },
         components: {
@@ -216,6 +217,13 @@
                     text = this.proposal.proposal_type.description;
                 }
                 return text;
+            },
+            newAua: function(){
+                let newApp = false;
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code === 'new') {
+                    newApp = true;
+                }
+                return newApp;
             },
         },
         methods:{
