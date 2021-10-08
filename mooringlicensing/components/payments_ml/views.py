@@ -349,7 +349,7 @@ class ApplicationFeeView(TemplateView):
             with transaction.atomic():
                 set_session_application_invoice(request.session, application_fee)
 
-                lines, db_processes_after_success = proposal.child_obj.create_fee_lines()
+                lines, db_processes_after_success = proposal.child_obj.create_fee_lines()  # Accessed by WL and AA
 
                 request.session['db_processes'] = db_processes_after_success
                 request.session['auto_renew'] = request.POST.get('auto_renew', False)
@@ -626,12 +626,20 @@ class ApplicationFeeSuccessView(TemplateView):
             if 'fee_item_id' in db_operations:
                 fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
                 if fee_items:
-                    application_fee.fee_items.add(fee_items.first())
+                    # application_fee.fee_items.add(fee_items.first())
+                    FeeItemApplicationFee.objects.create(
+                        fee_item=fee_items.first(),
+                        application_fee=application_fee,
+                        vessel_details=proposal.vessel_details,
+                    )
             if 'fee_item_additional_id' in db_operations:
                 fee_item_additionals = FeeItem.objects.filter(id=db_operations['fee_item_additional_id'])
                 if fee_item_additionals:
-                    intermediate_item = FeeItemApplicationFee.objects.create(fee_item=fee_item_additionals.first(),
-                                                                     application_fee=application_fee)
+                    FeeItemApplicationFee.objects.create(
+                        fee_item=fee_item_additionals.first(),
+                        application_fee=application_fee,
+                        vessel_details=proposal.vessel_details,
+                    )
             application_fee.invoice_reference = invoice_ref
             application_fee.save()
 

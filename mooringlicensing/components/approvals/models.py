@@ -273,21 +273,12 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
-    def get_max_fee_item(self, fee_season):
+    def get_max_fee_item(self, fee_season, vessel_details=None):
         max_fee_item = None
         for proposal in self.proposal_set.all():
-            for fee_item in proposal.get_fee_items_paid(fee_season):
-                if not max_fee_item:
-                    max_fee_item = fee_item
-                else:
-                    if max_fee_item.get_absolute_amount() < fee_item.get_absolute_amount():
-                        max_fee_item = fee_item
-        return max_fee_item
+            fee_items = proposal.get_fee_items_paid(fee_season, vessel_details)
 
-    def get_max_fee_item_additional_aa(self, fee_season):
-        max_fee_item = None
-        for proposal in self.proposal_set.all():
-            for fee_item in proposal.get_fee_items_paid_additional_aa(fee_season):
+            for fee_item in fee_items:
                 if not max_fee_item:
                     max_fee_item = fee_item
                 else:
