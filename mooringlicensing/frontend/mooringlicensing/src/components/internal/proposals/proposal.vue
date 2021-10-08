@@ -282,12 +282,20 @@ export default {
                 ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
             return ret_val
         },
+        /*
         showElectoralRoll: function(){
             // TODO: implement
             return true
         },
+        */
+        showElectoralRoll: function() {
+            let show = false;
+            if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+                show = true;
+            }
+            return show;
+        },
         readonly: function() {
-            // TODO: implement
             return true
         },
         contactsURL: function(){
