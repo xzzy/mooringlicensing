@@ -614,6 +614,10 @@ class Approval(RevisionedMixin):
         # TODO: check this logic
         return self.current_proposal.allowed_assessors
 
+    def allowed_assessors_user(self, request):
+        # TODO: check this logic
+        return self.current_proposal.allowed_assessors_user(request)
+
 
     def is_assessor(self,user):
         return self.current_proposal.is_assessor(user)
