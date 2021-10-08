@@ -4,19 +4,6 @@
             <div class="row form-group">
                 <div class="col-sm-9">
                     <label for="" class="col-sm-12 control-label">{{ currentMooringDisplayText }}</label>
-                        <div class="col-sm-9">
-                            <input 
-                            @change="resetCurrentMooring" 
-                            :disabled="readonly" 
-                            type="radio" 
-                            id="change_mooring_true" 
-                            name="change_mooring_true" 
-                            :value="true" 
-                            v-model="change_mooring" 
-                            required
-                            />
-                            <label for="change_mooring_true" class="control-label">Yes</label>
-                        </div>
 
                         <div class="col-sm-9">
                             <input 
@@ -30,6 +17,19 @@
                             required
                             />
                             <label for="change_mooring_false" class="control-label">No</label>
+                        </div>
+                        <div class="col-sm-9">
+                            <input 
+                            @change="resetCurrentMooring" 
+                            :disabled="readonly" 
+                            type="radio" 
+                            id="change_mooring_true" 
+                            name="change_mooring_true" 
+                            :value="true" 
+                            v-model="change_mooring" 
+                            required
+                            />
+                            <label for="change_mooring_true" class="control-label">Yes</label>
                         </div>
 
                 </div>
@@ -54,7 +54,7 @@ from '@/utils/hooks'
         name:'current_mooring',
         data:function () {
             return {
-                change_mooring: true,
+                change_mooring: false,
             }
         },
         components:{
