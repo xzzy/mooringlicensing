@@ -1291,7 +1291,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Create/update approval
                 created = None
                 if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
-                    approval = self.approval
+                    approval = self.approval.child_obj
                     approval.current_proposal=self
                     if type(self.child_obj) == WaitingListApplication:
                         approval.wla_queue_date = current_datetime
@@ -1366,7 +1366,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
 
                 # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.manage_stickers(self)
 
                 ## set proposal status after manage_stickers
                 from mooringlicensing.components.approvals.models import Sticker
