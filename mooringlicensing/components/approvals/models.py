@@ -118,6 +118,24 @@ class MooringOnApproval(RevisionedMixin):
         unique_together = ("mooring", "approval")
 
 
+class VesselOwnershipOnApproval(RevisionedMixin):
+    approval = models.ForeignKey('Approval')
+    vessel_ownership = models.ForeignKey(VesselOwnership)
+    sticker = models.ForeignKey('Sticker', blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        sticker = self.sticker.number if self.sticker else ' '
+        return 'ID:{} ({}-{}-{})'.format(self.id, self.approval, self.vessel_ownership, sticker)
+
+    #def save(self, *args, **kwargs):
+     #   super(VesselOnApproval, self).save(*args,**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        unique_together = ("vessel_ownership", "approval")
+
+
 class ApprovalHistory(RevisionedMixin):
     REASON_NEW = 'new'
     REASON_REPLACEMENT_STICKER = 'replacement_sticker'
