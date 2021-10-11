@@ -1963,6 +1963,10 @@ class WaitingListApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -2199,6 +2203,10 @@ class AnnualAdmissionApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -2386,6 +2394,10 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
@@ -2751,6 +2763,10 @@ class MooringLicenceApplication(Proposal):
 
     # def process_after_payment_success(self, request):
     #     pass
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
         from mooringlicensing.components.payments_ml.models import FeeConstructor
