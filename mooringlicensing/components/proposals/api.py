@@ -13,8 +13,6 @@ from ledger.accounts.models import EmailUser, Address
 from mooringlicensing import settings
 from mooringlicensing.components.proposals.utils import (
         save_proponent_data,
-        save_assessor_data, 
-        save_bare_vessel_data
         )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
@@ -1323,22 +1321,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if hasattr(e,'message'):
                 raise serializers.ValidationError(e.message)
 
-    @detail_route(methods=['post'])
-    @renderer_classes((JSONRenderer,))
-    def assessor_save(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            save_assessor_data(instance,request,self)
-            return redirect(reverse('external'))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
     def create(self, request, *args, **kwargs):
         raise NotImplementedError("Parent objects should not be created directly")
 
@@ -1979,23 +1961,19 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
-    #@renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def create(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        with transaction.atomic():
-            #save_bare_vessel_data(request)
-            vessel_data = save_bare_vessel_data(request)
-            return Response(vessel_data)
+    ## required for manage vessels
+    #@basic_exception_handler
+    #def create(self, request, *args, **kwargs):
+    #    with transaction.atomic():
+    #        vessel_data = save_bare_vessel_data(request)
+    #        return Response(vessel_data)
 
-    #@renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def update(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        with transaction.atomic():
-            instance = self.get_object()
-            vessel_data = save_bare_vessel_data(request, instance)
-            return Response(vessel_data)
+    #@basic_exception_handler
+    #def update(self, request, *args, **kwargs):
+    #    with transaction.atomic():
+    #        instance = self.get_object()
+    #        vessel_data = save_bare_vessel_data(request, instance)
+    #        return Response(vessel_data)
 
     @list_route(methods=['GET',])
     def list_internal(self, request, *args, **kwargs):
