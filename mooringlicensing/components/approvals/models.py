@@ -1401,10 +1401,8 @@ class MooringLicence(Approval):
     def current_vessel_attributes(self, attribute=None):
         attribute_list = []
         vooas = self.vesselownershiponapproval_set.filter(
-                Q(end_date__isnull=True) & 
-                Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT) &
-                #Q(proposal.vessel_ownership.mooring_licence_end_date__isnull=True) &  # vessel has been unchecked
-                Q(proposal.vessel_ownership.end_date__isnull=True)
+                Q(end_date__isnull=True) &
+                Q(vessel_ownership__end_date__isnull=True)
                 )
         for vooa in vooas:
             if not attribute:
