@@ -2527,7 +2527,8 @@ class MooringLicenceApplication(Proposal):
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
-            existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
+            #existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
+            existing_mooring_licence_vessel_count = existing_mooring_licence.vesselownershiponapproval_set.count()
             created = None
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
@@ -2575,14 +2576,17 @@ class MooringLicenceApplication(Proposal):
 
             # update proposed_issuance_approval and VesselOwnership if not system reissue
             if request and not auto_renew:
+                # Create VesselOwnershipOnApproval records
+                ## also see logic in approval.add_vessel_ownership()
+                vooa, created = approval.add_vessel_ownership(vessel_ownership=self.vessel_ownership)
+
                 # updating checkboxes
                 #if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
-                    for vo2 in self.approval.child_obj.vessel_ownership_list:
-                    #for vo2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                    for vo2 in self.approval.child_obj.current_vessel_ownerships:
                         # convert proposed_issuance_approval to an end_date
-                        if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
-                            vo2.mooring_licence_end_date = current_datetime.date()
+                        if vo1.get("id") == vo2.vessel_ownership.id and not vo1.get("checked") and not vo2.end_date:
+                            vo2.end_date = current_datetime.date()
                             vo2.save()
             if request:
                 # Generate compliances
@@ -2610,17 +2614,6 @@ class MooringLicenceApplication(Proposal):
                         for c in approval_compliances:
                             c.delete()
 
-            # log Mooring action
-            ## TODO: action is for mooring swap logic
-            #if existing_mooring_licence and existing_mooring_licence is not approval.child_obj:
-            #    mooring.log_user_action(
-            #            MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
-            #                str(existing_mooring_licence),
-            #                str(approval),
-            #                ),
-            #            request
-            #            )
-            #else:
             mooring.log_user_action(
                     MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
                         str(approval),
@@ -2681,7 +2674,8 @@ class MooringLicenceApplication(Proposal):
                 self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
 
             # write approval history
-            if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
+            #if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
+            if existing_mooring_licence_vessel_count < existing_mooring_licence.vesselownershiponapproval_set.count():
                 approval.write_approval_history('vessel_add')
             elif created:
                 approval.write_approval_history('new')
@@ -3076,7 +3070,6 @@ class VesselOwnershipManager(models.Manager):
 class VesselOwnership(models.Model):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
-    #org_name = models.CharField(max_length=200, blank=True, null=True)
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
@@ -3088,8 +3081,8 @@ class VesselOwnership(models.Model):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()
-    #objects = VesselOwnershipManager()
-    mooring_licence_end_date = models.DateField(blank=True, null=True)
+    ## replaced by vesselownershiponapproval.end_date
+    #mooring_licence_end_date = models.DateField(blank=True, null=True)
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
 
