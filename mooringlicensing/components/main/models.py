@@ -223,7 +223,7 @@ class GlobalSettings(models.Model):
         (KEY_DCV_ADMISSION_TEMPLATE_FILE, 'DcvAdmission template file'),
         (KEY_WLA_TEMPLATE_FILE, 'Waiting List Allocation template file'),
         (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
-        (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit tempalte file'),
+        (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit template file'),
         (KEY_ML_TEMPLATE_FILE, 'Mooring Licence template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
