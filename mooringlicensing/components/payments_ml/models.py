@@ -16,7 +16,7 @@ from mooringlicensing import settings
 # from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
-    AuthorisedUserApplication
+    AuthorisedUserApplication, VesselDetails
 from smart_selects.db_fields import ChainedForeignKey
 
 logger = logging.getLogger('__name__')
@@ -192,6 +192,18 @@ class StickerActionFee(Payment):
         app_label = 'mooringlicensing'
 
 
+class FeeItemApplicationFee(models.Model):
+    """
+    This model is only used for the calculation of AnnualAdmission components
+    """
+    fee_item = models.ForeignKey('FeeItem',)
+    application_fee = models.ForeignKey('ApplicationFee',)
+    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
@@ -211,7 +223,9 @@ class ApplicationFee(Payment):
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
     # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
-    fee_items = models.ManyToManyField('FeeItem', related_name='application_fees')
+    # fee_items = models.ManyToManyField('FeeItem', related_name='application_fees')  # For WL/AA/AU/ML
+    # fee_items_additional_aa = models.ManyToManyField('FeeItem', related_name='application_fees_additional_aa')  # For additional AA when AU/ML
+    fee_items = models.ManyToManyField('FeeItem', related_name='application_fees', through='FeeItemApplicationFee')
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
