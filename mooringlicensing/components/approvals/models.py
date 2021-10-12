@@ -121,7 +121,6 @@ class MooringOnApproval(RevisionedMixin):
 class VesselOwnershipOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval')
     vessel_ownership = models.ForeignKey(VesselOwnership)
-    sticker = models.ForeignKey('Sticker', blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
