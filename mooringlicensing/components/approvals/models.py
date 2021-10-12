@@ -968,6 +968,10 @@ class WaitingListAllocation(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
         context = {
@@ -1007,6 +1011,10 @@ class AnnualAdmissionPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
@@ -1083,6 +1091,10 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
@@ -1290,6 +1302,10 @@ class MooringLicence(Approval):
     #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
     #        self.save()
     #    self.approval.refresh_from_db()
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
         licenced_vessel = None
