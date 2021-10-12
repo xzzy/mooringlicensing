@@ -614,7 +614,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user,
                 proposal_type=proposal_type
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 

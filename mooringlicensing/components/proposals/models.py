@@ -491,7 +491,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
-        self.child_obj.refresh_from_db()
+        if type(self) == Proposal:
+            self.child_obj.refresh_from_db()
 
     @property
     def fee_constructor(self):
@@ -1291,7 +1292,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Create/update approval
                 created = None
                 if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
-                    approval = self.approval
+                    approval = self.approval.child_obj
                     approval.current_proposal=self
                     if type(self.child_obj) == WaitingListApplication:
                         approval.wla_queue_date = current_datetime
@@ -1366,7 +1367,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
 
                 # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.manage_stickers(self)
 
                 ## set proposal status after manage_stickers
                 from mooringlicensing.components.approvals.models import Sticker
@@ -1764,9 +1765,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def description(self):
-        if hasattr(self, 'child_obj'):
-            return self.child_obj.description
-        return ''
+        #if hasattr(self, 'child_obj'):
+        #if type(self) == Proposal:
+        return self.child_obj.description
+        #return ''
 
     @classmethod
     def application_type_descriptions(cls):
@@ -1962,6 +1964,10 @@ class WaitingListApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def create_fee_lines(self):
         """
@@ -2199,6 +2205,10 @@ class AnnualAdmissionApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -2386,6 +2396,10 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
@@ -2751,6 +2765,10 @@ class MooringLicenceApplication(Proposal):
 
     # def process_after_payment_success(self, request):
     #     pass
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
         from mooringlicensing.components.payments_ml.models import FeeConstructor
