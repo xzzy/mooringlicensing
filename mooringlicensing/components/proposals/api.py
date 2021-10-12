@@ -1235,8 +1235,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         instance.final_approval(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
+        print("type(instance)")
+        print(type(instance))
         serializer = serializer_class(instance, context={'request': request})
-        print(serializer.data)
         return Response(serializer.data)
 
     @detail_route(methods=['POST',])
