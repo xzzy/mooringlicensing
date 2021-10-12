@@ -3107,7 +3107,7 @@ class MooringLicenceApplication(Proposal):
 
             # write approval history
             #if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
-            if existing_mooring_licence_vessel_count < existing_mooring_licence.vesselownershiponapproval_set.count():
+            if existing_mooring_licence_vessel_count and existing_mooring_licence_vessel_count < approval.vesselownershiponapproval_set.count():
                 approval.write_approval_history('vessel_add')
             elif created:
                 approval.write_approval_history('new')
