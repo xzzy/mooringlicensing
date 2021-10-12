@@ -413,7 +413,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         "new_application_text": "I want to amend or renew my current mooring licence {}".format(lchild.lodgement_number)
                         })
             else:
-                if lchild.amend_or_renew:
+                if lchild.approval.amend_or_renew:
                     existing_licences.append({
                         "approval_id": lchild.id,
                         "lodgement_number": lchild.lodgement_number,
