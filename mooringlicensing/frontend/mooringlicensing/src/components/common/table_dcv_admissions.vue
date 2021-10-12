@@ -145,6 +145,7 @@ export default {
             }
         },
         column_invoice_confirmation: function(){
+            let vm = this
             return {
                 data: "id",
                 orderable: true,
@@ -155,6 +156,9 @@ export default {
                     if (full.invoices){
                         for (let invoice of full.invoices){
                             links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
                         }
                     }
                     if (full.admission_urls){
@@ -282,11 +286,11 @@ export default {
                     let links = '';
                     if (full.invoices){
                         for (let invoice of full.invoices){
-                            links += '<div>'
-                            if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
-                            }
-                            links += '</div>'
+                            //links += '<div>'
+                            //if (!vm.is_external){
+                            //    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            //}
+                            //links += '</div>'
                         }
                     }
                     return links

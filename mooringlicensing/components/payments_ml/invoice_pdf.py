@@ -252,19 +252,16 @@ def _is_gst_exempt(invoice):
     try:
         my_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
     except ApplicationFee.DoesNotExist:
-        pass
-    try:
-        my_fee = DcvPermitFee.objects.get(invoice_reference=invoice.reference)
-    except DcvPermitFee.DoesNotExist:
-        pass
-    try:
-        my_fee = DcvAdmissionFee.objects.get(invoice_reference=invoice.reference)
-    except DcvAdmissionFee.DoesNotExist:
-        pass
-    try:
-        my_fee = StickerActionFee.objects.get(invoice_reference=invoice.reference)
-    except StickerActionFee.DoesNotExist:
-        raise Exception('No Fee object linking to the invoice: {} found'.format(invoice))
+        try:
+            my_fee = DcvPermitFee.objects.get(invoice_reference=invoice.reference)
+        except DcvPermitFee.DoesNotExist:
+            try:
+                my_fee = DcvAdmissionFee.objects.get(invoice_reference=invoice.reference)
+            except DcvAdmissionFee.DoesNotExist:
+                try:
+                    my_fee = StickerActionFee.objects.get(invoice_reference=invoice.reference)
+                except StickerActionFee.DoesNotExist:
+                    raise Exception('No Fee object linking to the invoice: {} found'.format(invoice.reference))
 
     if isinstance(my_fee, StickerActionFee):
         fee_item = FeeItemStickerReplacement.get_fee_item_by_date(my_fee.created)
