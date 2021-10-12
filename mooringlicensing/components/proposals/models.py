@@ -2942,7 +2942,7 @@ class MooringLicenceApplication(Proposal):
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
             #existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
-            existing_mooring_licence_vessel_count = existing_mooring_licence.vesselownershiponapproval_set.count()
+            existing_mooring_licence_vessel_count = existing_mooring_licence.vesselownershiponapproval_set.count() if existing_mooring_licence else None
             created = None
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
