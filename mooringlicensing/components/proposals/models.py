@@ -1761,7 +1761,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def application_type_code(self):
-        return self.child_obj.code
+        if type(self) == Proposal:
+            return self.child_obj.code
+        else:
+            return self.code
 
     @property
     def description(self):
