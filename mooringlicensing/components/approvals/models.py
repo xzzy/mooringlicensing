@@ -124,8 +124,7 @@ class VesselOwnershipOnApproval(RevisionedMixin):
     end_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        sticker = self.sticker.number if self.sticker else ' '
-        return 'ID:{} ({}-{}-{})'.format(self.id, self.approval, self.vessel_ownership, sticker)
+        return 'ID:{} ({}-{})'.format(self.id, self.approval, self.vessel_ownership)
 
     #def save(self, *args, **kwargs):
      #   super(VesselOnApproval, self).save(*args,**kwargs)
@@ -485,12 +484,9 @@ class Approval(RevisionedMixin):
 
     def set_wla_order(self):
         place = 1
-        # Waiting List Allocations which have the wla_queue_date removed means that a ML application has been created
-        #if not self.wla_queue_date:
-         #   self.wla_order = None
-          #  self.save()
         # set wla order per bay for current allocations
-        if type(self.child_obj) == WaitingListAllocation:
+        #if type(self.child_obj) == WaitingListAllocation:
+        if type(self) == WaitingListAllocation:
             for w in WaitingListAllocation.objects.filter(
                     wla_queue_date__isnull=False,
                     current_proposal__preferred_bay=self.current_proposal.preferred_bay,
