@@ -118,6 +118,24 @@ class MooringOnApproval(RevisionedMixin):
         unique_together = ("mooring", "approval")
 
 
+class VesselOwnershipOnApproval(RevisionedMixin):
+    approval = models.ForeignKey('Approval')
+    vessel_ownership = models.ForeignKey(VesselOwnership)
+    sticker = models.ForeignKey('Sticker', blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        sticker = self.sticker.number if self.sticker else ' '
+        return 'ID:{} ({}-{}-{})'.format(self.id, self.approval, self.vessel_ownership, sticker)
+
+    #def save(self, *args, **kwargs):
+     #   super(VesselOnApproval, self).save(*args,**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        unique_together = ("vessel_ownership", "approval")
+
+
 class ApprovalHistory(RevisionedMixin):
     REASON_NEW = 'new'
     REASON_REPLACEMENT_STICKER = 'replacement_sticker'
@@ -258,6 +276,7 @@ class Approval(RevisionedMixin):
     ## intermediate table records ria or site_licensee
     ## Please note, MooringLicence mooring should be accessed via approval.child_obj.mooring
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
+    vessel_ownerships = models.ManyToManyField(VesselOwnership, through=VesselOwnershipOnApproval)
     # should be simple fk to VesselOwnership?
     #vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
@@ -442,19 +461,18 @@ class Approval(RevisionedMixin):
         ## reason
         return new_approval_history_entry
 
-    #def add_vessel(self, vessel, vessel_ownership, dot_name):
-    #    vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
-    #            vessel=vessel,
-    #            vessel_ownership=vessel_ownership,
-    #            approval=self,
-    #            dot_name=dot_name
-    #            )
-    #    return vessel_on_approval, created
+    def add_vessel_ownership(self, vessel_ownership):
+        # do not add if this vessel_ownership already exists for the approval 
+        vessel_ownership_on_approval = None
+        created = None
+        if not self.vesselownershiponapproval_set.filter(vessel_ownership=vessel_ownership):
+            vessel_ownership_on_approval, created = VesselOwnershipOnApproval.objects.update_or_create(
+                    vessel_ownership=vessel_ownership,
+                    approval=self,
+                    )
+        return vessel_ownership_on_approval, created
 
     def add_mooring(self, mooring, site_licensee):
-        # do not add if this mooring already exists for the approval & the associated mooring_licence is current
-        #if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current').filter(mooring=mooring):
-
         # do not add if this mooring already exists for the approval
         mooring_on_approval = None
         created = None
@@ -1410,19 +1428,42 @@ class MooringLicence(Approval):
 
         return [], stickers_to_be_returned
 
+    def current_vessel_attributes(self, attribute=None):
+        attribute_list = []
+        vooas = self.vesselownershiponapproval_set.filter(
+                Q(end_date__isnull=True) &
+                Q(vessel_ownership__end_date__isnull=True)
+                )
+        for vooa in vooas:
+            if not attribute:
+                attribute_list.append(vooa.vessel_ownership)
+            elif attribute == 'vessel_details':
+                attribute_list.append(vooa.vessel_ownership.vessel.latest_vessel_details)
+            elif attribute == 'vessel':
+                attribute_list.append(vooa.vessel_ownership.vessel)
+            elif attribute == 'current_vessels':
+                attribute_list.append({
+                    "rego_no": vooa.vessel_ownership.vessel.rego_no,
+                    "latest_vessel_details": vooa.vessel_ownership.vessel.latest_vessel_details
+                    })
+            elif attribute == 'current_vessels_rego':
+                attribute_list.append(vooa.vessel_ownership.vessel.rego_no)
+        return attribute_list
+
     @property
     def vessel_list(self):
-        vessels = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_details and
-                    proposal.vessel_details.vessel not in vessels and
-                    not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessels.append(proposal.vessel_details.vessel)
-        return vessels
+        return self.current_vessel_attributes('vessel')
+        #vessels = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_details and
+        #            proposal.vessel_details.vessel not in vessels and
+        #            not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessels.append(proposal.vessel_details.vessel)
+        #return vessels
 
     @property
     def vessel_list_for_payment(self):
@@ -1455,62 +1496,66 @@ class MooringLicence(Approval):
 
     @property
     def vessel_details_list(self):
-        vessel_details = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_details not in vessel_details and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessel_details.append(proposal.vessel_details)
-        return vessel_details
+        return self.current_vessel_attributes('vessel_details')
+        #vessel_details = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_details not in vessel_details and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessel_details.append(proposal.vessel_details)
+        #return vessel_details
 
     @property
     def vessel_ownership_list(self):
-        vessel_ownership = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_ownership not in vessel_ownership and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessel_ownership.append(proposal.vessel_ownership)
-        return vessel_ownership
+        #vessel_ownership = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_ownership not in vessel_ownership and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessel_ownership.append(proposal.vessel_ownership)
+        #return vessel_ownership
+        return self.current_vessel_attributes()
 
     @property
     def current_vessels(self):
-        vessels = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_ownership and
-                    proposal.vessel_ownership not in vessels and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessels.append({
-                    "submitted_vessel_details": proposal.vessel_details,
-                    "submitted_vessel_ownership": proposal.vessel_ownership,
-                    "rego_no": proposal.vessel_details.vessel.rego_no,
-                    "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
-                    })
-        return vessels
+        return self.current_vessel_attributes('current_vessels')
+        #vessels = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_ownership and
+        #            proposal.vessel_ownership not in vessels and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessels.append({
+        #            "submitted_vessel_details": proposal.vessel_details,
+        #            "submitted_vessel_ownership": proposal.vessel_ownership,
+        #            "rego_no": proposal.vessel_details.vessel.rego_no,
+        #            "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
+        #            })
+        #return vessels
 
     @property
     def current_vessels_rego(self):
-        vessels = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_ownership and
-                    proposal.vessel_ownership not in vessels and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessels.append(proposal.vessel_details.vessel.rego_no)
-        return vessels
+        return self.current_vessel_attributes('current_vessels_rego')
+        #vessels = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_ownership and
+        #            proposal.vessel_ownership not in vessels and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessels.append(proposal.vessel_details.vessel.rego_no)
+        #return vessels
 
 
 class PreviewTempApproval(Approval):
