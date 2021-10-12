@@ -145,88 +145,59 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
 
 def create_fee_lines(instance, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for application fee sent to payment system """
-    logger.info('Creating fee lines for the proposal: {}'.format(instance.lodgement_number))
 
     # Any changes to the DB should be made after the success of payment process
     db_processes_after_success = {}
-    accept_null_vessel = False
 
     if isinstance(instance, Proposal):
         application_type = instance.application_type
-        # this_is_null_vessel_app = False
-
-        if instance.vessel_details:
-            vessel_length = instance.vessel_details.vessel_applicable_length
-        else:
-            # No vessel specified in the application
-            if instance.child_obj.does_accept_null_vessel:
-                # For the amendment application or the renewal application, vessel field can be blank when submit.
-                vessel_length = -1
-                accept_null_vessel = True
-                # this_is_null_vessel_app = True
-            else:
-                msg = 'No vessel specified for the application {}'.format(instance.lodgement_number)
-                logger.error(msg)
-                raise Exception(msg)
+        vessel_length = instance.vessel_details.vessel_applicable_length
         proposal_type = instance.proposal_type
     elif isinstance(instance, DcvPermit):
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
         vessel_length = 1  # any number greater than 0
         proposal_type = None
 
-    current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-    current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
-    target_date = instance.get_target_date(current_datetime.date())
-    annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
+    target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+    target_date = target_datetime.date()
+    target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
     # Retrieve FeeItem object from FeeConstructor object
-    fee_constructor_for_aa = None
     if isinstance(instance, Proposal):
-        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
-        if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-            # There is also annual admission fee component for the AUA/MLA.
-            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
-            if not fee_constructor_for_aa:
-                # Fees have not been configured for the annual admission application and date
-                msg = 'FeeConstructor object for the Annual Admission Application not found for the date: {} for the application: {}'.format(target_date, instance.lodgement_number)
-                logger.error(msg)
-                raise Exception(msg)
+        fee_constructor = FeeConstructor.get_current_fee_constructor_by_application_type_and_date(application_type, target_date)
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            msg = 'FeeConstructor object for the ApplicationType: {} not found for the date: {} for the application: {}'.format(application_type, target_date, instance.lodgement_number)
-            logger.error(msg)
-            raise Exception(msg)
+            raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
     elif isinstance(instance, DcvPermit):
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            msg = 'FeeConstructor object for the ApplicationType: {} and the Season: {} for the application: {}'.format(application_type, instance.fee_season, instance.lodgement_number)
-            logger.error(msg)
-            raise Exception(msg)
+            raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
     else:
-        msg = 'Something went wrong when calculating the fee for the application: {}'.format(instance.lodgement_number)
-        logger.error(msg)
-        raise Exception(msg)
+        raise Exception('Something went wrong when calculating the fee')
 
-    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date, accept_null_vessel=accept_null_vessel)
-    fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, proposal_type, target_date) if fee_constructor_for_aa else None
-
-    fee_amount_adjusted = instance.get_fee_amount_adjusted(fee_item, vessel_length)
-    fee_amount_adjusted_additional = instance.get_fee_amount_adjusted(fee_item_for_aa, vessel_length) if fee_item_for_aa else None
-
+    db_processes_after_success['fee_constructor_id'] = fee_constructor.id
     db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
     db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
-    # db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
-    db_processes_after_success['datetime_for_calculating_fee'] = current_datetime_str
-    db_processes_after_success['fee_item_id'] = fee_item.id if fee_item else 0
-    db_processes_after_success['fee_item_additional_id'] = fee_item_for_aa.id if fee_item_for_aa else 0
-    # TODO: Perform db_process for additional component, too???
+    db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
-    line_items = []
-    line_items.append(generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, current_datetime))
-    if application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-        # There is also annual admission fee component for the AUA/MLA.
-        line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, instance, current_datetime))
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+
+    line_items = [
+        {
+            'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                fee_constructor.application_type.description,
+                instance.lodgement_number,
+                fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                target_datetime_str,
+            ),
+            'oracle_code': application_type.oracle_code,
+            'price_incl_tax':  fee_item.amount,
+            'price_excl_tax':  calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            'quantity': 1,
+        },
+    ]
 
     logger.info('{}'.format(line_items))
 
