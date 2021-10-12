@@ -3368,10 +3368,14 @@ class Vessel(models.Model):
                     Q(proposal__vessel_ownership=vessel_ownership) | 
                     Q(proposal=proposal_being_processed)
                     ) &
-                Q(proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
-                Q(proposal__vessel_ownership__end_date__isnull=True) &
-                Q(proposal__vessel_ownership__mooring_licence_end_date__isnull=True) &
-                Q(proposal__vessel_ownership__vessel=self)
+                #Q(proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
+                #Q(proposal__vessel_ownership__end_date__isnull=True) &
+                #Q(proposal__vessel_ownership__mooring_licence_end_date__isnull=True) &
+                #Q(proposal__vessel_ownership__vessel=self)
+                Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
+                Q(vesselownershiponapproval__vessel_ownership__end_date__isnull=True) &
+                Q(vesselownershiponapproval__end_date__isnull=True) &
+                Q(vesselownershiponapproval__vessel_ownership__vessel=self)
                 )
         ## Other Approvals filter
         approval_filter = Q(
