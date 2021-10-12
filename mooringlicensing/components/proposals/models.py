@@ -491,7 +491,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
-        self.child_obj.refresh_from_db()
+        if type(self) == Proposal:
+            self.child_obj.refresh_from_db()
 
     @property
     def fee_constructor(self):
@@ -1764,9 +1765,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def description(self):
-        if hasattr(self, 'child_obj'):
-            return self.child_obj.description
-        return ''
+        #if hasattr(self, 'child_obj'):
+        #if type(self) == Proposal:
+        return self.child_obj.description
+        #return ''
 
     @classmethod
     def application_type_descriptions(cls):
