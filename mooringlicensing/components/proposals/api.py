@@ -642,7 +642,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user,
                 proposal_type=proposal_type
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
@@ -681,7 +681,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 allocated_mooring=mooring,
                 #approval=approval
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
@@ -709,7 +709,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user,
                 proposal_type=proposal_type
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
