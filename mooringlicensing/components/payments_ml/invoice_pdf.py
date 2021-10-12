@@ -12,6 +12,7 @@ from reportlab.lib import colors
 from django.conf import settings
 from ledger.checkout.utils import calculate_excl_gst
 from mooringlicensing.components.main.utils import to_local_tz
+from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeItemStickerReplacement
 
 DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 DPAW_HEADER_LOGO_SM = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo_small.png')
@@ -248,27 +249,54 @@ def _is_gst_exempt(invoice):
     '''
     from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, DcvAdmissionFee
 
-    fees = None
-    application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
-    if application_fee:
-        fees = application_fee
-    else:
-        dcv_permit_fees = DcvPermitFee.objects.filter(invoice_reference=invoice.reference)
-        if dcv_permit_fees:
-            fees = dcv_permit_fees
-        else:
-            dcv_admission_fees = DcvAdmissionFee.objects.filter(invoice_reference=invoice.reference)
-            if dcv_admission_fees:
-                fees = dcv_admission_fees
+    try:
+        my_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
+    except ApplicationFee.DoesNotExist:
+        pass
+    try:
+        my_fee = DcvPermitFee.objects.get(invoice_reference=invoice.reference)
+    except DcvPermitFee.DoesNotExist:
+        pass
+    try:
+        my_fee = DcvAdmissionFee.objects.get(invoice_reference=invoice.reference)
+    except DcvAdmissionFee.DoesNotExist:
+        pass
+    try:
+        my_fee = StickerActionFee.objects.get(invoice_reference=invoice.reference)
+    except StickerActionFee.DoesNotExist:
+        raise Exception('No Fee object linking to the invoice: {} found'.format(invoice))
 
-    if fees:
-        for fee_item in fees[0].fee_items.all():
-            if fee_item.fee_constructor.incur_gst:
-                return False
+    if isinstance(my_fee, StickerActionFee):
+        fee_item = FeeItemStickerReplacement.get_fee_item_by_date(my_fee.created)
+        if fee_item:
+            return not fee_item.incur_gst
         else:
-            return True
+            raise Exception('No FeeItemStickerReplacement object found for the date: {}'.format(my_fee.created))
     else:
-        raise Exception('No Fee object found')
+        for fee_item in my_fee.fee_items.all():
+            return not fee_item.fee_constructor.incur_gst
+
+#    fees = None
+#    application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
+#    if application_fee:
+#        fees = application_fee
+#    else:
+#        dcv_permit_fees = DcvPermitFee.objects.filter(invoice_reference=invoice.reference)
+#        if dcv_permit_fees:
+#            fees = dcv_permit_fees
+#        else:
+#            dcv_admission_fees = DcvAdmissionFee.objects.filter(invoice_reference=invoice.reference)
+#            if dcv_admission_fees:
+#                fees = dcv_admission_fees
+#
+#    if fees:
+#        for fee_item in fees[0].fee_items.all():
+#            if fee_item.fee_constructor.incur_gst:
+#                return False
+#        else:
+#            return True
+#    else:
+#        raise Exception('No Fee object found')
 
 
 def _create_invoice(invoice_buffer, invoice, proposal):

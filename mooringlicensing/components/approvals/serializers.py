@@ -1153,6 +1153,7 @@ class StickerSerializer(serializers.ModelSerializer):
     vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
     moorings = serializers.SerializerMethodField()
     dcv_permit = DcvPermitSimpleSerializer()
+    invoices = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1170,6 +1171,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'moorings',
             'dcv_permit',
             'fee_season',
+            'invoices',
         )
         datatables_always_serialize = (
             'id',
@@ -1185,7 +1187,16 @@ class StickerSerializer(serializers.ModelSerializer):
             'moorings',
             'dcv_permit',
             'fee_season',
+            'invoices',
         )
+
+    def get_invoices(self, obj):
+        invoices = obj.get_invoices()
+        if not invoices:
+            return ''
+        else:
+            serializer = InvoiceSerializer(invoices, many=True)
+            return serializer.data
 
     def get_moorings(self, obj):
         moas = obj.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT))
