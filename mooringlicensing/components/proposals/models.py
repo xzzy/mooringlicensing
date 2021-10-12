@@ -1291,7 +1291,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Create/update approval
                 created = None
                 if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
-                    approval = self.approval
+                    approval = self.approval.child_obj
                     approval.current_proposal=self
                     if type(self.child_obj) == WaitingListApplication:
                         approval.wla_queue_date = current_datetime
@@ -1366,7 +1366,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
 
                 # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.manage_stickers(self)
 
                 ## set proposal status after manage_stickers
                 from mooringlicensing.components.approvals.models import Sticker
@@ -1963,6 +1963,10 @@ class WaitingListApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -2199,6 +2203,10 @@ class AnnualAdmissionApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -2386,6 +2394,10 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
@@ -2751,6 +2763,10 @@ class MooringLicenceApplication(Proposal):
 
     # def process_after_payment_success(self, request):
     #     pass
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
         from mooringlicensing.components.payments_ml.models import FeeConstructor
