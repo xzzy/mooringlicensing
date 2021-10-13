@@ -4,6 +4,7 @@ from io import BytesIO
 from django.conf import settings
 from docxtpl import DocxTemplate
 from mooringlicensing.components.main.models import GlobalSettings
+from mooringlicensing.components.proposals.models import Proposal
 
 
 def create_dcv_permit_pdf_tytes(dcv_permit):
@@ -104,7 +105,7 @@ def create_dcv_admission_pdf_tytes(dcv_admission_arrival):
 
 def create_approval_doc_bytes(approval):
     # Retrieve a template according to the approval type
-    global_setting_key = approval.child_obj.template_file_key
+    global_setting_key = approval.child_obj.template_file_key if type(approval) == Proposal else approval.template_file_key
     licence_template = GlobalSettings.objects.get(key=global_setting_key)
     if licence_template._file:
         path_to_template = licence_template._file.path
@@ -113,7 +114,7 @@ def create_approval_doc_bytes(approval):
 
     # Rendering
     doc = DocxTemplate(path_to_template)
-    context = approval.child_obj.get_context_for_licence_permit()
+    context = approval.child_obj.get_context_for_licence_permit() if type(approval) == Proposal else approval.get_context_for_licence_permit()
     doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
@@ -138,7 +139,7 @@ def create_approval_doc_bytes(approval):
 # TODO: renewal specific data
 def create_renewal_doc_bytes(approval):
     # licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE)
-    global_setting_key = approval.child_obj.template_file_key
+    global_setting_key = approval.child_obj.template_file_key if type(approval) == Proposal else approval.template_file_key
     licence_template = GlobalSettings.objects.get(key=global_setting_key)
 
     if licence_template._file:
