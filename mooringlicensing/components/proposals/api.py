@@ -162,27 +162,42 @@ class GetVessel(views.APIView):
         search_term = request.GET.get('term', '')
         if search_term:
             data_transform = []
+            #import ipdb; ipdb.set_trace()
 
             ml_data = VesselDetails.filtered_objects.filter(
                     Q(vessel__rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
-                    )[:10]
+                    ).values(
+                            'vessel__id', 
+                            'vessel__rego_no',
+                            'vessel_name'
+                            )[:10]
             for vd in ml_data:
                 data_transform.append({
-                    'id': vd.vessel.id, 
-                    'rego_no': vd.vessel.rego_no,
-                    'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    #'id': vd.vessel.id, 
+                    #'rego_no': vd.vessel.rego_no,
+                    #'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    'id': vd.get('vessel__id'), 
+                    'rego_no': vd.get('vessel__rego_no'),
+                    'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
                     'entity_type': 'ml',
                     })
             dcv_data = DcvVessel.objects.filter(
                     Q(rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
-                    )[:10]
+                    ).values(
+                            'id', 
+                            'rego_no',
+                            'vessel_name'
+                            )[:10]
             for dcv in dcv_data:
                 data_transform.append({
-                    'id': dcv.id, 
-                    'rego_no': dcv.rego_no,
-                    'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    #'id': dcv.id, 
+                    #'rego_no': dcv.rego_no,
+                    #'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    'id': dcv.get('id'), 
+                    'rego_no': dcv.get('rego_no'),
+                    'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
                     'entity_type': 'dcv',
                     })
             ## order results
@@ -2206,7 +2221,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             #approval_list = mooring.approval_set.filter(status='current')
             approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
         if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
-            approval_list.append(mooring.mooring_licence)
+            approval_list.append(mooring.mooring_licence.approval)
         #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
