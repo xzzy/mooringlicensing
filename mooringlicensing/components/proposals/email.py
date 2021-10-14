@@ -1402,6 +1402,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
         txt_template='mooringlicensing/emails/send_documents_submitted_for_mla.txt',
     )
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = make_url_for_internal(url)
 
     context = {
         'public_url': get_public_url(request),
@@ -1426,7 +1427,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
 
     sender = get_user_as_email_user(msg.from_email)
-    _log_proposal_email(msg, proposal, sender, attachments)
+    log_proposal_email(msg, proposal, sender, attachments)
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -1537,6 +1538,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
         txt_template='mooringlicensing/emails/send_approver_sendback_notification.txt',
     )
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = make_url_for_internal(url)
 
     if 'test-emails' in request.path_info:
         approver_comment = 'This is my test comment'

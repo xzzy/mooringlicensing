@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 class ComplianceExternalSubmitSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence requirement.'.format(settings.DEP_NAME)
+    subject = '{} - Commercial Operations licence requirement.'.format(settings.RIA_NAME)
     html_template = 'mooringlicensing/emails/send_external_submit_notification.html'
     txt_template = 'mooringlicensing/emails/send_external_submit_notification.txt'
 
@@ -22,17 +22,17 @@ class ComplianceSubmitSendNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/send_submit_notification.txt'
 
 class ComplianceAcceptNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations- Confirmation - Licence requirement completed.'.format(settings.DEP_NAME)
+    subject = '{} - Commercial Operations- Confirmation - Licence requirement completed.'.format(settings.RIA_NAME)
     html_template = 'mooringlicensing/emails/compliance_accept_notification.html'
     txt_template = 'mooringlicensing/emails/compliance_accept_notification.txt'
 
 class ComplianceAmendmentRequestSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence requirement.'.format(settings.DEP_NAME)
+    subject = '{} - Commercial Operations licence requirement.'.format(settings.RIA_NAME)
     html_template = 'mooringlicensing/emails/send_amendment_notification.html'
     txt_template = 'mooringlicensing/emails/send_amendment_notification.txt'
 
 class ComplianceReminderNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence requirement overdue.'.format(settings.DEP_NAME)
+    subject = '{} - Commercial Operations Licence requirement overdue.'.format(settings.RIA_NAME)
     html_template = 'mooringlicensing/emails/send_reminder_notification.html'
     txt_template = 'mooringlicensing/emails/send_reminder_notification.txt'
 
@@ -42,7 +42,7 @@ class ComplianceInternalReminderNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails/send_internal_reminder_notification.txt'
 
 class ComplianceDueNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence requirement due.'.format(settings.DEP_NAME)
+    subject = '{} - Commercial Operations Licence requirement due.'.format(settings.RIA_NAME)
     html_template = 'mooringlicensing/emails/send_due_notification.html'
     txt_template = 'mooringlicensing/emails/send_due_notification.txt'
 
@@ -120,14 +120,18 @@ def send_reminder_email_notification(compliance, is_test=False):
     else:
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
+
 def send_internal_reminder_email_notification(compliance, is_test=False):
+    from mooringlicensing.components.emails.utils import make_url_for_internal
     email = ComplianceInternalReminderNotificationEmail()
     #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
-    url=settings.SITE_URL
-    url+=reverse('internal-compliance-detail',kwargs={'compliance_pk': compliance.id})
-    if "-internal" not in url:
-        # add it. This email is for internal staff
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    url = settings.SITE_URL
+    url += reverse('internal-compliance-detail', kwargs={'compliance_pk': compliance.id})
+    url = make_url_for_internal(url)
+
+#    if "-internal" not in url:
+#        # add it. This email is for internal staff
+#        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
     context = {
         'compliance': compliance,
@@ -183,13 +187,12 @@ def send_due_email_notification(compliance, is_test=False):
 
 
 def send_internal_due_email_notification(compliance, is_test=False):
+    from mooringlicensing.components.emails.utils import make_url_for_internal
+
     email = ComplianceInternalDueNotificationEmail()
-    #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
-    url=settings.SITE_URL
-    url+=reverse('internal-compliance-detail',kwargs={'compliance_pk': compliance.id})
-    if "-internal" not in url:
-        # add it. This email is for internal staff
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    url = settings.SITE_URL
+    url += reverse('internal-compliance-detail', kwargs={'compliance_pk': compliance.id})
+    url = make_url_for_internal(url)
 
     context = {
         'compliance': compliance,
@@ -262,12 +265,13 @@ def send_external_submit_email_notification(request, compliance, is_test=False):
     else:
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
+
 def send_submit_email_notification(request, compliance, is_test=False):
+    from mooringlicensing.components.emails.utils import make_url_for_internal
+
     email = ComplianceSubmitSendNotificationEmail()
-    url = request.build_absolute_uri(reverse('internal-compliance-detail',kwargs={'compliance_pk': compliance.id}))
-    if "-internal" not in url:
-        # add it. This email is for internal staff
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    url = request.build_absolute_uri(reverse('internal-compliance-detail', kwargs={'compliance_pk': compliance.id}))
+    url = make_url_for_internal(url)
 
     context = {
         'compliance': compliance,

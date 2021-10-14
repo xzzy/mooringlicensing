@@ -21,6 +21,7 @@ class Command(BaseCommand):
         updates = []
         today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
+
         for c in Compliance.objects.filter(processing_status=Compliance.PROCESSING_STATUS_DUE):
             try:
                 c.send_reminder(user)
