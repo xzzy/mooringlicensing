@@ -39,7 +39,7 @@ def log_proposal_email(msg, proposal, sender):
         _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user)
 
 
-def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, filename=None):
+def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, filename=None, attachments=[]):
     from mooringlicensing.components.proposals.models import ProposalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
@@ -88,6 +88,18 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
         path_to_file = '{}/proposals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, proposal.id, filename)
         path = default_storage.save(path_to_file, ContentFile(file_bytes))
         email_entry.documents.get_or_create(_file=path_to_file, name=filename)
+
+    #added to add the attachments in log entry
+    if attachments:
+        for attachment in attachments:
+            ContentFile(attachment[1])
+        # attach the file to the comms_log also
+            #path_to_file = '{}/proposals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, proposal.id, filename)
+            #path_to_file = attachment[3].path
+            path_to_file = attachment[3].path.split('media/')[1]
+            path = default_storage.save(path_to_file, ContentFile(attachment[1]))
+            fname = attachment
+            email_entry.documents.get_or_create(_file=path_to_file, name=fname[0])
 
     return email_entry
 
@@ -1416,20 +1428,22 @@ def send_other_documents_submitted_notification_email(request, proposal):
     bcc = []
 
     attachments = []
+    #the below attachments_commslog array used for adding documents to the communication log entry 
+    attachments_commslog = []
     for my_file in proposal.mooring_report_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
     for my_file in proposal.written_proof_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
     for my_file in proposal.signed_licence_agreement_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
     for my_file in proposal.proof_of_identity_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
 
     sender = get_user_as_email_user(msg.from_email)
-    _log_proposal_email(msg, proposal, sender=sender)
+    _log_proposal_email(msg, proposal, sender=sender, attachments=attachments_commslog)
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -1438,13 +1452,17 @@ def send_other_documents_submitted_notification_email(request, proposal):
     return msg
 
 
-def extract_file_for_attachment(attachments, my_file):
+def extract_file_for_attachment(attachments, attachments_commslog, my_file):
     if my_file._file is not None:
         file_name = my_file._file.name
         mime = mimetypes.guess_type(file_name)[0]
         if mime:
             attachment = (my_file.name, my_file._file.read(), mime)
             attachments.append(attachment)
+
+            #import ipdb; ipdb.set_trace()
+            attachment2 = [my_file.name, my_file._file.read(), mime, my_file._file]
+            attachments_commslog.append(attachment2)
 
 
 def send_sticker_printing_batch_email(batches):
