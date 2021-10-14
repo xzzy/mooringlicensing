@@ -162,27 +162,42 @@ class GetVessel(views.APIView):
         search_term = request.GET.get('term', '')
         if search_term:
             data_transform = []
+            #import ipdb; ipdb.set_trace()
 
             ml_data = VesselDetails.filtered_objects.filter(
                     Q(vessel__rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
-                    )[:10]
+                    ).values(
+                            'vessel__id', 
+                            'vessel__rego_no',
+                            'vessel_name'
+                            )[:10]
             for vd in ml_data:
                 data_transform.append({
-                    'id': vd.vessel.id, 
-                    'rego_no': vd.vessel.rego_no,
-                    'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    #'id': vd.vessel.id, 
+                    #'rego_no': vd.vessel.rego_no,
+                    #'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    'id': vd.get('vessel__id'), 
+                    'rego_no': vd.get('vessel__rego_no'),
+                    'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
                     'entity_type': 'ml',
                     })
             dcv_data = DcvVessel.objects.filter(
                     Q(rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
-                    )[:10]
+                    ).values(
+                            'id', 
+                            'rego_no',
+                            'vessel_name'
+                            )[:10]
             for dcv in dcv_data:
                 data_transform.append({
-                    'id': dcv.id, 
-                    'rego_no': dcv.rego_no,
-                    'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    #'id': dcv.id, 
+                    #'rego_no': dcv.rego_no,
+                    #'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    'id': dcv.get('id'), 
+                    'rego_no': dcv.get('rego_no'),
+                    'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
                     'entity_type': 'dcv',
                     })
             ## order results
@@ -275,41 +290,40 @@ class GetMooringPerBay(views.APIView):
 
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
-
     def get(self, request, format=None):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
-        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        company_name = request.GET.get('company_name')
-        #org_name = request.GET.get('org_name', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+        #company_name = request.GET.get('company_name')
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = []
-            owner_set = Owner.objects.filter(emailuser=request.user)
-            if create_vessel and owner_set:
-                for rego in data:
-                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-                    vessel_ownership_set = None
-                    if company_name:
-                        company_ownership_set = CompanyOwnership.objects.filter(
-                                vessel=vessel,
-                                company__name=company_name)
-                        vessel_ownership_set = VesselOwnership.objects.filter(
-                            owner=owner_set[0], 
-                            vessel=vessel, 
-                            company_ownership__in=company_ownership_set
-                            )
-                    else:
-                        vessel_ownership_set = VesselOwnership.objects.filter(
-                            owner=owner_set[0],
-                            vessel=vessel
-                            )
-                    # request.user owns vessel
-                    if not vessel_ownership_set:
-                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-            else:
-                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            #data_transform = []
+            #owner_set = Owner.objects.filter(emailuser=request.user)
+            #if create_vessel and owner_set:
+            #    print("create_vessel")
+            #    for rego in data:
+            #        vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
+            #        vessel_ownership_set = None
+            #        if company_name:
+            #            company_ownership_set = CompanyOwnership.objects.filter(
+            #                    vessel=vessel,
+            #                    company__name=company_name)
+            #            vessel_ownership_set = VesselOwnership.objects.filter(
+            #                owner=owner_set[0], 
+            #                vessel=vessel, 
+            #                company_ownership__in=company_ownership_set
+            #                )
+            #        else:
+            #            vessel_ownership_set = VesselOwnership.objects.filter(
+            #                owner=owner_set[0],
+            #                vessel=vessel
+            #                )
+            #        # request.user owns vessel
+            #        if not vessel_ownership_set:
+            #            data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
+            #else:
+            #    data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return Response()
 
@@ -2206,7 +2220,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             #approval_list = mooring.approval_set.filter(status='current')
             approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
         if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
-            approval_list.append(mooring.mooring_licence)
+            approval_list.append(mooring.mooring_licence.approval)
         #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
