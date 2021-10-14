@@ -137,6 +137,7 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
+                    console.log(full)
                     return full.id
                 }
             }
@@ -237,7 +238,7 @@ export default {
                         for (let invoice of full.invoices){
                             links += '<div>'
                             links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
-                            if (vm.is_internal){
+                            if (vm.is_internal && full.can_view_payment_details){
                                 if (invoice.payment_status.toLowerCase() === 'paid'){
                                     links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
                                 } else {
@@ -260,7 +261,6 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    //console.log(full)
                     let links = '';
                     if (vm.is_internal){
                         if (vm.debug){
@@ -283,8 +283,6 @@ export default {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
                         for (let invoice of full.invoices){
-                            console.log('--invoice--')
-                            console.log(invoice)
                             if (invoice.payment_status.toLowerCase() === 'unpaid'){
                                 links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
                             }
@@ -338,7 +336,6 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    //console.log(full)
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
@@ -429,7 +426,6 @@ export default {
                 columns: columns,
                 processing: true,
                 initComplete: function() {
-                    console.log('in initComplete')
                 },
             }
         }
@@ -452,8 +448,6 @@ export default {
             }).then(() => {
                 vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
                 .then((response) => {
-                    console.log('response: ')
-                    console.log(response)
                     swal(
                         'Discarded',
                         'Your application has been discarded',
@@ -462,7 +456,6 @@ export default {
                     //vm.$refs.application_datatable.vmDataTable.ajax.reload();
                     vm.$refs.application_datatable.vmDataTable.draw();
                 }, (error) => {
-                    console.log(error);
                 });
             },(error) => {
 
@@ -475,7 +468,6 @@ export default {
             vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
                 vm.application_types = response.body
             },(error) => {
-                console.log(error);
             })
 
             // Application Statuses
@@ -486,16 +478,13 @@ export default {
                     vm.application_statuses = response.body.external_statuses
                 }
             },(error) => {
-                console.log(error);
             })
 
             // Applicant
             if (vm.is_internal){
                 vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    console.log(response.body)
                     vm.applicants = response.body
                 },(error) => {
-                    console.log(error);
                 })
             }
         },
@@ -509,7 +498,6 @@ export default {
         },
     },
     created: function(){
-        console.log('table_applications created')
         this.fetchFilterLists()
     },
     mounted: function(){
