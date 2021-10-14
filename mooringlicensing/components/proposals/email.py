@@ -975,7 +975,6 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
     )
 
     to_address = proposal.submitter.email
-
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
