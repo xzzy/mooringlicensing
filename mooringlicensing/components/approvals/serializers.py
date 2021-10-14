@@ -1154,6 +1154,7 @@ class StickerSerializer(serializers.ModelSerializer):
     moorings = serializers.SerializerMethodField()
     dcv_permit = DcvPermitSimpleSerializer()
     invoices = serializers.SerializerMethodField()
+    can_view_payment_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1172,6 +1173,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'dcv_permit',
             'fee_season',
             'invoices',
+            'can_view_payment_details',
         )
         datatables_always_serialize = (
             'id',
@@ -1188,7 +1190,13 @@ class StickerSerializer(serializers.ModelSerializer):
             'dcv_permit',
             'fee_season',
             'invoices',
+            'can_view_payment_details',
         )
+
+    def get_can_view_payment_details(self, proposal):
+        if 'request' in self.context:
+            from mooringlicensing.components.main.utils import is_payment_officer
+            return is_payment_officer(self.context['request'].user)
 
     def get_invoices(self, obj):
         invoices = obj.get_invoices()

@@ -53,9 +53,25 @@ logger = logging.getLogger('mooringlicensing')
 #    except:
 #        raise
 
+
+def belongs_to(user, group_name):
+    """
+    Check if the user belongs to the given group.
+    :param user:
+    :param group_name:
+    :return:
+    """
+    return user.groups.filter(name=group_name).exists()
+
+
+def is_payment_officer(user):
+    return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+
+
 def to_local_tz(_date):
     local_tz = pytz.timezone(settings.TIME_ZONE)
     return _date.astimezone(local_tz)
+
 
 def check_db_connection():
     """  check connection to DB exists, connect if no connection exists """
