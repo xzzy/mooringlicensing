@@ -562,8 +562,6 @@ from '@/utils/hooks'
                             var query = {
                                 term: params.term,
                                 type: 'public',
-                                //create_vessel: vm.creatingVessel,
-                                //org_name: vm.orgName,
                             }
                             return query;
                         },
@@ -669,9 +667,10 @@ from '@/utils/hooks'
                             var query = {
                                 term: params.term,
                                 type: 'public',
+                                /*
                                 create_vessel: vm.creatingVessel,
-                                //org_name: vm.orgName,
                                 company_name: vm.companyName,
+                                */
                             }
                             return query;
                         },
@@ -821,22 +820,6 @@ from '@/utils/hooks'
                     this.vesselTypes.push(vessel_type)
                 }
             },
-            /*
-            lookupVessel: async function(id) {
-                const res = await this.$http.get(api_endpoints.lookupVessel(id));
-                const vesselData = res.body;
-                console.log(res);
-                if (vesselData && vesselData.rego_no) {
-                    if (this.creatingVessel) {
-                        console.log("lookup - creating vessel")
-                        this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
-                    } else {
-                        console.log("lookup - not creating vessel")
-                        this.vessel = Object.assign({}, vesselData);
-                    }
-                }
-            },
-            */
             lookupCompanyOwnership: async function(id) {
                 console.log(id)
                 const url = api_endpoints.lookupCompanyOwnership(id);
@@ -960,7 +943,8 @@ from '@/utils/hooks'
                 if (this.proposal && this.keep_current_vessel) {
                     // fetches vessel data from proposal (saved as draft)
                     await this.fetchVessel();
-                } else if (!this.proposal && !this.creatingVessel) {
+                //} else if (!this.proposal && !this.creatingVessel) {
+                } else if (!this.proposal) {
                     // route.params.vessel_id in this case is a vesselownership id
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);
