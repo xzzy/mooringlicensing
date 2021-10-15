@@ -383,6 +383,7 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
 
     return email_entry
 
+
 def _log_user_email(email_message, emailuser, customer ,sender=None):
     from ledger.accounts.models import EmailUserLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
