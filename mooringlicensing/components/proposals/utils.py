@@ -903,16 +903,6 @@ def ownership_percentage_validation(vessel_ownership):
 #    vessel_ownership = store_vessel_ownership(request, vessel)
 #    return VesselOwnershipSerializer(vessel_ownership).data
 
-def is_payment_officer(user):
-    from mooringlicensing.components.proposals.models import PaymentOfficerGroup
-    try:
-        group= PaymentOfficerGroup.objects.get(default=True)
-    except PaymentOfficerGroup.DoesNotExist:
-        group= None
-    if group:
-        if user in group.members.all():
-            return True
-    return False
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     # Retrieve all the fee_items for this vessel
