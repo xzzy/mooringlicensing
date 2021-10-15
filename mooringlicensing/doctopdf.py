@@ -107,7 +107,7 @@ def create_approval_doc_bytes(approval):
     from mooringlicensing.components.approvals.models import Approval
 
     # Retrieve a template according to the approval type
-    global_setting_key = approval.child_obj.template_file_key if type(approval) == Proposal else approval.template_file_key
+    global_setting_key = approval.child_obj.template_file_key if type(approval) == Approval else approval.template_file_key
     licence_template = GlobalSettings.objects.get(key=global_setting_key)
     if licence_template._file:
         path_to_template = licence_template._file.path
@@ -140,8 +140,10 @@ def create_approval_doc_bytes(approval):
 
 # TODO: renewal specific data
 def create_renewal_doc_bytes(approval):
+    from mooringlicensing.components.approvals.models import Approval
+
     # licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_APPROVAL_TEMPLATE_FILE)
-    global_setting_key = approval.child_obj.template_file_key if type(approval) == Proposal else approval.template_file_key
+    global_setting_key = approval.child_obj.template_file_key if type(approval) == Approval else approval.template_file_key
     licence_template = GlobalSettings.objects.get(key=global_setting_key)
 
     if licence_template._file:
