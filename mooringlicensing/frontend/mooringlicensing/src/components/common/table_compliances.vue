@@ -358,6 +358,24 @@ export default {
         },
         compliancesOptions: function() {
             let vm = this;
+            let buttons = []
+            if (this.level === 'internal'){
+                buttons = [
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ]
+            }
+
             return {
                 searching: false,
                 autoWidth: false,
@@ -379,20 +397,7 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
+                buttons: buttons,
                 /*
 
                 buttons:[
