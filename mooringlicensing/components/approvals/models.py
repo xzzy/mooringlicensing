@@ -1250,7 +1250,7 @@ class AuthorisedUserPermit(Approval):
         return moas_to_be_reallocated, stickers_to_be_returned
 
     def handle_vessel_changes(self, moas_to_be_reallocated, stickers_to_be_replaced):
-        if self.current_proposal.vessel_removed:
+        if self.approval.current_proposal.vessel_removed:
             # self.current_proposal.vessel_ownership.vessel_removed --> All the stickers to be returned
             # A vessel --> No vessels
             stickers = self.stickers.filter(
@@ -1258,7 +1258,7 @@ class AuthorisedUserPermit(Approval):
             for sticker in stickers:
                 if sticker not in stickers_to_be_replaced:
                     stickers_to_be_replaced.append(sticker)
-        if self.current_proposal.vessel_swapped:
+        if self.approval.current_proposal.vessel_swapped:
             # All the stickers to be removed and all the mooring on them to be reallocated
             # A vessel --> Another vessel
             stickers = self.stickers.filter(
@@ -1266,7 +1266,7 @@ class AuthorisedUserPermit(Approval):
             for sticker in stickers:
                 if sticker not in stickers_to_be_replaced:
                     stickers_to_be_replaced.append(sticker)
-        if self.current_proposal.vessel_amend_new:
+        if self.approval.current_proposal.vessel_amend_new:
             # --> Create new sticker
             # No vessels --> New vessel
             moas_list = self.mooringonapproval_set. \
