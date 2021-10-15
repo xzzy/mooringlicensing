@@ -290,41 +290,40 @@ class GetMooringPerBay(views.APIView):
 
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
-
     def get(self, request, format=None):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
-        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        company_name = request.GET.get('company_name')
-        #org_name = request.GET.get('org_name', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+        #company_name = request.GET.get('company_name')
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = []
-            owner_set = Owner.objects.filter(emailuser=request.user)
-            if create_vessel and owner_set:
-                for rego in data:
-                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-                    vessel_ownership_set = None
-                    if company_name:
-                        company_ownership_set = CompanyOwnership.objects.filter(
-                                vessel=vessel,
-                                company__name=company_name)
-                        vessel_ownership_set = VesselOwnership.objects.filter(
-                            owner=owner_set[0], 
-                            vessel=vessel, 
-                            company_ownership__in=company_ownership_set
-                            )
-                    else:
-                        vessel_ownership_set = VesselOwnership.objects.filter(
-                            owner=owner_set[0],
-                            vessel=vessel
-                            )
-                    # request.user owns vessel
-                    if not vessel_ownership_set:
-                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-            else:
-                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            #data_transform = []
+            #owner_set = Owner.objects.filter(emailuser=request.user)
+            #if create_vessel and owner_set:
+            #    print("create_vessel")
+            #    for rego in data:
+            #        vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
+            #        vessel_ownership_set = None
+            #        if company_name:
+            #            company_ownership_set = CompanyOwnership.objects.filter(
+            #                    vessel=vessel,
+            #                    company__name=company_name)
+            #            vessel_ownership_set = VesselOwnership.objects.filter(
+            #                owner=owner_set[0], 
+            #                vessel=vessel, 
+            #                company_ownership__in=company_ownership_set
+            #                )
+            #        else:
+            #            vessel_ownership_set = VesselOwnership.objects.filter(
+            #                owner=owner_set[0],
+            #                vessel=vessel
+            #                )
+            #        # request.user owns vessel
+            #        if not vessel_ownership_set:
+            #            data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
+            #else:
+            #    data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return Response()
 
@@ -1249,11 +1248,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.final_approval(request, serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        print("type(instance)")
-        print(type(instance))
-        serializer = serializer_class(instance, context={'request': request})
-        return Response(serializer.data)
+        #serializer_class = self.internal_serializer_class()
+        #serializer = serializer_class(instance, context={'request': request})
+        #return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
