@@ -729,6 +729,23 @@ export default {
                     */
                 ]
             }
+            let buttons = []
+            if (vm.is_internal){
+                buttons = [
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ]
+            }
 
             return {
                 autoWidth: false,
@@ -761,20 +778,7 @@ export default {
                 },
                 //dom: 'frt', //'lBfrtip',
                 dom: 'lBfrtip',
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
+                buttons: buttons,
                 columns: selectedColumns,
                 processing: true,
                 initComplete: function() {
