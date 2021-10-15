@@ -2606,7 +2606,7 @@ class AuthorisedUserApplication(Proposal):
                 self.save()
         elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             # When amendment application
-            approval = self.approval
+            approval = self.approval.child_obj
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
@@ -2616,7 +2616,7 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # When renewal application
-            approval = self.approval
+            approval = self.approval.child_obj
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
@@ -2967,7 +2967,7 @@ class MooringLicenceApplication(Proposal):
             created = None
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-                approval = self.approval
+                approval = self.approval.child_obj
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
@@ -2975,7 +2975,7 @@ class MooringLicenceApplication(Proposal):
                 approval.submitter = self.submitter
                 approval.save()
             elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-                approval = self.approval
+                approval = self.approval.child_obj
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
@@ -3018,7 +3018,7 @@ class MooringLicenceApplication(Proposal):
                 # updating checkboxes
                 #if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
-                    for vo2 in self.approval.child_obj.current_vessel_ownerships:
+                    for vo2 in self.approval.vesselownershiponapproval_set.all():
                         # convert proposed_issuance_approval to an end_date
                         if vo1.get("id") == vo2.vessel_ownership.id and not vo1.get("checked") and not vo2.end_date:
                             vo2.end_date = current_datetime.date()

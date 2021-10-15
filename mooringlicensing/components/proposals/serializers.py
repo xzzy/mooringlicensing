@@ -962,21 +962,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
         vessels = []
         vessel_details = []
         if type(obj.child_obj) == MooringLicenceApplication and obj.approval:
-            for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
-                vessel = vessel_ownership.vessel
+            #for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
+            for vooa in obj.approval.vesselownershiponapproval_set.all():
+                vessel = vooa.vessel_ownership.vessel
                 vessels.append(vessel)
-                #status = 'Current' if not vessel_ownership.mooring_licence_end_date and not vessel_ownership.end_date else 'Historical'
-                status = 'Current' if not vessel_ownership.mooring_licence_end_date else 'Historical'
+                status = 'Current' if not vooa.end_date else 'Historical'
 
                 vessel_details.append({
-                    "id": vessel_ownership.id,
-                    "rego": vessel.rego_no,
-                    "vessel_name": vessel.latest_vessel_details.vessel_name,
-                    #"owner": vessel_ownership.owner.emailuser.get_full_name(),
-                    #"mobile": vessel_ownership.owner.emailuser.mobile_number,
-                    #"email": vessel_ownership.owner.emailuser.email,
+                    "id": vooa.vessel_ownership.id,
+                    "rego": vooa.vessel_ownership.vessel.rego_no,
+                    "vessel_name": vooa.vessel_ownership.vessel.latest_vessel_details.vessel_name,
                     "status": status,
-                    "checked": True if not vessel_ownership.mooring_licence_end_date else False,
+                    "checked": True if not vooa.end_date else False,
                     })
         return vessel_details
 
