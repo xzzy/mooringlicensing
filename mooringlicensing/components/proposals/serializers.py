@@ -5,7 +5,6 @@ from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
 from ledger.payments.invoice.models import Invoice
 #from datetime import date
-
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalUserAction,
@@ -478,6 +477,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     mooring = MooringSerializer()
     uuid = serializers.SerializerMethodField()
     document_upload_url = serializers.SerializerMethodField()
+    can_view_payment_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -521,6 +521,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'mooring',
                 'uuid',
                 'document_upload_url',
+                'can_view_payment_details',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -554,7 +555,13 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'mooring',
                 'uuid',
                 'document_upload_url',
+                'can_view_payment_details',
                 )
+
+    def get_can_view_payment_details(self, proposal):
+        if 'request' in self.context:
+            from mooringlicensing.components.main.utils import is_payment_officer
+            return is_payment_officer(self.context['request'].user)
 
     def get_document_upload_url(self, proposal):
         if proposal.application_type.code == MooringLicenceApplication.code and proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS:
