@@ -104,17 +104,19 @@ def create_dcv_admission_pdf_tytes(dcv_admission_arrival):
 
 
 def create_approval_doc_bytes(approval):
+    from mooringlicensing.components.approvals.models import Approval
+
     # Retrieve a template according to the approval type
     global_setting_key = approval.child_obj.template_file_key if type(approval) == Proposal else approval.template_file_key
     licence_template = GlobalSettings.objects.get(key=global_setting_key)
     if licence_template._file:
         path_to_template = licence_template._file.path
     else:
-        raise Exception('DcvAdmission template file not found.')
+        raise Exception('Template file not found for {}.'.format(licence_template))
 
     # Rendering
     doc = DocxTemplate(path_to_template)
-    context = approval.child_obj.get_context_for_licence_permit() if type(approval) == Proposal else approval.get_context_for_licence_permit()
+    context = approval.child_obj.get_context_for_licence_permit() if type(approval) == Approval else approval.get_context_for_licence_permit()
     doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
@@ -145,7 +147,7 @@ def create_renewal_doc_bytes(approval):
     if licence_template._file:
         path_to_template = licence_template._file.path
     else:
-        raise Exception('DcvAdmission template file not found.')
+        raise Exception('Template file not found for {}.'.format(licence_template))
 
     doc = DocxTemplate(path_to_template)
     # serializer_context = {
