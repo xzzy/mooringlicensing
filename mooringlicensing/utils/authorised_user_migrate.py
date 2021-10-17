@@ -141,94 +141,48 @@ class AuthUserPermitMigration(object):
                             print(f'NO PersNo FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
                         continue
 
-                    try:
-                        email_record, fname1 = GrepSearch(pers_no, path=self.path).search('PersNo', 'EMail')
-                    except:
-                        if (username, pers_no) not in no_email:
-                            no_email.append((username,pers_no))
-                            print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                        continue
+                    if (username, pers_no) not in no_email:
+                        no_email.append((username,pers_no))
+                        print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
 
-                    phonemobile_record, fname2 = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneMobile')
-                    phonehome_record, fname3 = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneHome')
-                    #if fname0 not in fnames:
-                    #    fnames.append(fname0)
-                    if fname1 not in fnames:
-                        fnames.append(fname1)
-                    if fname2 not in fnames:
-                        fnames.append(fname2)
-                    if fname3 not in fnames:
-                        fnames.append(fname3)
-
-
-                    mobile_no = phonemobile_record.get('PhoneMobile')
-                    #username = record.get('UserName') #.lower()
-                    username = record.get('_1') #.lower()
+                    address, phone_home, phone_mobile, phone_work = gs2.get_address(pers_no)
+                    email, username = gs2.get_email()
                     firstname = username.split(' ')[-1]
                     lastname = ' '.join(username.split(' ')[:-1])
 
-                    if email_record:
-                        email = email_record.get('EMail').lower()
-                    else: 
+                    if (username, pers_no) not in no_email:
+                        no_email.append((username,pers_no))
                         print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                        continue
 
-                    try:
-                        phone_no = phonehome_record.get('PhoneHome') if phonehome_record else ''
-                        #address = address_record.get('_1')
-                    except:
-                        import ipdb; ipdb.set_trace()
+                    #if fname0 not in fnames:
+                    #    fnames.append(fname0)
+                    #if fname1 not in fnames:
+                    #    fnames.append(fname1)
+                    #if fname2 not in fnames:
+                    #    fnames.append(fname2)
+                    #if fname3 not in fnames:
+                    #    fnames.append(fname3)
 
-                    #email_l = GrepSearch2(username=username, mooring_no=mooring_no, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_all_csv').get_email_l()
-                    email_l, username_l = gs2.get_email_l()
-                    if not email_l and (username, pers_no, mooring_no) not in no_licencee and permit_type=='Lic':
+
+                    email_l, username_l = gs2.get_email(licencee=True)
+                    pers_no_l = gs2.get_persno(username_l)
+                    address_l, phone_home_l, phone_mobile_l, phone_work_l = gs2.get_address(pers_no_l)
+                    if not address_l and (username, pers_no, mooring_no) not in no_licencee and permit_type=='Lic':
                         no_licencee.append((username, pers_no, mooring_no))
 
-
                     #import ipdb; ipdb.set_trace()
-                    print(f'{idx}, {pers_no}, {username}, {permit_type}, {mooring_no}: Licencee - ({email_l} {username_l})')
+                    print(f'{idx}, {pers_no}, {address}, {username}, {permit_type}, {mooring_no}: Licencee - ({email_l} {username_l} {address_l}, {phone_mobile})')
 
                     if self.test:
                         #import ipdb; ipdb.set_trace()
                         continue
 
-#                    #for no_auth in no_auth_permits:
-#                    vessel_rego_records = self.search_multiple('_1', username, self.vessel_rego)
-#                    moorings_records = self.search_multiple('_1', username, self.moorings)
-#                    if len(vessel_rego_records) == no_auth_permits:
-#                        #print(f'{len(vessel_rego_records)}, {no_auth_permits}')
-#                        #print(f'Vessel Rego: {vessel_rego_records}')
-#                        aup_records = vessel_rego_records
-#                    elif len(moorings_records) == no_auth_permits:
-#                        #print(f'{len(moorings_records)}, {no_auth_permits}')
-#                        #print(f'Moorings: {moorings_records}')
-#                        aup_records = moorings_records
-#                    else:
-#                        canc = self.search_multiple('_1', username, self.canc)
-#                        canc_lic = self.search_multiple('_12', username, self.canc_lic)
-#
-#                        num_canc = len(canc) + len(canc_lic)
-#                        rec = dict(username=username, noauth=no_auth_permits, num_cancelled=num_canc)
-#                        no_records.append(rec)
-#                        print(f'ERROR: aup_records not matched: {rec}')
-#                        #import ipdb; ipdb.set_trace()
-#                        continue
-#
-#                    for i in aup_records:
-#                        permit_type = aup_records[0]['_6'] # RIA or Lic
-#                        mooring_no  = aup_records[0]['MooringNo']
-#                        vessel_name = aup_records[0]['VesName']
-#                        #vessel_len  = aup_records[0]['VesLen']
-#                        vessel_rego = aup_records[0]['VesRego']
-#
-#                        #if i['_1'] == username:
-#                        #    print(i)
-#
-#                        if self.test:
-#                            #import ipdb; ipdb.set_trace()
-#                            continue
-
  
+                    ves_overall_length, ves_draft = gs2.get_vessel_size()
+                    vessel_type = 'other'
+                    vessel_weight = Decimal( 0.0 )
+                    berth_mooring = ''
+
 #                    mooring_record = self.search('_1', username, self.moorings)
 #                    try:
 #                        mooring = mooring_record['MooringNo']
@@ -241,36 +195,28 @@ class AuthUserPermitMigration(object):
 #                        #vessel_name = record.get('_11').split('-')[1].strip()
 #                        #rego_no = record.get('_11').split('-')[0].strip()
 #
-#                    vessel_type = 'other'
-#                    vessel_overall_length = Decimal( record.get('RegLength1') )
-#                    #vessel_draft = Decimal( record.get('Draft') )
-#                    vessel_draft = Decimal( 0.0 )
-#                    vessel_weight = Decimal( 0.0 )
-#                    #berth_mooring = record.get('_5')
-#                    #mooring = ?? # record.get('_5')
+                    #vessel_type = 'other'
+                    #vessel_weight = Decimal( 0.0 )
+                    #berth_mooring = record.get('_5')
+                    #mooring = ?? # record.get('_5')
 #
 #                    # see mooringlicensing/utils/tests/mooring_names.txt
-#                    if Mooring.objects.filter(name=mooring).count()>0:
-#                        mooring = Mooring.objects.filter(name=mooring)[0]
-#                    else:
-#                        import ipdb; ipdb.set_trace()
-#                        print(f'Mooring not found: {mooring}')
-#                        #mooring_bay = MooringBay.objects.get(name='Rottnest Island')
-#                        #mooring_bay = MooringBay.objects.get(name='Thomson Bay')
-#
-#                    # needed ??
-#                    #date_applied = record.get('DateApplied')
-#                    #position_no = int(record.get('BayPosNo'))
-#                    #trim_no = record.get('TrimNo')
-#                    percentage = None # force user to set at renewal time
-#
-#
-#                    items = address.split(',')
-#                    line1 = items[0].strip()
-#                    line2 = items[1].strip() if len(items) > 3 else ''
-#                    line3 = items[2].strip() if len(items) > 4 else ''
-#                    state = items[-2].strip()
-#                    postcode = items[-1].strip()
+                    if Mooring.objects.filter(name=mooring_no).count()>0:
+                        mooring = Mooring.objects.filter(name=mooring_no)[0]
+                    else:
+                        import ipdb; ipdb.set_trace()
+                        print(f'Mooring not found: {mooring_no}')
+                        #mooring_bay = MooringBay.objects.get(name='Rottnest Island')
+                        #mooring_bay = MooringBay.objects.get(name='Thomson Bay')
+
+                    percentage = None # force user to set at renewal time
+
+                    items = address.split(',')
+                    line1 = items[0].strip()
+                    line2 = items[1].strip() if len(items) > 3 else ''
+                    line3 = items[2].strip() if len(items) > 4 else ''
+                    state = items[-2].strip()
+                    postcode = items[-1].strip()
 #
 #                    #import ipdb; ipdb.set_trace()
 #                    print(f'{idx}, {pers_no}, {username}, {state}, {postcode}')
@@ -565,7 +511,7 @@ class GrepSearch2(object):
 
     def _get_result1(self):
         ''' Read all files in directory '''
-        cmd = "grep -r '{}' {} | grep \"'MooringNo': '{}'\" | grep FirstNameL".format(self.username, self.path, self.mooring_no)
+        cmd = f"grep -r '{self.username}' {self.path} | grep \"'MooringNo': '{self.mooring_no}'\" | grep FirstNameL"
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         output = ps.communicate()[0]
 
@@ -582,7 +528,7 @@ class GrepSearch2(object):
 
     def _get_result2(self):
         ''' Read all files in directory '''
-        cmd = "grep -r '{}' {} | grep \"'MooringNo': '{}'\" | grep '_12'".format(self.username, self.path, self.mooring_no)
+        cmd = "grep -r '{self.username}' {self.path} | grep \"'MooringNo': '{self.mooring_no}'\" | grep '_12'"
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         output = ps.communicate()[0]
 
@@ -596,37 +542,40 @@ class GrepSearch2(object):
             return None
 
 
-    def get_email_l(self):
+    def get_email(self, licencee=False):
         ''' Read all files in directory - Get Licensee email'''
-        username_l = self._get_result1()
-        if not username_l:
-            username_l = self._get_result2()
-        #import ipdb; ipdb.set_trace()
-        if not username_l:
+        if licencee:
+            username = self._get_result1()
+            if not username:
+                username = self._get_result2()
             #import ipdb; ipdb.set_trace()
-            return None, None
+            if not username:
+                #import ipdb; ipdb.set_trace()
+                return None, None
+        else:
+            username = self.username
 
-        cmd = "grep -r '{}' {} | grep '@'".format(username_l, self.path)
+        cmd = f"grep -r '{username}' {self.path} | grep '@'"
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         output = ps.communicate()[0]
 
         try: 
             res = output.decode('utf-8')
-            email_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['EMail']
+            email = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['EMail']
         except:
-            email_l = None
+            email = None
 
-        #if not email_l:
-        #    import ipdb; ipdb.set_trace()
+        return email, username
 
-        return email_l, username_l
-
-    def get_persno(self):
+    def get_persno(self, username=None):
         ''' Read all files in directory - Get PersNo'''
         #import ipdb; ipdb.set_trace()
         #cmd = "grep -r '{}' {} | grep -v PersNoL | grep 'PersNo'".format(self.username, self.path)
         #cmd = "grep -ir '{}' {}/Auth_Users___*.* | grep -v PersNoL | grep 'PersNo'".format(self.username, self.path)
-        cmd = f"grep -ir '{self.username}' {self.path}/Auth_Users___*.* {self.path}/People___PersNo.csv {self.path}/People___Surname.csv | grep -v PersNoU | grep -v PersNoL | grep PersNo"
+        if not username:
+            username = self.username
+
+        cmd = f"grep -ir '{username}' {self.path}/Auth_Users___*.* {self.path}/People___PersNo.csv {self.path}/People___Surname.csv | grep -v PersNoU | grep -v PersNoL | grep PersNo"
         ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         output = ps.communicate()[0]
 
@@ -639,4 +588,42 @@ class GrepSearch2(object):
 
         return persno 
 
+    def get_vessel_size(self):
+        ''' Read all files in directory - Get PersNo'''
+        #import ipdb; ipdb.set_trace()
+        cmd = f"grep -ir '{self.vessel_rego}' {self.path} | grep RegLength1 | grep Draft1"
+        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        output = ps.communicate()[0]
+
+        try: 
+            res = output.decode('utf-8')
+            ves_length = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['RegLength1']
+            ves_draft = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['Draft1']
+        except:
+            ves_length = None
+            ves_draft = None
+
+        return ves_length, ves_draft
+
+    def get_address(self, pers_no):
+        ''' Read all files in directory - Get PersNo'''
+        #import ipdb; ipdb.set_trace()
+        cmd = f"grep -ir \"'PersNo': '{pers_no}'\" {self.path} | grep \"'_1'\" | grep Phone"
+        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        output = ps.communicate()[0]
+
+        try: 
+            res = output.decode('utf-8')
+            line = ast.literal_eval(res.splitlines()[0].split('csv:')[1])
+            address = line['_1']
+            phone_home = line['PhoneHome']
+            phone_mobile = line['PhoneMobile']
+            phone_work = line['PhoneWork']
+        except:
+            address = None
+            phone_home = None
+            phone_mobile = None
+            phone_work = None
+
+        return address, phone_home, phone_mobile, phone_work
 
