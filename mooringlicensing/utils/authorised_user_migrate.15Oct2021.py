@@ -1,7 +1,6 @@
 import os
 import subprocess
 import json
-import ast
 import datetime
 from decimal import Decimal
 from django.db import transaction
@@ -29,10 +28,8 @@ class AuthUserPermitMigration(object):
     '''
 
     #def __init__(self, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes', test=False):
-    def __init__(self, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_07Oct2021', path_csv='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_all_csv', test=False):
+    def __init__(self, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_07Oct2021', test=False):
         self.path = path
-        self.path = path
-        self.path_csv = path_csv
         self.test = test
 
         #self.waitlist = self.read_dict('Waitlist___Bay.json')
@@ -97,81 +94,37 @@ class AuthUserPermitMigration(object):
         errors = []
         no_records = []
         fnames = []
-        no_persno = []
-        no_email = []
-        no_licencee = []
         count_no_mooring = 0
         with transaction.atomic():
-            for idx, record in enumerate(self.moorings[:15], 1):
-            #for idx, record in enumerate(self.moorings[11:13], 11):
-            #for idx, record in enumerate(self.auth_users_No_L[33:200], 33):
+            for idx, record in enumerate(self.auth_users_No_L[33:200], 33):
             #for idx, record in enumerate(self.auth_users_No_L[46:], 46):
             #for idx, record in enumerate(self.auth_users_with_L, 1):
             #for idx, record in enumerate(self.auth_users_with_L[2:3], 1):
                 try:
                     #import ipdb; ipdb.set_trace()
-#                    no_auth_permits = int(record['NoAuth'])
-#                    if no_auth_permits == 0:
-#                        continue
-
-
-                    #pers_no = record.get('PersNo')
-                    #address = record.get('_1')
-                    username = record.get('_1') #.lower()
-                    permit_type = record['_6'] # RIA or Lic
-                    mooring_no  = record['MooringNo']
-                    vessel_name = record['VesName']
-                    #vessel_len  = aup_records[0]['VesLen']
-                    vessel_rego = record['VesRego']
-
-                    #persno_record, fname0 = GrepSearch(vessel_rego, path=self.path).search('RegoMult', 'PersNo')
-                    #gs2 = GrepSearch2(username=username, mooring_no=mooring_no, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_all_csv')
-                    gs2 = GrepSearch2(username=username, mooring_no=mooring_no, path=self.path_csv)
-                    try:
-                        pers_no = gs2.get_persno()
-                        #persno_record, fname0 = GrepSearch(username, path=self.path).search('UserName', 'PersNo')
-                        #pers_no = persno_record.get('PersNo')
-                        if not pers_no and (username, pers_no) not in no_persno:
-                            no_persno.append((username, pers_no))
-                            print(f'** NO PersNo FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                            continue
-                    except:
-                        if (username, pers_no) not in no_persno:
-                            no_persno.append((username, pers_no))
-                            print(f'NO PersNo FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
+                    pers_no = record.get('PersNo')
+                    no_auth_permits = int(record['NoAuth'])
+                    if no_auth_permits == 0:
                         continue
 
-                    try:
-                        email_record, fname1 = GrepSearch(pers_no, path=self.path).search('PersNo', 'EMail')
-                    except:
-                        if (username, pers_no) not in no_email:
-                            no_email.append((username,pers_no))
-                            print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                        continue
+                    address = record.get('_1')
 
+                    email_record, fname1 = GrepSearch(pers_no, path=self.path).search('PersNo', 'EMail')
                     phonemobile_record, fname2 = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneMobile')
                     phonehome_record, fname3 = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneHome')
-                    #if fname0 not in fnames:
-                    #    fnames.append(fname0)
-                    if fname1 not in fnames:
-                        fnames.append(fname1)
-                    if fname2 not in fnames:
-                        fnames.append(fname2)
-                    if fname3 not in fnames:
-                        fnames.append(fname3)
+#                    if fname1 not in fnames:
+#                        fnames.append(fname1)
+#                    if fname2 not in fnames:
+#                        fnames.append(fname2)
+#                    if fname3 not in fnames:
+#                        fnames.append(fname3)
 
 
+                    email = email_record.get('EMail').lower()
                     mobile_no = phonemobile_record.get('PhoneMobile')
-                    #username = record.get('UserName') #.lower()
-                    username = record.get('_1') #.lower()
+                    username = record.get('UserName') #.lower()
                     firstname = username.split(' ')[-1]
                     lastname = ' '.join(username.split(' ')[:-1])
-
-                    if email_record:
-                        email = email_record.get('EMail').lower()
-                    else: 
-                        print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                        continue
 
                     try:
                         phone_no = phonehome_record.get('PhoneHome') if phonehome_record else ''
@@ -179,54 +132,44 @@ class AuthUserPermitMigration(object):
                     except:
                         import ipdb; ipdb.set_trace()
 
-                    #email_l = GrepSearch2(username=username, mooring_no=mooring_no, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_all_csv').get_email_l()
-                    email_l, username_l = gs2.get_email_l()
-                    if not email_l and (username, pers_no, mooring_no) not in no_licencee and permit_type=='Lic':
-                        no_licencee.append((username, pers_no, mooring_no))
-
-
                     #import ipdb; ipdb.set_trace()
-                    print(f'{idx}, {pers_no}, {username}, {permit_type}, {mooring_no}: Licencee - ({email_l} {username_l})')
+                    print(f'{idx}, {pers_no}, {username}, {no_auth_permits}')
 
-                    if self.test:
+                    #for no_auth in no_auth_permits:
+                    vessel_rego_records = self.search_multiple('_1', username, self.vessel_rego)
+                    moorings_records = self.search_multiple('_1', username, self.moorings)
+                    if len(vessel_rego_records) == no_auth_permits:
+                        #print(f'{len(vessel_rego_records)}, {no_auth_permits}')
+                        #print(f'Vessel Rego: {vessel_rego_records}')
+                        aup_records = vessel_rego_records
+                    elif len(moorings_records) == no_auth_permits:
+                        #print(f'{len(moorings_records)}, {no_auth_permits}')
+                        #print(f'Moorings: {moorings_records}')
+                        aup_records = moorings_records
+                    else:
+                        canc = self.search_multiple('_1', username, self.canc)
+                        canc_lic = self.search_multiple('_12', username, self.canc_lic)
+
+                        num_canc = len(canc) + len(canc_lic)
+                        rec = dict(username=username, noauth=no_auth_permits, num_cancelled=num_canc)
+                        no_records.append(rec)
+                        print(f'ERROR: aup_records not matched: {rec}')
                         #import ipdb; ipdb.set_trace()
                         continue
 
-#                    #for no_auth in no_auth_permits:
-#                    vessel_rego_records = self.search_multiple('_1', username, self.vessel_rego)
-#                    moorings_records = self.search_multiple('_1', username, self.moorings)
-#                    if len(vessel_rego_records) == no_auth_permits:
-#                        #print(f'{len(vessel_rego_records)}, {no_auth_permits}')
-#                        #print(f'Vessel Rego: {vessel_rego_records}')
-#                        aup_records = vessel_rego_records
-#                    elif len(moorings_records) == no_auth_permits:
-#                        #print(f'{len(moorings_records)}, {no_auth_permits}')
-#                        #print(f'Moorings: {moorings_records}')
-#                        aup_records = moorings_records
-#                    else:
-#                        canc = self.search_multiple('_1', username, self.canc)
-#                        canc_lic = self.search_multiple('_12', username, self.canc_lic)
-#
-#                        num_canc = len(canc) + len(canc_lic)
-#                        rec = dict(username=username, noauth=no_auth_permits, num_cancelled=num_canc)
-#                        no_records.append(rec)
-#                        print(f'ERROR: aup_records not matched: {rec}')
-#                        #import ipdb; ipdb.set_trace()
-#                        continue
-#
-#                    for i in aup_records:
-#                        permit_type = aup_records[0]['_6'] # RIA or Lic
-#                        mooring_no  = aup_records[0]['MooringNo']
-#                        vessel_name = aup_records[0]['VesName']
-#                        #vessel_len  = aup_records[0]['VesLen']
-#                        vessel_rego = aup_records[0]['VesRego']
-#
-#                        #if i['_1'] == username:
-#                        #    print(i)
-#
-#                        if self.test:
-#                            #import ipdb; ipdb.set_trace()
-#                            continue
+                    for i in aup_records:
+                        permit_type = aup_records[0]['_6'] # RIA or Lic
+                        mooring_no  = aup_records[0]['MooringNo']
+                        vessel_name = aup_records[0]['VesName']
+                        #vessel_len  = aup_records[0]['VesLen']
+                        vessel_rego = aup_records[0]['VesRego']
+
+                        #if i['_1'] == username:
+                        #    print(i)
+
+                        if self.test:
+                            #import ipdb; ipdb.set_trace()
+                            continue
 
  
 #                    mooring_record = self.search('_1', username, self.moorings)
@@ -449,9 +392,6 @@ class AuthUserPermitMigration(object):
 #        print(f'count_no_mooring: {count_no_mooring}')
         print(f'no_records: {no_records}')
         print(f'fnames_records: {fnames}')
-        print(f'no_persno: {no_persno}')
-        print(f'no_email: {no_email}')
-        print(f'no_licencee: {no_licencee}')
 
 def clear_record():
     Address.objects.last().delete()
@@ -472,8 +412,7 @@ class GrepSearch(object):
     GrepSearch('123').search('key', '_1')     --> Search for string key='123' in all files. The result record/dict must also have key '_1'
     '''
 
-    #def __init__(self, search_str1, path='mooringlicensing/utils/lotus_notes'):
-    def __init__(self, search_str1, path):
+    def __init__(self, search_str1, path='mooringlicensing/utils/lotus_notes'):
         self.path = path
         self.search_str1 = search_str1
         #self.search()
@@ -489,7 +428,7 @@ class GrepSearch(object):
 
         def find(key, value, records):
             for record in records:
-                if value in record.get(key):
+                if value == record.get(key):
                     return record
             return None
 
@@ -498,13 +437,9 @@ class GrepSearch(object):
         _files = self.get_files(self.search_str1)
         files=[
 
-            self.path + os.sep + 'Auth_Users___Surname___with_L.json',
-            self.path + os.sep + 'Auth_Users___Surname___No_L.json',
-            self.path + os.sep + 'Vessel___People___All.json',
-            self.path + os.sep + 'PeopleName.json',
-
-            self.path + os.sep + 'Vessel___People___All.json',
+            #self.path + os.sep + 'Auth_Users___Surname___No_L.json',
             self.path + os.sep + 'Vessel___Rego___Current.json',
+            self.path + os.sep + 'PeopleName.json',
             self.path + os.sep + 'PeopleLicType.json',
             self.path + os.sep + 'People___Trim_File.json',
             self.path + os.sep + 'HINCurrent.json',
@@ -543,100 +478,12 @@ class GrepSearch(object):
                 # check the files (json) also has the key2
                 if key2 in f_json[0]:
                     # find record in json that contains key1:search_str1
-                    #import ipdb; ipdb.set_trace()
                     record = find(key1, self.search_str1, f_json)
-                    if not record or (key2=='_1' and len(record['_1'].split(',')) <= 1):
-                        continue
-                    #print('****************' + fname)
-                    return record, fname
-        return None, None
-
-class GrepSearch2(object):
-    '''
-    from mooringlicensing.utils.waiting_list_migrate import WaitingListMigration, GrepSearch
-
-    GrepSearch('123').search('key', '_1')     --> Search for string key='123' in all files. The result record/dict must also have key '_1'
-    '''
-
-    def __init__(self, username, mooring_no, path):
-        self.path = path
-        self.username = username
-        self.mooring_no = mooring_no
-
-    def _get_result1(self):
-        ''' Read all files in directory '''
-        cmd = "grep -r '{}' {} | grep \"'MooringNo': '{}'\" | grep FirstNameL".format(self.username, self.path, self.mooring_no)
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            #import ipdb; ipdb.set_trace()
-            res = output.decode('utf-8')
-            firstname_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['FirstNameL']
-            lastname_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['LastNameL']
-            username_l = '{} {}'.format(lastname_l, firstname_l)
-            return username_l
-
-        except:
-            return None
-
-    def _get_result2(self):
-        ''' Read all files in directory '''
-        cmd = "grep -r '{}' {} | grep \"'MooringNo': '{}'\" | grep '_12'".format(self.username, self.path, self.mooring_no)
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            #import ipdb; ipdb.set_trace()
-            res = output.decode('utf-8')
-            username_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['_12']
-            return username_l
-
-        except:
-            return None
-
-
-    def get_email_l(self):
-        ''' Read all files in directory - Get Licensee email'''
-        username_l = self._get_result1()
-        if not username_l:
-            username_l = self._get_result2()
-        #import ipdb; ipdb.set_trace()
-        if not username_l:
-            #import ipdb; ipdb.set_trace()
-            return None, None
-
-        cmd = "grep -r '{}' {} | grep '@'".format(username_l, self.path)
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            res = output.decode('utf-8')
-            email_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['EMail']
-        except:
-            email_l = None
-
-        #if not email_l:
-        #    import ipdb; ipdb.set_trace()
-
-        return email_l, username_l
-
-    def get_persno(self):
-        ''' Read all files in directory - Get PersNo'''
-        #import ipdb; ipdb.set_trace()
-        #cmd = "grep -r '{}' {} | grep -v PersNoL | grep 'PersNo'".format(self.username, self.path)
-        #cmd = "grep -ir '{}' {}/Auth_Users___*.* | grep -v PersNoL | grep 'PersNo'".format(self.username, self.path)
-        cmd = f"grep -ir '{self.username}' {self.path}/Auth_Users___*.* {self.path}/People___PersNo.csv {self.path}/People___Surname.csv | grep -v PersNoU | grep -v PersNoL | grep PersNo"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            res = output.decode('utf-8')
-            persno = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['PersNo']
-            #persno = ast.literal_eval(res.splitlines()[0])['PersNo']
-        except:
-            persno = None
-
-        return persno 
+                    if record:
+                        #import ipdb; ipdb.set_trace()
+                        if key2=='_1' and len(record['_1'].split(',')) <= 1:
+                            continue
+                        #print('****************' + fname)
+                        return record, fname
 
 
