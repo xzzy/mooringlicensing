@@ -103,20 +103,8 @@ class AuthUserPermitMigration(object):
         count_no_mooring = 0
         with transaction.atomic():
             for idx, record in enumerate(self.moorings[:15], 1):
-            #for idx, record in enumerate(self.moorings[11:13], 11):
-            #for idx, record in enumerate(self.auth_users_No_L[33:200], 33):
-            #for idx, record in enumerate(self.auth_users_No_L[46:], 46):
-            #for idx, record in enumerate(self.auth_users_with_L, 1):
-            #for idx, record in enumerate(self.auth_users_with_L[2:3], 1):
                 try:
                     #import ipdb; ipdb.set_trace()
-#                    no_auth_permits = int(record['NoAuth'])
-#                    if no_auth_permits == 0:
-#                        continue
-
-
-                    #pers_no = record.get('PersNo')
-                    #address = record.get('_1')
                     username = record.get('_1') #.lower()
                     permit_type = record['_6'] # RIA or Lic
                     mooring_no  = record['MooringNo']
@@ -124,13 +112,9 @@ class AuthUserPermitMigration(object):
                     #vessel_len  = aup_records[0]['VesLen']
                     vessel_rego = record['VesRego']
 
-                    #persno_record, fname0 = GrepSearch(vessel_rego, path=self.path).search('RegoMult', 'PersNo')
-                    #gs2 = GrepSearch2(username=username, mooring_no=mooring_no, path='/var/www/mooringlicensing/mooringlicensing/utils/lotus_notes_all_csv')
                     gs2 = GrepSearch2(username=username, mooring_no=mooring_no, path=self.path_csv)
                     try:
                         pers_no = gs2.get_persno()
-                        #persno_record, fname0 = GrepSearch(username, path=self.path).search('UserName', 'PersNo')
-                        #pers_no = persno_record.get('PersNo')
                         if not pers_no and (username, pers_no) not in no_persno:
                             no_persno.append((username, pers_no))
                             print(f'** NO PersNo FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
@@ -147,6 +131,7 @@ class AuthUserPermitMigration(object):
 
                     address, phone_home, phone_mobile, phone_work = gs2.get_address(pers_no)
                     email, username = gs2.get_email()
+                    email = email.split(';')[0]
                     firstname = username.split(' ')[-1]
                     lastname = ' '.join(username.split(' ')[:-1])
 
@@ -154,53 +139,26 @@ class AuthUserPermitMigration(object):
                         no_email.append((username,pers_no))
                         print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
 
-                    #if fname0 not in fnames:
-                    #    fnames.append(fname0)
-                    #if fname1 not in fnames:
-                    #    fnames.append(fname1)
-                    #if fname2 not in fnames:
-                    #    fnames.append(fname2)
-                    #if fname3 not in fnames:
-                    #    fnames.append(fname3)
-
-
                     email_l, username_l = gs2.get_email(licencee=True)
+                    email_l = email_l.split(';')[0]
                     pers_no_l = gs2.get_persno(username_l)
                     address_l, phone_home_l, phone_mobile_l, phone_work_l = gs2.get_address(pers_no_l)
                     if not address_l and (username, pers_no, mooring_no) not in no_licencee and permit_type=='Lic':
                         no_licencee.append((username, pers_no, mooring_no))
 
-                    #import ipdb; ipdb.set_trace()
-                    print(f'{idx}, {pers_no}, {address}, {username}, {permit_type}, {mooring_no}: Licencee - ({email_l} {username_l} {address_l}, {phone_mobile})')
 
-                    if self.test:
-                        #import ipdb; ipdb.set_trace()
-                        continue
 
- 
                     ves_overall_length, ves_draft = gs2.get_vessel_size()
                     vessel_type = 'other'
                     vessel_weight = Decimal( 0.0 )
                     berth_mooring = ''
+                    percentage = None # force user to set at renewal time
 
-#                    mooring_record = self.search('_1', username, self.moorings)
-#                    try:
-#                        mooring = mooring_record['MooringNo']
-#                        vessel_name = mooring_record['VesName']
-#                        rego_no = mooring_record['VesRego']
-#                    except:
-#                        count_no_mooring += 1
-#                        print(f'*************** {idx}, {pers_no}, {username}, {count_no_mooring}')
-#                        continue
-#                        #vessel_name = record.get('_11').split('-')[1].strip()
-#                        #rego_no = record.get('_11').split('-')[0].strip()
-#
-                    #vessel_type = 'other'
-                    #vessel_weight = Decimal( 0.0 )
-                    #berth_mooring = record.get('_5')
-                    #mooring = ?? # record.get('_5')
-#
-#                    # see mooringlicensing/utils/tests/mooring_names.txt
+                    print(f'{idx}, {pers_no}, {address}, {username}, {permit_type}, {mooring_no}: Licencee - ({email_l} {username_l} {address_l}, {phone_mobile})')
+                    if self.test:
+                        #import ipdb; ipdb.set_trace()
+                        continue
+     
                     if Mooring.objects.filter(name=mooring_no).count()>0:
                         mooring = Mooring.objects.filter(name=mooring_no)[0]
                     else:
@@ -209,173 +167,195 @@ class AuthUserPermitMigration(object):
                         #mooring_bay = MooringBay.objects.get(name='Rottnest Island')
                         #mooring_bay = MooringBay.objects.get(name='Thomson Bay')
 
-                    percentage = None # force user to set at renewal time
-
+                    # User email user
                     items = address.split(',')
                     line1 = items[0].strip()
                     line2 = items[1].strip() if len(items) > 3 else ''
                     line3 = items[2].strip() if len(items) > 4 else ''
                     state = items[-2].strip()
                     postcode = items[-1].strip()
+
+                    try:
+                        user = EmailUser.objects.get(email=email)
+                    except:
+                        user = EmailUser.objects.create(email=email, first_name=firstname, last_name=lastname, mobile_number=mobile_no, phone_number=phone_no)
+
+                    country = Country.objects.get(printable_name='Australia')
+                    _address, address_created = Address.objects.get_or_create(line1=line1, line2=line2, line3=line3, postcode=postcode, state=state, country=country, user=user)
+                    user.residential_address = _address
+                    user.postal_address = _address
+                    user.save()
+
+                    #if permit_type=='Lic' and email_l:
+                    mooring_authorisation_preference = 'ria'
+                    site_licensee_email = None
+                    if permit_type=='Lic':
+                        # Licensee email usee
+                        items = address_l.split(',')
+                        line1 = items[0].strip()
+                        line2 = items[1].strip() if len(items) > 3 else ''
+                        line3 = items[2].strip() if len(items) > 4 else ''
+                        state = items[-2].strip()
+                        postcode = items[-1].strip()
+
+                        try:
+                            licensee = EmailUser.objects.get(email=email_l)
+                        except:
+                            licensee = EmailUser.objects.create(email=email_l, first_name=firstname_l, last_name=lastname_l, mobile_number=mobile_no_l, phone_number=phone_no_l)
+
+                        country = Country.objects.get(printable_name='Australia')
+                        _address_l, address_created_l = Address.objects.get_or_create(line1=line1, line2=line2, line3=line3, postcode=postcode, state=state, country=country, user=licencee)
+                        licensee.residential_address = _address_l
+                        licensee.postal_address = _address_l
+                        licensee.save()
+
+                        mooring_authorisation_preference='site_licensee',
+                        site_licensee_email=email_l,
+
+                    try:
+                        vessel = Vessel.objects.get(rego_no=rego_no)
+                    except ObjectDoesNotExist:
+                        vessel = Vessel.objects.create(rego_no=rego_no)
+
+                    try:
+                        owner = Owner.objects.get(emailuser=user)
+                    except ObjectDoesNotExist:
+                        owner = Owner.objects.create(emailuser=user)
+
+                    try:
+                        vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
+                    except ObjectDoesNotExist:
+                        vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=percentage)
+
+                    try:
+                        vessel_details = VesselDetails.objects.get(vessel=vessel)
+                    except ObjectDoesNotExist:
+                        vessel_details = VesselDetails.objects.create(
+                        vessel_type=vessel_type,
+                        vessel=vessel,
+                        vessel_name=vessel_name,
+                        vessel_length=vessel_overall_length,
+                        vessel_draft=vessel_draft,
+                        vessel_weight= vessel_weight,
+                        #berth_mooring=berth_mooring
+                    )
+
+                    proposal=AuthorisedUserApplication.objects.create(
+                        proposal_type_id=1, # new application
+                        submitter=user,
+                        mooring_authorisation_preference='site_licensee',
+                        site_licensee_email=email_l,
+                        keep_existing_mooring=True,
+                        mooring=
+                        migrated=True,
+                        vessel_details=vessel_details,
+                        vessel_ownership=vessel_ownership,
+                        rego_no=rego_no,
+                        vessel_type=vessel_type,
+                        vessel_name=vessel_name,
+                        vessel_length=vessel_overall_length,
+                        vessel_draft=vessel_draft,
+                        #vessel_beam='',
+                        vessel_weight=vessel_weight,
+                        berth_mooring='home',
+                        preferred_bay= mooring.mooring_bay,
+                        percentage=percentage,
+                        individual_owner=True,
+                        #proposed_issuance_approval={},
+                        processing_status='approved',
+                        customer_status='approved',
+                        proposed_issuance_approval={
+                            "details": None,
+                            "cc_email": None,
+                            "mooring_id": mooring.id,
+                            "ria_mooring_name": mooring.name,
+                            "mooring_bay_id": mooring.mooring_bay.id,
+                            "vessel_ownership": [],
+                            "mooring_on_approval": []
+                        },
+                    )
+#>         "proposed_issuance_approval": {
+#>             "details": "dd",
+#>             "cc_email": null,
+#>             "mooring_id": 127,
+#>             "mooring_bay_id": 7,
+#>             "ria_mooring_name": "CB005",
+#>             "vesSEL_OWNERSHIP": [],
+#>             "mooring_on_approval": []
+#>         },
 #
-#                    #import ipdb; ipdb.set_trace()
-#                    print(f'{idx}, {pers_no}, {username}, {state}, {postcode}')
-#                    if self.test:
-#                        continue
-#
-#                    try:
-#                        user = EmailUser.objects.get(email=email)
-#                    except:
-#                        user = EmailUser.objects.create(email=email, first_name=firstname, last_name=lastname, mobile_number=mobile_no, phone_number=phone_no)
-#
-#                    country = Country.objects.get(printable_name='Australia')
-#                    address, address_created = Address.objects.get_or_create(line1=line1, line2=line2, line3=line3, postcode=postcode, state=state, country=country, user=user)
-#                    user.residential_address = address
-#                    user.postal_address = address
-#                    user.save()
-#
-#                    try:
-#                        vessel = Vessel.objects.get(rego_no=rego_no)
-#                    except ObjectDoesNotExist:
-#                        vessel = Vessel.objects.create(rego_no=rego_no)
-#
-#
-#                    try:
-#                        owner = Owner.objects.get(emailuser=user)
-#                    except ObjectDoesNotExist:
-#                        owner = Owner.objects.create(emailuser=user)
-#
-#
-#                    try:
-#                        vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
-#                    except ObjectDoesNotExist:
-#                        vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=percentage)
-#
-#                    try:
-#                        vessel_details = VesselDetails.objects.get(vessel=vessel)
-#                    except ObjectDoesNotExist:
-#                        vessel_details = VesselDetails.objects.create(
-#                        vessel_type=vessel_type,
-#                        vessel=vessel,
-#                        vessel_name=vessel_name,
-#                        vessel_length=vessel_overall_length,
-#                        vessel_draft=vessel_draft,
-#                        vessel_weight= vessel_weight,
-#                        #berth_mooring=berth_mooring
-#                    )
-#
-#                    proposal=AuthorisedUserApplication.objects.create(
-#                        proposal_type_id=1, # new application
-#                        submitter=user,
-#                        migrated=True,
-#                        vessel_details=vessel_details,
-#                        vessel_ownership=vessel_ownership,
-#                        rego_no=rego_no,
-#                        vessel_type=vessel_type,
-#                        vessel_name=vessel_name,
-#                        vessel_length=vessel_overall_length,
-#                        vessel_draft=vessel_draft,
-#                        #vessel_beam='',
-#                        vessel_weight=vessel_weight,
-#                        berth_mooring='home',
-#                        preferred_bay= mooring.mooring_bay,
-#                        percentage=percentage,
-#                        individual_owner=True,
-#                        #proposed_issuance_approval={},
-#                        processing_status='approved',
-#                        customer_status='approved',
-#                        proposed_issuance_approval={
-#                            "details": None,
-#                            "cc_email": None,
-#                            "mooring_id": mooring.id,
-#                            "ria_mooring_name": mooring.name,
-#                            "mooring_bay_id": mooring.mooring_bay.id,
-#                            "vessel_ownership": [],
-#                            "mooring_on_approval": []
-#                        },
-#                    )
-##>         "proposed_issuance_approval": {
-##>             "details": "dd",
-##>             "cc_email": null,
-##>             "mooring_id": 127,
-##>             "mooring_bay_id": 7,
-##>             "ria_mooring_name": "CB005",
-##>             "vessel_ownership": [],
-##>             "mooring_on_approval": []
-##>         },
-##
-##>         "berth_mooring": "home",
-##>         "dot_name": "abc",
-##>         "insurance_choice": "over_ten",
-##>         "preferred_bay": null,
-##>         "silent_elector": null,
-##>         "mooring_authorisation_preference": "ria",
-##>         "bay_preferences_numbered": "[\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\"]",
-#
-#                    ua=ProposalUserAction.objects.create(
-#                        proposal=proposal,
-#                        who=user,
-#                        what='Authorised User Permit - Migrated Application',
-#                    )
-#
-#                    try:
-#                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
-#                    except:
-#                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
-#
-#                    #approval = WaitingListAllocation.objects.create(
-#                    approval = AuthorisedUserPermit.objects.create(
-#                        status='current',
-#                        #internal_status=None,
-#                        current_proposal=proposal,
-#                        issue_date = datetime.datetime.now(datetime.timezone.utc),
-#                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
-#                        start_date = start_date,
-#                        expiry_date = expiry_date,
-#                        submitter=user,
-#                        migrated=True,
-#                        export_to_mooring_booking=True,
-#                    )
-#                    #print(f'wla_order: {position_no}')
-#
-#                    proposal.approval = approval
-#                    proposal.save()
-#
-#                    moa = MooringOnApproval.objects.create(
-#                        approval=approval,
-#                        mooring=mooring,
-#                        sticker=None,
-#                        site_licensee=True, # ???
-#                        end_date=expiry_date
-#                    )
-#
-#                    try:
-#                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                    except:
-#                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-#
-#                    approval_history = ApprovalHistory.objects.create(
-#                        reason='new',
-#                        approval=approval,
-#                        vessel_ownership = vessel_ownership,
-#                        proposal = proposal,
-#                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                        start_date = start_date,
-#                    )
-#
-#                    added.append(proposal.id)
-#
-#                    address_list.append(address.id)
-#                    user_list.append(user.id)
-#                    vessel_list.append(vessel.id)
-#                    owner_list.append(owner.id)
-#                    ownership_list.append(vessel_ownership.id)
-#                    details_list.append(vessel_details.id)
-#                    proposal_list.append(proposal.proposal.id)
-#                    wl_list.append(proposal.id)
-#                    user_action_list.append(ua.id)
-#                    approval_list.append(approval.id)
-#                    approval_history_list.append(approval_history.id)
+#>         "berth_mooring": "home",
+#>         "dot_name": "abc",
+#>         "insurance_choice": "over_ten",
+#>         "preferred_bay": null,
+#>         "silent_elector": null,
+#>         "mooring_authorisation_preference": "ria",
+#>         "bay_preferences_numbered": "[\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\"]",
+
+                    ua=ProposalUserAction.objects.create(
+                        proposal=proposal,
+                        who=user,
+                        what='Authorised User Permit - Migrated Application',
+                    )
+
+                    try:
+                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
+                    except:
+                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
+
+                    #approval = WaitingListAllocation.objects.create(
+                    approval = AuthorisedUserPermit.objects.create(
+                        status='current',
+                        #internal_status=None,
+                        current_proposal=proposal,
+                        issue_date = datetime.datetime.now(datetime.timezone.utc),
+                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
+                        start_date = start_date,
+                        expiry_date = expiry_date,
+                        submitter=user,
+                        migrated=True,
+                        export_to_mooring_booking=True,
+                    )
+                    #print(f'wla_order: {position_no}')
+
+                    proposal.approval = approval
+                    proposal.save()
+
+                    moa = MooringOnApproval.objects.create(
+                        approval=approval,
+                        mooring=mooring,
+                        sticker=None,
+                        site_licensee=False, # ???
+                        end_date=expiry_date
+                    )
+
+                    try:
+                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                    except:
+                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+
+                    approval_history = ApprovalHistory.objects.create(
+                        reason='new',
+                        approval=approval,
+                        vessel_ownership = vessel_ownership,
+                        proposal = proposal,
+                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                        start_date = start_date,
+                    )
+
+                    added.append(proposal.id)
+
+                    address_list.append(address.id)
+                    user_list.append(user.id)
+                    vessel_list.append(vessel.id)
+                    owner_list.append(owner.id)
+                    ownership_list.append(vessel_ownership.id)
+                    details_list.append(vessel_details.id)
+                    proposal_list.append(proposal.proposal.id)
+                    wl_list.append(proposal.id)
+                    user_action_list.append(ua.id)
+                    approval_list.append(approval.id)
+                    approval_history_list.append(approval_history.id)
 
                 except Exception as e:
                     #errors.append(str(e))
