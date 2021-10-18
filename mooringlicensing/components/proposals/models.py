@@ -4176,6 +4176,7 @@ reversion.register(AnnualAdmissionApplication)
 reversion.register(AuthorisedUserApplication)
 reversion.register(MooringLicenceApplication)
 reversion.register(ProposalDocument)
+reversion.register(ProposalLogDocument)
 reversion.register(ProposalLogEntry, follow=["documents"])
 reversion.register(InsuranceCertificateDocument)
 reversion.register(HullIdentificationNumberDocument)
@@ -4203,4 +4204,5 @@ reversion.register(CompanyOwnership, follow=["blocking_proposal", "vessel", "com
 reversion.register(VesselOwnership, follow=["owner", "vessel", "company_ownership"])
 reversion.register(Owner)
 reversion.register(Company)
+reversion.register(ProposalType)
 
