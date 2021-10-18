@@ -14,14 +14,14 @@ from django.urls import reverse
 from mooringlicensing.components.main.models import (#Region, District, Tenure, 
         #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, ActivityCategory, Activity, 
         #RequiredDocument, 
-        Question, 
+        #Question, 
         GlobalSettings,
         TemporaryDocumentCollection,
         )
 from mooringlicensing.components.main.serializers import (  # RegionSerializer, DistrictSerializer, TenureSerializer,
     # ApplicationTypeSerializer, #ActivityMatrixSerializer,  AccessTypeSerializer, ParkSerializer, ParkFilterSerializer, TrailSerializer, ActivitySerializer, ActivityCategorySerializer,
     # RequiredDocumentSerializer,
-    QuestionSerializer,
+    #QuestionSerializer,
     GlobalSettingsSerializer,
     OracleSerializer,
     TemporaryDocumentCollectionSerializer,
@@ -67,9 +67,9 @@ class GlobalSettingsViewSet(viewsets.ReadOnlyModelViewSet):
 #    serializer_class = RequiredDocumentSerializer
 
 
-class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Question.objects.all()
-    serializer_class = QuestionSerializer
+#class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
+#    queryset = Question.objects.all()
+#    serializer_class = QuestionSerializer
 
 
 class PaymentViewSet(viewsets.ModelViewSet):

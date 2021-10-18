@@ -192,7 +192,7 @@ class StickerActionFee(Payment):
         app_label = 'mooringlicensing'
 
 
-class FeeItemApplicationFee(models.Model):
+class FeeItemApplicationFee(RevisionedMixin):
     """
     This model is only used for the calculation of AnnualAdmission components
     """
@@ -655,7 +655,7 @@ class FeeItem(RevisionedMixin):
 #         verbose_name = 'Oracle Codes'
 
 
-class OracleCodeItem(models.Model):
+class OracleCodeItem(RevisionedMixin):
     # oracle_code_application = models.ForeignKey(OracleCodeApplication, related_name='oracle_code_items')
     application_type = models.ForeignKey(ApplicationType, blank=True, null=True, related_name='oracle_code_items')
     value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
@@ -663,3 +663,18 @@ class OracleCodeItem(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+import reversion
+reversion.register(DcvAdmissionFee, follow=["dcv_admission", "fee_items"])
+reversion.register(DcvPermitFee, follow=["dcv_permit", "fee_items"])
+reversion.register(StickerActionFee)
+reversion.register(FeeItemApplicationFee, follow=["application_fee", "vessel_details"])
+reversion.register(ApplicationFee, follow=["proposal", "fee_items"])
+reversion.register(FeeSeason, follow=["application_type"])
+reversion.register(FeePeriod, follow=["fee_season"])
+reversion.register(FeeConstructor, follow=["application_type", "fee_season", "vessel_size_category_group"])
+reversion.register(FeeItemStickerReplacement)
+reversion.register(FeeItem, follow=["fee_constructor", "fee_period", "vessel_size_category", "proposal_type"])
+reversion.register(OracleCodeItem, follow=["application_type"])
+
