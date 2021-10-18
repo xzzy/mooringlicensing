@@ -3095,12 +3095,14 @@ class MooringLicenceApplication(Proposal):
                 self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             self.save()
 
-            # Check if this is OK
-            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
-
             if request:
                 # Creating documents should be performed at the end
                 approval.generate_doc(request.user)
+                if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+                    approval.generate_au_summary_doc(request.user)
+
+            # Email with attachments
+            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
 
             # Log proposal action
             if request:

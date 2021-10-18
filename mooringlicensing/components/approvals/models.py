@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from django.core.files.base import ContentFile
 
 import datetime
 import logging
@@ -74,6 +75,14 @@ class RenewalDocument(Document):
         if self.can_delete:
             return super(RenewalDocument, self).delete()
         logger.info('Cannot delete existing document object after Proposal has been submitted (including document submitted before Proposal pushback to status Draft): {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AuthorisedUserSummaryDocument(Document):
+    approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents')
+    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -232,6 +241,7 @@ class Approval(RevisionedMixin):
                                        default=STATUS_CHOICES[0][0])
     internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
+    authorised_user_summary_document = models.ForeignKey(AuthorisedUserSummaryDocument, blank=True, null=True, related_name='approvals')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
@@ -696,6 +706,21 @@ class Approval(RevisionedMixin):
         self.licence_document = create_approval_doc(self, self.current_proposal, None, user)
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+
+    def generate_au_summary_doc(self, user):
+        from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
+
+        contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
+
+        filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
+        document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
+
+        # Save the bytes to the disk
+        document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+
+        self.authorised_user_summary_document = document
+        self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
+        self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
         self.renewal_document = create_renewal_doc(self, self.current_proposal)
@@ -1318,6 +1343,12 @@ class MooringLicence(Approval):
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
+
+    def get_context_for_au_summary(self):
+        context = {
+            'approval': self,
+        }
+        return context
 
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document

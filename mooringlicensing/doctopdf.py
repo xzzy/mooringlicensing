@@ -103,6 +103,40 @@ def create_dcv_admission_pdf_tytes(dcv_admission_arrival):
     return file_contents
 
 
+def create_authorised_user_summary_doc_bytes(approval):
+    from mooringlicensing.components.approvals.models import Approval
+
+    # Retrieve a template according to the approval type
+    licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_ML_AU_LIST_TEMPLATE_FILE)
+    if licence_template._file:
+        path_to_template = licence_template._file.path
+    else:
+        raise Exception('Template file not found for {}.'.format(licence_template))
+
+    # Rendering
+    doc = DocxTemplate(path_to_template)
+    context = approval.child_obj.get_context_for_au_summary() if type(approval) == Approval else approval.get_context_for_au_summary()
+    doc.render(context)
+
+    temp_directory = settings.BASE_DIR + "/tmp/"
+    try:
+        os.stat(temp_directory)
+    except:
+        os.mkdir(temp_directory)
+
+    f_name = temp_directory + 'approval' + str(approval.id)
+    new_doc_file = f_name + '.docx'
+    new_pdf_file = f_name + '.pdf'
+    doc.save(new_doc_file)
+    os.system("libreoffice --headless --convert-to pdf " + new_doc_file + " --outdir " + temp_directory)
+
+    with open(new_pdf_file, 'rb') as f:
+        file_contents = f.read()
+    os.remove(new_doc_file)
+    os.remove(new_pdf_file)
+    return file_contents
+
+
 def create_approval_doc_bytes(approval):
     from mooringlicensing.components.approvals.models import Approval
 
