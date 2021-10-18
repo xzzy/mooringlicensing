@@ -2249,12 +2249,17 @@ def delete_documents(sender, instance, *args, **kwargs):
                 pass
 
 
-#import reversion
-#reversion.register(Approval, follow=['compliances', 'documents', 'comms_logs', 'action_logs'])
-#reversion.register(ApprovalDocument, follow=['licence_document', 'cover_letter_document', 'renewal_document'])
-#reversion.register(ApprovalLogEntry, follow=['documents'])
-#reversion.register(ApprovalLogDocument)
-#reversion.register(ApprovalUserAction)
-#reversion.register(DistrictApproval)
+import reversion
+reversion.register(Approval, follow=['waitinglistallocation', 'annualadmissionpermit', 'authoriseduserpermit', 'mooringlicence', 
+    'compliances', 'documents', 'comms_logs', 'action_logs', "renewal_documents",
+    ])
+reversion.register(WaitingListAllocation)
+reversion.register(AuthorisedUserPermit)
+reversion.register(AnnualAdmissionPermit)
+reversion.register(MooringLicence)
+reversion.register(ApprovalDocument, follow=['licence_document', 'cover_letter_document',])
+reversion.register(ApprovalLogEntry, follow=['documents'])
+reversion.register(ApprovalLogDocument)
+reversion.register(ApprovalUserAction)
 
 
