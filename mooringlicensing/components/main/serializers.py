@@ -5,7 +5,8 @@ from mooringlicensing.components.main.models import (
         CommunicationsLogEntry, #Region, District, Tenure, 
         #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, Activity, ActivityCategory, Section, Zone, 
         #RequiredDocument, 
-        Question, GlobalSettings, TemporaryDocumentCollection,
+        #Question, 
+        GlobalSettings, TemporaryDocumentCollection,
         )#, ParkPrice
 #from mooringlicensing.components.proposals.models import  ProposalParkActivity
 #from mooringlicensing.components.bookings.models import  ParkBooking
@@ -57,10 +58,10 @@ class GlobalSettingsSerializer(serializers.ModelSerializer):
 #        fields = ('id', 'park','activity', 'question')
 
 
-class QuestionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Question
-        fields = ('id', 'question_text', 'answer_one', 'answer_two', 'answer_three', 'answer_four','correct_answer', 'correct_answer_value')
+#class QuestionSerializer(serializers.ModelSerializer):
+#    class Meta:
+#        model = Question
+#        fields = ('id', 'question_text', 'answer_one', 'answer_two', 'answer_three', 'answer_four','correct_answer', 'correct_answer_value')
 
 
 class BookingSettlementReportSerializer(serializers.Serializer):

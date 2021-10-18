@@ -132,6 +132,8 @@ export default {
             }
         },
         column_invoice_approval: function(){
+            let vm = this
+
             return {
                 data: "id",
                 orderable: true,
@@ -142,6 +144,9 @@ export default {
                     if (full.invoices){
                         for (let invoice of full.invoices){
                             links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                            if (!vm.is_external){
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                            }
                         }
                     }
                     if (full.permits){
@@ -213,15 +218,15 @@ export default {
                 'render': function(row, type, full){
                     let links = '';
                     if (vm.is_internal){
-                        if (full.invoices){
-                            for (let invoice of full.invoices){
-                                links += '<div>'
-                                if (!vm.is_external){
-                                    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
-                                }
-                                links += '</div>'
-                            }
-                        }
+                        //if (full.invoices){
+                        //    for (let invoice of full.invoices){
+                        //        links += '<div>'
+                        //        if (!vm.is_external){
+                        //            links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                        //        }
+                        //        links += '</div>'
+                        //    }
+                        //}
                         if (full.display_create_sticker_action){
                             links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
                         }
