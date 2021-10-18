@@ -474,4 +474,5 @@ reversion.register(NumberOfDaysType)
 reversion.register(VesselSizeCategory)
 reversion.register(VesselSizeCategoryGroup)
 reversion.register(GlobalSettings)
+reversion.register(ApplicationType)
 
