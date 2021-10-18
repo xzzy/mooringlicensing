@@ -225,28 +225,28 @@ class Compliance(RevisionedMixin):
             self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
             send_compliance_accept_email_notification(self,request)
 
-    def send_reminder(self,user):
+    def send_reminder(self, user):
         with transaction.atomic():
             today = timezone.localtime(timezone.now()).date()
-            number_of_days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
-            number_of_days = NumberOfDaysSetting.get_setting_by_date(number_of_days_type=number_of_days_type, target_date=today)
+            days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
+            days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
             try:
                 if self.processing_status == Compliance.PROCESSING_STATUS_DUE:
-                    if self.due_date < today and self.lodgement_date is None and self.post_reminder_sent == False:
+                    if self.due_date < today and self.lodgement_date is None and self.post_reminder_sent is False:
                         send_reminder_email_notification(self)
                         send_internal_reminder_email_notification(self)
                         self.post_reminder_sent = True
                         self.reminder_sent = True
                         self.save()
-                        ComplianceUserAction.log_action(self, ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id),user)
+                        ComplianceUserAction.log_action(self, ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id), user)
                         logger.info('Post due date reminder sent for Compliance {} '.format(self.lodgement_number))
-                    elif self.due_date >= today >= self.due_date - datetime.timedelta(days=number_of_days) and self.reminder_sent == False:
+                    elif self.due_date >= today >= self.due_date - datetime.timedelta(days=days_setting.number_of_days) and self.reminder_sent is False:
                         # second part: if today is with 14 days of due_date, and email reminder is not sent (deals with Compliances created with the reminder period)
                         send_due_email_notification(self)
                         send_internal_due_email_notification(self)
                         self.reminder_sent=True
                         self.save()
-                        ComplianceUserAction.log_action(self,ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id),user)
+                        ComplianceUserAction.log_action(self, ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id), user)
                         logger.info('Pre due date reminder sent for Compliance {} '.format(self.lodgement_number))
 
             except Exception as e:
