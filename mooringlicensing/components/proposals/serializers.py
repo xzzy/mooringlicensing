@@ -734,7 +734,7 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
-    mooring_id = serializers.IntegerField(write_only=True, required=False)
+    mooring_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Proposal
@@ -755,7 +755,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print("validate data")
         print(data)
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
