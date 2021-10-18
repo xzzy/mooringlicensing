@@ -4167,224 +4167,10 @@ def clone_proposal_with_status_reset(original_proposal):
             proposal.previous_application = original_proposal
             proposal.approval = original_proposal.approval
 
-            ## Vessel data
-            #proposal.rego_no = original_proposal.vessel_details.vessel.rego_no
-            #proposal.vessel_id = original_proposal.vessel_details.vessel.id
-            #if original_proposal.vessel_ownership.company_ownership:
-            #    proposal.individual_owner = False
-            #    proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
-            #    proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
-            #else:
-            #    proposal.individual_owner = True
-            #    proposal.percentage = original_proposal.vessel_ownership.percentage
-
             proposal.save(no_revision=True)
             return proposal
         except:
             raise
-
-#def clone_proposal_with_status_reset(original_proposal):
-#    """
-#    To Test:
-#         from mooringlicensing.components.proposals.models import clone_proposal_with_status_reset
-#         p=Proposal.objects.get(id=57)
-#         p0=clone_proposal_with_status_reset(p)
-#    """
-#    with transaction.atomic():
-#        try:
-#            #original_proposal = copy.deepcopy(proposal)
-#            #proposal.id = None
-#            proposal = type(original_proposal.child_obj).objects.create()
-#
-#            proposal.customer_status = 'draft'
-#            proposal.processing_status = 'draft'
-#            #proposal.assessor_data = None
-#            #proposal.comment_data = None
-#
-#            proposal.lodgement_number = ''
-#            # why?
-#            #proposal.lodgement_sequence = 0
-#            proposal.lodgement_date = None
-#
-#            proposal.assigned_officer = None
-#            proposal.assigned_approver = None
-#
-#            proposal.approval = None
-#            #proposal.approval_level_document = None
-#            #proposal.migrated=False
-#
-#            ## Vessel data
-#            proposal.vessel_details = None
-#            proposal.vessel_ownership = None
-#            if original_proposal.vessel_ownership.company_ownership:
-#                proposal.individual_owner = False
-#                proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
-#                proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
-#            else:
-#                proposal.individual_owner = True
-#                proposal.percentage = original_proposal.vessel_ownership.percentage
-#
-#            proposal.child_obj.save(no_revision=True)
-#
-#            #clone_documents(proposal, original_proposal, media_prefix='media')
-#            #_clone_documents(proposal, original_proposal, media_prefix='media')
-#
-#            return proposal
-#        except:
-#            raise
-
-def clone_documents(proposal, original_proposal, media_prefix):
-    for proposal_document in ProposalDocument.objects.filter(proposal_id=proposal.id):
-        proposal_document._file.name = u'{}/proposals/{}/documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_document.name)
-        proposal_document.can_delete = True
-        proposal_document.save()
-
-    for proposal_required_document in ProposalRequiredDocument.objects.filter(proposal_id=proposal.id):
-        proposal_required_document._file.name = u'{}/proposals/{}/required_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_required_document.name)
-        proposal_required_document.can_delete = True
-        proposal_required_document.save()
-
-    #for referral in proposal.referrals.all():
-    #    for referral_document in ReferralDocument.objects.filter(referral=referral):
-    #        referral_document._file.name = u'{}/proposals/{}/referral/{}'.format(settings.MEDIA_APP_DIR, proposal.id, referral_document.name)
-    #        referral_document.can_delete = True
-    #        referral_document.save()
-
-    for qa_officer_document in QAOfficerDocument.objects.filter(proposal_id=proposal.id):
-        qa_officer_document._file.name = u'{}/proposals/{}/qaofficer/{}'.format(settings.MEDIA_APP_DIR, proposal.id, qa_officer_document.name)
-        qa_officer_document.can_delete = True
-        qa_officer_document.save()
-
-    for onhold_document in OnHoldDocument.objects.filter(proposal_id=proposal.id):
-        onhold_document._file.name = u'{}/proposals/{}/on_hold/{}'.format(settings.MEDIA_APP_DIR, proposal.id, onhold_document.name)
-        onhold_document.can_delete = True
-        onhold_document.save()
-
-    for requirement in proposal.requirements.all():
-        for requirement_document in RequirementDocument.objects.filter(requirement=requirement):
-            requirement_document._file.name = u'{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, requirement_document.name)
-            requirement_document.can_delete = True
-            requirement_document.save()
-
-    for log_entry_document in ProposalLogDocument.objects.filter(log_entry__proposal_id=proposal.id):
-        log_entry_document._file.name = log_entry_document._file.name.replace(str(original_proposal.id), str(proposal.id))
-        log_entry_document.can_delete = True
-        log_entry_document.save()
-
-    # copy documents on file system and reset can_delete flag
-    media_dir = '{}/{}'.format(media_prefix, settings.MEDIA_APP_DIR)
-    subprocess.call('cp -pr {0}/proposals/{1} {0}/proposals/{2}'.format(media_dir, original_proposal.id, proposal.id), shell=True)
-
-
-def _clone_documents(proposal, original_proposal, media_prefix):
-    for proposal_document in ProposalDocument.objects.filter(proposal=original_proposal.id):
-        proposal_document.proposal = proposal
-        proposal_document.id = None
-        proposal_document._file.name = u'{}/proposals/{}/documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_document.name)
-        proposal_document.can_delete = True
-        proposal_document.save()
-
-    for proposal_required_document in ProposalRequiredDocument.objects.filter(proposal=original_proposal.id):
-        proposal_required_document.proposal = proposal
-        proposal_required_document.id = None
-        proposal_required_document._file.name = u'{}/proposals/{}/required_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_required_document.name)
-        proposal_required_document.can_delete = True
-        proposal_required_document.save()
-
-    # copy documents on file system and reset can_delete flag
-    media_dir = '{}/{}'.format(media_prefix, settings.MEDIA_APP_DIR)
-    subprocess.call('cp -pr {0}/proposals/{1} {0}/proposals/{2}'.format(media_dir, original_proposal.id, proposal.id), shell=True)
-
-def duplicate_object(self):
-    """
-    Duplicate a model instance, making copies of all foreign keys pointing to it.
-    There are 3 steps that need to occur in order:
-
-        1.  Enumerate the related child objects and m2m relations, saving in lists/dicts
-        2.  Copy the parent object per django docs (doesn't copy relations)
-        3a. Copy the child objects, relating to the copied parent object
-        3b. Re-create the m2m relations on the copied parent object
-
-    """
-    related_objects_to_copy = []
-    relations_to_set = {}
-    # Iterate through all the fields in the parent object looking for related fields
-    for field in self._meta.get_fields():
-        if field.name in ['proposal', 'approval']:
-            print('Continuing ...')
-            pass
-        elif field.one_to_many:
-            # One to many fields are backward relationships where many child objects are related to the
-            # parent (i.e. SelectedPhrases). Enumerate them and save a list so we can copy them after
-            # duplicating our parent object.
-            print('Found a one-to-many field: {}'.format(field.name))
-
-            # 'field' is a ManyToOneRel which is not iterable, we need to get the object attribute itself
-            related_object_manager = getattr(self, field.name)
-            related_objects = list(related_object_manager.all())
-            if related_objects:
-                print(' - {len(related_objects)} related objects to copy')
-                related_objects_to_copy += related_objects
-
-        elif field.many_to_one:
-            # In testing so far, these relationships are preserved when the parent object is copied,
-            # so they don't need to be copied separately.
-            print('Found a many-to-one field: {}'.format(field.name))
-
-        elif field.many_to_many:
-            # Many to many fields are relationships where many parent objects can be related to many
-            # child objects. Because of this the child objects don't need to be copied when we copy
-            # the parent, we just need to re-create the relationship to them on the copied parent.
-            print('Found a many-to-many field: {}'.format(field.name))
-            related_object_manager = getattr(self, field.name)
-            relations = list(related_object_manager.all())
-            if relations:
-                print(' - {} relations to set'.format(len(relations)))
-                relations_to_set[field.name] = relations
-
-    # Duplicate the parent object
-    self.pk = None
-    self.lodgement_number = ''
-    self.save()
-    print('Copied parent object {}'.format(str(self)))
-
-    # Copy the one-to-many child objects and relate them to the copied parent
-    for related_object in related_objects_to_copy:
-        # Iterate through the fields in the related object to find the one that relates to the
-        # parent model (I feel like there might be an easier way to get at this).
-        for related_object_field in related_object._meta.fields:
-            if related_object_field.related_model == self.__class__:
-                # If the related_model on this field matches the parent object's class, perform the
-                # copy of the child object and set this field to the parent object, creating the
-                # new child -> parent relationship.
-                related_object.pk = None
-                #if related_object_field.name=='approvals':
-                #    related_object.lodgement_number = None
-                ##if isinstance(related_object, Approval):
-                ##    related_object.lodgement_number = ''
-
-                setattr(related_object, related_object_field.name, self)
-                print(related_object_field)
-                try:
-                    related_object.save()
-                except Exception as e:
-                    logger.warn(e)
-
-                text = str(related_object)
-                text = (text[:40] + '..') if len(text) > 40 else text
-                print('|- Copied child object {}'.format(text))
-
-    # Set the many-to-many relations on the copied parent
-    for field_name, relations in relations_to_set.items():
-        # Get the field by name and set the relations, creating the new relationships
-        field = getattr(self, field_name)
-        field.set(relations)
-        text_relations = []
-        for relation in relations:
-            text_relations.append(str(relation))
-        print('|- Set {} many-to-many relations on {} {}'.format(len(relations), field_name, text_relations))
-
-    return self
 
 def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance, is_internal= True):
     from mooringlicensing.utils import search, search_approval, search_compliance
@@ -4491,85 +4277,30 @@ class HelpPage(models.Model):
 
 
 import reversion
-reversion.register(Proposal)
+reversion.register(Proposal, follow=["waitinglistapplication", "annualadmissionapplication", "authoriseduserapplication", "mooringlicenceapplication",
+    "documents","comms_logs",
+    "insurance_certificate_documents","hull_identification_number_documents", "electoral_roll_documents","mooring_report_documents",
+    "written_proof_documents","signed_licence_agreement_documents","proof_of_identity_documents",
+    "proposalrequest_set","proposaldeclineddetails",
+    "requirements","compliances","approvals",
+    ])
 reversion.register(WaitingListApplication)
 reversion.register(AnnualAdmissionApplication)
 reversion.register(AuthorisedUserApplication)
 reversion.register(MooringLicenceApplication)
+reversion.register(ProposalDocument)
+reversion.register(ProposalLogEntry, follow=["documents"])
+reversion.register(InsuranceCertificateDocument)
+reversion.register(HullIdentificationNumberDocument)
+reversion.register(ElectoralRollDocument)
+reversion.register(MooringReportDocument)
+reversion.register(WrittenProofDocument)
+reversion.register(SignedLicenceAgreementDocument)
+reversion.register(ProofOfIdentityDocument)
+reversion.register(ProposalRequest)
+reversion.register(ProposalDeclinedDetails)
+reversion.register(ProposalRequirement, follow=["requirement_documents",])
+reversion.register(RequirementDocument)
 
-#reversion.register(Referral, follow=['referral_documents', 'assessment'])
-#reversion.register(ReferralDocument, follow=['referral_document'])
-#
-#reversion.register(Proposal, follow=['documents', 'onhold_documents','required_documents','qaofficer_documents','comms_logs','other_details', 'parks', 'trails', 'vehicles', 'vessels', 'proposalrequest_set','proposaldeclineddetails', 'proposalonhold', 'requirements', 'referrals', 'qaofficer_referrals', 'compliances', 'referrals', 'approvals', 'park_entries', 'assessment', 'fee_discounts', 'district_proposals', 'filming_parks', 'events_parks', 'pre_event_parks','filming_activity', 'filming_access', 'filming_equipment', 'filming_other_details', 'event_activity', 'event_management', 'event_vehicles_vessels', 'event_other_details','event_abseiling_climbing_activity' ])
-#reversion.register(ProposalDocument, follow=['onhold_documents'])
-#reversion.register(ApplicationFeeDiscount)
-#reversion.register(OnHoldDocument)
-#reversion.register(ProposalRequest)
-#reversion.register(ProposalRequiredDocument)
-#reversion.register(ProposalApplicantDetails)
-#reversion.register(ProposalActivitiesLand)
-#reversion.register(ProposalActivitiesMarine)
-#reversion.register(ProposalOtherDetails, follow=['accreditations'])
-#
-#reversion.register(ProposalLogEntry, follow=['documents',])
-#reversion.register(ProposalLogDocument)
-#
-##reversion.register(Park, follow=['proposals',])
-#reversion.register(ProposalPark, follow=['activities','access_types', 'zones'])
-#reversion.register(ProposalParkAccess)
-#
-##reversion.register(AccessType, follow=['proposals','proposalparkaccess_set', 'vehicles'])
-#
-##reversion.register(Activity, follow=['proposalparkactivity_set','proposalparkzoneactivity_set', 'proposaltrailsectionactivity_set'])
-#reversion.register(ProposalParkActivity)
-#
-#reversion.register(ProposalParkZone, follow=['park_activities'])
-#reversion.register(ProposalParkZoneActivity)
-#reversion.register(ParkEntry)
-#
-#reversion.register(ProposalTrail, follow=['sections'])
-#reversion.register(Vehicle)
-#reversion.register(Vessel)
-#reversion.register(ProposalUserAction)
-#
-#reversion.register(ProposalTrailSection, follow=['trail_activities'])
-#
-#reversion.register(ProposalTrailSectionActivity)
-#reversion.register(AmendmentReason, follow=['amendmentrequest_set'])
-#reversion.register(AmendmentRequest)
-#reversion.register(Assessment)
-#reversion.register(ProposalDeclinedDetails)
-#reversion.register(ProposalOnHold)
-#reversion.register(ProposalStandardRequirement, follow=['proposalrequirement_set'])
-#reversion.register(ProposalRequirement, follow=['compliance_requirement'])
-#reversion.register(ReferralRecipientGroup, follow=['mooringlicensing_referral_groups', 'referral_assessment'])
-#reversion.register(QAOfficerGroup, follow=['qaofficer_groups'])
-#reversion.register(QAOfficerReferral)
-#reversion.register(QAOfficerDocument, follow=['qaofficer_referral_document'])
-#reversion.register(ProposalAccreditation)
-#reversion.register(HelpPage)
-#reversion.register(ChecklistQuestion, follow=['answers'])
-#reversion.register(ProposalAssessment, follow=['answers'])
-#reversion.register(ProposalAssessmentAnswer)
-#
-##Filming
-#reversion.register(ProposalFilmingActivity)
-#reversion.register(ProposalFilmingAccess)
-#reversion.register(ProposalFilmingEquipment)
-#reversion.register(ProposalFilmingOtherDetails)
-#reversion.register(ProposalFilmingParks, follow=['filming_park_documents'])
-#reversion.register(FilmingParkDocument)
-#reversion.register(DistrictProposal, follow=['district_compliance', 'district_proposal_requirements', 'district_approvals'])
-#
-##Event
-#reversion.register(ProposalEventActivities, follow=['abseiling_climbing_activity_data'])
-#reversion.register(ProposalEventManagement)
-#reversion.register(ProposalEventVehiclesVessels)
-#reversion.register(ProposalEventOtherDetails)
-#reversion.register(ProposalEventsParks, follow=['events_park_documents'])
-#reversion.register(AbseilingClimbingActivity)
-#reversion.register(EventsParkDocument)
-#reversion.register(ProposalPreEventsParks, follow=['pre_event_park_documents'])
-#reversion.register(PreEventsParkDocument)
-#reversion.register(ProposalEventsTrails)
+reversion.register(CompanyOwnership, follow=["blocking_proposal"])
 
