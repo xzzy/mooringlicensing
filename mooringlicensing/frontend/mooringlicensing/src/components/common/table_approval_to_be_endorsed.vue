@@ -35,6 +35,24 @@ export default {
     },
     data() {
         let vm = this;
+        let buttons = []
+        if (vm.is_internal){
+            buttons = [
+                {
+                    extend: 'excel',
+                    exportOptions: {
+                        columns: ':visible'
+                    }
+                },
+                {
+                    extend: 'csv',
+                    exportOptions: {
+                        columns: ':visible'
+                    }
+                },
+            ]
+        }
+
         return {
             datatable_id: 'to_be_endorsed-datatable-' + vm._uid,
             approvalTypesToDisplay: ['aua'],
@@ -69,25 +87,7 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                /*
-                buttons:[
-                ],
-                */
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
-
+                buttons: buttons,
                 columns: [
                     {
                         // 1. ID
@@ -177,9 +177,11 @@ export default {
     },
     computed: {
         is_external: function() {
-            return this.level == 'external'
+            return this.level === 'external'
         },
-
+        is_internal: function() {
+            return this.level === 'internal'
+        },
     },
     methods: {
 

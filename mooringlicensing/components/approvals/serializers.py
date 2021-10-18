@@ -545,7 +545,12 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        if (
+                type(obj.child_obj) == WaitingListAllocation and 
+                obj.status == 'current' and
+                obj.current_proposal.preferred_bay and
+                obj.internal_status == 'waiting'
+                ):
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
@@ -693,7 +698,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         model = Approval
         fields = (
             'id',
-            #'migrated',
+            'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -734,7 +739,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         # also require the following additional fields for some of the mRender functions
         datatables_always_serialize = (
             'id',
-            #'migrated',
+            'migrated',
             'lodgement_number',
             'status',
             'internal_status',
@@ -884,7 +889,13 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_offer_link(self, obj):
         link = ''
-        if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        #if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
+        if (
+                type(obj.child_obj) == WaitingListAllocation and 
+                obj.status == 'current' and
+                obj.current_proposal.preferred_bay and
+                obj.internal_status == 'waiting'
+                ):
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
@@ -1142,6 +1153,8 @@ class StickerSerializer(serializers.ModelSerializer):
     vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
     moorings = serializers.SerializerMethodField()
     dcv_permit = DcvPermitSimpleSerializer()
+    invoices = serializers.SerializerMethodField()
+    can_view_payment_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1159,6 +1172,8 @@ class StickerSerializer(serializers.ModelSerializer):
             'moorings',
             'dcv_permit',
             'fee_season',
+            'invoices',
+            'can_view_payment_details',
         )
         datatables_always_serialize = (
             'id',
@@ -1174,7 +1189,22 @@ class StickerSerializer(serializers.ModelSerializer):
             'moorings',
             'dcv_permit',
             'fee_season',
+            'invoices',
+            'can_view_payment_details',
         )
+
+    def get_can_view_payment_details(self, proposal):
+        if 'request' in self.context:
+            from mooringlicensing.components.main.utils import is_payment_officer
+            return is_payment_officer(self.context['request'].user)
+
+    def get_invoices(self, obj):
+        invoices = obj.get_invoices()
+        if not invoices:
+            return ''
+        else:
+            serializer = InvoiceSerializer(invoices, many=True)
+            return serializer.data
 
     def get_moorings(self, obj):
         moas = obj.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT))

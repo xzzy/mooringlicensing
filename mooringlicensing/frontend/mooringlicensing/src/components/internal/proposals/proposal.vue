@@ -282,12 +282,20 @@ export default {
                 ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
             return ret_val
         },
+        /*
         showElectoralRoll: function(){
             // TODO: implement
             return true
         },
+        */
+        showElectoralRoll: function() {
+            let show = false;
+            if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
+                show = true;
+            }
+            return show;
+        },
         readonly: function() {
-            // TODO: implement
             return true
         },
         contactsURL: function(){
@@ -298,9 +306,6 @@ export default {
         },
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
-        },
-        proposal_form_url: function() {
-          return (this.proposal) ? `/api/proposal/${this.proposal.id}/assessor_save.json` : '';
         },
         isFinalised: function(){
             return this.proposal.processing_status == 'Declined' || this.proposal.processing_status == 'Approved';
@@ -405,7 +410,6 @@ export default {
         },
         proposedDecline: function(){
             console.log('in proposedDecline')
-            this.save_wo();
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
         },
@@ -431,8 +435,6 @@ export default {
                     let vm = this;
                     let data = new FormData();
                     data.append('approval_level_comment', vm.proposal.approval_level_comment)
-                    //vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/approval_level_comment'),data,{
-                    console.log('3')
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id+'/approval_level_comment'), data, {emulateJSON:true}).then(
                         res => {
                             vm.proposal = res.body;
@@ -466,7 +468,6 @@ export default {
             this.$refs.proposed_decline.isModalOpen = true;
         },
         amendmentRequest: function(){
-            this.save_wo();
             let values = '';
             $('.deficiency').each((i,d) => {
                 values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
@@ -495,28 +496,6 @@ export default {
             });
             //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
-        },
-        save: function(e) {
-            let vm = this;
-            vm.checkAssessorData();
-            let formData = new FormData(vm.form);
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-                swal(
-                  'Saved',
-                  'Your proposal has been saved',
-                  'success'
-                )
-            },err=>{ });
-        },
-        save_wo: function() {
-            let vm = this;
-            vm.checkAssessorData();
-            let formData = new FormData(vm.form);
-            vm.$http.post(vm.proposal_form_url,formData).then(res=>{
-
-
-            },err=>{
-            });
         },
         toggleProposal:function(value){
             this.showingProposal = value
@@ -630,40 +609,33 @@ export default {
             console.log(status)
 
             let vm = this;
-            //vm.save_wo();
-            //let vm = this;
             if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
                 console.log('0')
                 vm.checkAssessorData();
                 let formData = new FormData(vm.form);
-                console.log(vm.proposal_form_url)
-                vm.$http.post(vm.proposal_form_url, formData).then(res=>{ //save Proposal before changing status so that unsaved assessor data is saved.
-                    let data = {'status': status, 'approver_comment': vm.approver_comment}
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')), JSON.stringify(data),{
-                        emulateJSON:true,
-                    })
-                    .then((response) => {
-                        console.log('0 response.body: ')
-                        console.log(response.body)
-                        vm.proposal = response.body;
-                        vm.original_proposal = helpers.copyObject(response.body);
-                        //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                        vm.approver_comment='';
-                        vm.$nextTick(() => {
-                            vm.initialiseAssignedOfficerSelect(true);
-                            vm.updateAssignedOfficerSelect();
-                        });
-                    }, (error) => {
-                        vm.proposal = helpers.copyObject(vm.original_proposal)
-                        //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                        swal(
-                            'Proposal Error',
-                            helpers.apiVueResourceError(error),
-                            'error'
-                        )
-                    })
-                }, err=>{
-
+                let data = {'status': status, 'approver_comment': vm.approver_comment}
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')), JSON.stringify(data),{
+                    emulateJSON:true,
+                })
+                .then((response) => {
+                    console.log('0 response.body: ')
+                    console.log(response.body)
+                    vm.proposal = response.body;
+                    vm.original_proposal = helpers.copyObject(response.body);
+                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+                    vm.approver_comment='';
+                    vm.$nextTick(() => {
+                        vm.initialiseAssignedOfficerSelect(true);
+                        vm.updateAssignedOfficerSelect();
+                    });
+                }, (error) => {
+                    vm.proposal = helpers.copyObject(vm.original_proposal)
+                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+                    swal(
+                        'Proposal Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
                 });
             }
 

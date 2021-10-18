@@ -9,6 +9,11 @@ import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
+from mooringlicensing.components.main.decorators import (
+        basic_exception_handler, 
+        timeit, 
+        query_debugger
+        )
 from mooringlicensing.components.proposals.models import (
     # ProposalDocument,  # ProposalPark, ProposalParkActivity, ProposalParkAccess, ProposalTrail, ProposalTrailSectionActivity, ProposalTrailSection, ProposalParkZone, ProposalParkZoneActivity, ProposalOtherDetails, ProposalAccreditation,
     # ProposalUserAction,
@@ -345,7 +350,6 @@ class SpecialFieldsSearch(object):
             item_data[item['name']] = item_data_list
         return item_data
 
-
 def save_proponent_data(instance, request, viewset):
     if viewset.action == 'submit':
         logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
@@ -486,19 +490,16 @@ def save_vessel_data(instance, request, vessel_data):
     # add vessel details to vessel_data
     for key in vessel_details_data.keys():
         vessel_data.update({key: vessel_details_data.get(key)})
-    #import ipdb; ipdb.set_trace()
     if vessel_id:
         vessel_data.update({"vessel_id": vessel_id})
     vessel_ownership_data = vessel_data.get("vessel_ownership")
-    # check for blocking_owner
-    #if vessel_id and Vessel.objects.get(id=vessel_id).blocking_owner:
-     #   if Vessel.objects.get(id=vessel_id).blocking_owner.id != vessel_ownership_data.get('id'):
-      #      raise serializers.ValidationError({"Blocked Vessel": "Another user has a current application for this vessel"})
-    company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
-    company_ownership_name = vessel_ownership_data.get('company_ownership', {}).get('company', {}).get('name')
-    vessel_data.update({"company_ownership_percentage": company_ownership_percentage})
-    vessel_data.update({"company_ownership_name": company_ownership_name})
-    vessel_ownership_data.pop('company_ownership', None)
+    if vessel_ownership_data.get('company_ownership'):
+        company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
+        company_ownership_name = vessel_ownership_data.get('company_ownership', {}).get('company', {}).get('name')
+        vessel_data.update({"company_ownership_percentage": company_ownership_percentage})
+        vessel_data.update({"company_ownership_name": company_ownership_name})
+    if 'company_ownership' in vessel_ownership_data.keys():
+        vessel_ownership_data.pop('company_ownership', None)
     # copy VesselOwnership fields to vessel_data
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
@@ -730,6 +731,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     #vessel = instance.vessel_details.vessel
     ## Vessel Ownership
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
+    #import ipdb; ipdb.set_trace()
     vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
@@ -891,215 +893,15 @@ def ownership_percentage_validation(vessel_ownership):
             "Ownership Percentage": "Total of 100 percent exceeded"
             })
 
-def save_bare_vessel_data(request, vessel_obj=None):
-    print("save bare vessel data")
-    vessel_data = request.data.get("vessel")
-    vessel, vessel_details = store_vessel_data(request, vessel_data)
-    # record ownership data
-    #submit_vessel_ownership(instance, request)
-    vessel_ownership = store_vessel_ownership(request, vessel)
-    return VesselOwnershipSerializer(vessel_ownership).data
-
-# no proposal - manage vessels
-def bak_save_bare_vessel_data(request, vessel_obj=None):
-    #import ipdb; ipdb.set_trace()
-    print("save bare vessel data")
-    #if not vessel_data.get("read_only"):
-    vessel_data = request.data.get("vessel")
-    if not vessel_data.get('rego_no'):
-        raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
-    rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
-    if vessel_obj:
-        vessel = vessel_obj
-    else:
-        vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
-    
-    vessel_details_data = vessel_data.get("vessel_details")
-    # add vessel to vessel_details_data
-    vessel_details_data["vessel"] = vessel.id
-
-    ## Vessel Details
-    vessel_details = vessel.latest_vessel_details
-    if not vessel_details:
-        serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        #vessel_details = serializer.save()
-        # set proposal now has sole right to edit vessel_details
-        #vessel_details.blocking_proposal = instance
-        #vessel_details.save()
-    else:
-        serializer = SaveVesselDetailsSerializer(vessel_details, vessel_details_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-    # record ownership data
-    vessel_ownership = save_bare_vessel_ownership(request, vessel_data, vessel)
-    #return VesselSerializer(vessel).data
-    return VesselOwnershipSerializer(vessel_ownership).data
-
-# no proposal - manage vessels
-def bak_save_bare_vessel_ownership(request, vessel_data, vessel):
-    print("save bare vessel ownership data")
-    vessel_ownership_data = vessel_data.get("vessel_ownership")
-    if vessel_ownership_data.get('individual_owner') is None:
-        raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
-    elif not vessel_ownership_data.get('individual_owner') and not vessel_ownership_data.get("org_name"):
-        raise serializers.ValidationError({"Missing information": "You must supply the company name"})
-    vessel_ownership_data['vessel'] = vessel.id
-    org_name = vessel_ownership_data.get("org_name")
-    owner, created = Owner.objects.get_or_create(emailuser=request.user)
-
-    vessel_ownership_data['owner'] = owner.id
-    #vessel_ownership = instance.vessel_ownership
-    #if not vessel_ownership:
-    vessel_ownership, created = VesselOwnership.objects.get_or_create(
-            owner=owner, 
-            vessel=vessel, 
-            #org_name=registered_owner_company_name_strip
-            org_name=org_name
-            )
-    if request.data.get('create_vessel') and not created:
-        raise serializers.ValidationError("You are already listed as an owner of this vessel.\
-                Please select Options > Manage Vessels to edit this vessel.")
-    serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
-    serializer.is_valid(raise_exception=True)
-    vessel_ownership = serializer.save()
-    return vessel_ownership
-
-#from mooringlicensing.components.main.models import ApplicationType
-
-def save_assessor_data(instance,request,viewset):
-    with transaction.atomic():
-        try:
-            pass
-            #if instance.application_type.name==ApplicationType.FILMING:
-            #    save_assessor_data_filming(instance,request,viewset)
-            #if instance.application_type.name==ApplicationType.TCLASS:
-            #    save_assessor_data_tclass(instance,request,viewset)
-            #if instance.application_type.name==ApplicationType.EVENT:
-            #    save_assessor_data_event(instance,request,viewset)            
-        except:
-            raise
-
-
-# def proposal_submit(proposal, request):
-    # if proposal.can_user_edit:
-    # proposal.lodgement_date = datetime.now(pytz.timezone(TIME_ZONE))
-    # proposal.save()
-    #proposal.training_completed = True
-    #if (proposal.amendment_requests):
-    #    qs = proposal.amendment_requests.filter(status = "requested")
-    #    if (qs):
-    #        for q in qs:
-    #            q.status = 'amended'
-    #            q.save()
-
-    # Create a log entry for the proposal
-    # proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id),request)
-
-    # ret1 = send_submit_email_notification(request, proposal)
-    #ret2 = send_external_submit_email_notification(request, proposal)
-    # ret2 = True
-    # proposal.child_obj.proposal_submit(request)
-
-    #Create assessor checklist with the current assessor_list type questions
-    #Assessment instance already exits then skip.
-    #try:
-    #    assessor_assessment=ProposalAssessment.objects.get(proposal=proposal,referral_group=None, referral_assessment=False)
-    #except ProposalAssessment.DoesNotExist:
-    #    assessor_assessment=ProposalAssessment.objects.create(proposal=proposal,referral_group=None, referral_assessment=False)
-    #    checklist=ChecklistQuestion.objects.filter(list_type='assessor_list', application_type=proposal.application_type, obsolete=False)
-    #    for chk in checklist:
-    #        try:
-    #            chk_instance=ProposalAssessmentAnswer.objects.get(question=chk, assessment=assessor_assessment)
-    #        except ProposalAssessmentAnswer.DoesNotExist:
-    #            chk_instance=ProposalAssessmentAnswer.objects.create(question=chk, assessment=assessor_assessment)
-
-    #return proposal
-
-    # else:
-    #     raise ValidationError('You can\'t edit this proposal at this moment')
-
-
-def is_payment_officer(user):
-    from mooringlicensing.components.proposals.models import PaymentOfficerGroup
-    try:
-        group= PaymentOfficerGroup.objects.get(default=True)
-    except PaymentOfficerGroup.DoesNotExist:
-        group= None
-    if group:
-        if user in group.members.all():
-            return True
-    return False
-
-
-#from mooringlicensing.components.proposals.models import (
-#        Proposal, #Referral, 
-#        AmendmentRequest, 
-#        ProposalDeclinedDetails
-#        )
-#from mooringlicensing.components.approvals.models import Approval
-#from mooringlicensing.components.compliances.models import Compliance
-##from mooringlicensing.components.bookings.models import ApplicationFee, Booking
-#from ledger.payments.models import Invoice
-#from mooringlicensing.components.proposals import email as proposal_email
-#from mooringlicensing.components.approvals import email as approval_email
-#from mooringlicensing.components.compliances import email as compliance_email
-#from mooringlicensing.components.bookings import email as booking_email
-#def test_proposal_emails(request):
-#    """ Script to test all emails (listed below) from the models """
-#    # setup
-#    if not (settings.PRODUCTION_EMAIL):
-#        recipients = [request.user.email]
-#        #proposal = Proposal.objects.last()
-#        approval = Approval.objects.filter(migrated=False).last()
-#        proposal = approval.current_proposal
-#        referral = Referral.objects.last()
-#        amendment_request = AmendmentRequest.objects.last()
-#        reason = 'Not enough information'
-#        proposal_decline = ProposalDeclinedDetails.objects.last()
-#        compliance = Compliance.objects.last()
-#
-#        application_fee = ApplicationFee.objects.last()
-#        api = Invoice.objects.get(reference=application_fee.application_fee_invoices.last().invoice_reference)
-#
-#        booking = Booking.objects.last()
-#        bi = Invoice.objects.get(reference=booking.invoices.last().invoice_reference)
-#
-#        proposal_email.send_qaofficer_email_notification(proposal, recipients, request, reminder=False)
-#        proposal_email.send_qaofficer_complete_email_notification(proposal, recipients, request, reminder=False)
-#        proposal_email.send_referral_email_notification(referral,recipients,request,reminder=False)
-#        proposal_email.send_referral_complete_email_notification(referral,request)
-#        proposal_email.send_amendment_email_notification(amendment_request, request, proposal)
-#        proposal_email.send_submit_email_notification(request, proposal)
-#        proposal_email.send_external_submit_email_notification(request, proposal)
-#        proposal_email.send_approver_decline_email_notification(reason, request, proposal)
-#        proposal_email.send_approver_approve_email_notification(request, proposal)
-#        proposal_email.send_proposal_decline_email_notification(proposal,request,proposal_decline)
-#        proposal_email.send_proposal_approver_sendback_email_notification(request, proposal)
-#        proposal_email.send_proposal_approval_email_notification(proposal,request)
-#
-#        approval_email.send_approval_expire_email_notification(approval)
-#        approval_email.send_approval_cancel_email_notification(approval)
-#        approval_email.send_approval_suspend_email_notification(approval, request)
-#        approval_email.send_approval_surrender_email_notification(approval, request)
-#        approval_email.send_approval_renewal_email_notification(approval)
-#        approval_email.send_approval_reinstate_email_notification(approval, request)
-#
-#        compliance_email.send_amendment_email_notification(amendment_request, request, compliance, is_test=True)
-#        compliance_email.send_reminder_email_notification(compliance, is_test=True)
-#        compliance_email.send_internal_reminder_email_notification(compliance, is_test=True)
-#        compliance_email.send_due_email_notification(compliance, is_test=True)
-#        compliance_email.send_internal_due_email_notification(compliance, is_test=True)
-#        compliance_email.send_compliance_accept_email_notification(compliance,request, is_test=True)
-#        compliance_email.send_external_submit_email_notification(request, compliance, is_test=True)
-#        compliance_email.send_submit_email_notification(request, compliance, is_test=True)
-#
-#
-#        booking_email.send_application_fee_invoice_tclass_email_notification(request, proposal, api, recipients, is_test=True)
-#        booking_email.send_application_fee_confirmation_tclass_email_notification(request, application_fee, api, recipients, is_test=True)
-#        booking_email.send_invoice_tclass_email_notification(request.user, booking, bi, recipients, is_test=True)
-#        booking_email.send_confirmation_tclass_email_notification(request.user, booking, bi, recipients, is_test=True)
+## required for manage vessels
+#def save_bare_vessel_data(request, vessel_obj=None):
+#    print("save bare vessel data")
+#    vessel_data = request.data.get("vessel")
+#    vessel, vessel_details = store_vessel_data(request, vessel_data)
+#    # record ownership data
+#    #submit_vessel_ownership(instance, request)
+#    vessel_ownership = store_vessel_ownership(request, vessel)
+#    return VesselOwnershipSerializer(vessel_ownership).data
 
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
@@ -1141,7 +943,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                         fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
                             target_vessel_size_category,
                             target_fee_period,
-                            proposal_type=target_proposal_type,
+                            proposal_type=target_proposal_type,  # Find the fee_item with same proposal type (always 'amendment')
                             age_group=None,
                             admission_type=None
                         )
@@ -1151,43 +953,6 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
                         if fee_item_considered_paid:
                             fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
                             logger.info('Deduct fee item: {}'.format(fee_item_considered_paid))
-
-#        if proposal.approval and proposal.approval.status in (Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,):
-#            # When proposal.approval exists, this proposal is either amendment or renewal
-#
-#            # Retrieve all the fee items paid for the approval this proposal is for (through proposal.approval)
-#            fee_items_already_paid = proposal.approval.get_fee_items()
-#            if fee_item_being_applied in fee_items_already_paid:
-#                # Fee item being applied has been paid already
-#                # We don't charge this fee_item_being_applied
-#                return Decimal('0.0')
-#            else:
-#                for fee_item in fee_items_already_paid:
-#                    if fee_item.fee_period.fee_season == fee_item_being_applied.fee_period.fee_season:  # and fee_item.proposal_type == fee_item_being_applied.proposal_type:
-#                        # Found fee_item which has
-#                        #   same: fee_season, application_type
-#                        #   different: fee_period, vessel_size_category  (might be the same)
-#
-#                        if fee_item.fee_period.start_date <= fee_item_being_applied.fee_period.start_date:
-#                            # Find the fee_item which can be considered as already paid for this period, this proposal type, but the previous vessel size category
-#                            target_fee_period = fee_item_being_applied.fee_period
-#                            target_proposal_type = fee_item_being_applied.proposal_type
-#                            target_vessel_size_category = fee_item.vessel_size_category  # <== Vessel size category should be the one of the fee item found.
-#
-#                            target_fee_constructor = fee_item_being_applied.fee_constructor
-#                            fee_item_considered_paid = target_fee_constructor.get_fee_item_for_adjustment(
-#                                target_vessel_size_category,
-#                                target_fee_period,
-#                                proposal_type=target_proposal_type,
-#                                age_group=None,
-#                                admission_type=None
-#                            )
-#
-#                            # Applicant already partially paid for this fee item.  Deduct it.
-#                            # fee_amount_adjusted -= fee_item_considered_paid.amount
-#                            if fee_item_considered_paid:
-#                                fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-#                                logger_for_payment.info('Deduct fee item: {}'.format(fee_item_considered_paid))
 
         fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
     else:

@@ -6,7 +6,7 @@ from ledger.payments.models import CashTransaction
 
 from mooringlicensing.components.proposals.models import Proposal
 
-logger = logging.getLogger('log')
+logger = logging.getLogger('mooringlicensing')
 
 
 class FeeConstructorListener(object):
@@ -33,4 +33,5 @@ class InvoiceListerner(object):
             if application_fee.proposal:
                 if application_fee.proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
                     application_fee.proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    application_fee.proposal.customer_status = Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
                 application_fee.proposal.save()
