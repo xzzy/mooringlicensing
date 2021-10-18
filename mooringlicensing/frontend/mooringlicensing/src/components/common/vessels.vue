@@ -4,7 +4,7 @@
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
                 <div class="col-sm-9">
-                    <select :disabled="readonly || editingVessel" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
+                    <select :disabled="readonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                         <option></option>
                     </select>
                 </div>
@@ -265,12 +265,14 @@ from '@/utils/hooks'
                 type: Boolean,
                 default: true,
             },
+            /*
             creatingVessel:{
                 type: Boolean,
             },
             editingVessel:{
                 type: Boolean,
             },
+            */
             is_internal: {
               type: Boolean,
               default: false
@@ -443,16 +445,20 @@ from '@/utils/hooks'
                 return this.vessel ? this.vessel.vessel_ownership : {};
             },
             previousApplicationVesselDetails: function() {
-                return this.proposal ? this.proposal.previous_application_vessel_details_obj : {};
+                return this.proposal ? this.proposal.previous_application_vessel_details_obj : null;
             },
             previousApplicationVesselOwnership: function() {
-                return this.proposal ? this.proposal.previous_application_vessel_ownership_obj : {};
+                return this.proposal ? this.proposal.previous_application_vessel_ownership_obj : null;
             },
         },
         methods:{
             vesselChanged: async function() {
                 let vesselChanged = false;
                 await this.$nextTick(() => {
+                    // do not perform check if no previous application vessel
+                    if (!this.previousApplicationVesselDetails) {
+                        return
+                    }
                     if (this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim() ||
                         this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
                         this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
@@ -556,8 +562,6 @@ from '@/utils/hooks'
                             var query = {
                                 term: params.term,
                                 type: 'public',
-                                //create_vessel: vm.creatingVessel,
-                                //org_name: vm.orgName,
                             }
                             return query;
                         },
@@ -663,9 +667,10 @@ from '@/utils/hooks'
                             var query = {
                                 term: params.term,
                                 type: 'public',
+                                /*
                                 create_vessel: vm.creatingVessel,
-                                //org_name: vm.orgName,
                                 company_name: vm.companyName,
+                                */
                             }
                             return query;
                         },
@@ -815,22 +820,6 @@ from '@/utils/hooks'
                     this.vesselTypes.push(vessel_type)
                 }
             },
-            /*
-            lookupVessel: async function(id) {
-                const res = await this.$http.get(api_endpoints.lookupVessel(id));
-                const vesselData = res.body;
-                console.log(res);
-                if (vesselData && vesselData.rego_no) {
-                    if (this.creatingVessel) {
-                        console.log("lookup - creating vessel")
-                        this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
-                    } else {
-                        console.log("lookup - not creating vessel")
-                        this.vessel = Object.assign({}, vesselData);
-                    }
-                }
-            },
-            */
             lookupCompanyOwnership: async function(id) {
                 console.log(id)
                 const url = api_endpoints.lookupCompanyOwnership(id);
@@ -954,7 +943,8 @@ from '@/utils/hooks'
                 if (this.proposal && this.keep_current_vessel) {
                     // fetches vessel data from proposal (saved as draft)
                     await this.fetchVessel();
-                } else if (!this.proposal && !this.creatingVessel) {
+                //} else if (!this.proposal && !this.creatingVessel) {
+                } else if (!this.proposal) {
                     // route.params.vessel_id in this case is a vesselownership id
                     const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                     this.fetchReadonlyVesselCommon(url);

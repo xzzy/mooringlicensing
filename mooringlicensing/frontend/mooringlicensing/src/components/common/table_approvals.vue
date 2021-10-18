@@ -245,7 +245,8 @@ export default {
                     'Vessel Name',
                     'Issue Date',
                     'Expiry Date',
-                    'Action'
+                    'Action',
+                    'Approval letter',
                 ]
             } else if (this.is_external) {
                 return [
@@ -259,6 +260,7 @@ export default {
                     'Expiry Date',
                     'Vessel',
                     'Action',
+                    'Approval letter',
                     //'Mooring Licence Vessels',
                     //'Authorised User Permit Moorings',
                 ]
@@ -669,6 +671,7 @@ export default {
                     vm.columnIssueDate,
                     vm.columnExpiryDate,
                     vm.columnAction,
+                    vm.columnApprovalLetter,
                 ]
             } else if (this.is_external) {
                 selectedColumns = [
@@ -682,6 +685,7 @@ export default {
                     vm.columnExpiryDate,
                     vm.columnVesselRegistration,
                     vm.columnAction,
+                    vm.columnApprovalLetter,
                     /*
                     vm.columnMooringLicenceVessels,
                     vm.columnAuthorisedUserMoorings,
@@ -725,6 +729,23 @@ export default {
                     */
                 ]
             }
+            let buttons = []
+            if (vm.is_internal){
+                buttons = [
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                    },
+                ]
+            }
 
             return {
                 autoWidth: false,
@@ -757,20 +778,7 @@ export default {
                 },
                 //dom: 'frt', //'lBfrtip',
                 dom: 'lBfrtip',
-                buttons:[
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
-                    },
-                ],
+                buttons: buttons,
                 columns: selectedColumns,
                 processing: true,
                 initComplete: function() {

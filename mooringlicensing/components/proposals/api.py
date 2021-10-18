@@ -13,8 +13,6 @@ from ledger.accounts.models import EmailUser, Address
 from mooringlicensing import settings
 from mooringlicensing.components.proposals.utils import (
         save_proponent_data,
-        save_assessor_data, 
-        save_bare_vessel_data
         )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType
@@ -164,27 +162,42 @@ class GetVessel(views.APIView):
         search_term = request.GET.get('term', '')
         if search_term:
             data_transform = []
+            #import ipdb; ipdb.set_trace()
 
             ml_data = VesselDetails.filtered_objects.filter(
                     Q(vessel__rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
-                    )[:10]
+                    ).values(
+                            'vessel__id', 
+                            'vessel__rego_no',
+                            'vessel_name'
+                            )[:10]
             for vd in ml_data:
                 data_transform.append({
-                    'id': vd.vessel.id, 
-                    'rego_no': vd.vessel.rego_no,
-                    'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    #'id': vd.vessel.id, 
+                    #'rego_no': vd.vessel.rego_no,
+                    #'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
+                    'id': vd.get('vessel__id'), 
+                    'rego_no': vd.get('vessel__rego_no'),
+                    'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
                     'entity_type': 'ml',
                     })
             dcv_data = DcvVessel.objects.filter(
                     Q(rego_no__icontains=search_term) | 
                     Q(vessel_name__icontains=search_term)
-                    )[:10]
+                    ).values(
+                            'id', 
+                            'rego_no',
+                            'vessel_name'
+                            )[:10]
             for dcv in dcv_data:
                 data_transform.append({
-                    'id': dcv.id, 
-                    'rego_no': dcv.rego_no,
-                    'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    #'id': dcv.id, 
+                    #'rego_no': dcv.rego_no,
+                    #'text': dcv.rego_no + ' - ' + dcv.vessel_name,
+                    'id': dcv.get('id'), 
+                    'rego_no': dcv.get('rego_no'),
+                    'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
                     'entity_type': 'dcv',
                     })
             ## order results
@@ -238,11 +251,13 @@ class GetMooringPerBay(views.APIView):
                         vessel_details_id = wla.current_proposal.vessel_details.id
                         ## restrict search results to suitable vessels
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-                        data = Mooring.available_moorings.filter(
-                                name__icontains=search_term).filter(
-                                mooring_bay__id=mooring_bay_id).filter(
-                                vessel_size_limit__gte=vessel_details.vessel_applicable_length).filter(
-                                vessel_draft_limit__gte=vessel_details.vessel_draft).values('id', 'name')[:10]
+                        mooring_filter = Q(
+                                Q(name__icontains=search_term) & 
+                                Q(mooring_bay__id=mooring_bay_id) & 
+                                Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) & 
+                                Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
+                                )
+                        data = Mooring.available_moorings.filter(mooring_filter).values('id', 'name')[:10]
                     else:
                         data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
                 else:
@@ -256,12 +271,14 @@ class GetMooringPerBay(views.APIView):
                     if vessel_details_id:
                         ## restrict search results to suitable vessels
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-                        data = Mooring.authorised_user_moorings.filter(
-                                name__icontains=search_term).filter(
-                                mooring_bay__id=mooring_bay_id).filter(
-                                vessel_size_limit__gte=vessel_details.vessel_applicable_length).filter(
-                                vessel_draft_limit__gte=vessel_details.vessel_draft).exclude(
-                                id__in=aup_mooring_ids).values('id', 'name')[:10]
+                        mooring_filter = Q(
+                                Q(name__icontains=search_term) & 
+                                Q(mooring_bay__id=mooring_bay_id) &
+                                Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) & 
+                                Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
+                                ~Q(id__in=aup_mooring_ids)
+                                )
+                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name')[:10]
                     else:
                         data = []
                 else:
@@ -273,41 +290,40 @@ class GetMooringPerBay(views.APIView):
 
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
-
     def get(self, request, format=None):
         #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
-        create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        company_name = request.GET.get('company_name')
-        #org_name = request.GET.get('org_name', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
+        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
+        #company_name = request.GET.get('company_name')
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = []
-            owner_set = Owner.objects.filter(emailuser=request.user)
-            if create_vessel and owner_set:
-                for rego in data:
-                    vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-                    vessel_ownership_set = None
-                    if company_name:
-                        company_ownership_set = CompanyOwnership.objects.filter(
-                                vessel=vessel,
-                                company__name=company_name)
-                        vessel_ownership_set = VesselOwnership.objects.filter(
-                            owner=owner_set[0], 
-                            vessel=vessel, 
-                            company_ownership__in=company_ownership_set
-                            )
-                    else:
-                        vessel_ownership_set = VesselOwnership.objects.filter(
-                            owner=owner_set[0],
-                            vessel=vessel
-                            )
-                    # request.user owns vessel
-                    if not vessel_ownership_set:
-                        data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-            else:
-                data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            #data_transform = []
+            #owner_set = Owner.objects.filter(emailuser=request.user)
+            #if create_vessel and owner_set:
+            #    print("create_vessel")
+            #    for rego in data:
+            #        vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
+            #        vessel_ownership_set = None
+            #        if company_name:
+            #            company_ownership_set = CompanyOwnership.objects.filter(
+            #                    vessel=vessel,
+            #                    company__name=company_name)
+            #            vessel_ownership_set = VesselOwnership.objects.filter(
+            #                owner=owner_set[0], 
+            #                vessel=vessel, 
+            #                company_ownership__in=company_ownership_set
+            #                )
+            #        else:
+            #            vessel_ownership_set = VesselOwnership.objects.filter(
+            #                owner=owner_set[0],
+            #                vessel=vessel
+            #                )
+            #        # request.user owns vessel
+            #        if not vessel_ownership_set:
+            #            data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
+            #else:
+            #    data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return Response()
 
@@ -612,7 +628,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user,
                 proposal_type=proposal_type
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
@@ -640,7 +656,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user,
                 proposal_type=proposal_type
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
@@ -679,7 +695,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 allocated_mooring=mooring,
                 #approval=approval
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
@@ -707,7 +723,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user,
                 proposal_type=proposal_type
                 )
-        serialized_obj = ProposalSerializer(obj)
+        serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
 
@@ -1232,10 +1248,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.final_approval(request, serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance, context={'request': request})
-        print(serializer.data)
-        return Response(serializer.data)
+        #serializer_class = self.internal_serializer_class()
+        #serializer = serializer_class(instance, context={'request': request})
+        #return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
@@ -1319,22 +1335,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if hasattr(e,'message'):
                 raise serializers.ValidationError(e.message)
 
-    @detail_route(methods=['post'])
-    @renderer_classes((JSONRenderer,))
-    def assessor_save(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            save_assessor_data(instance,request,self)
-            return redirect(reverse('external'))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
     def create(self, request, *args, **kwargs):
         raise NotImplementedError("Parent objects should not be created directly")
 
@@ -1390,6 +1390,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # TODO: why do we need this?
         instance.previous_application = None
         instance.save()
+        ## ML
+        if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
+            instance.waiting_list_allocation.internal_status = 'waiting'
+            current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+            instance.waiting_list_allocation.wla_queue_date = current_datetime
+            instance.waiting_list_allocation.save()
+            instance.waiting_list_allocation.set_wla_order()
         return Response()
 
 
@@ -1968,23 +1975,19 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
-    #@renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def create(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        with transaction.atomic():
-            #save_bare_vessel_data(request)
-            vessel_data = save_bare_vessel_data(request)
-            return Response(vessel_data)
+    ## required for manage vessels
+    #@basic_exception_handler
+    #def create(self, request, *args, **kwargs):
+    #    with transaction.atomic():
+    #        vessel_data = save_bare_vessel_data(request)
+    #        return Response(vessel_data)
 
-    #@renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def update(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
-        with transaction.atomic():
-            instance = self.get_object()
-            vessel_data = save_bare_vessel_data(request, instance)
-            return Response(vessel_data)
+    #@basic_exception_handler
+    #def update(self, request, *args, **kwargs):
+    #    with transaction.atomic():
+    #        instance = self.get_object()
+    #        vessel_data = save_bare_vessel_data(request, instance)
+    #        return Response(vessel_data)
 
     @list_route(methods=['GET',])
     def list_internal(self, request, *args, **kwargs):
@@ -2216,7 +2219,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             #approval_list = mooring.approval_set.filter(status='current')
             approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
         if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
-            approval_list.append(mooring.mooring_licence)
+            approval_list.append(mooring.mooring_licence.approval)
         #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)

@@ -5,11 +5,12 @@ from ledger.accounts.models import EmailUser
 
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-from mooringlicensing.components.main.models import NumberOfDaysSetting
+from mooringlicensing.components.main.models import NumberOfDaysSetting, NumberOfDaysType
 import datetime
 
 import logging
 
+from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_COMPLIANCE
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()
-        number_of_days = NumberOfDaysSetting.get_setting_by_date(today)
-        compare_date = today + datetime.timedelta(days=number_of_days)
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
+        days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+        compare_date = today + datetime.timedelta(days=days_setting.number_of_days)
 
         try:
             user = EmailUser.objects.get(email=settings.CRON_EMAIL)
