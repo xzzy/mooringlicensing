@@ -85,76 +85,6 @@ def update_mooring_comms_log_filename(instance, filename):
     return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
 
 
-#class ProposalAssessorGroup(models.Model):
-#    name = models.CharField(max_length=255)
-#    members = models.ManyToManyField(EmailUser)
-#    #region = models.ForeignKey(Region, null=True, blank=True)
-#    #default = models.BooleanField(default=False)
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        verbose_name = "Application Assessor Group"
-#        verbose_name_plural = "Application Assessor Group"
-#
-#    def __str__(self):
-#        num_of_members = self.members.count()
-#        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
-#        return '{} ({})'.format(self.name, num_of_members_str)
-#
-#    # TODO: check this logic
-#    def member_is_assigned(self,member):
-#        for p in self.current_proposals:
-#            if p.assigned_officer == member:
-#                return True
-#        return False
-#
-#    @property
-#    def members_email(self):
-#        return [i.email for i in self.members.all()]
-#
-#
-#class ProposalApproverGroup(models.Model):
-#    name = models.CharField(max_length=255)
-#    members = models.ManyToManyField(EmailUser)
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        verbose_name = "Application Approver Group"
-#        verbose_name_plural = "Application Approver Group"
-#
-#    def __str__(self):
-#        num_of_members = self.members.count()
-#        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
-#        return '{} ({})'.format(self.name, num_of_members_str)
-#
-#    # TODO: check this logic
-#    def member_is_assigned(self,member):
-#        for p in self.current_proposals:
-#            if p.assigned_approver == member:
-#                return True
-#        return False
-#
-#    @property
-#    def members_email(self):
-#        return [i.email for i in self.members.all()]
-
-
-#class DefaultDocument(Document):
-#    input_name = models.CharField(max_length=255,null=True,blank=True)
-#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-#    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        abstract =True
-#
-#    def delete(self):
-#        if self.can_delete:
-#            return super(DefaultDocument, self).delete()
-#        logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
-#
-#
-#
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents')
     _file = models.FileField(upload_to=update_proposal_doc_filename, max_length=512)
@@ -197,7 +127,7 @@ MOORING_AUTH_PREFERENCES = (
         )
 
 
-class ProposalType(models.Model):
+class ProposalType(RevisionedMixin):
     code = models.CharField(max_length=30, blank=True, null=True)
     description = models.CharField(max_length=200, blank=True, null=True)
 
@@ -3174,7 +3104,7 @@ class ProposalLogEntry(CommunicationsLogEntry):
 
 
 # not for admin - data comes from Mooring Bookings
-class MooringBay(models.Model):
+class MooringBay(RevisionedMixin):
     name = models.CharField(max_length=100)
     mooring_bookings_id = models.IntegerField()
     active = models.BooleanField(default=True)
@@ -3224,7 +3154,7 @@ class AvailableMooringManager(models.Manager):
 
 
 # not for admin - data comes from Mooring Bookings
-class Mooring(models.Model):
+class Mooring(RevisionedMixin):
     MOORING_SPECIFICATION = (
          (1, 'Rental Mooring'),
          (2, 'Private Mooring'),
@@ -3325,7 +3255,7 @@ class MooringUserAction(UserAction):
     mooring = models.ForeignKey(Mooring, related_name='action_logs')
 
 
-class Vessel(models.Model):
+class Vessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
     # can be individual or company owner
     ## TODO no longer required???
@@ -3449,7 +3379,7 @@ class VesselDetailsManager(models.Manager):
         #return self.first()
 
 
-class VesselDetails(models.Model): # ManyToManyField link in Proposal
+class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
@@ -3481,7 +3411,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
         return self.vessel_length
 
 
-class CompanyOwnership(models.Model):
+class CompanyOwnership(RevisionedMixin):
     STATUS_TYPES = (
             ('approved', 'Approved'),
             ('draft', 'Draft'),
@@ -3544,7 +3474,7 @@ class VesselOwnershipManager(models.Manager):
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
 
 
-class VesselOwnership(models.Model):
+class VesselOwnership(RevisionedMixin):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
@@ -3618,8 +3548,7 @@ class VesselRegistrationDocument(Document):
         verbose_name = "Vessel Registration Papers"
 
 
-# Non proposal specific
-class Owner(models.Model):
+class Owner(RevisionedMixin):
     emailuser = models.OneToOneField(EmailUser)
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
@@ -3639,7 +3568,7 @@ class Owner(models.Model):
     #        self.emailuser.get_full_name()
 
 
-class Company(models.Model):
+class Company(RevisionedMixin):
     name = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessels = models.ManyToManyField(Vessel, through=CompanyOwnership) # these owner/vessel association
 
@@ -3744,48 +3673,6 @@ class ProofOfIdentityDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Proof Of Identity"
 
-# Vessel details per Proposal
-# - allows for customer to edit vessel details during application process
-#class VesselRelations(models.Model):
-#    vessel = models.ForeignKey(Vessel, blank=False, null=False)
-#    #status = models.CharField() # can be approved, old
-#    #proposal = models.ForeignKey(Proposal, null=False)
-#    proposal = models.ForeignKey(Proposal, null=True)
-#    rego_no = models.CharField(max_length=200)
-#    vessel_name = models.CharField(max_length=400)
-#    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    created = models.DateTimeField(default=timezone.now)
-#    updated = models.DateTimeField(auto_now=True)
-#
-#    class Meta:
-#        unique_together = ('vessel', 'proposal')
-#        verbose_name_plural = "Vessel Relations"
-#        app_label = 'mooringlicensing'
-#
-#    def __str__(self):
-#        return self.rego_no
-
-
-#class Vessel(models.Model):
-#    nominated_vessel = models.CharField(max_length=200, blank=True)
-#    spv_no = models.CharField(max_length=200, blank=True)
-#    hire_rego = models.CharField(max_length=200, blank=True)
-#    craft_no = models.CharField(max_length=200, blank=True)
-#    size = models.CharField(max_length=200, blank=True)
-#    #rego_expiry= models.DateField(blank=True, null=True)
-#    proposal = models.ForeignKey(Proposal, related_name='vessels')
-#
-#    def __str__(self):
-#        return '{} - {}'.format(self.spv_no, self.nominated_vessel)
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#
-#    #def __str__(self):
-#     #   return self.nominated_vessel
 
 class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set')
@@ -3875,18 +3762,18 @@ class AmendmentRequest(ProposalRequest):
                 raise
 
 
-class Assessment(ProposalRequest):
-    STATUS_CHOICES = (('awaiting_assessment', 'Awaiting Assessment'), ('assessed', 'Assessed'),
-                      ('assessment_expired', 'Assessment Period Expired'))
-    assigned_assessor = models.ForeignKey(EmailUser, blank=True, null=True)
-    status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    date_last_reminded = models.DateField(null=True, blank=True)
-    #requirements = models.ManyToManyField('Requirement', through='AssessmentRequirement')
-    comment = models.TextField(blank=True)
-    purpose = models.TextField(blank=True)
-
-    class Meta:
-        app_label = 'mooringlicensing'
+#class Assessment(ProposalRequest):
+#    STATUS_CHOICES = (('awaiting_assessment', 'Awaiting Assessment'), ('assessed', 'Assessed'),
+#                      ('assessment_expired', 'Assessment Period Expired'))
+#    assigned_assessor = models.ForeignKey(EmailUser, blank=True, null=True)
+#    status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+#    date_last_reminded = models.DateField(null=True, blank=True)
+#    #requirements = models.ManyToManyField('Requirement', through='AssessmentRequirement')
+#    comment = models.TextField(blank=True)
+#    purpose = models.TextField(blank=True)
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
 
 class ProposalDeclinedDetails(models.Model):
     #proposal = models.OneToOneField(Proposal, related_name='declined_details')
@@ -3899,15 +3786,15 @@ class ProposalDeclinedDetails(models.Model):
         app_label = 'mooringlicensing'
 
 
-class ProposalOnHold(models.Model):
-    #proposal = models.OneToOneField(Proposal, related_name='onhold')
-    proposal = models.OneToOneField(Proposal)
-    officer = models.ForeignKey(EmailUser, null=False)
-    comment = models.TextField(blank=True)
-    documents = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='onhold_documents')
-
-    class Meta:
-        app_label = 'mooringlicensing'
+#class ProposalOnHold(models.Model):
+#    #proposal = models.OneToOneField(Proposal, related_name='onhold')
+#    proposal = models.OneToOneField(Proposal)
+#    officer = models.ForeignKey(EmailUser, null=False)
+#    comment = models.TextField(blank=True)
+#    documents = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='onhold_documents')
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
 
 
 @python_2_unicode_compatible
@@ -4081,67 +3968,67 @@ class ProposalRequirement(OrderedModel):
 
 
 
-@python_2_unicode_compatible
-#class ProposalStandardRequirement(models.Model):
-class ChecklistQuestion(RevisionedMixin):
-    TYPE_CHOICES = (
-        ('assessor_list','Assessor Checklist'),
-        ('referral_list','Referral Checklist')
-    )
-    ANSWER_TYPE_CHOICES = (
-        ('yes_no','Yes/No type'),
-        ('free_text','Free text type')
-    )
-    text = models.TextField()
-    list_type = models.CharField('Checklist type', max_length=30, choices=TYPE_CHOICES,
-                                         default=TYPE_CHOICES[0][0])
-    answer_type = models.CharField('Answer type', max_length=30, choices=ANSWER_TYPE_CHOICES,
-                                         default=ANSWER_TYPE_CHOICES[0][0])
-
-    #correct_answer= models.BooleanField(default=False)
-    #application_type = models.ForeignKey(ApplicationType,blank=True, null=True)
-    obsolete = models.BooleanField(default=False)
-    order = models.PositiveSmallIntegerField(default=1)
-
-    def __str__(self):
-        return self.text
-
-    class Meta:
-        app_label = 'mooringlicensing'
-
-
-class ProposalAssessment(RevisionedMixin):
-    proposal=models.ForeignKey(Proposal, related_name='assessment')
-    completed = models.BooleanField(default=False)
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='proposal_assessment')
-    #referral_assessment=models.BooleanField(default=False)
-    #referral_group = models.ForeignKey(ReferralRecipientGroup,null=True,blank=True,related_name='referral_assessment')
-    #referral=models.ForeignKey(Referral, related_name='assessment',blank=True, null=True )
-    # def __str__(self):
-    #     return self.proposal
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        unique_together = ('proposal',)
-
-    @property
-    def checklist(self):
-        return self.answers.all()
-
-
-class ProposalAssessmentAnswer(RevisionedMixin):
-    question=models.ForeignKey(ChecklistQuestion, related_name='answers')
-    answer = models.NullBooleanField()
-    assessment=models.ForeignKey(ProposalAssessment, related_name='answers', null=True, blank=True)
-    text_answer= models.CharField(max_length=256, blank=True, null=True)
-
-    def __str__(self):
-        return self.question.text
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name = "Assessment answer"
-        verbose_name_plural = "Assessment answers"
+#@python_2_unicode_compatible
+##class ProposalStandardRequirement(models.Model):
+#class ChecklistQuestion(RevisionedMixin):
+#    TYPE_CHOICES = (
+#        ('assessor_list','Assessor Checklist'),
+#        ('referral_list','Referral Checklist')
+#    )
+#    ANSWER_TYPE_CHOICES = (
+#        ('yes_no','Yes/No type'),
+#        ('free_text','Free text type')
+#    )
+#    text = models.TextField()
+#    list_type = models.CharField('Checklist type', max_length=30, choices=TYPE_CHOICES,
+#                                         default=TYPE_CHOICES[0][0])
+#    answer_type = models.CharField('Answer type', max_length=30, choices=ANSWER_TYPE_CHOICES,
+#                                         default=ANSWER_TYPE_CHOICES[0][0])
+#
+#    #correct_answer= models.BooleanField(default=False)
+#    #application_type = models.ForeignKey(ApplicationType,blank=True, null=True)
+#    obsolete = models.BooleanField(default=False)
+#    order = models.PositiveSmallIntegerField(default=1)
+#
+#    def __str__(self):
+#        return self.text
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#
+#
+#class ProposalAssessment(RevisionedMixin):
+#    proposal=models.ForeignKey(Proposal, related_name='assessment')
+#    completed = models.BooleanField(default=False)
+#    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='proposal_assessment')
+#    #referral_assessment=models.BooleanField(default=False)
+#    #referral_group = models.ForeignKey(ReferralRecipientGroup,null=True,blank=True,related_name='referral_assessment')
+#    #referral=models.ForeignKey(Referral, related_name='assessment',blank=True, null=True )
+#    # def __str__(self):
+#    #     return self.proposal
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#        unique_together = ('proposal',)
+#
+#    @property
+#    def checklist(self):
+#        return self.answers.all()
+#
+#
+#class ProposalAssessmentAnswer(RevisionedMixin):
+#    question=models.ForeignKey(ChecklistQuestion, related_name='answers')
+#    answer = models.NullBooleanField()
+#    assessment=models.ForeignKey(ProposalAssessment, related_name='answers', null=True, blank=True)
+#    text_answer= models.CharField(max_length=256, blank=True, null=True)
+#
+#    def __str__(self):
+#        return self.question.text
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#        verbose_name = "Assessment answer"
+#        verbose_name_plural = "Assessment answers"
 
 
 @receiver(pre_delete, sender=Proposal)
@@ -4302,5 +4189,18 @@ reversion.register(ProposalDeclinedDetails)
 reversion.register(ProposalRequirement, follow=["requirement_documents",])
 reversion.register(RequirementDocument)
 
-reversion.register(CompanyOwnership, follow=["blocking_proposal"])
+reversion.register(MooringBay)
+reversion.register(Mooring, follow=["mooring_bay", "mooring_licence"])
+reversion.register(MooringLogDocument)
+reversion.register(MooringLogEntry, follow=["documents"])
+reversion.register(MooringUserAction)
+
+reversion.register(Vessel, follow=["blocking_owner",])
+reversion.register(VesselLogDocument)
+reversion.register(VesselLogEntry, follow=["documents"])
+reversion.register(VesselDetails, follow=["vessel"])
+reversion.register(CompanyOwnership, follow=["blocking_proposal", "vessel", "company"])
+reversion.register(VesselOwnership, follow=["owner", "vessel", "company_ownership"])
+reversion.register(Owner)
+reversion.register(Company)
 
