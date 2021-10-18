@@ -490,19 +490,16 @@ def save_vessel_data(instance, request, vessel_data):
     # add vessel details to vessel_data
     for key in vessel_details_data.keys():
         vessel_data.update({key: vessel_details_data.get(key)})
-    #import ipdb; ipdb.set_trace()
     if vessel_id:
         vessel_data.update({"vessel_id": vessel_id})
     vessel_ownership_data = vessel_data.get("vessel_ownership")
-    # check for blocking_owner
-    #if vessel_id and Vessel.objects.get(id=vessel_id).blocking_owner:
-     #   if Vessel.objects.get(id=vessel_id).blocking_owner.id != vessel_ownership_data.get('id'):
-      #      raise serializers.ValidationError({"Blocked Vessel": "Another user has a current application for this vessel"})
-    company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
-    company_ownership_name = vessel_ownership_data.get('company_ownership', {}).get('company', {}).get('name')
-    vessel_data.update({"company_ownership_percentage": company_ownership_percentage})
-    vessel_data.update({"company_ownership_name": company_ownership_name})
-    vessel_ownership_data.pop('company_ownership', None)
+    if vessel_ownership_data.get('company_ownership'):
+        company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
+        company_ownership_name = vessel_ownership_data.get('company_ownership', {}).get('company', {}).get('name')
+        vessel_data.update({"company_ownership_percentage": company_ownership_percentage})
+        vessel_data.update({"company_ownership_name": company_ownership_name})
+    if 'company_ownership' in vessel_ownership_data.keys():
+        vessel_ownership_data.pop('company_ownership', None)
     # copy VesselOwnership fields to vessel_data
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
@@ -906,16 +903,6 @@ def ownership_percentage_validation(vessel_ownership):
 #    vessel_ownership = store_vessel_ownership(request, vessel)
 #    return VesselOwnershipSerializer(vessel_ownership).data
 
-def is_payment_officer(user):
-    from mooringlicensing.components.proposals.models import PaymentOfficerGroup
-    try:
-        group= PaymentOfficerGroup.objects.get(default=True)
-    except PaymentOfficerGroup.DoesNotExist:
-        group= None
-    if group:
-        if user in group.members.all():
-            return True
-    return False
 
 def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     # Retrieve all the fee_items for this vessel
