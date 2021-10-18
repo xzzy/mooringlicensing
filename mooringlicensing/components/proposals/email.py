@@ -1251,7 +1251,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     email = TemplateEmailBase(
         subject=subject,
         html_template='mooringlicensing/emails_2/email_23.html',
-        txt_template = 'mooringlicensing/emails_2/email_23.txt',
+        txt_template='mooringlicensing/emails_2/email_23.txt',
     )
 
     context = {
