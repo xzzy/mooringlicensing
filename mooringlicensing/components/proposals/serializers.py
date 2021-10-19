@@ -16,9 +16,9 @@ from mooringlicensing.components.proposals.models import (
     ProposalDeclinedDetails,
     AmendmentRequest,
     AmendmentReason,
-    ChecklistQuestion,
-    ProposalAssessmentAnswer,
-    ProposalAssessment,
+    #ChecklistQuestion,
+    #ProposalAssessmentAnswer,
+    #ProposalAssessment,
     RequirementDocument,
     VesselDetails,
     VesselOwnership,
@@ -127,42 +127,42 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
 #                )
 
 
-class ChecklistQuestionSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ChecklistQuestion
-        #fields = '__all__'
-        fields=('id',
-                'text',
-                'answer_type',
-                )
-class ProposalAssessmentAnswerSerializer(serializers.ModelSerializer):
-    question=ChecklistQuestionSerializer(read_only=True)
-    class Meta:
-        model = ProposalAssessmentAnswer
-        fields = ('id',
-                'question',
-                'answer',
-                'text_answer',
-                )
-
-class ProposalAssessmentSerializer(serializers.ModelSerializer):
-    checklist=serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProposalAssessment
-        fields = ('id',
-                'completed',
-                'submitter',
-                'referral_assessment',
-                'referral_group',
-                'referral_group_name',
-                'checklist'
-                )
-
-    def get_checklist(self,obj):
-        qs= obj.checklist.order_by('question__order')
-        return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
+#class ChecklistQuestionSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = ChecklistQuestion
+#        #fields = '__all__'
+#        fields=('id',
+#                'text',
+#                'answer_type',
+#                )
+#class ProposalAssessmentAnswerSerializer(serializers.ModelSerializer):
+#    question=ChecklistQuestionSerializer(read_only=True)
+#    class Meta:
+#        model = ProposalAssessmentAnswer
+#        fields = ('id',
+#                'question',
+#                'answer',
+#                'text_answer',
+#                )
+#
+#class ProposalAssessmentSerializer(serializers.ModelSerializer):
+#    checklist=serializers.SerializerMethodField()
+#
+#    class Meta:
+#        model = ProposalAssessment
+#        fields = ('id',
+#                'completed',
+#                'submitter',
+#                'referral_assessment',
+#                'referral_group',
+#                'referral_group_name',
+#                'checklist'
+#                )
+#
+#    def get_checklist(self,obj):
+#        qs= obj.checklist.order_by('question__order')
+#        return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
@@ -734,7 +734,7 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
-    mooring_id = serializers.IntegerField(write_only=True, required=False)
+    mooring_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Proposal
@@ -755,7 +755,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print("validate data")
         print(data)
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -846,7 +845,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     #reversion_ids = serializers.SerializerMethodField()
-    assessor_assessment=ProposalAssessmentSerializer(read_only=True)
+    #assessor_assessment=ProposalAssessmentSerializer(read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
@@ -902,7 +901,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'proposal_type',
                 'applicant_details',
                 #'reversion_ids',
-                'assessor_assessment',
+                #'assessor_assessment',
                 'fee_invoice_url',
                 'fee_paid',
                 'requirements_completed',
