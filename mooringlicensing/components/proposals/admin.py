@@ -34,9 +34,9 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     list_display = [
             'code',
             'text',
-            'obsolete', 
-            #'application_type', 
-            #'participant_number_required', 
+            'application_type',
+            'obsolete',
+            #'participant_number_required',
             #'default'
             ]
 

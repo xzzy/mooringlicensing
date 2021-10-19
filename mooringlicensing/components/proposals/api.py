@@ -1532,6 +1532,17 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ProposalStandardRequirement.objects.all()
     serializer_class = ProposalStandardRequirementSerializer
 
+    def get_queryset(self):
+        from mooringlicensing.components.main.models import ApplicationType
+
+        application_type_code = self.request.query_params.get('application_type_code', '')
+        queries = Q(application_type__isnull=True)
+        if application_type_code:
+            application_type = ApplicationType.objects.get(code=application_type_code)
+            queries |= Q(application_type=application_type)
+        qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
+        return qs
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         search = request.GET.get('search')
