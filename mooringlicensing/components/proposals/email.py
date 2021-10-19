@@ -1491,8 +1491,8 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
     )
 
     url = settings.SITE_URL if settings.SITE_URL else ''
-    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
-    decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.uuid})
+    decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
     proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     try:
