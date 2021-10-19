@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from django.core.files.base import ContentFile
 
 import datetime
 import logging
@@ -79,6 +80,14 @@ class RenewalDocument(Document):
         app_label = 'mooringlicensing'
 
 
+class AuthorisedUserSummaryDocument(Document):
+    approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents')
+    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class ApprovalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='documents')
     _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
@@ -116,6 +125,22 @@ class MooringOnApproval(RevisionedMixin):
     class Meta:
         app_label = 'mooringlicensing'
         unique_together = ("mooring", "approval")
+
+
+class VesselOwnershipOnApproval(RevisionedMixin):
+    approval = models.ForeignKey('Approval')
+    vessel_ownership = models.ForeignKey(VesselOwnership)
+    end_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return 'ID:{} ({}-{})'.format(self.id, self.approval, self.vessel_ownership)
+
+    #def save(self, *args, **kwargs):
+     #   super(VesselOnApproval, self).save(*args,**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+        unique_together = ("vessel_ownership", "approval")
 
 
 class ApprovalHistory(RevisionedMixin):
@@ -216,6 +241,7 @@ class Approval(RevisionedMixin):
                                        default=STATUS_CHOICES[0][0])
     internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
+    authorised_user_summary_document = models.ForeignKey(AuthorisedUserSummaryDocument, blank=True, null=True, related_name='approvals')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
     #current_proposal = models.ForeignKey(Proposal,related_name = '+')
@@ -258,6 +284,7 @@ class Approval(RevisionedMixin):
     ## intermediate table records ria or site_licensee
     ## Please note, MooringLicence mooring should be accessed via approval.child_obj.mooring
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
+    vessel_ownerships = models.ManyToManyField(VesselOwnership, through=VesselOwnershipOnApproval)
     # should be simple fk to VesselOwnership?
     #vessels = models.ManyToManyField(Vessel, through=VesselOnApproval)
     #ria_selected_mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
@@ -442,19 +469,18 @@ class Approval(RevisionedMixin):
         ## reason
         return new_approval_history_entry
 
-    #def add_vessel(self, vessel, vessel_ownership, dot_name):
-    #    vessel_on_approval, created = VesselOnApproval.objects.update_or_create(
-    #            vessel=vessel,
-    #            vessel_ownership=vessel_ownership,
-    #            approval=self,
-    #            dot_name=dot_name
-    #            )
-    #    return vessel_on_approval, created
+    def add_vessel_ownership(self, vessel_ownership):
+        # do not add if this vessel_ownership already exists for the approval 
+        vessel_ownership_on_approval = None
+        created = None
+        if not self.vesselownershiponapproval_set.filter(vessel_ownership=vessel_ownership):
+            vessel_ownership_on_approval, created = VesselOwnershipOnApproval.objects.update_or_create(
+                    vessel_ownership=vessel_ownership,
+                    approval=self,
+                    )
+        return vessel_ownership_on_approval, created
 
     def add_mooring(self, mooring, site_licensee):
-        # do not add if this mooring already exists for the approval & the associated mooring_licence is current
-        #if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current').filter(mooring=mooring):
-
         # do not add if this mooring already exists for the approval
         mooring_on_approval = None
         created = None
@@ -468,12 +494,9 @@ class Approval(RevisionedMixin):
 
     def set_wla_order(self):
         place = 1
-        # Waiting List Allocations which have the wla_queue_date removed means that a ML application has been created
-        #if not self.wla_queue_date:
-         #   self.wla_order = None
-          #  self.save()
         # set wla order per bay for current allocations
-        if type(self.child_obj) == WaitingListAllocation:
+        #if type(self.child_obj) == WaitingListAllocation:
+        if type(self) == WaitingListAllocation:
             for w in WaitingListAllocation.objects.filter(
                     wla_queue_date__isnull=False,
                     current_proposal__preferred_bay=self.current_proposal.preferred_bay,
@@ -618,14 +641,11 @@ class Approval(RevisionedMixin):
         # TODO: check this logic
         return self.current_proposal.allowed_assessors_user(request)
 
-
     def is_assessor(self,user):
         return self.current_proposal.is_assessor(user)
 
-
     def is_approver(self,user):
         return self.current_proposal.is_approver(user)
-
 
     @property
     def is_issued(self):
@@ -679,10 +699,31 @@ class Approval(RevisionedMixin):
             # return create_approval_doc_bytes(self, self.current_proposal, None, user)
             return create_approval_doc_bytes(self)
 
-        # self.licence_document = create_approval_doc(self, self.current_proposal, copied_to_permit, user)
-        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)
+        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)  # Update the attribute to the latest doc
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+
+    def generate_au_summary_doc(self, user):
+        from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
+
+        if hasattr(self, 'mooring'):
+            moa_set = MooringOnApproval.objects.filter(
+                mooring=self.mooring,
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+            )
+            if moa_set.count() > 0:
+                # Authorised User exists
+                contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
+
+                filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
+                document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
+
+                # Save the bytes to the disk
+                document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+
+                self.authorised_user_summary_document = document  # Update to the latest doc
+                self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
+                self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
         self.renewal_document = create_renewal_doc(self, self.current_proposal)
@@ -968,6 +1009,10 @@ class WaitingListAllocation(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
         context = {
@@ -1007,6 +1052,10 @@ class AnnualAdmissionPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
@@ -1083,6 +1132,14 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_authorised_by(self):
+        preference = self.current_proposal.child_obj.get_mooring_authorisation_preference()
+        return preference
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
@@ -1225,7 +1282,7 @@ class AuthorisedUserPermit(Approval):
         return moas_to_be_reallocated, stickers_to_be_returned
 
     def handle_vessel_changes(self, moas_to_be_reallocated, stickers_to_be_replaced):
-        if self.current_proposal.vessel_removed:
+        if self.approval.current_proposal.vessel_removed:
             # self.current_proposal.vessel_ownership.vessel_removed --> All the stickers to be returned
             # A vessel --> No vessels
             stickers = self.stickers.filter(
@@ -1233,7 +1290,7 @@ class AuthorisedUserPermit(Approval):
             for sticker in stickers:
                 if sticker not in stickers_to_be_replaced:
                     stickers_to_be_replaced.append(sticker)
-        if self.current_proposal.vessel_swapped:
+        if self.approval.current_proposal.vessel_swapped:
             # All the stickers to be removed and all the mooring on them to be reallocated
             # A vessel --> Another vessel
             stickers = self.stickers.filter(
@@ -1241,7 +1298,7 @@ class AuthorisedUserPermit(Approval):
             for sticker in stickers:
                 if sticker not in stickers_to_be_replaced:
                     stickers_to_be_replaced.append(sticker)
-        if self.current_proposal.vessel_amend_new:
+        if self.approval.current_proposal.vessel_amend_new:
             # --> Create new sticker
             # No vessels --> New vessel
             moas_list = self.mooringonapproval_set. \
@@ -1290,6 +1347,52 @@ class MooringLicence(Approval):
     #        self.lodgement_number = self.prefix + '{0:06d}'.format(self.next_id)
     #        self.save()
     #    self.approval.refresh_from_db()
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
+    def get_context_for_au_summary(self):
+        if not hasattr(self, 'mooring'):
+            # There should not be AuthorisedUsers for this ML
+            return {}
+        moa_set = MooringOnApproval.objects.filter(
+            mooring=self.mooring,
+            approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+        )
+
+        authorised_persons = []
+
+        for moa in moa_set:
+            authorised_person = {}
+            if type(moa.approval.child_obj) == AuthorisedUserPermit:
+                aup = moa.approval.child_obj
+                authorised_by = aup.get_authorised_by()
+                authorised_by = authorised_by.upper().replace('_', ' ')
+
+                authorised_person['full_name'] = aup.submitter.get_full_name()
+                authorised_person['vessel'] = {
+                    'rego_no': aup.current_proposal.vessel_details.vessel.rego_no,
+                    'vessel_name': aup.current_proposal.vessel_details.vessel_name,
+                    'length': aup.current_proposal.vessel_details.vessel_applicable_length,
+                    'draft': aup.current_proposal.vessel_details.vessel_draft,
+                }
+                authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
+                authorised_person['authorised_by'] = authorised_by
+                authorised_person['mobile_number'] = aup.submitter.mobile_number
+                authorised_person['email_address'] = aup.submitter.email
+                authorised_persons.append(authorised_person)
+
+        context = {
+            'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_first_name': self.submitter.first_name,
+            'mooring_name': self.mooring.name,
+            'authorised_persons': authorised_persons,
+        }
+
+        return context
+
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
         licenced_vessel = None
@@ -1350,9 +1453,10 @@ class MooringLicence(Approval):
     def update_auth_user_permits(self):
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
-                    mooring=self.mooring,
-                    approval__status='current'
-                    )
+                mooring=self.mooring,
+                # approval__status='current'
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
+            )
             for moa in moa_set:
                 if type(moa.approval.child_obj) == AuthorisedUserPermit:
                     moa.approval.child_obj.update_moorings(self)
@@ -1394,19 +1498,42 @@ class MooringLicence(Approval):
 
         return [], stickers_to_be_returned
 
+    def current_vessel_attributes(self, attribute=None):
+        attribute_list = []
+        vooas = self.vesselownershiponapproval_set.filter(
+                Q(end_date__isnull=True) &
+                Q(vessel_ownership__end_date__isnull=True)
+                )
+        for vooa in vooas:
+            if not attribute:
+                attribute_list.append(vooa.vessel_ownership)
+            elif attribute == 'vessel_details':
+                attribute_list.append(vooa.vessel_ownership.vessel.latest_vessel_details)
+            elif attribute == 'vessel':
+                attribute_list.append(vooa.vessel_ownership.vessel)
+            elif attribute == 'current_vessels':
+                attribute_list.append({
+                    "rego_no": vooa.vessel_ownership.vessel.rego_no,
+                    "latest_vessel_details": vooa.vessel_ownership.vessel.latest_vessel_details
+                    })
+            elif attribute == 'current_vessels_rego':
+                attribute_list.append(vooa.vessel_ownership.vessel.rego_no)
+        return attribute_list
+
     @property
     def vessel_list(self):
-        vessels = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_details and
-                    proposal.vessel_details.vessel not in vessels and
-                    not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessels.append(proposal.vessel_details.vessel)
-        return vessels
+        return self.current_vessel_attributes('vessel')
+        #vessels = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_details and
+        #            proposal.vessel_details.vessel not in vessels and
+        #            not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessels.append(proposal.vessel_details.vessel)
+        #return vessels
 
     @property
     def vessel_list_for_payment(self):
@@ -1439,62 +1566,66 @@ class MooringLicence(Approval):
 
     @property
     def vessel_details_list(self):
-        vessel_details = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_details not in vessel_details and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessel_details.append(proposal.vessel_details)
-        return vessel_details
+        return self.current_vessel_attributes('vessel_details')
+        #vessel_details = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_details not in vessel_details and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessel_details.append(proposal.vessel_details)
+        #return vessel_details
 
     @property
     def vessel_ownership_list(self):
-        vessel_ownership = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_ownership not in vessel_ownership and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessel_ownership.append(proposal.vessel_ownership)
-        return vessel_ownership
+        #vessel_ownership = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_ownership not in vessel_ownership and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessel_ownership.append(proposal.vessel_ownership)
+        #return vessel_ownership
+        return self.current_vessel_attributes()
 
     @property
     def current_vessels(self):
-        vessels = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_ownership and
-                    proposal.vessel_ownership not in vessels and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessels.append({
-                    "submitted_vessel_details": proposal.vessel_details,
-                    "submitted_vessel_ownership": proposal.vessel_ownership,
-                    "rego_no": proposal.vessel_details.vessel.rego_no,
-                    "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
-                    })
-        return vessels
+        return self.current_vessel_attributes('current_vessels')
+        #vessels = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_ownership and
+        #            proposal.vessel_ownership not in vessels and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessels.append({
+        #            "submitted_vessel_details": proposal.vessel_details,
+        #            "submitted_vessel_ownership": proposal.vessel_ownership,
+        #            "rego_no": proposal.vessel_details.vessel.rego_no,
+        #            "latest_vessel_details": proposal.vessel_details.vessel.latest_vessel_details
+        #            })
+        #return vessels
 
     @property
     def current_vessels_rego(self):
-        vessels = []
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_ownership and
-                    proposal.vessel_ownership not in vessels and
-                    not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
-                    not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
-                    ):
-                vessels.append(proposal.vessel_details.vessel.rego_no)
-        return vessels
+        return self.current_vessel_attributes('current_vessels_rego')
+        #vessels = []
+        #for proposal in self.proposal_set.all():
+        #    if (
+        #            proposal.final_status and
+        #            proposal.vessel_ownership and
+        #            proposal.vessel_ownership not in vessels and
+        #            not proposal.vessel_ownership.end_date and # vessel has not been sold by this owner
+        #            not proposal.vessel_ownership.mooring_licence_end_date  # vessel has been unchecked
+        #            ):
+        #        vessels.append(proposal.vessel_details.vessel.rego_no)
+        #return vessels
 
 
 class PreviewTempApproval(Approval):
@@ -1553,7 +1684,7 @@ class ApprovalUserAction(UserAction):
     approval= models.ForeignKey(Approval, related_name='action_logs')
 
 
-class DcvOrganisation(models.Model):
+class DcvOrganisation(RevisionedMixin):
     name = models.CharField(max_length=128, null=True, blank=True)
     abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN', unique=True)
 
@@ -1564,7 +1695,7 @@ class DcvOrganisation(models.Model):
         app_label = 'mooringlicensing'
 
 
-class DcvVessel(models.Model):
+class DcvVessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
@@ -2010,6 +2141,14 @@ class Sticker(models.Model):
         app_label = 'mooringlicensing'
         ordering = ['-number']
 
+    def get_invoices(self):
+        invoices = []
+        for action_detail in self.sticker_action_details.all():
+            if action_detail.sticker_action_fee and action_detail.sticker_action_fee.invoice_reference:
+                inv = Invoice.objects.get(reference=action_detail.sticker_action_fee.invoice_reference)
+                invoices.append(inv)
+        return invoices
+
     def get_moorings(self):
         moorings = []
 
@@ -2185,12 +2324,27 @@ def delete_documents(sender, instance, *args, **kwargs):
                 pass
 
 
-#import reversion
-#reversion.register(Approval, follow=['compliances', 'documents', 'comms_logs', 'action_logs'])
-#reversion.register(ApprovalDocument, follow=['licence_document', 'cover_letter_document', 'renewal_document'])
-#reversion.register(ApprovalLogEntry, follow=['documents'])
-#reversion.register(ApprovalLogDocument)
-#reversion.register(ApprovalUserAction)
-#reversion.register(DistrictApproval)
-
+import reversion
+reversion.register(Approval, follow=['waitinglistallocation', 'annualadmissionpermit', 'authoriseduserpermit', 'mooringlicence', 
+    'compliances', 'documents', 'comms_logs', 'action_logs', "renewal_documents",
+    ])
+reversion.register(WaitingListAllocation)
+reversion.register(AuthorisedUserPermit)
+reversion.register(AnnualAdmissionPermit)
+reversion.register(MooringLicence)
+reversion.register(ApprovalDocument, follow=['licence_document', 'cover_letter_document',])
+reversion.register(ApprovalLogEntry, follow=['documents'])
+reversion.register(ApprovalLogDocument)
+reversion.register(ApprovalUserAction)
+reversion.register(MooringOnApproval, follow=["approval", "mooring", "sticker"])
+reversion.register(VesselOwnershipOnApproval, follow=["approval", "vessel_ownership"])
+reversion.register(ApprovalHistory, follow=["approval", "vessel_ownership", "proposal"])
+reversion.register(DcvOrganisation)
+reversion.register(DcvVessel, follow=["dcv_organisation"])
+reversion.register(DcvAdmission, follow=["dcv_vessel", "admissions"])
+reversion.register(DcvAdmissionArrival, follow=["dcv_admission", "fee_season", "fee_constructor"])
+reversion.register(DcvPermit, follow=["fee_season", "dcv_vessel", "dcv_organisation", "permits"])
+reversion.register(DcvAdmissionDocument)
+reversion.register(DcvPermitDocument)
+reversion.register(Sticker, follow=["approval", "dcv_permit", "fee_constructor", "fee_season", "vessel_ownership", "proposal_initiated"])
 

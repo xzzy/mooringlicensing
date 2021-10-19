@@ -45,6 +45,7 @@ from mooringlicensing.components.proposals.email import (
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
     send_aua_approved_or_declined_email_new_renewal, send_mla_approved_or_declined_email_new_renewal,
+    send_au_summary_to_ml_holder,
 )
 from mooringlicensing.ordered_model import OrderedModel
 import copy
@@ -85,76 +86,6 @@ def update_mooring_comms_log_filename(instance, filename):
     return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
 
 
-#class ProposalAssessorGroup(models.Model):
-#    name = models.CharField(max_length=255)
-#    members = models.ManyToManyField(EmailUser)
-#    #region = models.ForeignKey(Region, null=True, blank=True)
-#    #default = models.BooleanField(default=False)
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        verbose_name = "Application Assessor Group"
-#        verbose_name_plural = "Application Assessor Group"
-#
-#    def __str__(self):
-#        num_of_members = self.members.count()
-#        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
-#        return '{} ({})'.format(self.name, num_of_members_str)
-#
-#    # TODO: check this logic
-#    def member_is_assigned(self,member):
-#        for p in self.current_proposals:
-#            if p.assigned_officer == member:
-#                return True
-#        return False
-#
-#    @property
-#    def members_email(self):
-#        return [i.email for i in self.members.all()]
-#
-#
-#class ProposalApproverGroup(models.Model):
-#    name = models.CharField(max_length=255)
-#    members = models.ManyToManyField(EmailUser)
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        verbose_name = "Application Approver Group"
-#        verbose_name_plural = "Application Approver Group"
-#
-#    def __str__(self):
-#        num_of_members = self.members.count()
-#        num_of_members_str = '{} member'.format(num_of_members) if num_of_members == 1 else '{} members'.format(num_of_members)
-#        return '{} ({})'.format(self.name, num_of_members_str)
-#
-#    # TODO: check this logic
-#    def member_is_assigned(self,member):
-#        for p in self.current_proposals:
-#            if p.assigned_approver == member:
-#                return True
-#        return False
-#
-#    @property
-#    def members_email(self):
-#        return [i.email for i in self.members.all()]
-
-
-#class DefaultDocument(Document):
-#    input_name = models.CharField(max_length=255,null=True,blank=True)
-#    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-#    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        abstract =True
-#
-#    def delete(self):
-#        if self.can_delete:
-#            return super(DefaultDocument, self).delete()
-#        logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
-#
-#
-#
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents')
     _file = models.FileField(upload_to=update_proposal_doc_filename, max_length=512)
@@ -197,7 +128,7 @@ MOORING_AUTH_PREFERENCES = (
         )
 
 
-class ProposalType(models.Model):
+class ProposalType(RevisionedMixin):
     code = models.CharField(max_length=30, blank=True, null=True)
     description = models.CharField(max_length=200, blank=True, null=True)
 
@@ -491,7 +422,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def save(self, *args, **kwargs):
         super(Proposal, self).save(*args,**kwargs)
-        self.child_obj.refresh_from_db()
+        if type(self) == Proposal:
+            self.child_obj.refresh_from_db()
 
     @property
     def fee_constructor(self):
@@ -1291,7 +1223,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Create/update approval
                 created = None
                 if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
-                    approval = self.approval
+                    approval = self.approval.child_obj
                     approval.current_proposal=self
                     if type(self.child_obj) == WaitingListApplication:
                         approval.wla_queue_date = current_datetime
@@ -1366,7 +1298,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
 
                 # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.child_obj.manage_stickers(self)
+                moas_to_be_reallocated, stickers_to_be_returned = self.approval.manage_stickers(self)
 
                 ## set proposal status after manage_stickers
                 from mooringlicensing.components.approvals.models import Sticker
@@ -1760,13 +1692,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def application_type_code(self):
-        return self.child_obj.code
+        if type(self) == Proposal:
+            return self.child_obj.code
+        else:
+            return self.code
 
     @property
     def description(self):
-        if hasattr(self, 'child_obj'):
-            return self.child_obj.description
-        return ''
+        #if hasattr(self, 'child_obj'):
+        #if type(self) == Proposal:
+        return self.child_obj.description
+        #return ''
 
     @classmethod
     def application_type_descriptions(cls):
@@ -1962,6 +1898,10 @@ class WaitingListApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def create_fee_lines(self):
         """
@@ -2199,6 +2139,10 @@ class AnnualAdmissionApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -2386,6 +2330,10 @@ class AuthorisedUserApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
@@ -2589,7 +2537,7 @@ class AuthorisedUserApplication(Proposal):
                 self.save()
         elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             # When amendment application
-            approval = self.approval
+            approval = self.approval.child_obj
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
@@ -2599,7 +2547,7 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # When renewal application
-            approval = self.approval
+            approval = self.approval.child_obj
             approval.current_proposal = self
             approval.issue_date = current_datetime
             approval.start_date = current_datetime.date()
@@ -2671,26 +2619,24 @@ class AuthorisedUserApplication(Proposal):
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+        # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
+        mls_to_be_emailed = None
+        from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
+        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True)  # New moa doesn't have stickers.
+        for new_moa in new_moas:
+            mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
 
         ## set proposal status after manage _stickers
-        from mooringlicensing.components.approvals.models import Sticker
-        #awaiting_payment = False
         awaiting_printing = False
-
-        #for application_fee in self.application_fees.all():
-         #   if application_fee.unpaid:
-          #      awaiting_payment = True
 
         if self.approval:
             stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
             if stickers.count() >0:
                 awaiting_printing = True
 
-        #if awaiting_payment:
-         #   self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
-          #  self.customer_status = Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT
         if awaiting_printing or auto_renew:
             self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
@@ -2701,7 +2647,12 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+        # Email
         send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+        # Email to ML holder when new moorings added
+        for mooring_licence in mls_to_be_emailed:
+            mooring_licence.generate_au_summary_doc(request.user)
+            send_au_summary_to_ml_holder(mooring_licence, request)
 
         # Log proposal action
         if request:
@@ -2751,6 +2702,10 @@ class MooringLicenceApplication(Proposal):
 
     # def process_after_payment_success(self, request):
     #     pass
+    @property
+    def child_obj(self):
+        raise NotImplementedError('This method cannot be called on a child_obj')
+
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
         from mooringlicensing.components.payments_ml.models import FeeConstructor
@@ -2941,11 +2896,12 @@ class MooringLicenceApplication(Proposal):
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
-            existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
+            #existing_mooring_licence_vessel_count = len(existing_mooring_licence.vessel_list) if existing_mooring_licence else None
+            existing_mooring_licence_vessel_count = existing_mooring_licence.vesselownershiponapproval_set.count() if existing_mooring_licence else None
             created = None
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-                approval = self.approval
+                approval = self.approval.child_obj
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
@@ -2953,7 +2909,7 @@ class MooringLicenceApplication(Proposal):
                 approval.submitter = self.submitter
                 approval.save()
             elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-                approval = self.approval
+                approval = self.approval.child_obj
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
@@ -2989,14 +2945,17 @@ class MooringLicenceApplication(Proposal):
 
             # update proposed_issuance_approval and VesselOwnership if not system reissue
             if request and not auto_renew:
+                # Create VesselOwnershipOnApproval records
+                ## also see logic in approval.add_vessel_ownership()
+                vooa, created = approval.add_vessel_ownership(vessel_ownership=self.vessel_ownership)
+
                 # updating checkboxes
                 #if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
-                    for vo2 in self.approval.child_obj.vessel_ownership_list:
-                    #for vo2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                    for vo2 in self.approval.vesselownershiponapproval_set.all():
                         # convert proposed_issuance_approval to an end_date
-                        if vo1.get("id") == vo2.id and not vo1.get("checked") and not vo2.mooring_licence_end_date:
-                            vo2.mooring_licence_end_date = current_datetime.date()
+                        if vo1.get("id") == vo2.vessel_ownership.id and not vo1.get("checked") and not vo2.end_date:
+                            vo2.end_date = current_datetime.date()
                             vo2.save()
             if request:
                 # Generate compliances
@@ -3024,17 +2983,6 @@ class MooringLicenceApplication(Proposal):
                         for c in approval_compliances:
                             c.delete()
 
-            # log Mooring action
-            ## TODO: action is for mooring swap logic
-            #if existing_mooring_licence and existing_mooring_licence is not approval.child_obj:
-            #    mooring.log_user_action(
-            #            MooringUserAction.ACTION_SWITCH_MOORING_LICENCE.format(
-            #                str(existing_mooring_licence),
-            #                str(approval),
-            #                ),
-            #            request
-            #            )
-            #else:
             mooring.log_user_action(
                     MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
                         str(approval),
@@ -3081,12 +3029,14 @@ class MooringLicenceApplication(Proposal):
                 self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             self.save()
 
-            # Check if this is OK
-            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
-
             if request:
                 # Creating documents should be performed at the end
                 approval.generate_doc(request.user)
+                if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+                    approval.generate_au_summary_doc(request.user)
+
+            # Email with attachments
+            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
 
             # Log proposal action
             if request:
@@ -3095,7 +3045,8 @@ class MooringLicenceApplication(Proposal):
                 self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id))
 
             # write approval history
-            if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
+            #if existing_mooring_licence_vessel_count and len(approval.child_obj.vessel_list) > existing_mooring_licence_vessel_count:
+            if existing_mooring_licence_vessel_count and existing_mooring_licence_vessel_count < approval.vesselownershiponapproval_set.count():
                 approval.write_approval_history('vessel_add')
             elif created:
                 approval.write_approval_history('new')
@@ -3159,7 +3110,7 @@ class ProposalLogEntry(CommunicationsLogEntry):
 
 
 # not for admin - data comes from Mooring Bookings
-class MooringBay(models.Model):
+class MooringBay(RevisionedMixin):
     name = models.CharField(max_length=100)
     mooring_bookings_id = models.IntegerField()
     active = models.BooleanField(default=True)
@@ -3209,7 +3160,7 @@ class AvailableMooringManager(models.Manager):
 
 
 # not for admin - data comes from Mooring Bookings
-class Mooring(models.Model):
+class Mooring(RevisionedMixin):
     MOORING_SPECIFICATION = (
          (1, 'Rental Mooring'),
          (2, 'Private Mooring'),
@@ -3310,7 +3261,7 @@ class MooringUserAction(UserAction):
     mooring = models.ForeignKey(Mooring, related_name='action_logs')
 
 
-class Vessel(models.Model):
+class Vessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
     # can be individual or company owner
     ## TODO no longer required???
@@ -3374,10 +3325,14 @@ class Vessel(models.Model):
                     Q(proposal__vessel_ownership=vessel_ownership) | 
                     Q(proposal=proposal_being_processed)
                     ) &
-                Q(proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
-                Q(proposal__vessel_ownership__end_date__isnull=True) &
-                Q(proposal__vessel_ownership__mooring_licence_end_date__isnull=True) &
-                Q(proposal__vessel_ownership__vessel=self)
+                #Q(proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
+                #Q(proposal__vessel_ownership__end_date__isnull=True) &
+                #Q(proposal__vessel_ownership__mooring_licence_end_date__isnull=True) &
+                #Q(proposal__vessel_ownership__vessel=self)
+                Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
+                Q(vesselownershiponapproval__vessel_ownership__end_date__isnull=True) &
+                Q(vesselownershiponapproval__end_date__isnull=True) &
+                Q(vesselownershiponapproval__vessel_ownership__vessel=self)
                 )
         ## Other Approvals filter
         approval_filter = Q(
@@ -3430,7 +3385,7 @@ class VesselDetailsManager(models.Manager):
         #return self.first()
 
 
-class VesselDetails(models.Model): # ManyToManyField link in Proposal
+class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel)
     vessel_name = models.CharField(max_length=400)
@@ -3462,7 +3417,7 @@ class VesselDetails(models.Model): # ManyToManyField link in Proposal
         return self.vessel_length
 
 
-class CompanyOwnership(models.Model):
+class CompanyOwnership(RevisionedMixin):
     STATUS_TYPES = (
             ('approved', 'Approved'),
             ('draft', 'Draft'),
@@ -3525,10 +3480,9 @@ class VesselOwnershipManager(models.Manager):
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
 
 
-class VesselOwnership(models.Model):
+class VesselOwnership(RevisionedMixin):
     owner = models.ForeignKey('Owner')
     vessel = models.ForeignKey(Vessel)
-    #org_name = models.CharField(max_length=200, blank=True, null=True)
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
@@ -3540,8 +3494,8 @@ class VesselOwnership(models.Model):
     exported = models.BooleanField(default=False) # must be False after every add/edit
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()
-    #objects = VesselOwnershipManager()
-    mooring_licence_end_date = models.DateField(blank=True, null=True)
+    ## replaced by vesselownershiponapproval.end_date
+    #mooring_licence_end_date = models.DateField(blank=True, null=True)
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
 
@@ -3600,8 +3554,7 @@ class VesselRegistrationDocument(Document):
         verbose_name = "Vessel Registration Papers"
 
 
-# Non proposal specific
-class Owner(models.Model):
+class Owner(RevisionedMixin):
     emailuser = models.OneToOneField(EmailUser)
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
@@ -3621,7 +3574,7 @@ class Owner(models.Model):
     #        self.emailuser.get_full_name()
 
 
-class Company(models.Model):
+class Company(RevisionedMixin):
     name = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessels = models.ManyToManyField(Vessel, through=CompanyOwnership) # these owner/vessel association
 
@@ -3726,48 +3679,6 @@ class ProofOfIdentityDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Proof Of Identity"
 
-# Vessel details per Proposal
-# - allows for customer to edit vessel details during application process
-#class VesselRelations(models.Model):
-#    vessel = models.ForeignKey(Vessel, blank=False, null=False)
-#    #status = models.CharField() # can be approved, old
-#    #proposal = models.ForeignKey(Proposal, null=False)
-#    proposal = models.ForeignKey(Proposal, null=True)
-#    rego_no = models.CharField(max_length=200)
-#    vessel_name = models.CharField(max_length=400)
-#    vessel_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-#    created = models.DateTimeField(default=timezone.now)
-#    updated = models.DateTimeField(auto_now=True)
-#
-#    class Meta:
-#        unique_together = ('vessel', 'proposal')
-#        verbose_name_plural = "Vessel Relations"
-#        app_label = 'mooringlicensing'
-#
-#    def __str__(self):
-#        return self.rego_no
-
-
-#class Vessel(models.Model):
-#    nominated_vessel = models.CharField(max_length=200, blank=True)
-#    spv_no = models.CharField(max_length=200, blank=True)
-#    hire_rego = models.CharField(max_length=200, blank=True)
-#    craft_no = models.CharField(max_length=200, blank=True)
-#    size = models.CharField(max_length=200, blank=True)
-#    #rego_expiry= models.DateField(blank=True, null=True)
-#    proposal = models.ForeignKey(Proposal, related_name='vessels')
-#
-#    def __str__(self):
-#        return '{} - {}'.format(self.spv_no, self.nominated_vessel)
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#
-#    #def __str__(self):
-#     #   return self.nominated_vessel
 
 class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set')
@@ -3857,18 +3768,18 @@ class AmendmentRequest(ProposalRequest):
                 raise
 
 
-class Assessment(ProposalRequest):
-    STATUS_CHOICES = (('awaiting_assessment', 'Awaiting Assessment'), ('assessed', 'Assessed'),
-                      ('assessment_expired', 'Assessment Period Expired'))
-    assigned_assessor = models.ForeignKey(EmailUser, blank=True, null=True)
-    status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    date_last_reminded = models.DateField(null=True, blank=True)
-    #requirements = models.ManyToManyField('Requirement', through='AssessmentRequirement')
-    comment = models.TextField(blank=True)
-    purpose = models.TextField(blank=True)
-
-    class Meta:
-        app_label = 'mooringlicensing'
+#class Assessment(ProposalRequest):
+#    STATUS_CHOICES = (('awaiting_assessment', 'Awaiting Assessment'), ('assessed', 'Assessed'),
+#                      ('assessment_expired', 'Assessment Period Expired'))
+#    assigned_assessor = models.ForeignKey(EmailUser, blank=True, null=True)
+#    status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+#    date_last_reminded = models.DateField(null=True, blank=True)
+#    #requirements = models.ManyToManyField('Requirement', through='AssessmentRequirement')
+#    comment = models.TextField(blank=True)
+#    purpose = models.TextField(blank=True)
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
 
 class ProposalDeclinedDetails(models.Model):
     #proposal = models.OneToOneField(Proposal, related_name='declined_details')
@@ -3881,15 +3792,15 @@ class ProposalDeclinedDetails(models.Model):
         app_label = 'mooringlicensing'
 
 
-class ProposalOnHold(models.Model):
-    #proposal = models.OneToOneField(Proposal, related_name='onhold')
-    proposal = models.OneToOneField(Proposal)
-    officer = models.ForeignKey(EmailUser, null=False)
-    comment = models.TextField(blank=True)
-    documents = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='onhold_documents')
-
-    class Meta:
-        app_label = 'mooringlicensing'
+#class ProposalOnHold(models.Model):
+#    #proposal = models.OneToOneField(Proposal, related_name='onhold')
+#    proposal = models.OneToOneField(Proposal)
+#    officer = models.ForeignKey(EmailUser, null=False)
+#    comment = models.TextField(blank=True)
+#    documents = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='onhold_documents')
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
 
 
 @python_2_unicode_compatible
@@ -4063,67 +3974,67 @@ class ProposalRequirement(OrderedModel):
 
 
 
-@python_2_unicode_compatible
-#class ProposalStandardRequirement(models.Model):
-class ChecklistQuestion(RevisionedMixin):
-    TYPE_CHOICES = (
-        ('assessor_list','Assessor Checklist'),
-        ('referral_list','Referral Checklist')
-    )
-    ANSWER_TYPE_CHOICES = (
-        ('yes_no','Yes/No type'),
-        ('free_text','Free text type')
-    )
-    text = models.TextField()
-    list_type = models.CharField('Checklist type', max_length=30, choices=TYPE_CHOICES,
-                                         default=TYPE_CHOICES[0][0])
-    answer_type = models.CharField('Answer type', max_length=30, choices=ANSWER_TYPE_CHOICES,
-                                         default=ANSWER_TYPE_CHOICES[0][0])
-
-    #correct_answer= models.BooleanField(default=False)
-    #application_type = models.ForeignKey(ApplicationType,blank=True, null=True)
-    obsolete = models.BooleanField(default=False)
-    order = models.PositiveSmallIntegerField(default=1)
-
-    def __str__(self):
-        return self.text
-
-    class Meta:
-        app_label = 'mooringlicensing'
-
-
-class ProposalAssessment(RevisionedMixin):
-    proposal=models.ForeignKey(Proposal, related_name='assessment')
-    completed = models.BooleanField(default=False)
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='proposal_assessment')
-    #referral_assessment=models.BooleanField(default=False)
-    #referral_group = models.ForeignKey(ReferralRecipientGroup,null=True,blank=True,related_name='referral_assessment')
-    #referral=models.ForeignKey(Referral, related_name='assessment',blank=True, null=True )
-    # def __str__(self):
-    #     return self.proposal
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        unique_together = ('proposal',)
-
-    @property
-    def checklist(self):
-        return self.answers.all()
-
-
-class ProposalAssessmentAnswer(RevisionedMixin):
-    question=models.ForeignKey(ChecklistQuestion, related_name='answers')
-    answer = models.NullBooleanField()
-    assessment=models.ForeignKey(ProposalAssessment, related_name='answers', null=True, blank=True)
-    text_answer= models.CharField(max_length=256, blank=True, null=True)
-
-    def __str__(self):
-        return self.question.text
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name = "Assessment answer"
-        verbose_name_plural = "Assessment answers"
+#@python_2_unicode_compatible
+##class ProposalStandardRequirement(models.Model):
+#class ChecklistQuestion(RevisionedMixin):
+#    TYPE_CHOICES = (
+#        ('assessor_list','Assessor Checklist'),
+#        ('referral_list','Referral Checklist')
+#    )
+#    ANSWER_TYPE_CHOICES = (
+#        ('yes_no','Yes/No type'),
+#        ('free_text','Free text type')
+#    )
+#    text = models.TextField()
+#    list_type = models.CharField('Checklist type', max_length=30, choices=TYPE_CHOICES,
+#                                         default=TYPE_CHOICES[0][0])
+#    answer_type = models.CharField('Answer type', max_length=30, choices=ANSWER_TYPE_CHOICES,
+#                                         default=ANSWER_TYPE_CHOICES[0][0])
+#
+#    #correct_answer= models.BooleanField(default=False)
+#    #application_type = models.ForeignKey(ApplicationType,blank=True, null=True)
+#    obsolete = models.BooleanField(default=False)
+#    order = models.PositiveSmallIntegerField(default=1)
+#
+#    def __str__(self):
+#        return self.text
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#
+#
+#class ProposalAssessment(RevisionedMixin):
+#    proposal=models.ForeignKey(Proposal, related_name='assessment')
+#    completed = models.BooleanField(default=False)
+#    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='proposal_assessment')
+#    #referral_assessment=models.BooleanField(default=False)
+#    #referral_group = models.ForeignKey(ReferralRecipientGroup,null=True,blank=True,related_name='referral_assessment')
+#    #referral=models.ForeignKey(Referral, related_name='assessment',blank=True, null=True )
+#    # def __str__(self):
+#    #     return self.proposal
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#        unique_together = ('proposal',)
+#
+#    @property
+#    def checklist(self):
+#        return self.answers.all()
+#
+#
+#class ProposalAssessmentAnswer(RevisionedMixin):
+#    question=models.ForeignKey(ChecklistQuestion, related_name='answers')
+#    answer = models.NullBooleanField()
+#    assessment=models.ForeignKey(ProposalAssessment, related_name='answers', null=True, blank=True)
+#    text_answer= models.CharField(max_length=256, blank=True, null=True)
+#
+#    def __str__(self):
+#        return self.question.text
+#
+#    class Meta:
+#        app_label = 'mooringlicensing'
+#        verbose_name = "Assessment answer"
+#        verbose_name_plural = "Assessment answers"
 
 
 @receiver(pre_delete, sender=Proposal)
@@ -4149,224 +4060,10 @@ def clone_proposal_with_status_reset(original_proposal):
             proposal.previous_application = original_proposal
             proposal.approval = original_proposal.approval
 
-            ## Vessel data
-            #proposal.rego_no = original_proposal.vessel_details.vessel.rego_no
-            #proposal.vessel_id = original_proposal.vessel_details.vessel.id
-            #if original_proposal.vessel_ownership.company_ownership:
-            #    proposal.individual_owner = False
-            #    proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
-            #    proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
-            #else:
-            #    proposal.individual_owner = True
-            #    proposal.percentage = original_proposal.vessel_ownership.percentage
-
             proposal.save(no_revision=True)
             return proposal
         except:
             raise
-
-#def clone_proposal_with_status_reset(original_proposal):
-#    """
-#    To Test:
-#         from mooringlicensing.components.proposals.models import clone_proposal_with_status_reset
-#         p=Proposal.objects.get(id=57)
-#         p0=clone_proposal_with_status_reset(p)
-#    """
-#    with transaction.atomic():
-#        try:
-#            #original_proposal = copy.deepcopy(proposal)
-#            #proposal.id = None
-#            proposal = type(original_proposal.child_obj).objects.create()
-#
-#            proposal.customer_status = 'draft'
-#            proposal.processing_status = 'draft'
-#            #proposal.assessor_data = None
-#            #proposal.comment_data = None
-#
-#            proposal.lodgement_number = ''
-#            # why?
-#            #proposal.lodgement_sequence = 0
-#            proposal.lodgement_date = None
-#
-#            proposal.assigned_officer = None
-#            proposal.assigned_approver = None
-#
-#            proposal.approval = None
-#            #proposal.approval_level_document = None
-#            #proposal.migrated=False
-#
-#            ## Vessel data
-#            proposal.vessel_details = None
-#            proposal.vessel_ownership = None
-#            if original_proposal.vessel_ownership.company_ownership:
-#                proposal.individual_owner = False
-#                proposal.company_ownership_percentage = original_proposal.vessel_ownership.company_ownership.percentage
-#                proposal.company_ownership_name = original_proposal.vessel_ownership.company_ownership.company.name
-#            else:
-#                proposal.individual_owner = True
-#                proposal.percentage = original_proposal.vessel_ownership.percentage
-#
-#            proposal.child_obj.save(no_revision=True)
-#
-#            #clone_documents(proposal, original_proposal, media_prefix='media')
-#            #_clone_documents(proposal, original_proposal, media_prefix='media')
-#
-#            return proposal
-#        except:
-#            raise
-
-def clone_documents(proposal, original_proposal, media_prefix):
-    for proposal_document in ProposalDocument.objects.filter(proposal_id=proposal.id):
-        proposal_document._file.name = u'{}/proposals/{}/documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_document.name)
-        proposal_document.can_delete = True
-        proposal_document.save()
-
-    for proposal_required_document in ProposalRequiredDocument.objects.filter(proposal_id=proposal.id):
-        proposal_required_document._file.name = u'{}/proposals/{}/required_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_required_document.name)
-        proposal_required_document.can_delete = True
-        proposal_required_document.save()
-
-    #for referral in proposal.referrals.all():
-    #    for referral_document in ReferralDocument.objects.filter(referral=referral):
-    #        referral_document._file.name = u'{}/proposals/{}/referral/{}'.format(settings.MEDIA_APP_DIR, proposal.id, referral_document.name)
-    #        referral_document.can_delete = True
-    #        referral_document.save()
-
-    for qa_officer_document in QAOfficerDocument.objects.filter(proposal_id=proposal.id):
-        qa_officer_document._file.name = u'{}/proposals/{}/qaofficer/{}'.format(settings.MEDIA_APP_DIR, proposal.id, qa_officer_document.name)
-        qa_officer_document.can_delete = True
-        qa_officer_document.save()
-
-    for onhold_document in OnHoldDocument.objects.filter(proposal_id=proposal.id):
-        onhold_document._file.name = u'{}/proposals/{}/on_hold/{}'.format(settings.MEDIA_APP_DIR, proposal.id, onhold_document.name)
-        onhold_document.can_delete = True
-        onhold_document.save()
-
-    for requirement in proposal.requirements.all():
-        for requirement_document in RequirementDocument.objects.filter(requirement=requirement):
-            requirement_document._file.name = u'{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, requirement_document.name)
-            requirement_document.can_delete = True
-            requirement_document.save()
-
-    for log_entry_document in ProposalLogDocument.objects.filter(log_entry__proposal_id=proposal.id):
-        log_entry_document._file.name = log_entry_document._file.name.replace(str(original_proposal.id), str(proposal.id))
-        log_entry_document.can_delete = True
-        log_entry_document.save()
-
-    # copy documents on file system and reset can_delete flag
-    media_dir = '{}/{}'.format(media_prefix, settings.MEDIA_APP_DIR)
-    subprocess.call('cp -pr {0}/proposals/{1} {0}/proposals/{2}'.format(media_dir, original_proposal.id, proposal.id), shell=True)
-
-
-def _clone_documents(proposal, original_proposal, media_prefix):
-    for proposal_document in ProposalDocument.objects.filter(proposal=original_proposal.id):
-        proposal_document.proposal = proposal
-        proposal_document.id = None
-        proposal_document._file.name = u'{}/proposals/{}/documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_document.name)
-        proposal_document.can_delete = True
-        proposal_document.save()
-
-    for proposal_required_document in ProposalRequiredDocument.objects.filter(proposal=original_proposal.id):
-        proposal_required_document.proposal = proposal
-        proposal_required_document.id = None
-        proposal_required_document._file.name = u'{}/proposals/{}/required_documents/{}'.format(settings.MEDIA_APP_DIR, proposal.id, proposal_required_document.name)
-        proposal_required_document.can_delete = True
-        proposal_required_document.save()
-
-    # copy documents on file system and reset can_delete flag
-    media_dir = '{}/{}'.format(media_prefix, settings.MEDIA_APP_DIR)
-    subprocess.call('cp -pr {0}/proposals/{1} {0}/proposals/{2}'.format(media_dir, original_proposal.id, proposal.id), shell=True)
-
-def duplicate_object(self):
-    """
-    Duplicate a model instance, making copies of all foreign keys pointing to it.
-    There are 3 steps that need to occur in order:
-
-        1.  Enumerate the related child objects and m2m relations, saving in lists/dicts
-        2.  Copy the parent object per django docs (doesn't copy relations)
-        3a. Copy the child objects, relating to the copied parent object
-        3b. Re-create the m2m relations on the copied parent object
-
-    """
-    related_objects_to_copy = []
-    relations_to_set = {}
-    # Iterate through all the fields in the parent object looking for related fields
-    for field in self._meta.get_fields():
-        if field.name in ['proposal', 'approval']:
-            print('Continuing ...')
-            pass
-        elif field.one_to_many:
-            # One to many fields are backward relationships where many child objects are related to the
-            # parent (i.e. SelectedPhrases). Enumerate them and save a list so we can copy them after
-            # duplicating our parent object.
-            print('Found a one-to-many field: {}'.format(field.name))
-
-            # 'field' is a ManyToOneRel which is not iterable, we need to get the object attribute itself
-            related_object_manager = getattr(self, field.name)
-            related_objects = list(related_object_manager.all())
-            if related_objects:
-                print(' - {len(related_objects)} related objects to copy')
-                related_objects_to_copy += related_objects
-
-        elif field.many_to_one:
-            # In testing so far, these relationships are preserved when the parent object is copied,
-            # so they don't need to be copied separately.
-            print('Found a many-to-one field: {}'.format(field.name))
-
-        elif field.many_to_many:
-            # Many to many fields are relationships where many parent objects can be related to many
-            # child objects. Because of this the child objects don't need to be copied when we copy
-            # the parent, we just need to re-create the relationship to them on the copied parent.
-            print('Found a many-to-many field: {}'.format(field.name))
-            related_object_manager = getattr(self, field.name)
-            relations = list(related_object_manager.all())
-            if relations:
-                print(' - {} relations to set'.format(len(relations)))
-                relations_to_set[field.name] = relations
-
-    # Duplicate the parent object
-    self.pk = None
-    self.lodgement_number = ''
-    self.save()
-    print('Copied parent object {}'.format(str(self)))
-
-    # Copy the one-to-many child objects and relate them to the copied parent
-    for related_object in related_objects_to_copy:
-        # Iterate through the fields in the related object to find the one that relates to the
-        # parent model (I feel like there might be an easier way to get at this).
-        for related_object_field in related_object._meta.fields:
-            if related_object_field.related_model == self.__class__:
-                # If the related_model on this field matches the parent object's class, perform the
-                # copy of the child object and set this field to the parent object, creating the
-                # new child -> parent relationship.
-                related_object.pk = None
-                #if related_object_field.name=='approvals':
-                #    related_object.lodgement_number = None
-                ##if isinstance(related_object, Approval):
-                ##    related_object.lodgement_number = ''
-
-                setattr(related_object, related_object_field.name, self)
-                print(related_object_field)
-                try:
-                    related_object.save()
-                except Exception as e:
-                    logger.warn(e)
-
-                text = str(related_object)
-                text = (text[:40] + '..') if len(text) > 40 else text
-                print('|- Copied child object {}'.format(text))
-
-    # Set the many-to-many relations on the copied parent
-    for field_name, relations in relations_to_set.items():
-        # Get the field by name and set the relations, creating the new relationships
-        field = getattr(self, field_name)
-        field.set(relations)
-        text_relations = []
-        for relation in relations:
-            text_relations.append(str(relation))
-        print('|- Set {} many-to-many relations on {} {}'.format(len(relations), field_name, text_relations))
-
-    return self
 
 def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance, is_internal= True):
     from mooringlicensing.utils import search, search_approval, search_compliance
@@ -4473,85 +4170,45 @@ class HelpPage(models.Model):
 
 
 import reversion
-reversion.register(Proposal)
+reversion.register(Proposal, follow=["waitinglistapplication", "annualadmissionapplication", "authoriseduserapplication", "mooringlicenceapplication",
+    "documents","comms_logs",
+    "insurance_certificate_documents","hull_identification_number_documents", "electoral_roll_documents","mooring_report_documents",
+    "written_proof_documents","signed_licence_agreement_documents","proof_of_identity_documents",
+    "proposalrequest_set","proposaldeclineddetails",
+    "requirements","compliances","approvals",
+    ])
 reversion.register(WaitingListApplication)
 reversion.register(AnnualAdmissionApplication)
 reversion.register(AuthorisedUserApplication)
 reversion.register(MooringLicenceApplication)
+reversion.register(ProposalDocument)
+reversion.register(ProposalLogDocument)
+reversion.register(ProposalLogEntry, follow=["documents"])
+reversion.register(InsuranceCertificateDocument)
+reversion.register(HullIdentificationNumberDocument)
+reversion.register(ElectoralRollDocument)
+reversion.register(MooringReportDocument)
+reversion.register(WrittenProofDocument)
+reversion.register(SignedLicenceAgreementDocument)
+reversion.register(ProofOfIdentityDocument)
+reversion.register(ProposalRequest)
+reversion.register(ProposalDeclinedDetails)
+reversion.register(ProposalRequirement, follow=["requirement_documents",])
+reversion.register(RequirementDocument)
 
-#reversion.register(Referral, follow=['referral_documents', 'assessment'])
-#reversion.register(ReferralDocument, follow=['referral_document'])
-#
-#reversion.register(Proposal, follow=['documents', 'onhold_documents','required_documents','qaofficer_documents','comms_logs','other_details', 'parks', 'trails', 'vehicles', 'vessels', 'proposalrequest_set','proposaldeclineddetails', 'proposalonhold', 'requirements', 'referrals', 'qaofficer_referrals', 'compliances', 'referrals', 'approvals', 'park_entries', 'assessment', 'fee_discounts', 'district_proposals', 'filming_parks', 'events_parks', 'pre_event_parks','filming_activity', 'filming_access', 'filming_equipment', 'filming_other_details', 'event_activity', 'event_management', 'event_vehicles_vessels', 'event_other_details','event_abseiling_climbing_activity' ])
-#reversion.register(ProposalDocument, follow=['onhold_documents'])
-#reversion.register(ApplicationFeeDiscount)
-#reversion.register(OnHoldDocument)
-#reversion.register(ProposalRequest)
-#reversion.register(ProposalRequiredDocument)
-#reversion.register(ProposalApplicantDetails)
-#reversion.register(ProposalActivitiesLand)
-#reversion.register(ProposalActivitiesMarine)
-#reversion.register(ProposalOtherDetails, follow=['accreditations'])
-#
-#reversion.register(ProposalLogEntry, follow=['documents',])
-#reversion.register(ProposalLogDocument)
-#
-##reversion.register(Park, follow=['proposals',])
-#reversion.register(ProposalPark, follow=['activities','access_types', 'zones'])
-#reversion.register(ProposalParkAccess)
-#
-##reversion.register(AccessType, follow=['proposals','proposalparkaccess_set', 'vehicles'])
-#
-##reversion.register(Activity, follow=['proposalparkactivity_set','proposalparkzoneactivity_set', 'proposaltrailsectionactivity_set'])
-#reversion.register(ProposalParkActivity)
-#
-#reversion.register(ProposalParkZone, follow=['park_activities'])
-#reversion.register(ProposalParkZoneActivity)
-#reversion.register(ParkEntry)
-#
-#reversion.register(ProposalTrail, follow=['sections'])
-#reversion.register(Vehicle)
-#reversion.register(Vessel)
-#reversion.register(ProposalUserAction)
-#
-#reversion.register(ProposalTrailSection, follow=['trail_activities'])
-#
-#reversion.register(ProposalTrailSectionActivity)
-#reversion.register(AmendmentReason, follow=['amendmentrequest_set'])
-#reversion.register(AmendmentRequest)
-#reversion.register(Assessment)
-#reversion.register(ProposalDeclinedDetails)
-#reversion.register(ProposalOnHold)
-#reversion.register(ProposalStandardRequirement, follow=['proposalrequirement_set'])
-#reversion.register(ProposalRequirement, follow=['compliance_requirement'])
-#reversion.register(ReferralRecipientGroup, follow=['mooringlicensing_referral_groups', 'referral_assessment'])
-#reversion.register(QAOfficerGroup, follow=['qaofficer_groups'])
-#reversion.register(QAOfficerReferral)
-#reversion.register(QAOfficerDocument, follow=['qaofficer_referral_document'])
-#reversion.register(ProposalAccreditation)
-#reversion.register(HelpPage)
-#reversion.register(ChecklistQuestion, follow=['answers'])
-#reversion.register(ProposalAssessment, follow=['answers'])
-#reversion.register(ProposalAssessmentAnswer)
-#
-##Filming
-#reversion.register(ProposalFilmingActivity)
-#reversion.register(ProposalFilmingAccess)
-#reversion.register(ProposalFilmingEquipment)
-#reversion.register(ProposalFilmingOtherDetails)
-#reversion.register(ProposalFilmingParks, follow=['filming_park_documents'])
-#reversion.register(FilmingParkDocument)
-#reversion.register(DistrictProposal, follow=['district_compliance', 'district_proposal_requirements', 'district_approvals'])
-#
-##Event
-#reversion.register(ProposalEventActivities, follow=['abseiling_climbing_activity_data'])
-#reversion.register(ProposalEventManagement)
-#reversion.register(ProposalEventVehiclesVessels)
-#reversion.register(ProposalEventOtherDetails)
-#reversion.register(ProposalEventsParks, follow=['events_park_documents'])
-#reversion.register(AbseilingClimbingActivity)
-#reversion.register(EventsParkDocument)
-#reversion.register(ProposalPreEventsParks, follow=['pre_event_park_documents'])
-#reversion.register(PreEventsParkDocument)
-#reversion.register(ProposalEventsTrails)
+reversion.register(MooringBay)
+reversion.register(Mooring, follow=["mooring_bay", "mooring_licence"])
+reversion.register(MooringLogDocument)
+reversion.register(MooringLogEntry, follow=["documents"])
+reversion.register(MooringUserAction)
+
+reversion.register(Vessel, follow=["blocking_owner",])
+reversion.register(VesselLogDocument)
+reversion.register(VesselLogEntry, follow=["documents"])
+reversion.register(VesselDetails, follow=["vessel"])
+reversion.register(CompanyOwnership, follow=["blocking_proposal", "vessel", "company"])
+reversion.register(VesselOwnership, follow=["owner", "vessel", "company_ownership"])
+reversion.register(Owner)
+reversion.register(Company)
+reversion.register(ProposalType)
 
