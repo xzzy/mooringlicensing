@@ -13,6 +13,8 @@ from mooringlicensing.components.emails.emails import TemplateEmailBase, _extrac
 from ledger.accounts.models import EmailUser
 from mooringlicensing.components.emails.utils import get_user_as_email_user, get_public_url
 from mooringlicensing.components.organisations.models import OrganisationLogEntry, Organisation
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 
 
 logger = logging.getLogger(__name__)
@@ -312,7 +314,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     return msg
 
 
-def _log_approval_email(email_message, approval, sender=None):
+def _log_approval_email(email_message, approval, sender=None, attachments=[]):
     from mooringlicensing.components.approvals.models import ApprovalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
@@ -355,6 +357,11 @@ def _log_approval_email(email_message, approval, sender=None):
     }
 
     email_entry = ApprovalLogEntry.objects.create(**kwargs)
+
+    for attachment in attachments:
+        path_to_file = '{}/approvals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, approval.id, attachment[0])
+        path = default_storage.save(path_to_file, ContentFile(attachment[1]))
+        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
     return email_entry
 
@@ -834,7 +841,7 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -878,7 +885,7 @@ def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownersh
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -923,7 +930,7 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -968,7 +975,7 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -1009,7 +1016,7 @@ def send_sticker_replacement_email(request, sticker, invoice):
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -1050,7 +1057,7 @@ def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, 
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:
@@ -1091,7 +1098,7 @@ def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit
     msg = email.send(proposal.submitter.email, cc=all_ccs, context=context, attachments=attachments)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
+    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
     if approval.org_applicant:
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender)
     else:

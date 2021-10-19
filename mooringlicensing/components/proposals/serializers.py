@@ -5,7 +5,6 @@ from ledger.accounts.models import EmailUser,Address
 #from mooringlicensing.components.main.models import ApplicationType
 from ledger.payments.invoice.models import Invoice
 #from datetime import date
-
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalUserAction,
@@ -17,9 +16,9 @@ from mooringlicensing.components.proposals.models import (
     ProposalDeclinedDetails,
     AmendmentRequest,
     AmendmentReason,
-    ChecklistQuestion,
-    ProposalAssessmentAnswer,
-    ProposalAssessment,
+    #ChecklistQuestion,
+    #ProposalAssessmentAnswer,
+    #ProposalAssessment,
     RequirementDocument,
     VesselDetails,
     VesselOwnership,
@@ -128,42 +127,42 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
 #                )
 
 
-class ChecklistQuestionSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ChecklistQuestion
-        #fields = '__all__'
-        fields=('id',
-                'text',
-                'answer_type',
-                )
-class ProposalAssessmentAnswerSerializer(serializers.ModelSerializer):
-    question=ChecklistQuestionSerializer(read_only=True)
-    class Meta:
-        model = ProposalAssessmentAnswer
-        fields = ('id',
-                'question',
-                'answer',
-                'text_answer',
-                )
-
-class ProposalAssessmentSerializer(serializers.ModelSerializer):
-    checklist=serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProposalAssessment
-        fields = ('id',
-                'completed',
-                'submitter',
-                'referral_assessment',
-                'referral_group',
-                'referral_group_name',
-                'checklist'
-                )
-
-    def get_checklist(self,obj):
-        qs= obj.checklist.order_by('question__order')
-        return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
+#class ChecklistQuestionSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = ChecklistQuestion
+#        #fields = '__all__'
+#        fields=('id',
+#                'text',
+#                'answer_type',
+#                )
+#class ProposalAssessmentAnswerSerializer(serializers.ModelSerializer):
+#    question=ChecklistQuestionSerializer(read_only=True)
+#    class Meta:
+#        model = ProposalAssessmentAnswer
+#        fields = ('id',
+#                'question',
+#                'answer',
+#                'text_answer',
+#                )
+#
+#class ProposalAssessmentSerializer(serializers.ModelSerializer):
+#    checklist=serializers.SerializerMethodField()
+#
+#    class Meta:
+#        model = ProposalAssessment
+#        fields = ('id',
+#                'completed',
+#                'submitter',
+#                'referral_assessment',
+#                'referral_group',
+#                'referral_group_name',
+#                'checklist'
+#                )
+#
+#    def get_checklist(self,obj):
+#        qs= obj.checklist.order_by('question__order')
+#        return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
@@ -478,6 +477,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     mooring = MooringSerializer()
     uuid = serializers.SerializerMethodField()
     document_upload_url = serializers.SerializerMethodField()
+    can_view_payment_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -521,6 +521,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'mooring',
                 'uuid',
                 'document_upload_url',
+                'can_view_payment_details',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -554,7 +555,13 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'mooring',
                 'uuid',
                 'document_upload_url',
+                'can_view_payment_details',
                 )
+
+    def get_can_view_payment_details(self, proposal):
+        if 'request' in self.context:
+            from mooringlicensing.components.main.utils import is_payment_officer
+            return is_payment_officer(self.context['request'].user)
 
     def get_document_upload_url(self, proposal):
         if proposal.application_type.code == MooringLicenceApplication.code and proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS:
@@ -727,7 +734,7 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
-    mooring_id = serializers.IntegerField(write_only=True, required=False)
+    mooring_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Proposal
@@ -748,7 +755,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print("validate data")
         print(data)
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
@@ -839,7 +845,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     #reversion_ids = serializers.SerializerMethodField()
-    assessor_assessment=ProposalAssessmentSerializer(read_only=True)
+    #assessor_assessment=ProposalAssessmentSerializer(read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
@@ -895,7 +901,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'proposal_type',
                 'applicant_details',
                 #'reversion_ids',
-                'assessor_assessment',
+                #'assessor_assessment',
                 'fee_invoice_url',
                 'fee_paid',
                 'requirements_completed',
@@ -962,21 +968,18 @@ class InternalProposalSerializer(BaseProposalSerializer):
         vessels = []
         vessel_details = []
         if type(obj.child_obj) == MooringLicenceApplication and obj.approval:
-            for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
-                vessel = vessel_ownership.vessel
+            #for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
+            for vooa in obj.approval.vesselownershiponapproval_set.all():
+                vessel = vooa.vessel_ownership.vessel
                 vessels.append(vessel)
-                #status = 'Current' if not vessel_ownership.mooring_licence_end_date and not vessel_ownership.end_date else 'Historical'
-                status = 'Current' if not vessel_ownership.mooring_licence_end_date else 'Historical'
+                status = 'Current' if not vooa.end_date else 'Historical'
 
                 vessel_details.append({
-                    "id": vessel_ownership.id,
-                    "rego": vessel.rego_no,
-                    "vessel_name": vessel.latest_vessel_details.vessel_name,
-                    #"owner": vessel_ownership.owner.emailuser.get_full_name(),
-                    #"mobile": vessel_ownership.owner.emailuser.mobile_number,
-                    #"email": vessel_ownership.owner.emailuser.email,
+                    "id": vooa.vessel_ownership.id,
+                    "rego": vooa.vessel_ownership.vessel.rego_no,
+                    "vessel_name": vooa.vessel_ownership.vessel.latest_vessel_details.vessel_name,
                     "status": status,
-                    "checked": True if not vessel_ownership.mooring_licence_end_date else False,
+                    "checked": True if not vooa.end_date else False,
                     })
         return vessel_details
 

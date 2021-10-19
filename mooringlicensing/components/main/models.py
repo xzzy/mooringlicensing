@@ -173,30 +173,30 @@ class ApplicationType(models.Model):
 #            return self.name[0]
 
 
-class Question(models.Model):
-    CORRECT_ANSWER_CHOICES = (
-        ('answer_one', 'Answer one'), ('answer_two', 'Answer two'), ('answer_three', 'Answer three'),
-        ('answer_four', 'Answer four'))
-    question_text = models.TextField(blank=False)
-    answer_one = models.CharField(max_length=200, blank=True)
-    answer_two = models.CharField(max_length=200, blank=True)
-    answer_three = models.CharField(max_length=200, blank=True)
-    answer_four = models.CharField(max_length=200, blank=True)
-    #answer_five = models.CharField(max_length=200, blank=True)
-    correct_answer = models.CharField('Correct Answer', max_length=40, choices=CORRECT_ANSWER_CHOICES,
-                                       default=CORRECT_ANSWER_CHOICES[0][0])
-    #application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
-
-    class Meta:
-        #ordering = ['name']
-        app_label = 'mooringlicensing'
-
-    def __str__(self):
-        return self.question_text
-
-    @property
-    def correct_answer_value(self):
-        return getattr(self, self.correct_answer)
+#class Question(models.Model):
+#    CORRECT_ANSWER_CHOICES = (
+#        ('answer_one', 'Answer one'), ('answer_two', 'Answer two'), ('answer_three', 'Answer three'),
+#        ('answer_four', 'Answer four'))
+#    question_text = models.TextField(blank=False)
+#    answer_one = models.CharField(max_length=200, blank=True)
+#    answer_two = models.CharField(max_length=200, blank=True)
+#    answer_three = models.CharField(max_length=200, blank=True)
+#    answer_four = models.CharField(max_length=200, blank=True)
+#    #answer_five = models.CharField(max_length=200, blank=True)
+#    correct_answer = models.CharField('Correct Answer', max_length=40, choices=CORRECT_ANSWER_CHOICES,
+#                                       default=CORRECT_ANSWER_CHOICES[0][0])
+#    #application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
+#
+#    class Meta:
+#        #ordering = ['name']
+#        app_label = 'mooringlicensing'
+#
+#    def __str__(self):
+#        return self.question_text
+#
+#    @property
+#    def correct_answer_value(self):
+#        return getattr(self, self.correct_answer)
 
 
 class GlobalSettings(models.Model):
@@ -206,6 +206,7 @@ class GlobalSettings(models.Model):
     KEY_AAP_TEMPLATE_FILE = 'aap_template_file'
     KEY_AUP_TEMPLATE_FILE = 'aup_template_file'
     KEY_ML_TEMPLATE_FILE = 'ml_template_file'
+    KEY_ML_AU_LIST_TEMPLATE_FILE = 'ml_au_list_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
     KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
@@ -217,6 +218,7 @@ class GlobalSettings(models.Model):
         KEY_AAP_TEMPLATE_FILE,
         KEY_AUP_TEMPLATE_FILE,
         KEY_ML_TEMPLATE_FILE,
+        KEY_ML_AU_LIST_TEMPLATE_FILE,
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
@@ -225,6 +227,7 @@ class GlobalSettings(models.Model):
         (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
         (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit template file'),
         (KEY_ML_TEMPLATE_FILE, 'Mooring Licence template file'),
+        (KEY_ML_AU_LIST_TEMPLATE_FILE, 'Mooring Licence Authorised User Summary template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit')
@@ -237,6 +240,7 @@ class GlobalSettings(models.Model):
         KEY_AAP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AAP.docx'),
         KEY_AUP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AUP.docx'),
         KEY_ML_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML.docx'),
+        KEY_ML_AU_LIST_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML - AU Summary.docx'),
         KEY_MINIMUM_VESSEL_LENGTH: 3.75,
         KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.50,
         KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
@@ -464,12 +468,15 @@ class NumberOfDaysSetting(RevisionedMixin):
         return setting
 
 
-
-
-#import reversion
-#reversion.register(UserAction)
-#reversion.register(CommunicationsLogEntry)
-#reversion.register(Document)
-#reversion.register(SystemMaintenance)
-
+import reversion
+reversion.register(UserAction)
+reversion.register(CommunicationsLogEntry)
+reversion.register(Document)
+reversion.register(SystemMaintenance)
+reversion.register(NumberOfDaysSetting)
+reversion.register(NumberOfDaysType)
+reversion.register(VesselSizeCategory)
+reversion.register(VesselSizeCategoryGroup)
+reversion.register(GlobalSettings)
+reversion.register(ApplicationType)
 
