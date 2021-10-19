@@ -1182,7 +1182,8 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
     from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
     proposal.refresh_from_db()
-    proposal.approval.refresh_from_db()
+    if proposal.approval:  # For AU/ML new application, approval is not created yet before payments
+        proposal.approval.refresh_from_db()
 
     attachments = []
     if attach_invoice and proposal.invoice:

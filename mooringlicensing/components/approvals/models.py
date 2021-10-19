@@ -1133,7 +1133,7 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
-    def get_mooring_authorisation_preference(self):
+    def get_authorised_by(self):
         preference = self.current_proposal.child_obj.get_mooring_authorisation_preference()
         return preference
 
@@ -1366,6 +1366,9 @@ class MooringLicence(Approval):
             authorised_person = {}
             if type(moa.approval.child_obj) == AuthorisedUserPermit:
                 aup = moa.approval.child_obj
+                authorised_by = aup.get_authorised_by()
+                authorised_by = authorised_by.upper().replace('_', ' ')
+
                 authorised_person['full_name'] = aup.submitter.get_full_name()
                 authorised_person['vessel'] = {
                     'rego_no': aup.current_proposal.vessel_details.vessel.rego_no,
@@ -1373,8 +1376,8 @@ class MooringLicence(Approval):
                     'length': aup.current_proposal.vessel_details.vessel_applicable_length,
                     'draft': aup.current_proposal.vessel_details.vessel_draft,
                 }
-                authorised_person['authorised_date'] = aup.issue_date
-                authorised_person['authorised_by'] = aup.get_mooring_authorisation_preference()
+                authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
+                authorised_person['authorised_by'] = authorised_by
                 authorised_person['mobile_number'] = aup.submitter.mobile_number
                 authorised_person['email_address'] = aup.submitter.email
                 authorised_persons.append(authorised_person)
