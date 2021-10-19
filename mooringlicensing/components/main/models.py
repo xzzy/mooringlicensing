@@ -218,6 +218,7 @@ class GlobalSettings(models.Model):
         KEY_AAP_TEMPLATE_FILE,
         KEY_AUP_TEMPLATE_FILE,
         KEY_ML_TEMPLATE_FILE,
+        KEY_ML_AU_LIST_TEMPLATE_FILE,
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
