@@ -641,14 +641,11 @@ class Approval(RevisionedMixin):
         # TODO: check this logic
         return self.current_proposal.allowed_assessors_user(request)
 
-
     def is_assessor(self,user):
         return self.current_proposal.is_assessor(user)
 
-
     def is_approver(self,user):
         return self.current_proposal.is_approver(user)
-
 
     @property
     def is_issued(self):
@@ -702,25 +699,31 @@ class Approval(RevisionedMixin):
             # return create_approval_doc_bytes(self, self.current_proposal, None, user)
             return create_approval_doc_bytes(self)
 
-        # self.licence_document = create_approval_doc(self, self.current_proposal, copied_to_permit, user)
-        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)
+        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)  # Update the attribute to the latest doc
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
 
     def generate_au_summary_doc(self, user):
         from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
 
-        contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
+        if hasattr(self, 'mooring'):
+            moa_set = MooringOnApproval.objects.filter(
+                mooring=self.mooring,
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+            )
+            if moa_set.count() > 0:
+                # Authorised User exists
+                contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
 
-        filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
-        document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
+                filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
+                document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
 
-        # Save the bytes to the disk
-        document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+                # Save the bytes to the disk
+                document._file.save(filename, ContentFile(contents_as_bytes), save=True)
 
-        self.authorised_user_summary_document = document
-        self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
-        self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
+                self.authorised_user_summary_document = document  # Update to the latest doc
+                self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
+                self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
         self.renewal_document = create_renewal_doc(self, self.current_proposal)
@@ -1130,6 +1133,10 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def get_mooring_authorisation_preference(self):
+        preference = self.current_proposal.child_obj.get_mooring_authorisation_preference()
+        return preference
+
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
@@ -1345,9 +1352,42 @@ class MooringLicence(Approval):
         raise NotImplementedError('This method cannot be called on a child_obj')
 
     def get_context_for_au_summary(self):
+        if not hasattr(self, 'mooring'):
+            # There should not be AuthorisedUsers for this ML
+            return {}
+        moa_set = MooringOnApproval.objects.filter(
+            mooring=self.mooring,
+            approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+        )
+
+        authorised_persons = []
+
+        for moa in moa_set:
+            authorised_person = {}
+            if type(moa.approval.child_obj) == AuthorisedUserPermit:
+                aup = moa.approval.child_obj
+                authorised_person['full_name'] = aup.submitter.get_full_name()
+                authorised_person['vessel'] = {
+                    'rego_no': aup.current_proposal.vessel_details.vessel.rego_no,
+                    'vessel_name': aup.current_proposal.vessel_details.vessel_name,
+                    'length': aup.current_proposal.vessel_details.vessel_applicable_length,
+                    'draft': aup.current_proposal.vessel_details.vessel_draft,
+                }
+                authorised_person['authorised_date'] = aup.issue_date
+                authorised_person['authorised_by'] = aup.get_mooring_authorisation_preference()
+                authorised_person['mobile_number'] = aup.submitter.mobile_number
+                authorised_person['email_address'] = aup.submitter.email
+                authorised_persons.append(authorised_person)
+
         context = {
             'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_first_name': self.submitter.first_name,
+            'mooring_name': self.mooring.name,
+            'authorised_persons': authorised_persons,
         }
+
         return context
 
     def get_context_for_licence_permit(self):
@@ -1410,9 +1450,10 @@ class MooringLicence(Approval):
     def update_auth_user_permits(self):
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
-                    mooring=self.mooring,
-                    approval__status='current'
-                    )
+                mooring=self.mooring,
+                # approval__status='current'
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
+            )
             for moa in moa_set:
                 if type(moa.approval.child_obj) == AuthorisedUserPermit:
                     moa.approval.child_obj.update_moorings(self)
