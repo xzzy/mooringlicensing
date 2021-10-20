@@ -37,7 +37,6 @@ from mooringlicensing.components.compliances.models import (
    ComplianceAmendmentRequest,
    ComplianceAmendmentReason
 )
-#rom mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.compliances.serializers import (
     ComplianceSerializer,
     InternalComplianceSerializer,
@@ -49,12 +48,10 @@ from mooringlicensing.components.compliances.serializers import (
 )
 from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-#from mooringlicensing.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 
 
 class ComplianceViewSet(viewsets.ModelViewSet):
     serializer_class = ComplianceSerializer
-    #queryset = Compliance.objects.all()
     queryset = Compliance.objects.none()
 
     def get_queryset(self):
@@ -78,65 +75,11 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    # @list_route(methods=['GET',])
-    # def filter_list(self, request, *args, **kwargs):
-    #     """ Used by the external dashboard filters """
-    #     region_qs =  self.get_queryset().filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
-    #     activity_qs =  self.get_queryset().filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
-    #     application_types=ApplicationType.objects.all().values_list('name', flat=True)
-    #     data = dict(
-    #         regions=region_qs,
-    #         activities=activity_qs,
-    #         application_types=application_types,
-    #     )
-    #     return Response(data)
-
     @detail_route(methods=['GET',])
     def internal_compliance(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = InternalComplianceSerializer(instance,context={'request':request})
         return Response(serializer.data)
-
-
-#    @list_route(methods=['GET',])
-#    def compliances_paginated(self, request, *args, **kwargs):
-#        """
-#        Used by the external dashboard
-#
-#        http://localhost:8499/api/compliances/compliances_external/paginated/?format=datatables&draw=1&length=2
-#        """
-#
-#        qs = self.get_queryset().exclude(processing_status='future')
-#        qs = ProposalFilterBackend().filter_queryset(request, qs, self)
-#
-#        paginator = DatatablesPageNumberPagination()
-#        paginator.page_size = qs.count()
-#        result_page = paginator.paginate_queryset(qs, request)
-#        serializer = ComplianceSerializer(result_page, context={'request':request}, many=True)
-#        return paginator.get_paginated_response(serializer.data)
-
-#    @list_route(methods=['GET',])
-#    def user_list(self, request, *args, **kwargs):
-#        #Remove filter to include 'Apporved Proposals in external dashboard .exclude(processing_status=Proposal.PROCESSING_STATUS_CHOICES[13][0])
-#        queryset = self.get_queryset().exclude(processing_status='future')
-#        serializer = ComplianceSerializer(queryset, many=True)
-#        return Response(serializer.data)
-#
-#    @list_route(methods=['GET'])
-#    def user_list_paginated(self, request, *args, **kwargs):
-#        """
-#        Placing Paginator class here (instead of settings.py) allows specific method for desired behaviour),
-#        otherwise all serializers will use the default pagination class
-#
-#        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-#        """
-#        queryset = self.get_queryset().exclude(processing_status='future')
-#        paginator = DatatablesPageNumberPagination()
-#        paginator.page_size = queryset.count()
-#        result_page = paginator.paginate_queryset(queryset, request)
-#        #serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-#        serializer = self.get_serializer(result_page, context={'request':request}, many=True)
-#        return paginator.get_paginated_response(serializer.data)
 
     @detail_route(methods=['POST',])
     @renderer_classes((JSONRenderer,))
@@ -153,7 +96,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
-                #if request.data.has_key('num_participants'):
                 if 'num_participants' in request.data:
                     if request.FILES:
                         # if num_adults is present instance.submit is executed after payment in das_payment/views.py
@@ -165,13 +107,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                     instance.submit(request)
 
                 serializer = self.get_serializer(instance)
-                # Save the files
-                '''for f in request.FILES:
-                    document = instance.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
-                # End Save Documents'''
                 return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -384,7 +319,6 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             if hasattr(e,'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                #raise serializers.ValidationError(repr(e[0].encode('utf-8')))
                 if hasattr(e,'message'):
                     raise serializers.ValidationError(e.message)
         except Exception as e:
@@ -397,7 +331,6 @@ class ComplianceAmendmentReasonChoicesView(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
         choices_list = []
-        #choices = ComplianceAmendmentRequest.REASON_CHOICES
         choices=ComplianceAmendmentReason.objects.all()
         if choices:
             for c in choices:

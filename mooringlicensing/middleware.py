@@ -15,7 +15,6 @@ CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 
 class FirstTimeNagScreenMiddleware(object):
     def process_request(self, request):
-        #print ("FirstTimeNagScreenMiddleware: REQUEST SESSION")
         if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
             if (not request.user.first_name or not request.user.last_name):
                 path_ft = reverse('first_time')
@@ -25,22 +24,11 @@ class FirstTimeNagScreenMiddleware(object):
 
 class CacheControlMiddleware(object):
     def process_response(self, request, response):
-        #print("request.path")
-        #print(request.path)
         if request.path[:5] == '/api/' or request.path == '/':
             response['Cache-Control'] = 'private, no-store'
         elif request.path[:8] == '/static/':
             response['Cache-Control'] = 'public, max-age=86400'
         return response
-
-    #def __init__(self, get_response):
-    #    self.get_response = get_response
-
-    #def __call__(self, request):
-    #    response = self.get_response(request)
-    #    #print(response.__dict__)
-
-    #    return response
 
 class RevisionOverrideMiddleware(RevisionMiddleware):
 
