@@ -2,17 +2,12 @@ from ledger.payments.invoice.models import Invoice
 from rest_framework import serializers
 from django.db.models import Sum, Max
 from mooringlicensing.components.main.models import (
-        CommunicationsLogEntry, #Region, District, Tenure, 
-        #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, Activity, ActivityCategory, Section, Zone, 
-        #RequiredDocument, 
-        #Question, 
+        CommunicationsLogEntry,
         GlobalSettings, TemporaryDocumentCollection,
-        )#, ParkPrice
-#from mooringlicensing.components.proposals.models import  ProposalParkActivity
-#from mooringlicensing.components.bookings.models import  ParkBooking
+        )
 from ledger.accounts.models import EmailUser
 from datetime import datetime, date
-#from mooringlicensing.components.proposals.serializers import ProposalTypeSerializer
+
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=EmailUser.objects.all(),required=False)
@@ -39,29 +34,10 @@ class CommunicationLogEntrySerializer(serializers.ModelSerializer):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
 
-#class ApplicationTypeSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = ApplicationType
-#        fields = '__all__'
-
-
 class GlobalSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = GlobalSettings
         fields = ('key', 'value')
-
-
-
-#class RequiredDocumentSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = RequiredDocument
-#        fields = ('id', 'park','activity', 'question')
-
-
-#class QuestionSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = Question
-#        fields = ('id', 'question_text', 'answer_one', 'answer_two', 'answer_three', 'answer_four','correct_answer', 'correct_answer_value')
 
 
 class BookingSettlementReportSerializer(serializers.Serializer):
@@ -74,7 +50,6 @@ class OracleSerializer(serializers.Serializer):
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    # payment_status = serializers.ReadOnlyField()
     payment_status = serializers.SerializerMethodField()
 
     class Meta:

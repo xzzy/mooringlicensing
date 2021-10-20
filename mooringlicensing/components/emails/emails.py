@@ -90,11 +90,8 @@ class TemplateEmailBase(object):
                 _attachments.append((filename, content, mime))
             else:
                 _attachments.append(attachment)
-        #msg = EmailMultiAlternatives(self.subject, txt_body, from_email=from_address, to=to_addresses,
-         #                            attachments=_attachments, cc=cc, bcc=bcc)
         msg = EmailMultiAlternatives(self.subject, txt_body, from_email=from_address, to=to_addresses,
                 attachments=_attachments, cc=cc, bcc=bcc, 
-                #reply_to=reply_to, 
                 headers={'System-Environment': email_instance}
                 )
         msg.attach_alternative(html_body, 'text/html')
@@ -146,3 +143,4 @@ def _extract_email_headers(email_message, sender=None):
     }
 
     return email_data
+

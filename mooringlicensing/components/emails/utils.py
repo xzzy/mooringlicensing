@@ -22,7 +22,6 @@ def make_url_for_internal(url):
 
 def get_public_url(request=None):
     if request:
-        # web_url = request.META.get('HTTP_HOST', None)
         web_url = '{}://{}'.format(request.scheme, request.get_host())
     else:
         web_url = settings.SITE_URL if settings.SITE_URL else ''
