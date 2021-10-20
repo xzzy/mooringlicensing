@@ -1609,7 +1609,7 @@ class ApprovalUserAction(UserAction):
     approval= models.ForeignKey(Approval, related_name='action_logs')
 
 
-class DcvOrganisation(models.Model):
+class DcvOrganisation(RevisionedMixin):
     name = models.CharField(max_length=128, null=True, blank=True)
     abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN', unique=True)
 
@@ -1620,7 +1620,7 @@ class DcvOrganisation(models.Model):
         app_label = 'mooringlicensing'
 
 
-class DcvVessel(models.Model):
+class DcvVessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
@@ -2261,5 +2261,15 @@ reversion.register(ApprovalDocument, follow=['licence_document', 'cover_letter_d
 reversion.register(ApprovalLogEntry, follow=['documents'])
 reversion.register(ApprovalLogDocument)
 reversion.register(ApprovalUserAction)
-
+reversion.register(MooringOnApproval, follow=["approval", "mooring", "sticker"])
+reversion.register(VesselOwnershipOnApproval, follow=["approval", "vessel_ownership"])
+reversion.register(ApprovalHistory, follow=["approval", "vessel_ownership", "proposal"])
+reversion.register(DcvOrganisation)
+reversion.register(DcvVessel, follow=["dcv_organisation"])
+reversion.register(DcvAdmission, follow=["dcv_vessel", "admissions"])
+reversion.register(DcvAdmissionArrival, follow=["dcv_admission", "fee_season", "fee_constructor"])
+reversion.register(DcvPermit, follow=["fee_season", "dcv_vessel", "dcv_organisation", "permits"])
+reversion.register(DcvAdmissionDocument)
+reversion.register(DcvPermitDocument)
+reversion.register(Sticker, follow=["approval", "dcv_permit", "fee_constructor", "fee_season", "vessel_ownership", "proposal_initiated"])
 
