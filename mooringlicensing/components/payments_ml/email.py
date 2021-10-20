@@ -30,9 +30,7 @@ def send_application_submit_confirmation_email(request, proposal, to_email_addre
         bcc=bcc,
     )
 
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
-
 
