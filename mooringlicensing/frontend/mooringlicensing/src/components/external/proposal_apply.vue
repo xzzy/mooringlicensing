@@ -505,14 +505,6 @@ export default {
             this.application_types.push(app_type)
         }
     },
-      /*
-    fetchExistingMooringLicences: async function(){
-        const response = await this.$http.get(api_endpoints.existing_mooring_licences);
-        for (let ml of response.body) {
-            this.application_types.push(ml)
-        }
-    },
-    */
     fetchExistingLicences: async function(){
         const response = await this.$http.get(api_endpoints.existing_licences);
         for (let l of response.body) {
