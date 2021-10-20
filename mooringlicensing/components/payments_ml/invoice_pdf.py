@@ -98,10 +98,6 @@ class Remittance(Flowable):
         canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
         canvas.drawRightString(current_x * 45,current_y,'Remittance Advice')
 
-        #current_y -= 20
-        #canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
-        #canvas.drawString(current_x * 27,current_y,'PLEASE DETACH AND RETURN WITH YOUR PAYMENT')
-
         current_y -= 50
         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
         canvas.drawString(current_x, current_y, 'ABN: 38 052 249 024')
@@ -111,21 +107,9 @@ class Remittance(Flowable):
         canvas = self.canv
         current_y, current_x = self.current_y, self.current_x
         bpay_logo = ImageReader(BPAY_LOGO)
-        #current_y -= 40
         # Pay By Cheque
         cheque_x = current_x + 4 * inch
         cheque_y = current_y - 10
-        #canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
-        #canvas.drawString(cheque_x, cheque_y, 'Pay By Cheque:')
-        #canvas.setFont(DEFAULT_FONTNAME, 9)
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x, cheque_y, 'Make cheque payable to: Department of Parks and Wildlife')
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x, cheque_y, 'Mail to: Department of Parks and Wildlife')
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x + 32, cheque_y, 'Locked Bag 30')
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x + 32, cheque_y, 'Bentley Delivery Centre WA 6983')
         if self.invoice.payment_method in [self.invoice.PAYMENT_METHOD_MONTHLY_INVOICING, self.invoice.PAYMENT_METHOD_BPAY]:
             # Outer BPAY Box
             canvas.rect(current_x,current_y - 25,2.3*inch,-1.2*inch)
@@ -178,12 +162,6 @@ class Remittance(Flowable):
         self.__footer_line()
 
 
-#def _set_template_group(mooring_var):
-
-
-#def get_template_group(mooring_var):
-
-
 def _create_header(canvas, doc, draw_page_number=True):
     canvas.saveState()
     canvas.setTitle('Invoice')
@@ -207,10 +185,6 @@ def _create_header(canvas, doc, draw_page_number=True):
 
     invoice = doc.invoice
     proposal = doc.proposal if hasattr(doc, 'proposal') else None
-    #bi = proposal.bookings.filter(invoices__invoice_reference=invoice.reference)
-    #licence_number = proposal.approval.lodgement_number if proposal.approval else None
-
-    # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
 
     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
     current_x = PAGE_MARGIN + 5
@@ -235,10 +209,6 @@ def _create_header(canvas, doc, draw_page_number=True):
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, currency(invoice.payment_amount))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, 'Outstanding (AUD)')
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, currency(invoice.balance))
-
-    #if bi and bi[0].deferred_payment_date and invoice.payment_method in [invoice.PAYMENT_METHOD_MONTHLY_INVOICING, invoice.PAYMENT_METHOD_BPAY]:
-    #    canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 9, 'Payment Due Date')
-    #    canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 9, bi[0].deferred_payment_date.strftime(DATE_FORMAT))
 
     canvas.restoreState()
 
@@ -273,36 +243,10 @@ def _is_gst_exempt(invoice):
         for fee_item in my_fee.fee_items.all():
             return not fee_item.fee_constructor.incur_gst
 
-#    fees = None
-#    application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
-#    if application_fee:
-#        fees = application_fee
-#    else:
-#        dcv_permit_fees = DcvPermitFee.objects.filter(invoice_reference=invoice.reference)
-#        if dcv_permit_fees:
-#            fees = dcv_permit_fees
-#        else:
-#            dcv_admission_fees = DcvAdmissionFee.objects.filter(invoice_reference=invoice.reference)
-#            if dcv_admission_fees:
-#                fees = dcv_admission_fees
-#
-#    if fees:
-#        for fee_item in fees[0].fee_items.all():
-#            if fee_item.fee_constructor.incur_gst:
-#                return False
-#        else:
-#            return True
-#    else:
-#        raise Exception('No Fee object found')
-
 
 def _create_invoice(invoice_buffer, invoice, proposal):
 
     global DPAW_HEADER_LOGO
-#    if  cols_var["TEMPLATE_GROUP"] == 'rottnest':
-#        DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'mooring', 'static', 'mooring', 'img','logo-rottnest-island-sm.png')
-#    else:
-#        DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo.jpg')
     DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN + 250, PAGE_WIDTH - 2 * PAGE_MARGIN,
@@ -321,7 +265,6 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     owner = invoice.owner
 
     elements = []
-    #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 5))
 
     # Draw Products Table
     invoice_table_style = TableStyle([
@@ -352,15 +295,6 @@ def _create_invoice(invoice_buffer, invoice, proposal):
             ]
         )
         val += 1
-    # Discounts
-    # data.append(
-    #     [
-    #         '',
-    #         '',
-    #         '',
-    #         ''
-    #     ]
-    # )
     for discount in discounts:
         data.append(
             [
@@ -400,7 +334,6 @@ def _create_invoice(invoice_buffer, invoice, proposal):
 
     remittance = Remittance(HEADER_MARGIN,HEADER_MARGIN - 10, proposal, invoice)
     elements.append(remittance)
-    #_create_remittance(invoice_buffer,doc)
     doc.build(elements)
 
     return invoice_buffer
@@ -427,11 +360,9 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
 
     # this is the only way to get data into the onPage callback function
     doc.invoice = invoice
-    # doc.proposal = proposal
     owner = invoice.owner
 
     elements = []
-    #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 5))
 
     # Draw Products Table
     invoice_table_style = TableStyle([
@@ -463,14 +394,6 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
         )
         val += 1
     # Discounts
-    # data.append(
-    #     [
-    #         '',
-    #         '',
-    #         '',
-    #         ''
-    #     ]
-    # )
     for discount in discounts:
         data.append(
             [
@@ -508,9 +431,6 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
     elements.append(boundary)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-    # remittance = Remittance(HEADER_MARGIN,HEADER_MARGIN - 10, proposal, invoice)
-    # elements.append(remittance)
-    #_create_remittance(invoice_buffer,doc)
     doc.build(elements)
 
     return invoice_buffer
