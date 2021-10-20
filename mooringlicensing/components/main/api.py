@@ -11,21 +11,15 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
 from rest_framework.pagination import PageNumberPagination
 from django.urls import reverse
-from mooringlicensing.components.main.models import (#Region, District, Tenure, 
-        #ApplicationType, #ActivityMatrix, AccessType, Park, Trail, ActivityCategory, Activity, 
-        #RequiredDocument, 
-        #Question, 
+from mooringlicensing.components.main.models import (
         GlobalSettings,
         TemporaryDocumentCollection,
         )
-from mooringlicensing.components.main.serializers import (  # RegionSerializer, DistrictSerializer, TenureSerializer,
-    # ApplicationTypeSerializer, #ActivityMatrixSerializer,  AccessTypeSerializer, ParkSerializer, ParkFilterSerializer, TrailSerializer, ActivitySerializer, ActivityCategorySerializer,
-    # RequiredDocumentSerializer,
-    #QuestionSerializer,
+from mooringlicensing.components.main.serializers import (
     GlobalSettingsSerializer,
     OracleSerializer,
     TemporaryDocumentCollectionSerializer,
-    BookingSettlementReportSerializer,  # BookingSettlementReportSerializer, LandActivityTabSerializer, MarineActivityTabSerializer, EventsParkSerializer, TrailTabSerializer, FilmingParkSerializer
+    BookingSettlementReportSerializer,
 )
 from mooringlicensing.components.main.process_document import save_document, cancel_document, delete_document
 from django.core.exceptions import ValidationError
@@ -34,8 +28,6 @@ from django.db.models import Q
 from mooringlicensing.components.payments_ml import reports
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.proposals.serializers import ProposalSerializer
-#from mooringlicensing.components.bookings.utils import oracle_integration
-#from mooringlicensing.components.bookings import reports
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from collections import namedtuple
 import json
@@ -48,34 +40,13 @@ from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX, SYSTEM_NAME
 logger = logging.getLogger('mooringlicensing')
 
 
-#class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
-#    #queryset = ApplicationType.objects.all().order_by('order')
-#    queryset = ApplicationType.objects.none()
-#    serializer_class = ApplicationTypeSerializer
-#
-#    def get_queryset(self):
-#        return ApplicationType.objects.order_by('order').filter(visible=True)
-
-
 class GlobalSettingsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = GlobalSettings.objects.all().order_by('id')
     serializer_class = GlobalSettingsSerializer
 
 
-#class RequiredDocumentViewSet(viewsets.ReadOnlyModelViewSet):
-#    queryset = RequiredDocument.objects.all()
-#    serializer_class = RequiredDocumentSerializer
-
-
-#class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
-#    queryset = Question.objects.all()
-#    serializer_class = QuestionSerializer
-
-
 class PaymentViewSet(viewsets.ModelViewSet):
-    #queryset = Proposal.objects.all()
     queryset = Proposal.objects.none()
-    #serializer_class = ProposalSerializer
     serializer_class = ProposalSerializer
     lookup_field = 'id'
 
@@ -117,8 +88,6 @@ class BookingSettlementReportView(views.APIView):
 
 def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
-    #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
-    # oracle_codes = oracle_parser(date, system, 'WildlifeCompliance', override=override)
     oracle_codes = oracle_parser(date, system, SYSTEM_NAME, override=override)
 
 
@@ -149,13 +118,6 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
     queryset = TemporaryDocumentCollection.objects.all()
     serializer_class = TemporaryDocumentCollectionSerializer
 
-    #def get_queryset(self):
-    #    # import ipdb; ipdb.set_trace()
-    #    #user = self.request.user
-    #    if is_internal(self.request):
-    #        return TemporaryDocumentCollection.objects.all()
-    #    return TemporaryDocumentCollection.objects.none()
-
     def create(self, request, *args, **kwargs):
         print("create temp doc coll")
         print(request.data)
@@ -177,7 +139,6 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
                 raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
@@ -191,7 +152,6 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             action = request.data.get('action')
-            #comms_instance = None
 
             if action == 'list':
                 pass
