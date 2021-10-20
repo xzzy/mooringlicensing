@@ -4,7 +4,6 @@ from mooringlicensing.components.proposals.models import MooringBay, Proposal, V
 from datetime import datetime
 import pytz
 from ledger.settings_base import TIME_ZONE
-#from mooringlicensing.tests.test_manage_vessels import ManageVesselTests
 
 
 class AnnualAdmissionTests(APITestSetup):
@@ -67,7 +66,6 @@ class AnnualAdmissionTests(APITestSetup):
         rego_papers_response = self.client.post(
                 '/api/proposal/{}/process_vessel_registration_document/'.format(proposal_id),
                 self.rego_papers_data, 
-                #format='json',
                 HTTP_HOST=HTTP_HOST_FOR_TEST,
         )
         self.assertEqual(rego_papers_response.status_code, 200)

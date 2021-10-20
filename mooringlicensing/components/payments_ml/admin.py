@@ -42,13 +42,6 @@ class FeePeriodFormSet(forms.models.BaseInlineFormSet):
                 else:
                     raise forms.ValidationError('Period\'s start date must be unique, but {} is duplicated.'.format(item['start_date']))
 
-    # def clean_name(self):
-    #     data = self.cleaned_data['name']
-    #     if not self.instance.is_editable:
-    #         if data != self.instance.name:
-    #             raise forms.ValidationError('Fee period cannot be changed once used for payment calculation')
-    #     return data
-
 
 class FeePeriodForm(forms.ModelForm):
     class Meta:
@@ -110,20 +103,12 @@ class FeeSeasonForm(forms.ModelForm):
 
         return data
 
-    # def clean(self):
-    #     cleaned_data = super(FeeSeasonForm, self).clean()
-    #     if cleaned_data['name']:
-    #         return cleaned_data
-    #     else:
-    #         raise forms.ValidationError('Please enter the name field.')
-
 
 class FeeItemForm(forms.ModelForm):
 
     class Meta:
         model = FeeItem
         fields = '__all__'
-        # fields = ('amount',)
 
     def clean_amount(self):
         data = self.cleaned_data['amount']
@@ -147,9 +132,6 @@ class FeeItemInline(admin.TabularInline):
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
-        # form = formset.form
-        # widget = form.base_fields['fee_period'].widget
-        # widget.can_change_related = False
         return formset
 
     def get_fields(self, request, obj=None):
@@ -293,25 +275,4 @@ class FeeConstructorAdmin(admin.ModelAdmin):
         if db_field.name == "fee_season":
             kwargs["queryset"] = FeeSeason.objects.annotate(s_date=Min("fee_periods__start_date")).order_by('s_date')
         return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
-
-
-# @admin.register(OracleCodeApplication)
-# class OracleCodeAdmin(admin.ModelAdmin):
-#     list_display = ['name', 'get_value_today', 'get_enforcement_date',]
-#     readonly_fields = ('identifier',)
-#     inlines = [OracleCodeItemInline,]
-#
-#     def get_fields(self, request, obj=None):
-#         fields = super(OracleCodeAdmin, self).get_fields(request, obj)
-#         fields.remove('identifier')
-#         return fields
-#
-#     def get_value_today(self, obj):
-#         return obj.get_oracle_code_by_date()
-#
-#     def get_enforcement_date(self, obj):
-#         return obj.get_enforcement_date_by_date()
-#
-#     get_value_today.short_description = 'Oracle code (current)'
-#     get_enforcement_date.short_description = 'Since'
 
