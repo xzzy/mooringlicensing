@@ -2,7 +2,6 @@ from django.core.files.storage import default_storage
 import os
 from django.core.files.base import ContentFile
 import traceback
-#from mooringlicensing.components.main.models import TemporaryDocument
 from django.conf import settings
 
 from mooringlicensing.components.proposals.models import (
@@ -104,16 +103,6 @@ def delete_document(request, instance, comms_instance, document_type, input_name
             document_id = request.data.get('document_id')
             document = instance.documents.get(id=document_id)
 
-        #if document_type == DeedPollDocument.DOC_TYPE_NAME:
-        #    document_id = request.data.get('document_id')
-        #    document = instance.deed_poll_documents.get(id=document_id)
-        #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-        #    document_id = request.data.get('document_id')
-        #    document = instance.public_liability_insurance_documents.get(id=document_id)
-        #elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
-        #    document_id = request.data.get('document_id')
-        #    document = instance.supporting_application_documents.get(id=document_id)
-
     # comms_log doc store delete
     elif comms_instance and 'document_id' in request.data:
         document_id = request.data.get('document_id')
@@ -145,12 +134,6 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                 'waiting_list_offer_document',
                 ]:
             document_id = request.data.get('document_id')
-        #if document_type == DeedPollDocument.DOC_TYPE_NAME:
-        #    document_list = instance.deed_poll_documents.all()
-        #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-        #    document_list = instance.public_liability_insurance_documents.all()
-        #elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
-        #    document_list = instance.supporting_application_documents.all()
         if comms_instance:
             document_list = comms_instance.documents.all()
         else:
@@ -166,11 +149,6 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
 
 
 def save_document(request, instance, comms_instance, document_type, input_name=None):
-    #import ipdb; ipdb.set_trace()
-    # Match model related_name to instance or comms_instance, eg.
-    # sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='documents')..
-    # this document can be accessed or created by 'instance.documents'
-
     # example document_type
     if 'filename' in request.data and input_name:
         filename = request.data.get('filename')
@@ -203,15 +181,6 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'waiting_list_offer_document':
             document = instance.waiting_list_offer_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/approvals/{}/waiting_list_offer_documents/{}'
-        #if document_type == DeedPollDocument.DOC_TYPE_NAME:
-        #    document = instance.deed_poll_documents.get_or_create(input_name=input_name, name=filename)[0]
-        #    path_format_string = '{}/proposals/{}/deed_poll_documents/{}'
-        #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-        #    document = instance.public_liability_insurance_documents.get_or_create(input_name=input_name, name=filename)[0]
-        #    path_format_string = '{}/proposals/{}/public_liability_insurance_documents/{}'
-        #elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
-        #    document = instance.supporting_application_documents.get_or_create(input_name=input_name, name=filename)[0]
-        #    path_format_string = '{}/proposals/{}/supporting_application_documents/{}'
         path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, filename), ContentFile(_file.read()))
         document._file = path
         document.save()
