@@ -130,8 +130,8 @@ class MooringLicenceMigration(object):
                     phonehome_record = GrepSearch(pers_no, path=self.path).search('PersNo', 'PhoneHome')
 
                     mobile_no = phonemobile_record.get('PhoneMobile')
-                    firstname = username.split(' ')[-1]
-                    lastname = ' '.join(username.split(' ')[:-1])
+                    firstname = username.split(' ')[-1].title()
+                    lastname = ' '.join(username.split(' ')[:-1]).title()
 
                     try:
                         phone_no = phonehome_record.get('PhoneHome') if phonehome_record else ''
