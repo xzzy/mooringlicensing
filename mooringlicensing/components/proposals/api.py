@@ -30,9 +30,6 @@ from mooringlicensing.components.proposals.models import (
     AmendmentRequest,
     AmendmentReason,
     VesselDetails,
-    #ChecklistQuestion,
-    #ProposalAssessment,
-    #ProposalAssessmentAnswer,
     RequirementDocument,
     WaitingListApplication,
     AnnualAdmissionApplication,
@@ -59,19 +56,7 @@ from mooringlicensing.components.proposals.serializers import (
     ProposalRequirementSerializer,
     ProposalStandardRequirementSerializer,
     ProposedApprovalSerializer,
-    # PropedDeclineSerializer,
     AmendmentRequestSerializer,
-    # SearchReferenceSerializer,
-    # SearchKeywordSerializer,
-    # ListProposalSerializer,
-    # AmendmentRequestDisplaySerializer,
-    # VesselSerializer,
-    # OnHoldSerializer,
-    # ProposalOtherDetailsSerializer,
-    # SaveProposalOtherDetailsSerializer,
-    #ChecklistQuestionSerializer,
-    #ProposalAssessmentSerializer,
-    #ProposalAssessmentAnswerSerializer,
     ListProposalSerializer,
     ListVesselDetailsSerializer,
     ListVesselOwnershipSerializer,
@@ -88,8 +73,6 @@ from mooringlicensing.components.proposals.serializers import (
     VesselFullOwnershipSerializer,
     ListMooringSerializer,
 )
-
-#from mooringlicensing.components.bookings.models import Booking, ParkBooking, BookingInvoice
 from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
 from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main, \
@@ -122,17 +105,6 @@ from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT
 logger = logging.getLogger(__name__)
 
 
-#class GetProposalType(views.APIView):
-#    renderer_classes = [JSONRenderer, ]
-#
-#    def get(self, request, format=None):
-#        _type = ProposalType.objects.first()
-#        if _type:
-#            serializer = ProposalTypeSerializer(_type)
-#            return Response(serializer.data)
-#        else:
-#            return Response({'error': 'There is currently no application type.'}, status=status.HTTP_404_NOT_FOUND)
-
 class GetDcvOrganisations(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
@@ -147,7 +119,6 @@ class GetDcvVesselRegoNos(views.APIView):
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no', 'dcv_permits')[:10]
             data_transform = [{'id': rego['id'], 'text': rego['rego_no'], 'dcv_permits': rego['dcv_permits']} for rego in data]
@@ -162,7 +133,6 @@ class GetVessel(views.APIView):
         search_term = request.GET.get('term', '')
         if search_term:
             data_transform = []
-            #import ipdb; ipdb.set_trace()
 
             ml_data = VesselDetails.filtered_objects.filter(
                     Q(vessel__rego_no__icontains=search_term) | 
@@ -174,9 +144,6 @@ class GetVessel(views.APIView):
                             )[:10]
             for vd in ml_data:
                 data_transform.append({
-                    #'id': vd.vessel.id, 
-                    #'rego_no': vd.vessel.rego_no,
-                    #'text': vd.vessel.rego_no + ' - ' + vd.vessel.latest_vessel_details.vessel_name,
                     'id': vd.get('vessel__id'), 
                     'rego_no': vd.get('vessel__rego_no'),
                     'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
@@ -192,9 +159,6 @@ class GetVessel(views.APIView):
                             )[:10]
             for dcv in dcv_data:
                 data_transform.append({
-                    #'id': dcv.id, 
-                    #'rego_no': dcv.rego_no,
-                    #'text': dcv.rego_no + ' - ' + dcv.vessel_name,
                     'id': dcv.get('id'), 
                     'rego_no': dcv.get('rego_no'),
                     'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
@@ -203,7 +167,6 @@ class GetVessel(views.APIView):
             ## order results
             data_transform.sort(key=lambda item: item.get("id"))
             return Response({"results": data_transform})
-            #return Response({"results": dcv_data_transform})
         return Response()
 
 
@@ -213,7 +176,6 @@ class GetMooring(views.APIView):
     def get(self, request, format=None):
         private_moorings = request.GET.get('private_moorings')
         search_term = request.GET.get('term', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             if private_moorings:
                 data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
@@ -229,16 +191,13 @@ class GetMooringPerBay(views.APIView):
 
     def get(self, request, format=None):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, WaitingListAllocation
-        #import ipdb; ipdb.set_trace()
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
         wla_id = request.GET.get('wla_id')
         aup_id = request.GET.get('aup_id')
         search_term = request.GET.get('term', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
-            #import ipdb; ipdb.set_trace()
             if available_moorings:
                 if mooring_bay_id:
                     # WLA offer
@@ -291,38 +250,9 @@ class GetMooringPerBay(views.APIView):
 class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
     def get(self, request, format=None):
-        #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
-        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        #company_name = request.GET.get('company_name')
         if search_term:
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            #data_transform = []
-            #owner_set = Owner.objects.filter(emailuser=request.user)
-            #if create_vessel and owner_set:
-            #    print("create_vessel")
-            #    for rego in data:
-            #        vessel = Vessel.objects.get(rego_no=rego.get('rego_no'))
-            #        vessel_ownership_set = None
-            #        if company_name:
-            #            company_ownership_set = CompanyOwnership.objects.filter(
-            #                    vessel=vessel,
-            #                    company__name=company_name)
-            #            vessel_ownership_set = VesselOwnership.objects.filter(
-            #                owner=owner_set[0], 
-            #                vessel=vessel, 
-            #                company_ownership__in=company_ownership_set
-            #                )
-            #        else:
-            #            vessel_ownership_set = VesselOwnership.objects.filter(
-            #                owner=owner_set[0],
-            #                vessel=vessel
-            #                )
-            #        # request.user owns vessel
-            #        if not vessel_ownership_set:
-            #            data_transform.append({'id': rego.get('id'), 'text': rego.get('rego_no')})
-            #else:
-            #    data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
             return Response({"results": data_transform})
         return Response()
@@ -332,11 +262,7 @@ class GetCompanyNames(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        #import ipdb; ipdb.set_trace()
         search_term = request.GET.get('term', '')
-        #create_vessel = True if request.GET.get('create_vessel') == 'true' else False
-        #org_name = request.GET.get('org_name', '')
-        #data = Vessel.objects.filter(rego_no__icontains=search_term).values_list('rego_no', flat=True)[:10]
         if search_term:
             data = Company.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
             data_transform = []
@@ -354,7 +280,6 @@ class GetApplicationTypeDescriptions(views.APIView):
             cache.set('application_type_descriptions',Proposal.application_type_descriptions(), settings.LOV_CACHE_TIMEOUT)
             data = cache.get('application_type_descriptions')
         return Response(data)
-        #return Response(Proposal.application_type_descriptions())
 
 
 class GetStickerReplacementFeeItem(views.APIView):
@@ -395,7 +320,6 @@ class GetApplicationTypeDict(views.APIView):
             cache.set('application_type_dict',Proposal.application_types_dict(apply_page=apply_page), settings.LOV_CACHE_TIMEOUT)
             data = cache.get('application_type_dict')
         return Response(data)
-        #return Response(Proposal.application_types_dict(apply_page=apply_page))
 
 
 class GetApplicationStatusesDict(views.APIView):
@@ -408,9 +332,6 @@ class GetApplicationStatusesDict(views.APIView):
             cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
         data['external_statuses'] = cache.get('application_external_statuses_dict')
         data['internal_statuses'] = cache.get('application_internal_statuses_dict')
-        #data_ext = [{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES]
-        #data_int = [{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES]
-        #data = {'internal_statuses': data_int, 'external_statuses': data_ext}
         return Response(data)
 
 
@@ -423,8 +344,6 @@ class GetVesselTypesDict(views.APIView):
             cache.set('vessel_type_dict',[{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES], settings.LOV_CACHE_TIMEOUT)
             data = cache.get('vessel_type_dict')
         return Response(data)
-        #data = [{'code': i[0], 'description': i[1]} for i in VESSEL_TYPES]
-        #return Response(data)
 
 
 class GetInsuranceChoicesDict(views.APIView):
@@ -435,18 +354,13 @@ class GetInsuranceChoicesDict(views.APIView):
         if not data:
             cache.set('insurance_choice_dict',[{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES], settings.LOV_CACHE_TIMEOUT)
             data = cache.get('insurance_choice_dict')
-        #data = [{'code': i[0], 'description': i[1]} for i in INSURANCE_CHOICES]
         return Response(data)
 
 
 class GetMooringStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
-    #def get(self, request, format=None):
-     #   data = [{'code': i[0], 'description': i[1]} for i in Mooring.MOORING_SPECIFICATION]
-      #  return Response(data)
     def get(self, request):
-        #data = [{'code': i[0], 'description': i[1]} for i in Mooring.MOORING_SPECIFICATION]
         return Response(['Unlicensed', 'Licensed', 'Licence application'])
 
 
@@ -461,14 +375,12 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
     @detail_route(methods=['GET',])
     def history(self, request, *args, **kwargs):
         _object = self.get_object()
-        #_versions = reversion.get_for_object(_object)
         _versions = Version.objects.get_for_object(_object)
 
         _context = {
             'request': request
         }
 
-        #_version_serializer = VersionSerializer(_versions, many=True, context=_context)
         _version_serializer = ProposalSerializer([v.object for v in _versions], many=True, context=_context)
         # TODO
         # check pagination
@@ -476,7 +388,6 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
 
 
 class ProposalFilterBackend(DatatablesFilterBackend):
-    #@query_debugger
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
 
@@ -500,40 +411,26 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             elif filter_application_type == 'wla':
                 filter_query &= Q(id__in=wla_list)
 
-            #q = None
-            #for item in Proposal.__subclasses__():
-            #    if hasattr(item, 'code') and item.code == filter_application_type:
-            #        lookup = "{}__isnull".format(item._meta.model_name)
-            #        q = Q(**{lookup: False})
-            #        break
-            #queryset = queryset.filter(q) if q else queryset
-
         filter_application_status = request.GET.get('filter_application_status')
         if filter_application_status and not filter_application_status.lower() == 'all':
             if level == 'internal':
-                #queryset = queryset.filter(processing_status=filter_application_status)
                 filter_query &= Q(processing_status=filter_application_status)
             else:
-                #queryset = queryset.filter(customer_status=filter_application_status)
                 filter_query &= Q(customer_status=filter_application_status)
 
         filter_applicant_id = request.GET.get('filter_applicant')
         if filter_applicant_id and not filter_applicant_id.lower() == 'all':
-            #queryset = queryset.filter(submitter__id=filter_applicant_id)
             filter_query &= Q(submitter__id=filter_applicant_id)
 
         # Filter by endorsement
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
-            #queryset = queryset.filter(site_licensee_email=request.user.email)
             filter_query &= Q(site_licensee_email=request.user.email)
         else:
-            #queryset = queryset.exclude(site_licensee_email=request.user.email)
             filter_query &= ~Q(site_licensee_email=request.user.email)
         # don't show discarded applications
         if not level == 'internal':
-            #queryset = queryset.exclude(customer_status='discarded')
             filter_query &= ~Q(customer_status='discarded')
 
         queryset = queryset.filter(filter_query)
@@ -586,17 +483,12 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
         return Proposal.objects.none()
 
-    #@query_debugger
     def list(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
         """
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
-        # on the internal organisations dashboard, filter the Proposal/Approval/Compliance datatables by applicant/organisation
-        # applicant_id = request.GET.get('org_id')
-        # if applicant_id:
-        #     qs = qs.filter(applicant_id=applicant_id)
 
         self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
@@ -615,7 +507,6 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
             qs = AnnualAdmissionApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
             queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -643,7 +534,6 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
             qs = AuthorisedUserApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
             queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -671,29 +561,22 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
             qs = MooringLicenceApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
             queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
         mooring_id = request.data.get('mooring_id')
         mooring=None
         if mooring_id:
             mooring = Mooring.objects.get(id=mooring_id)
-        #approval_id = request.data.get('approval_id')
-        #approval=None
-        #if approval_id:
-        #    approval = Approval.objects.get(id=approval_id)
 
         obj = MooringLicenceApplication.objects.create(
                 submitter=request.user,
                 proposal_type=proposal_type,
                 allocated_mooring=mooring,
-                #approval=approval
                 )
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -710,7 +593,6 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
             qs = WaitingListApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            #user_orgs = [org.id for org in user.mooringlicensing_organisations.all()]
             queryset = WaitingListApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -795,7 +677,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
-    # filter_backends = (ProposalFilterBackend,)
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
     lookup_field = 'id'
@@ -812,48 +693,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
 
-    #def get_object(self):
-
-    #    check_db_connection()
-    #    try:
-    #        obj = super(ProposalViewSet, self).get_object()
-    #    except Exception as e:
-    #        # because current queryset excludes migrated licences
-    #        obj = get_object_or_404(Proposal, id=self.kwargs['id'])
-    #    return obj
-
-    #def get_serializer_class(self):
-    #    try:
-    #        application_type = Proposal.objects.get(id=self.kwargs.get('id')).application_type.name
-    #        if application_type == ApplicationType.TCLASS:
-    #            return ProposalSerializer
-    #        elif application_type == ApplicationType.FILMING:
-    #            return ProposalFilmingSerializer
-    #        elif application_type == ApplicationType.EVENT:
-    #            return ProposalEventSerializer
-    #    except serializers.ValidationError:
-    #        print(traceback.print_exc())
-    #        raise
-    #    except ValidationError as e:
-    #        if hasattr(e,'error_dict'):
-    #            raise serializers.ValidationError(repr(e.error_dict))
-    #        else:
-    #            if hasattr(e,'message'):
-    #                raise serializers.ValidationError(e.message)
-    #    except Exception as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(str(e))
-
     def internal_serializer_class(self):
        try:
            return InternalProposalSerializer
-           # application_type = Proposal.objects.get(id=self.kwargs.get('id')).application_type.code
-           # if application_type == ApplicationType.TCLASS:
-           #     return InternalProposalSerializer
-           # elif application_type == ApplicationType.FILMING:
-           #     return InternalFilmingProposalSerializer
-           # elif application_type == ApplicationType.EVENT:
-           #     return InternalEventProposalSerializer
        except serializers.ValidationError:
            print(traceback.print_exc())
            raise
@@ -866,29 +708,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
        except Exception as e:
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
-
-
-    #@list_route(methods=['GET',])
-    #def filter_list(self, request, *args, **kwargs):
-    #    """ Used by the internal/external dashboard filters """
-    #    region_qs =  self.get_queryset().filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-    #    #district_qs =  self.get_queryset().filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-    #    activity_qs =  self.get_queryset().filter(activity__isnull=False).values_list('activity', flat=True).distinct()
-    #    submitter_qs = self.get_queryset().filter(submitter__isnull=False).distinct('submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
-    #    submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
-    #    application_types=ApplicationType.objects.filter(visible=True).values_list('name', flat=True)
-    #    data = dict(
-    #        regions=region_qs,
-    #        #districts=district_qs,
-    #        activities=activity_qs,
-    #        submitters=submitters,
-    #        application_types=application_types,
-    #        #processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
-    #        #processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
-    #        #customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
-    #        approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
-    #    )
-    #    return Response(data)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -1003,7 +822,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def requirements(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            #qs = instance.requirements.all()
             qs = instance.requirements.all().exclude(is_deleted=True)
             qs=qs.order_by('order')
             serializer = ProposalRequirementSerializer(qs,many=True, context={'request':request})
@@ -1039,7 +857,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def user_list(self, request, *args, **kwargs):
         qs = self.get_queryset().exclude(processing_status='discarded')
-        #serializer = DTProposalSerializer(qs, many=True)
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
         return Response(serializer.data)
 
@@ -1061,46 +878,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
         instance = self.get_object()
-        # serializer = InternalProposalSerializer(instance,context={'request':request})
-        # if instance.application_type.name==ApplicationType.TCLASS:
-        #     serializer = InternalProposalSerializer(instance,context={'request':request})
-        # elif instance.application_type.name==ApplicationType.FILMING:
-        #     serializer = InternalFilmingProposalSerializer(instance,context={'request':request})
-        # elif instance.application_type.name==ApplicationType.EVENT:
-        #     serializer = InternalEventProposalSerializer(instance,context={'request':request})
         serializer = InternalProposalSerializer(instance, context={'request': request})
         return Response(serializer.data)
-
-    #@detail_route(methods=['post'])
-    #@renderer_classes((JSONRenderer,))
-    #def submit(self, request, *args, **kwargs):
-    #    try:
-    #        instance = self.get_object()
-    #        #instance.submit(request,self)
-    #        proposal_submit(instance, request)
-    #        instance.save()
-    #        serializer = self.get_serializer(instance)
-    #        return Response(serializer.data)
-    #        #return redirect(reverse('external'))
-    #    except serializers.ValidationError:
-    #        print(traceback.print_exc())
-    #        raise
-    #    except ValidationError as e:
-    #        if hasattr(e,'error_dict'):
-    #            raise serializers.ValidationError(repr(e.error_dict))
-    #        else:
-    #            if hasattr(e,'message'):
-    #                raise serializers.ValidationError(e.message)
-    #    except Exception as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.assign_officer(request, request.user)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
@@ -1119,7 +904,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except EmailUser.DoesNotExist:
             raise serializers.ValidationError('A user with the id passed in does not exist')
         instance.assign_officer(request,user)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
@@ -1147,7 +931,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
-        #try:
         instance = self.get_object()
         status = request.data.get('status')
         if not status:
@@ -1156,37 +939,27 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if not status in ['with_approver']:
                 raise serializers.ValidationError('The status provided is not allowed')
         instance.reissue_approval(request,status)
-        #serializer = InternalProposalSerializer(instance,context={'request':request})
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
-        #except serializers.ValidationError:
-        #    print(traceback.print_exc())
-        #    raise
-        #except ValidationError as e:
-        #    handle_validation_error(e)
-        #except Exception as e:
-        #    print(traceback.print_exc())
-        #    raise serializers.ValidationError(str(e))
 
-    # TODO: should be post?
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['POST',])
     @basic_exception_handler
     def renew_amend_approval_wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
         approval = instance.approval
         ## validation
         renew_amend_conditions = {
-        'previous_application': instance,
-        #'proposal_type': ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
+            'previous_application': instance,
         }
         existing_proposal_qs=Proposal.objects.filter(**renew_amend_conditions)
         if (existing_proposal_qs and 
                 existing_proposal_qs[0].customer_status in ['under_review', 'with_assessor', 'draft'] and
                 existing_proposal_qs[0].proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL])
                 ):
-            #raise ValidationError('A renewal/amendment for this licence has already been lodged and is awaiting review.')
             raise ValidationError('A renewal/amendment for this licence has already been lodged.')
+        elif not approval or not approval.amend_or_renew:
+            raise ValidationError('No licence available for renewal/amendment.')
         ## create renewal or amendment
         if settings.DEBUG and request.GET.get('debug', '') == 'true' and request.GET.get('type', '') == 'renew':
             # This is used just for debug
@@ -1195,37 +968,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # This is used just for debug
             instance = instance.amend_approval(request)
         else:
-            if approval and approval.renewal_document and approval.renewal_sent: # and approval.can_renew:
+            if approval and approval.amend_or_renew == 'renew':
                 instance = instance.renew_approval(request)
-            else:
+            elif approval and approval.amend_or_renew == 'amend':
                 instance = instance.amend_approval(request)
         ## return new application
         serializer = SaveProposalSerializer(instance,context={'request':request})
         return Response(serializer.data)
-
-    ## TODO: should be post?
-    #@detail_route(methods=['GET',])
-    #@basic_exception_handler
-    #def renew_approval(self, request, *args, **kwargs):
-    #    instance = self.get_object()
-    #    instance = instance.renew_approval(request)
-    #    serializer = SaveProposalSerializer(instance,context={'request':request})
-    #    return Response(serializer.data)
-
-    #@detail_route(methods=['GET',])
-    #@basic_exception_handler
-    #def amend_approval(self, request, *args, **kwargs):
-    #    instance = self.get_object()
-    #    instance = instance.amend_approval(request)
-    #    serializer = SaveProposalSerializer(instance,context={'request':request})
-    #    return Response(serializer.data)
 
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def proposed_approval(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
-        #import ipdb; ipdb.set_trace()
         serializer.is_valid(raise_exception=True)
         instance.proposed_approval(request, serializer.validated_data)
         serializer_class = self.internal_serializer_class()
@@ -1248,9 +1003,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.final_approval(request, serializer.validated_data)
-        #serializer_class = self.internal_serializer_class()
-        #serializer = serializer_class(instance, context={'request': request})
-        #return Response(serializer.data)
         return Response()
 
     @detail_route(methods=['POST',])
@@ -1291,9 +1043,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             save_proponent_data(instance,request,self)
-            #proposal_submit(instance, request)
-            #return redirect(reverse('external'))
-            #return Response(status_code=status.HTTP_200_OK)
             return Response()
 
     @detail_route(methods=['GET',])
@@ -1307,13 +1056,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             vessel_data = vessel_serializer.data
             vessel_ownership_data = {}
             if not instance.editable_vessel_details:
-                ## 20210419 - we no longer do this
-                #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
-                #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-                #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-                # lookup vessels must be marked as read-only
-                #vessel_data["read_only"] = True
                 vessel_data["rego_no"] = vessel.rego_no
             #else:
             vessel_ownership_data = {}
@@ -1325,8 +1067,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             else:
                 vessel_ownership_data["percentage"] = instance.percentage
                 vessel_ownership_data["individual_owner"] = instance.individual_owner
-                #if instance.company_ownership:
-                 #   vessel_ownership_data["company_ownership"] = CompanyOwnershipSerializer(instance.company_ownership).data
             vessel_data["vessel_details"] = vessel_details_serializer.data
             vessel_data["vessel_ownership"] = vessel_ownership_data
             return Response(vessel_data)
@@ -1342,12 +1082,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             http_status = status.HTTP_200_OK
             instance = self.get_object()
-            #if application_name==ApplicationType.TCLASS:
-            #    serializer = SaveProposalSerializer(instance,data=request.data)
-            #elif application_name==ApationType.FILMING:
-            #    serializer=ProposalFilmingOtherDetailsSerializer(data=other_details_data)
-            #elif application_name==ApplicationType.EVENT:
-            #    serializer=ProposalEventOtherDetailsSerializer(data=other_details_data)
 
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
@@ -1356,38 +1090,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    #def destroy(self, request, *args, **kwargs):
-    def bak_destroy(self, request, *args, **kwargs):
-        try:
-            http_status = status.HTTP_200_OK
-            instance = self.get_object()
-            if instance.is_submitted:
-                # This proposal has been submitted at least once.  Therefore we update its status to 'discarded' rather than deleting it.
-                serializer = SaveProposalSerializer(instance, {
-                    'processing_status': Proposal.PROCESSING_STATUS_DISCARDED,
-                    'previous_application': None
-                }, partial=True)
-                serializer.is_valid(raise_exception=True)
-                self.perform_update(serializer)
-                return Response(serializer.data, status=http_status)
-            else:
-                # This proposal has not been submitted yet, we can delete it from the database
-                instance.delete()
-                return Response({})
-
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-    #@detail_route(methods=['post'])
-    #@renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         instance = self.get_object()
         instance.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         instance.customer_status = Proposal.CUSTOMER_STATUS_DISCARDED
-        # TODO: why do we need this?
         instance.previous_application = None
         instance.save()
         ## ML
@@ -1401,7 +1108,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
-    #queryset = ProposalRequirement.objects.all()
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
 
@@ -1483,12 +1189,9 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            #import ipdb; ipdb.set_trace()
-            #serializer = self.get_serializer(instance, data=json.loads(request.data.get('data')))
             serializer = self.get_serializer(instance, data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            #instance.add_documents(request)
             return Response(serializer.data)
         except Exception as e:
             print(traceback.print_exc())
@@ -1496,23 +1199,9 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
-#            data = {
-#                'due_date': request.data.get('due_date'),
-#                'standard': request.data.get('standard'),
-#                'recurrence': reqeust.data.get('recurrence'),
-#                'recurrence_pattern': request.data.get('recurrence_pattern'),
-#                'proposal': request.data.get('proposal'),
-#                'referral_group': request.data.get('referral_group'),
-#            }
-            #import ipdb; ipdb.set_trace()
             serializer = self.get_serializer(data= request.data)
-            #serializer = self.get_serializer(data=json.loads(request.data.get('data')))
-            #serializer = self.get_serializer(data=data)
-            #serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception = True)
             instance = serializer.save()
-            #instance.add_documents(request)
-            #serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1552,12 +1241,6 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         proposal = request.data.get('proposal', None)
         data['reason'] = reason_id
         data['proposal'] = proposal['id']
-        # data = {
-        #     #'schema': qs_proposal_type.order_by('-version').first().schema,
-        #     'text': request.data.get('text'),
-        #     'proposal': request.data.get('proposal'),
-        #     'reason': AmendmentReason.objects.get(id=reason_id) if reason_id else None,
-        # }
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception = True)
         instance = serializer.save()
@@ -1566,40 +1249,14 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-#class AccreditationTypeView(views.APIView):
-#
-#    renderer_classes = [JSONRenderer,]
-#    def get(self,request, format=None):
-#        choices_list = []
-#        #choices = ProposalOtherDetails.ACCREDITATION_TYPE_CHOICES
-#        choices=ProposalAccreditation.ACCREDITATION_TYPE_CHOICES
-#        if choices:
-#            for c in choices:
-#                choices_list.append({'key': c[0],'value': c[1]})
-#        return Response(choices_list)
-#
-#class LicencePeriodChoicesView(views.APIView):
-#
-#    renderer_classes = [JSONRenderer,]
-#    def get(self,request, format=None):
-#        choices_list = []
-#        choices = ProposalOtherDetails.LICENCE_PERIOD_CHOICES
-#        if choices:
-#            for c in choices:
-#                choices_list.append({'key': c[0],'value': c[1]})
-#        return Response(choices_list)
-
-
 class AmendmentRequestReasonChoicesView(views.APIView):
 
     renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
         choices_list = []
-        #choices = AmendmentRequest.REASON_CHOICES
         choices=AmendmentReason.objects.all()
         if choices:
             for c in choices:
-                #choices_list.append({'key': c[0],'value': c[1]})
                 choices_list.append({'key': c.id,'value': c.reason})
         return Response(choices_list)
 
@@ -1614,7 +1271,6 @@ class SearchKeywordsView(views.APIView):
         searchCompliance = request.data.get('searchCompliance')
         if searchWords:
             qs= searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance)
-        #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -1626,7 +1282,6 @@ class SearchReferenceView(views.APIView):
             reference_number = request.data.get('reference_number')
             if reference_number:
                 qs= search_reference(reference_number)
-            #queryset = list(set(qs))
             serializer = SearchReferenceSerializer(qs)
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -1664,7 +1319,6 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
     def lookup_vessel_ownership(self, request, *args, **kwargs):
         vo = self.get_object()
         vessel_details = vo.vessel.latest_vessel_details
-        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
         vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
         vessel = vo.vessel
         vessel_serializer = VesselSerializer(vessel)
@@ -1675,10 +1329,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_data = {}
         vessel_ownership_serializer = VesselOwnershipSerializer(vo)
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-        #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-        #vessel_ownership_data["individual_owner"] = False if vo.org_name else True
         vessel_ownership_data["individual_owner"] = False if vo.company_ownership else True
-        #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
@@ -1715,9 +1366,6 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                         a_sticker.save()
                     # write approval history
                     approval.write_approval_history('vessel_sold')
-                    # approval.update_approval_history_by_stickers()
-                    ## send notification email
-                    # send_vessel_nomination_notification_main(approval)
                     if approval.code == WaitingListAllocation.code:
                         send_reissue_wla_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
                     elif approval.code == AnnualAdmissionPermit.code:
@@ -1747,7 +1395,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def lookup_company_ownership(self, request, *args, **kwargs):
         company = self.get_object()
-        #serializer = CompanySerializer(company)
         ## discover common vessel ownership
         vessel_id = request.data.get('vessel_id')
         co_list = []
@@ -1758,7 +1405,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
             # add business rules
             for co in co_qs.order_by('updated'):
                 co_list.append(co)
-            #co = co_list.order_by(updated)[0]
             if co_list:
                 co = co_list[0]
                 serializer = CompanyOwnershipSerializer(co)
@@ -1777,20 +1423,10 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
     def lookup_company_ownership(self, request, *args, **kwargs):
         vessel = self.get_object()
         vessel_details = vessel.latest_vessel_details
-        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
         vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
         vessel_serializer = VesselSerializer(vessel)
         vessel_data = vessel_serializer.data
         vessel_data["vessel_details"] = vessel_details_serializer.data
-        #vessel_ownership_data = {}
-        #if vessel_details.blocking_proposal:
-            #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
-            #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-            #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-            #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-
-        #vessel_data["vessel_ownership"] = vessel_ownership_data
-        # lookup vessels must be marked as read-only
 
         # vessel_ownership
         vessel_ownership_data = {}
@@ -1803,9 +1439,7 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                #vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
                 vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
-        #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
@@ -1818,7 +1452,6 @@ class VesselViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
         vessel = self.get_object()
-        #import ipdb; ipdb.set_trace()
         booking_date_str = request.data.get("selected_date")
         booking_date = None
         if booking_date_str:
@@ -1866,7 +1499,6 @@ class VesselViewSet(viewsets.ModelViewSet):
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)
-        #return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -1891,8 +1523,6 @@ class VesselViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             mutable=request.data._mutable
             request.data._mutable=True
-            #request.data['proposal'] = u'{}'.format(instance.id)
-            #request.data['staff'] = u'{}'.format(request.user.id)
             request.data['vessel'] = u'{}'.format(instance.id)
             request.data._mutable=mutable
             serializer = VesselLogEntrySerializer(data=request.data)
@@ -1912,10 +1542,6 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',])
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        #instance = self.get_object()
-        #qs = instance.action_logs.all()
-        #serializer = ProposalUserActionSerializer(qs,many=True)
-        #return Response(serializer.data)
         return Response([])
 
     @detail_route(methods=['POST',])
@@ -1943,20 +1569,10 @@ class VesselViewSet(viewsets.ModelViewSet):
     def lookup_vessel(self, request, *args, **kwargs):
         vessel = self.get_object()
         vessel_details = vessel.latest_vessel_details
-        #vessel_details_serializer = VesselDetailsSerializer(vessel_details)
         vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
         vessel_serializer = VesselSerializer(vessel)
         vessel_data = vessel_serializer.data
         vessel_data["vessel_details"] = vessel_details_serializer.data
-        #vessel_ownership_data = {}
-        #if vessel_details.blocking_proposal:
-            #vessel_ownership = vessel_details.blocking_proposal.vessel_ownership
-            #vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-            #vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-            #vessel_ownership_data["registered_owner"] = vessel_ownership.org_name if vessel_ownership.org_name else str(vessel_ownership.owner)
-
-        #vessel_data["vessel_ownership"] = vessel_ownership_data
-        # lookup vessels must be marked as read-only
 
         # vessel_ownership
         vessel_ownership_data = {}
@@ -1969,25 +1585,9 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                #vessel_ownership_data["individual_owner"] = False if vessel_ownership.org_name else True
                 vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
-        #vessel_data["read_only"] = True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
-
-    ## required for manage vessels
-    #@basic_exception_handler
-    #def create(self, request, *args, **kwargs):
-    #    with transaction.atomic():
-    #        vessel_data = save_bare_vessel_data(request)
-    #        return Response(vessel_data)
-
-    #@basic_exception_handler
-    #def update(self, request, *args, **kwargs):
-    #    with transaction.atomic():
-    #        instance = self.get_object()
-    #        vessel_data = save_bare_vessel_data(request, instance)
-    #        return Response(vessel_data)
 
     @list_route(methods=['GET',])
     def list_internal(self, request, *args, **kwargs):
@@ -2001,13 +1601,11 @@ class VesselViewSet(viewsets.ModelViewSet):
 
         if owner_qs:
             owner = owner_qs[0]
-            #vessel_details_list = [vessel.latest_vessel_details for vessel in owner.vessels.all()]
             vessel_ownership_list = owner.vesselownership_set.all()
 
             # rewrite following for vessel_ownership_list
             if search_text:
                 search_text = search_text.lower()
-                #search_text_vessel_detail_ids = []
                 search_text_vessel_ownership_ids = []
                 matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
                 for vo in vessel_ownership_list:
@@ -2016,10 +1614,8 @@ class VesselViewSet(viewsets.ModelViewSet):
                             search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
                             vd.vessel_type in matching_vessel_type_choices or
                             search_text in vo.end_date.strftime('%d/%m/%Y')
-                            #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
                     ):
                         search_text_vessel_ownership_ids.append(vo.id)
-                #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
                 vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
@@ -2033,13 +1629,11 @@ class VesselViewSet(viewsets.ModelViewSet):
         owner_qs = Owner.objects.filter(emailuser=request.user)
         if owner_qs:
             owner = owner_qs[0]
-            #vessel_details_list = [vessel.latest_vessel_details for vessel in owner.vessels.all()]
             vessel_ownership_list = owner.vesselownership_set.all()
 
             # rewrite following for vessel_ownership_list
             if search_text:
                 search_text = search_text.lower()
-                #search_text_vessel_detail_ids = []
                 search_text_vessel_ownership_ids = []
                 matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
                 for vo in vessel_ownership_list:
@@ -2048,25 +1642,14 @@ class VesselViewSet(viewsets.ModelViewSet):
                         search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
                         vd.vessel_type in matching_vessel_type_choices or
                         search_text in vo.end_date.strftime('%d/%m/%Y')
-                        #or search_text in (vo.org_name.lower() or str(vo.owner).lower())
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
-                #vessel_details_list = [vd for vd in vessel_details_list if vd.id in search_text_vessel_detail_ids]
                 vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
             return Response(serializer.data)
         else:
             return Response([])
-
-
-#class AssessorChecklistViewSet(viewsets.ReadOnlyModelViewSet):
-#    queryset = ChecklistQuestion.objects.none()
-#    serializer_class = ChecklistQuestionSerializer
-#
-#    def get_queryset(self):
-#        qs=ChecklistQuestion.objects.filter(Q(list_type = 'assessor_list')& Q(obsolete=False))
-#        return qs
 
 
 class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2079,10 +1662,6 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     @list_route(methods=['GET',])
     def lookup(self, request, *args, **kwargs):
         qs = self.get_queryset()
-        #serializer_data = MooringBaySerializer(qs, many=True).data
-        #import ipdb; ipdb.set_trace()
-        #serializer_data.update({"id":None,"name":"","mooring_bookings_id":None,})
-        #serializer_data.move_to_end('{"id":1,"name":"Rottnest Island","mooring_bookings_id":1,"active":true}', last=False)
         response_data = [{"id":None,"name":"","mooring_bookings_id":None}]
         for mooring in qs:
             response_data.append(MooringBaySerializer(mooring).data)
@@ -2090,37 +1669,12 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MooringFilterBackend(DatatablesFilterBackend):
-    #def filter_queryset(self, request, queryset, view):
-    #    total_count = queryset.count()
-
-    #    #filter_mooring_status = request.GET.get('filter_mooring_status')
-    #    #if filter_mooring_status and not filter_mooring_status.lower() == 'all':
-    #        ##queryset = queryset.filter(customer_status=filter_compliance_status)
-
-    #    filter_mooring_bay = request.GET.get('filter_mooring_bay')
-    #    if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
-    #        queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
-
-    #    getter = request.query_params.get
-    #    fields = self.get_fields(getter)
-    #    ordering = self.get_ordering(getter, fields)
-    #    queryset = queryset.order_by(*ordering)
-    #    if len(ordering):
-    #        queryset = queryset.order_by(*ordering)
-
-    #    try:
-    #        queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
-    #    except Exception as e:
-    #        print(e)
-    #    setattr(view, '_datatables_total_count', total_count)
-    #    return queryset
     def filter_queryset(self, request, queryset, view):
         print(request.GET)
         total_count = queryset.count()
         # filter_mooring_status
         filter_mooring_status = request.GET.get('filter_mooring_status')
         if filter_mooring_status and not filter_mooring_status.lower() == 'all':
-            #queryset = queryset.filter(status=filter_status)
             filtered_ids = [m.id for m in Mooring.objects.all() if m.status.lower() == filter_mooring_status.lower()]
             queryset = queryset.filter(id__in=filtered_ids)
 
@@ -2156,7 +1710,6 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
     renderer_classes = (MooringRenderer,)
     queryset = Mooring.objects.none()
     serializer_class = ListMooringSerializer
-    #search_fields = ['lodgement_number', ]
     page_size = 10
 
     def get_queryset(self):
@@ -2179,7 +1732,6 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
         return self.paginator.get_paginated_response(serializer.data)
 
 
-
 class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Mooring.objects.none()
     serializer_class = MooringSerializer
@@ -2191,7 +1743,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
         mooring = self.get_object()
-        #import ipdb; ipdb.set_trace()
         booking_date_str = request.data.get("selected_date")
         booking_date = None
         if booking_date_str:
@@ -2210,58 +1761,15 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         selected_date = None
         if selected_date_str:
             selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        #print(selected_date)
-        #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
         if selected_date:
-            #approval_list = mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)
             approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
         else:
-            #approval_list = mooring.approval_set.filter(status='current')
             approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
         if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
             approval_list.append(mooring.mooring_licence.approval)
-        #import ipdb; ipdb.set_trace()
 
         serializer = LookupApprovalSerializer(approval_list, many=True)
         return Response(serializer.data)
-        #return Response()
-
-    #@detail_route(methods=['POST',])
-    #@basic_exception_handler
-    #def find_related_approvals_bak(self, request, *args, **kwargs):
-    #    mooring = self.get_object()
-    #    selected_date_str = request.data.get("selected_date")
-    #    selected_date = None
-    #    if selected_date_str:
-    #        selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-    #    #print(selected_date)
-    #    #vd_set = VesselDetails.filtered_objects.filter(vessel=vessel)
-    #    approval_list = []
-    #    prop_set = mooring.proposal_set.filter(Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED) | Q(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
-    #    if selected_date:
-    #        for prop in prop_set:
-    #            if (
-    #                    prop.approval and 
-    #                    #prop.approval.status == 'current'
-    #                    prop.approval.start_date >= selected_date and
-    #                    selected_date <= prop.approval.expiry_date
-    #                    ):
-    #                if prop.approval not in approval_list:
-    #                    approval_list.append(prop.approval)
-    #    else:
-    #        for prop in prop_set:
-    #            if (
-    #                    prop.approval and 
-    #                    prop.approval.status == 'current'
-    #                    #prop.approval.start_date >= selected_date and
-    #                    #selected_date <= prop.approval.expiry_date
-    #                    ):
-    #                if prop.approval not in approval_list:
-    #                    approval_list.append(prop.approval)
-
-    #    serializer = LookupApprovalSerializer(approval_list, many=True)
-    #    return Response(serializer.data)
-    #    #return Response()
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -2279,8 +1787,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             mutable=request.data._mutable
             request.data._mutable=True
-            #request.data['proposal'] = u'{}'.format(instance.id)
-            #request.data['staff'] = u'{}'.format(request.user.id)
             request.data['mooring'] = u'{}'.format(instance.id)
             request.data._mutable=mutable
             serializer = MooringLogEntrySerializer(data=request.data)
@@ -2306,7 +1812,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     def internal_list(self, request, *args, **kwargs):
         # add security
         mooring_qs = Mooring.private_moorings.filter(active=True)
-        #import ipdb; ipdb.set_trace()
         serializer = ListMooringSerializer(mooring_qs, many=True)
         return Response(serializer.data)
 
@@ -2317,41 +1822,3 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         instance = self.get_object()
         return Response({"name": instance.name})
 
-
-#class ProposalAssessmentViewSet(viewsets.ModelViewSet):
-#    #queryset = ProposalRequirement.objects.all()
-#    queryset = ProposalAssessment.objects.all()
-#    serializer_class = ProposalAssessmentSerializer
-#
-#    @detail_route(methods=['post'])
-#    def update_assessment(self, request, *args, **kwargs):
-#        try:
-#            instance = self.get_object()
-#            request.data['submitter']= request.user.id
-#            serializer = ProposalAssessmentSerializer(instance, data=request.data)
-#            serializer.is_valid(raise_exception=True)
-#            serializer.save()
-#            checklist=request.data['checklist']
-#            if checklist:
-#                for chk in checklist:
-#                    try:
-#                        chk_instance=ProposalAssessmentAnswer.objects.get(id=chk['id'])
-#                        serializer_chk = ProposalAssessmentAnswerSerializer(chk_instance, data=chk)
-#                        serializer_chk.is_valid(raise_exception=True)
-#                        serializer_chk.save()
-#                    except:
-#                        raise
-#            #instance.proposal.log_user_action(ProposalUserAction.ACTION_EDIT_VESSEL.format(instance.id),request)
-#            return Response(serializer.data)
-#        except serializers.ValidationError:
-#            print(traceback.print_exc())
-#            raise
-#        except ValidationError as e:
-#            if hasattr(e,'error_dict'):
-#                raise serializers.ValidationError(repr(e.error_dict))
-#            else:
-#                if hasattr(e,'message'):
-#                    raise serializers.ValidationError(e.message)
-#        except Exception as e:
-#            print(traceback.print_exc())
-#            raise serializers.ValidationError(str(e))

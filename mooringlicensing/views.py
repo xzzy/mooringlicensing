@@ -33,19 +33,7 @@ class InternalView(UserPassesTestMixin, TemplateView):
             context['app_build_url'] = settings.DEV_APP_BUILD_URL
         return context
 
-#class InternalView(UserPassesTestMixin, TemplateView):
-#    template_name = 'mooringlicensing/dash/index.html'
-#
-#    def test_func(self):
-#        return is_internal(self.request)
-#
-#    def get_context_data(self, **kwargs):
-#        context = super(InternalView, self).get_context_data(**kwargs)
-#        context['dev'] = settings.DEV_STATIC
-#        context['dev_url'] = settings.DEV_STATIC_URL
-#        return context
 
-#class ExternalView(TemplateView):
 class ExternalView(LoginRequiredMixin, TemplateView):
     template_name = 'mooringlicensing/dash/index.html'
 
@@ -57,15 +45,6 @@ class ExternalView(LoginRequiredMixin, TemplateView):
             context['app_build_url'] = settings.DEV_APP_BUILD_URL
         return context
 
-
-#class ExternalView(LoginRequiredMixin, TemplateView):
-#    template_name = 'mooringlicensing/dash/index.html'
-#
-#    def get_context_data(self, **kwargs):
-#        context = super(ExternalView, self).get_context_data(**kwargs)
-#        context['dev'] = settings.DEV_STATIC
-#        context['dev_url'] = settings.DEV_STATIC_URL
-#        return context
 
 class ExternalProposalView(DetailView):
     model = Proposal
@@ -109,14 +88,12 @@ class MooringLicensingFurtherInformationView(TemplateView):
 
 
 class InternalProposalView(DetailView):
-    #template_name = 'mooringlicensing/index.html'
     model = Proposal
     template_name = 'mooringlicensing/dash/index.html'
 
     def get(self, *args, **kwargs):
         if self.request.user.is_authenticated():
             if is_internal(self.request):
-                #return redirect('internal-proposal-detail')
                 return super(InternalProposalView, self).get(*args, **kwargs)
             return redirect('external-proposal-detail')
         kwargs['form'] = LoginForm
@@ -163,9 +140,6 @@ class HelpView(LoginRequiredMixin, TemplateView):
                 if is_internal(self.request):
                     qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_INTERNAL).order_by('-version')
                     context['help'] = qs.first()
-#                else:
-#                    return TemplateResponse(self.request, 'mooringlicensing/not-permitted.html', context)
-#                    context['permitted'] = False
             else:
                 qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_EXTERNAL).order_by('-version')
                 context['help'] = qs.first()
@@ -196,5 +170,4 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
             data.update({command_script: 'true'})
 
         return render(request, self.template_name, data)
-
 
