@@ -454,24 +454,24 @@ export default {
                 )
                 if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
                     if (this.selectedCurrentProposal) {
-                        res = await this.$http.get(url);
+                        res = await this.$http.post(url);
                     } else {
                         res = await this.$http.post(api_endpoints.waitinglistapplication);
                     }
                 } else if (this.selectedApplication && ['aaa','aap','aaa_multiple'].includes(this.selectedApplication.code)) {
                     if (this.selectedCurrentProposal) {
-                        res = await this.$http.get(url);
+                        res = await this.$http.post(url);
                     } else {
                         res = await this.$http.post(api_endpoints.annualadmissionapplication);
                     }
                 } else if (this.selectedApplication && ['aua','aup','aua_multiple'].includes(this.selectedApplication.code)) {
                     if (this.selectedCurrentProposal) {
-                        res = await this.$http.get(url);
+                        res = await this.$http.post(url);
                     } else {
                         res = await this.$http.post(api_endpoints.authoriseduserapplication);
                     }
                 } else if (this.selectedApplication && ['ml','ml_multiple'].includes(this.selectedApplication.code)) {
-                    res = await this.$http.get(url);
+                    res = await this.$http.post(url);
                 } 
                 const proposal = res.body;
                 this.$router.push({
