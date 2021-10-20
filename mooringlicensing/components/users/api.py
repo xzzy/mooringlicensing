@@ -319,13 +319,12 @@ class UserViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['GET',])
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             qs = instance.comms_logs.all()
-            serializer = EmailUserCommsSerializer(qs,many=True)
+            serializer = EmailUserCommsSerializer(qs, many=True)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
