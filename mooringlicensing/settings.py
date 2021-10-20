@@ -80,17 +80,6 @@ MIDDLEWARE_CLASSES += [
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('mooringlicensing.context_processors.mooringlicensing_processor')
 del BOOTSTRAP3['css_url']
-#BOOTSTRAP3 = {
-#    'jquery_url': '//static.dpaw.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
-#    'base_url': '//static.dpaw.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',
-#    'css_url': 'ledger/css/bootstrap.min.css',
-#    'theme_url': None,
-#    'javascript_url': None,
-#    'javascript_in_head': False,
-#    'include_jquery': False,
-#    'required_css_class': 'required-form-field',
-#    'set_placeholder': False,
-#}
 
 CACHES = {
     'default': {
@@ -109,16 +98,6 @@ if DEV_STATIC and not DEV_STATIC_URL:
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
-# Use git commit hash for purging cache in browser for deployment changes
-#GIT_COMMIT_HASH = ''
-#GIT_COMMIT_DATE = ''
-#if  os.path.isdir(BASE_DIR+'/.git/') is True:
- #   GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
-  #  GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
-#if len(GIT_COMMIT_HASH) == 0: 
-#    GIT_COMMIT_HASH = os.popen('cat /app/rand_hash').read()
-#    if len(GIT_COMMIT_HASH) == 0:
-#       print ("ERROR: No rand hash provided")
 RAND_HASH = ''
 if os.path.isdir(BASE_DIR+'/.git/') is True:
     RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
@@ -145,7 +124,6 @@ SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'mooringlicensing')
-#ADMIN_GROUP = env('ADMIN_GROUP', 'MooringLicensing Admin')
 ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '04:05')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
@@ -187,8 +165,6 @@ PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
 
-#ASSESSOR_GROUPS = ['Mooring Licensing Assessor Group', ]
-#APPROVER_GROUPS = ['Mooring Licensing Approver Group', ]
 HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
     'code': 'dcvp',

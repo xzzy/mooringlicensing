@@ -62,7 +62,6 @@ class Command(BaseCommand):
         for a in approvals:
             try:
                 if approval_class == DcvPermit:
-                    # send_approval_renewal_email_notification_dcvp(a)
                     pass
                 else:
                     a.generate_renewal_doc()
@@ -94,3 +93,4 @@ class Command(BaseCommand):
         msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         logger.info(msg)
         print(msg) # will redirect to cron_tasks.log file, by the parent script
+

@@ -13,22 +13,17 @@ class EmailUserSerializer(serializers.ModelSerializer):
         fields = ('id','email','first_name','last_name','title','organisation')
 
 class ComplianceSerializer(serializers.ModelSerializer):
-    #regions = serializers.CharField(source='proposal.region')
-    #activity = serializers.CharField(source='proposal.activity')
     title = serializers.CharField(source='proposal.title')
     holder = serializers.CharField(source='proposal.applicant')
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
-    #submitter = serializers.CharField(source='submitter.get_full_name')
     submitter = serializers.SerializerMethodField(read_only=True)
     allowed_assessors = EmailUserSerializer(many=True)
-    #assigned_to = serializers.CharField(source='assigned_to.get_full_name')
     assigned_to = serializers.SerializerMethodField(read_only=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
-    #application_type = serializers.SerializerMethodField(read_only=True)
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
@@ -42,8 +37,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'due_date',
             'processing_status',
             'customer_status',
-            #'regions',
-            #'activity',
             'title',
             'text',
             'holder',
@@ -86,10 +79,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
             return obj.submitter.get_full_name()
         return None
 
-    #def get_application_type(self,obj):
-     #   if obj.proposal.application_type:
-      #      return obj.proposal.application_type.name
-       # return None
     def get_application_type_code(self, obj):
         return obj.proposal.application_type_code
 
@@ -111,19 +100,14 @@ class ComplianceSerializer(serializers.ModelSerializer):
 
 
 class InternalComplianceSerializer(serializers.ModelSerializer):
-    #regions = serializers.CharField(source='proposal.region')
-    #activity = serializers.CharField(source='proposal.activity')
     title = serializers.CharField(source='proposal.title')
     holder = serializers.CharField(source='proposal.applicant')
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
-    #submitter = serializers.CharField(source='submitter.get_full_name')
     submitter = serializers.SerializerMethodField(read_only=True)
     allowed_assessors = EmailUserSerializer(many=True)
-    #assigned_to = serializers.CharField(source='assigned_to.get_full_name')
-    #assigned_to = serializers.SerializerMethodField(read_only=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
 
@@ -136,8 +120,6 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
             'due_date',
             'processing_status',
             'customer_status',
-            #'regions',
-            #'activity',
             'title',
             'text',
             'holder',
@@ -165,11 +147,6 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
 
     def get_approval_lodgement_number(self,obj):
         return obj.approval.lodgement_number
-
-    # def get_assigned_to(self,obj):
-    #     if obj.assigned_to:
-    #         return obj.assigned_to.get_full_name()
-    #     return None
 
     def get_submitter(self,obj):
         if obj.submitter:
@@ -208,14 +185,11 @@ class ComplianceCommsSerializer(serializers.ModelSerializer):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
 class ComplianceAmendmentRequestSerializer(serializers.ModelSerializer):
-    #reason = serializers.SerializerMethodField()
 
     class Meta:
         model = ComplianceAmendmentRequest
         fields = '__all__'
 
-    # def get_reason (self,obj):
-    #     return obj.get_reason_display()
 
 class CompAmendmentRequestDisplaySerializer(serializers.ModelSerializer):
     reason = serializers.SerializerMethodField()
@@ -225,7 +199,6 @@ class CompAmendmentRequestDisplaySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_reason (self,obj):
-        #return obj.get_reason_display()
         return obj.reason.reason if obj.reason else None
 
 
