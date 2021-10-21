@@ -36,7 +36,7 @@ def log_proposal_email(msg, proposal, sender, attachments=[]):
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender_user)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user)
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user, attachments=attachments)
 
 
 def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, filename=None, attachments=[]):
@@ -138,7 +138,7 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
     return email_entry
 
 
-def _log_user_email(email_message, emailuser, customer ,sender=None):
+def _log_user_email(email_message, target_email_user, customer, sender=None, attachments=[]):
     from ledger.accounts.models import EmailUserLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
@@ -172,7 +172,7 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
     kwargs = {
         'subject': subject,
         'text': text,
-        'emailuser': emailuser,
+        'emailuser': target_email_user,
         'customer': customer,
         'staff': staff,
         'to': to,
@@ -181,6 +181,11 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
     }
 
     email_entry = EmailUserLogEntry.objects.create(**kwargs)
+
+    for attachment in attachments:
+        path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
+        path = default_storage.save(path_to_file, ContentFile(attachment[1]))
+        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
     return email_entry
 
@@ -353,7 +358,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     msg = email.send(mooring_licence_application.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
     sender = settings.DEFAULT_FROM_EMAIL
     log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
-    _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user)
+    _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user, attachments=attachments)
 
 
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
@@ -683,7 +688,7 @@ def send_approval_renewal_email_notification(approval):
         if approval.org_applicant:
             _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
         else:
-            _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
+            _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user, attachments=attachments)
     else:
         # TODO: log for DcvPermit???
         pass
@@ -1052,9 +1057,12 @@ def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision
     log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
-#import ipdb; ipdb.set_trace()
-def get_attachments(attach_invoice, attach_licence_doc, proposal):
+def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summary_doc=False):
     from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
+
+    proposal.refresh_from_db()
+    if proposal.approval:  # For AU/ML new application, approval is not created yet before payments
+        proposal.approval.refresh_from_db()
 
     attachments = []
     if attach_invoice and proposal.invoice:
@@ -1076,7 +1084,46 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal):
                     file_name = doc._file.name
                     attachment = (file_name, doc._file.file.read())
                     attachments.append(attachment)
+    if attach_au_summary_doc and proposal.approval and proposal.approval.authorised_user_summary_document:
+        au_summary_document = proposal.approval.authorised_user_summary_document._file
+        if au_summary_document is not None:
+            file_name = proposal.approval.authorised_user_summary_document.name
+            attachment = (file_name, au_summary_document.file.read(), 'application/pdf')
+            attachments.append(attachment)
+
     return attachments
+
+
+def send_au_summary_to_ml_holder(approval, request):
+    subject = 'Authorised User Summary Updated'
+    attachments = []
+
+    email = TemplateEmailBase(
+        subject=subject,
+        html_template='mooringlicensing/emails_2/au_summary.html',
+        txt_template='mooringlicensing/emails_2/au_summary.txt',
+    )
+
+    if approval.authorised_user_summary_document:
+        au_summary_document = approval.authorised_user_summary_document._file
+        if au_summary_document is not None:
+            file_name = approval.authorised_user_summary_document.name
+            attachment = (file_name, au_summary_document.file.read(), 'application/pdf')
+            attachments.append(attachment)
+
+    context = {
+        'approval': approval,
+    }
+
+    to_address = approval.submitter.email
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=attachments, cc=[], bcc=[],)
+
+    sender = get_user_as_email_user(msg.from_email)
+    # log_proposal_email(msg, proposal, sender, attachments)
+    _log_approval_email(msg, approval, sender, attachments)
+    return msg
 
 
 def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned):
@@ -1119,14 +1166,17 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
-        attachments = get_attachments(False, True, proposal)
+
+        attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
+        attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
+
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     email = TemplateEmailBase(
         subject=subject,
         html_template='mooringlicensing/emails_2/email_23.html',
-        txt_template = 'mooringlicensing/emails_2/email_23.txt',
+        txt_template='mooringlicensing/emails_2/email_23.txt',
     )
 
     context = {
@@ -1167,7 +1217,8 @@ def send_mla_approved_or_declined_email_amendment_no_payment(proposal, decision,
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
-        attachments = get_attachments(False, True, proposal)
+        attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
+        attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
     elif decision == 'declined':
         subject = 'Declined: Amendment Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposaldeclineddetails.reason
@@ -1219,7 +1270,8 @@ def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
-        attachments = get_attachments(True, True, proposal)
+        attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
+        attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
 
         # Generate payment_url if needed
         if proposal.application_fees.count():
@@ -1299,7 +1351,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
     if proposal.org_applicant:
         _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender, attachments=attachments)
 
     return msg
 

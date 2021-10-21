@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from django.core.files.base import ContentFile
 
 import datetime
 import logging
@@ -72,6 +73,14 @@ class RenewalDocument(Document):
         if self.can_delete:
             return super(RenewalDocument, self).delete()
         logger.info('Cannot delete existing document object after Proposal has been submitted (including document submitted before Proposal pushback to status Draft): {}'.format(self.name))
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class AuthorisedUserSummaryDocument(Document):
+    approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents')
+    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -196,6 +205,7 @@ class Approval(RevisionedMixin):
                                        default=STATUS_CHOICES[0][0])
     internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
+    authorised_user_summary_document = models.ForeignKey(AuthorisedUserSummaryDocument, blank=True, null=True, related_name='approvals')
     cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
     replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
     current_proposal = models.ForeignKey(Proposal,related_name='approvals', null=True)
@@ -537,14 +547,11 @@ class Approval(RevisionedMixin):
     def allowed_assessors_user(self, request):
         return self.current_proposal.allowed_assessors_user(request)
 
-
     def is_assessor(self,user):
         return self.current_proposal.is_assessor(user)
 
-
     def is_approver(self,user):
         return self.current_proposal.is_approver(user)
-
 
     @property
     def is_issued(self):
@@ -595,9 +602,32 @@ class Approval(RevisionedMixin):
             from mooringlicensing.doctopdf import create_approval_doc_bytes
             return create_approval_doc_bytes(self)
 
-        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)
+        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)  # Update the attribute to the latest doc
+
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
+
+    def generate_au_summary_doc(self, user):
+        from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
+
+        if hasattr(self, 'mooring'):
+            moa_set = MooringOnApproval.objects.filter(
+                mooring=self.mooring,
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+            )
+            if moa_set.count() > 0:
+                # Authorised User exists
+                contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
+
+                filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
+                document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
+
+                # Save the bytes to the disk
+                document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+
+                self.authorised_user_summary_document = document  # Update to the latest doc
+                self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
+                self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.licence_document.name))
 
     def generate_renewal_doc(self):
         self.renewal_document = create_renewal_doc(self, self.current_proposal)
@@ -963,6 +993,10 @@ class AuthorisedUserPermit(Approval):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def get_authorised_by(self):
+        preference = self.current_proposal.child_obj.get_mooring_authorisation_preference()
+        return preference
+
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
@@ -1157,6 +1191,48 @@ class MooringLicence(Approval):
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
 
+    def get_context_for_au_summary(self):
+        if not hasattr(self, 'mooring'):
+            # There should not be AuthorisedUsers for this ML
+            return {}
+        moa_set = MooringOnApproval.objects.filter(
+            mooring=self.mooring,
+            approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+        )
+
+        authorised_persons = []
+
+        for moa in moa_set:
+            authorised_person = {}
+            if type(moa.approval.child_obj) == AuthorisedUserPermit:
+                aup = moa.approval.child_obj
+                authorised_by = aup.get_authorised_by()
+                authorised_by = authorised_by.upper().replace('_', ' ')
+
+                authorised_person['full_name'] = aup.submitter.get_full_name()
+                authorised_person['vessel'] = {
+                    'rego_no': aup.current_proposal.vessel_details.vessel.rego_no,
+                    'vessel_name': aup.current_proposal.vessel_details.vessel_name,
+                    'length': aup.current_proposal.vessel_details.vessel_applicable_length,
+                    'draft': aup.current_proposal.vessel_details.vessel_draft,
+                }
+                authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
+                authorised_person['authorised_by'] = authorised_by
+                authorised_person['mobile_number'] = aup.submitter.mobile_number
+                authorised_person['email_address'] = aup.submitter.email
+                authorised_persons.append(authorised_person)
+
+        context = {
+            'approval': self,
+            'application': self.current_proposal,
+            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'applicant_first_name': self.submitter.first_name,
+            'mooring_name': self.mooring.name,
+            'authorised_persons': authorised_persons,
+        }
+
+        return context
+
     def get_context_for_licence_permit(self):
         # Return context for the licence/permit document
         licenced_vessel = None
@@ -1215,9 +1291,10 @@ class MooringLicence(Approval):
     def update_auth_user_permits(self):
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
-                    mooring=self.mooring,
-                    approval__status='current'
-                    )
+                mooring=self.mooring,
+                # approval__status='current'
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
+            )
             for moa in moa_set:
                 if type(moa.approval.child_obj) == AuthorisedUserPermit:
                     moa.approval.child_obj.update_moorings(self)
@@ -2042,4 +2119,5 @@ reversion.register(DcvPermit, follow=["fee_season", "dcv_vessel", "dcv_organisat
 reversion.register(DcvAdmissionDocument)
 reversion.register(DcvPermitDocument)
 reversion.register(Sticker, follow=["approval", "dcv_permit", "fee_constructor", "fee_season", "vessel_ownership", "proposal_initiated"])
+reversion.register(RenewalDocument)
 
