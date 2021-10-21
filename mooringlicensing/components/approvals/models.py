@@ -2119,4 +2119,5 @@ reversion.register(DcvPermit, follow=["fee_season", "dcv_vessel", "dcv_organisat
 reversion.register(DcvAdmissionDocument)
 reversion.register(DcvPermitDocument)
 reversion.register(Sticker, follow=["approval", "dcv_permit", "fee_constructor", "fee_season", "vessel_ownership", "proposal_initiated"])
+reversion.register(RenewalDocument)
 
