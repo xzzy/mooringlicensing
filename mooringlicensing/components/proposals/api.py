@@ -71,7 +71,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSerializer,
     VesselFullSerializer,
     VesselFullOwnershipSerializer,
-    ListMooringSerializer,
+    ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer,
 )
 from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
