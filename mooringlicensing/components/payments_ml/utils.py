@@ -31,34 +31,20 @@ def checkout(request, email_user, lines, return_url_ns='public_payment_success',
     }
 
     basket, basket_hash = create_basket_session(request, basket_params)
-    #fallback_url = request.build_absolute_uri('/')
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),                                      # 'http://mooring-ria-jm.dbca.wa.gov.au/'
         'return_url': request.build_absolute_uri(reverse(return_url_ns)),          # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
         'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
-        #'fallback_url': fallback_url,
-        #'return_url': fallback_url,
-        #'return_preload_url': fallback_url,
         'force_redirect': True,
-        #'proxy': proxy,
         'invoice_text': invoice_text,                                                         # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
     }
-    #    if not internal:
-    #        checkout_params['check_url'] = request.build_absolute_uri('/api/booking/{}/booking_checkout_status.json'.format(booking.id))
-    #if internal or request.user.is_anonymous():
     if proxy or request.user.is_anonymous():
-        #checkout_params['basket_owner'] = booking.customer.id
-        # checkout_params['basket_owner'] = proposal.submitter_id  # There isn't a submitter_id field... supposed to be submitter.id...?
-        # anonymous_user = EmailUser.objects.get_or_create(email='aho1@mail.com')
         checkout_params['basket_owner'] = email_user.id
 
 
     create_checkout_session(request, checkout_params)
 
-    #    if internal:
-    #        response = place_order_submission(request)
-    #    else:
     response = HttpResponseRedirect(reverse('checkout:index'))
     # inject the current basket into the redirect response cookies
     # or else, anonymous users will be directionless
@@ -67,23 +53,6 @@ def checkout(request, email_user, lines, return_url_ns='public_payment_success',
         max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
         secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
     )
-
-    #    if booking.cost_total < 0:
-    #        response = HttpResponseRedirect('/refund-payment')
-    #        response.set_cookie(
-    #            settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
-    #            max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
-    #            secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
-    #        )
-    #
-    #    # Zero booking costs
-    #    if booking.cost_total < 1 and booking.cost_total > -1:
-    #        response = HttpResponseRedirect('/no-payment')
-    #        response.set_cookie(
-    #            settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
-    #            max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
-    #            secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
-    #        )
 
     return response
 
@@ -120,7 +89,6 @@ def create_fee_lines_for_dcv_admission(dcv_admission, invoice_text=None, voucher
                 fee_item.number_of_people = number_of_people.number
                 fee_items.append(fee_item)
                 number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
-                # total_amount += fee_item.amount * number_of_people.number
                 total_amount += fee_item.get_absolute_amount() * number_of_people.number
 
         line_item = {
@@ -210,7 +178,6 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
     return {
         'ledger_description': '{}({}) Fee: {} (Season: {} to {}) @{}'.format(
             fee_constructor.application_type.description,
-            # instance.proposal_type.description,
             proposal_type_text,
             instance.lodgement_number,
             fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
@@ -349,13 +316,6 @@ def make_serializable(line_items):
 
 
 def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
-    #basket_params = {
-    #    # 'products': invoice.order.basket.lines.all(),
-    #    'products': lines,
-    #    'vouchers': vouchers,
-    #    'system': settings.PAYMENT_SYSTEM_ID,
-    #    'custom_basket': True,
-    #}
 
     basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
     checkout_params = {
@@ -370,7 +330,6 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
     if request.user.is_anonymous():
         # We need to determine the basket owner and set it to the checkout_params to proceed the payment
         application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
-        # application_fee_invoice = ApplicationFeeInvoice.objects.filter(invoice_reference=invoice.reference)
         if application_fee:
             application_fee = application_fee[0]
             checkout_params['basket_owner'] = application_fee.approval.relevant_applicant_email_user.id
@@ -381,7 +340,6 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
 
     create_checkout_session(request, checkout_params)
 
-    # response = HttpResponseRedirect(reverse('checkout:index'))
     # use HttpResponse instead of HttpResponseRedirect - HttpResonseRedirect does not pass cookies which is important for ledger to get the correct basket
     response = HttpResponse(
         "<script> window.location='" + reverse('checkout:index') + "';</script> <a href='" + reverse(
@@ -395,3 +353,4 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
         secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
     )
     return response
+
