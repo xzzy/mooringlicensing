@@ -1,5 +1,7 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address, Profile,EmailIdentity, EmailUserAction, EmailUserLogEntry, CommunicationsLogEntry
+
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
@@ -231,10 +233,36 @@ class EmailUserActionSerializer(serializers.ModelSerializer):
         model = EmailUserAction
         fields = '__all__'
 
-class EmailUserCommsSerializer(serializers.ModelSerializer):
+# class EmailUserCommsSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = EmailUserLogEntry
+#         fields = '__all__'
+
+class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
+    documents = serializers.SerializerMethodField()
+    type = serializers.CharField(source='log_type')
+
     class Meta:
         model = EmailUserLogEntry
-        fields = '__all__'
+        # fields = '__all__'
+        fields = (
+            'id',
+            'customer',
+            'to',
+            'fromm',
+            'cc',
+            'type',
+            'reference',
+            'subject',
+            'text',
+            'created',
+            'staff',
+            'emailuser',
+            'documents',
+        )
+        read_only_fields = (
+            'customer',
+        )
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=EmailUser.objects.all(),required=False)
