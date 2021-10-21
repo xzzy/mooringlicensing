@@ -34,7 +34,10 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     list_display = [
             'code',
             'text',
-            'obsolete', 
+            'application_type',
+            'obsolete',
+            #'participant_number_required',
+            #'default'
             ]
 
     def get_form(self, request, obj=None, **kwargs):

@@ -416,7 +416,7 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
     return email_entry
 
 
-def _log_user_email(email_message, emailuser, customer ,sender=None):
+def _log_user_email(email_message, target_email_user, customer, sender=None, attachments=[]):
     from ledger.accounts.models import EmailUserLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
@@ -450,7 +450,7 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
     kwargs = {
         'subject': subject,
         'text': text,
-        'emailuser': emailuser,
+        'emailuser': target_email_user,
         'customer': customer,
         'staff': staff,
         'to': to,
@@ -459,6 +459,11 @@ def _log_user_email(email_message, emailuser, customer ,sender=None):
     }
 
     email_entry = EmailUserLogEntry.objects.create(**kwargs)
+
+    for attachment in attachments:
+        path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
+        path = default_storage.save(path_to_file, ContentFile(attachment[1]))
+        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
     return email_entry
 

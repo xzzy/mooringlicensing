@@ -15,9 +15,9 @@
                 <datatable ref="requirements_datatable" :id="'requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
             </form>
         </div>
-        <RequirementDetail 
-            ref="requirement_detail" 
-            :proposal_id="proposal.id" 
+        <RequirementDetail
+            ref="requirement_detail"
+            :proposal_id="proposal.id"
             :requirements="requirements"
         />
     </div>
@@ -221,7 +221,7 @@ export default {
             let url = api_endpoints.proposal_standard_requirements
             //let url = api_endpoints.proposal_requirements
             console.log('url: ' + url)
-            vm.$http.get(url).then((response) => {
+            vm.$http.get(url, {params: {'application_type_code': vm.proposal.application_type_code}}).then((response) => {
                 vm.requirements = response.body
             },(error) => {
                 console.log(error);
@@ -259,7 +259,7 @@ export default {
             this.$http.get(helpers.add_endpoint_json(api_endpoints.proposal_requirements,req+'/'+movement)).then((response) => {
             },(error) => {
                 console.log(error);
-                
+
             })
         },
         moveUp(e) {
