@@ -23,36 +23,7 @@ from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
-#logger = logging.getLogger(__name__)
 logger = logging.getLogger('mooringlicensing')
-
-#def add_cache_control(response):
- #   response['Cache-Control'] = 'private, no-store'
-  #  return response
-
-#def retrieve_department_users():
-#    try:
-#        #res = requests.get('{}/api/v3/departmentuser?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-#        res = requests.get('{}/api/v3/departmentuser/'.format(settings.CMS_URL), auth=(settings.LEDGER_USER, settings.LEDGER_PASS))
-#        res.raise_for_status()
-#        #import ipdb; ipdb.set_trace()
-#        #cache.set('department_users',json.loads(res.content).get('objects'),10800)
-#        cache.set('department_users',json.loads(res.content), 10800)
-#    except:
-#        raise
-#
-#def get_department_user(email):
-#    try:
-#        res = requests.get('{}/api/users?email={}'.format(settings.CMS_URL,email), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-#        res.raise_for_status()
-#        data = json.loads(res.content).get('objects')
-#        if len(data) > 0:
-#            return data[0]
-#        else:
-#            return None
-#    except:
-#        raise
-
 
 def belongs_to(user, group_name):
     """
@@ -81,47 +52,6 @@ def check_db_connection():
     except Exception as e:
         connection.connect()
 
-#def reset_waiting_list_allocations(wla_list):
-#    try:
-#        records_updated = []
-#        with transaction.atomic():
-#            # send email
-#            #send_create_mooring_licence_application_email_notification(request, waiting_list_allocation)
-#            # update waiting_list_allocation
-#            for waiting_list_allocation in wla_list:
-#                #waiting_list_allocation.status = 'current'
-#                now = timezone.localtime(timezone.now())
-#                waiting_list_allocation.wla_queue_date = now
-#                waiting_list_allocation.save()
-#                # discard MLA
-#                mla_qs = MooringLicenceApplication.objects.filter(
-#                        waiting_list_allocation=waiting_list_allocation,
-#                        processing_status='draft').order_by('-lodgement_date')
-#                mla = mla_qs[0] if mla_qs else None
-#                if mla:
-#                    mla.processing_status = 'discarded'
-#                    mla.customer_status = 'discarded'
-#                    mla.save()
-#                    records_updated.append(str(mla))
-#            # set wla order per bay
-#            for bay in MooringBay.objects.all():
-#                place = 1
-#                for w in WaitingListAllocation.objects.filter(
-#                        wla_queue_date__isnull=False, 
-#                        current_proposal__preferred_bay=bay,
-#                        status='current').order_by(
-#                                '-wla_queue_date'):
-#                    w.wla_order = place
-#                    w.save()
-#                    records_updated.append(str(w))
-#                    place += 1
-#            return [], records_updated
-#    except Exception as e:
-#        #raise e
-#        logger.error('retrieve_mooring_areas() error', exc_info=True)
-#        # email only prints len() of error list
-#        return ['check log',], records_updated
-
 def get_bookings(booking_date, rego_no=None, mooring_id=None):
     url = settings.MOORING_BOOKINGS_API_URL + "bookings/" + settings.MOORING_BOOKINGS_API_KEY + '/' 
     myobj = {
@@ -142,11 +72,6 @@ def get_bookings(booking_date, rego_no=None, mooring_id=None):
             customer_phone_number = booking.get("booking_phone_number")
         elif booking.get("customer_account_phone_number"):
             customer_phone_number = booking.get("customer_account_phone_number")
-        #elif booking.get('booking__customer_id'):
-        #    qs = EmailUser.objects.filter(id=booking.get("booking__customer_id"))
-        #    if qs:
-        #        emailuser = qs[0]
-        #        customer_phone_number = emailuser.mobile_number if emailuser.mobile_number else emailuser.phone_number
         booking.update({"customer_phone_number": customer_phone_number})
         updated_data.append(booking)
     return updated_data
@@ -178,11 +103,6 @@ def retrieve_mooring_areas():
                 if mooring_qs.count() > 0:
                     mo = mooring_qs[0]
                     orig_mo = deepcopy(mo)
-                    #if mo.name != mooring.get("name"):
-                    #    # only updates name field?
-                    #    mo.name=mooring.get("name")
-                    #    mo.save()
-                    #    records_updated.append(str(mo.name))
                     mo.mooring_bookings_id=mooring.get("id")
                     mo.name=mooring.get("name")
                     mo.mooring_bay = MooringBay.objects.get(
@@ -233,7 +153,6 @@ def retrieve_mooring_areas():
 def retrieve_marine_parks():
     records_updated = []
     try:
-        #import ipdb; ipdb.set_trace()
         # CRON (every night?)  Plus management button for manual control.
         url = settings.MOORING_BOOKINGS_API_URL + "marine-parks/" + settings.MOORING_BOOKINGS_API_KEY
         res = requests.get(url)
@@ -260,18 +179,11 @@ def retrieve_marine_parks():
                     mooring_bay.active = False
                     mooring_bay.save()
             return [], records_updated
-                #else:
-                #    mooring_bay.active = True
-                #    mooring_bay.save()
     except Exception as e:
         logger.error('retrieve_marine_parks() error', exc_info=True)
         return ['check log',], records_updated
 
 def handle_validation_error(e):
-    # if hasattr(e, 'error_dict'):
-    #     raise serializers.ValidationError(repr(e.error_dict))
-    # else:
-    #     raise serializers.ValidationError(repr(e[0].encode('utf-8')))
     if hasattr(e, 'error_dict'):
         raise serializers.ValidationError(repr(e.error_dict))
     else:
@@ -280,31 +192,7 @@ def handle_validation_error(e):
         else:
             raise
 
-
-#def add_business_days(from_date, number_of_days):
-#    """ given from_date and number_of_days, returns the next weekday date i.e. excludes Sat/Sun """
-#    to_date = from_date
-#    while number_of_days:
-#        to_date += timedelta(1)
-#        if to_date.weekday() < 5: # i.e. is not saturday or sunday
-#            number_of_days -= 1
-#    return to_date
-#
-#def get_next_weekday(from_date):
-#    """ given from_date and number_of_days, returns the next weekday date i.e. excludes Sat/Sun """
-#    if from_date.weekday() == 5: # i.e. Sat
-#        from_date += timedelta(2)
-#    elif from_date.weekday() == 6: # i.e. Sun
-#        from_date += timedelta(1)
-#
-#    return from_date
-
-
 def handle_validation_error(e):
-    # if hasattr(e, 'error_dict'):
-    #     raise serializers.ValidationError(repr(e.error_dict))
-    # else:
-    #     raise serializers.ValidationError(repr(e[0].encode('utf-8')))
     if hasattr(e, 'error_dict'):
         raise serializers.ValidationError(repr(e.error_dict))
     else:
@@ -353,27 +241,6 @@ def sticker_export():
             ])
             for sticker in stickers:
                 try:
-                    # column: Moorings
-                    #if sticker.approval.code == AnnualAdmissionPermit.code:
-                    #    # No associated moorings
-                    #    pass
-                    #elif sticker.approval.code == AuthorisedUserPermit.code:
-                    #    valid_moas = sticker.mooringonapproval_set.filter(Q(end_date__isnull=True))
-                    #    for moa in valid_moas:
-                    #        mooring_names.append(moa.mooring.name)
-
-                    #    # for mooring in sticker.approval.moorings.all():
-                    #    #     mooring_names.append(mooring.name)
-                    #elif sticker.approval.code == MooringLicence.code:
-                    #    if hasattr(sticker.approval, 'mooring'):
-                    #        mooring_names.append(sticker.approval.mooring.name)
-                    #    else:
-                    #        # Should not reach here
-                    #        logger.error('Failed to export a sticker {} because the MooringLicence {} does not have a mooring'.format(sticker.number, sticker.approval.lodgement_number))
-                    #        pass
-                    #else:
-                    #    # Should not reach here
-                    #    pass
                     moorings = sticker.get_moorings()
                     mooring_names = [mooring.name for mooring in moorings]
                     mooring_names = ', '.join(mooring_names)
@@ -463,8 +330,6 @@ def get_dot_vessel_information(request,json_string):
     return r.text
 
 def export_to_mooring_booking(approval_id):
-    #status = cancelled, active
-    #licence_type =  1=Licence  2=Authorised User  3=Annual Admission
     try:
         url = settings.MOORING_BOOKINGS_API_URL + "licence-create-update/" + settings.MOORING_BOOKINGS_API_KEY + '/' 
         approval = Approval.objects.get(id=approval_id)
@@ -524,7 +389,7 @@ def export_to_mooring_booking(approval_id):
 
 @query_debugger
 def test_list_approval_serializer(approval_id):
-    #import ipdb; ipdb.set_trace()
     approval = Approval.objects.get(id=approval_id)
     serializer = ListApprovalSerializer(approval)
     return serializer.data
+

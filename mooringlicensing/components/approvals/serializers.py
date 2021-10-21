@@ -166,8 +166,6 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
 
 
 class LookupDcvVesselSerializer(serializers.ModelSerializer):
-    #dcv_organisation_id = serializers.IntegerField(allow_null=True, required=False)
-    #dcv_permits = DcvPermitSerializer(many=True, read_only=True)
     class Meta:
         model = DcvVessel
         fields = (
@@ -282,7 +280,6 @@ class ApprovalLogEntrySerializer(CommunicationLogEntrySerializer):
 
 
 class ApprovalSerializer(serializers.ModelSerializer):
-    #submitter = EmailUserAppViewSerializer()
     submitter = UserSerializer()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
@@ -312,8 +309,6 @@ class ApprovalSerializer(serializers.ModelSerializer):
     can_external_action = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
-    #can_renew = serializers.SerializerMethodField()
-    #can_amend = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     stickers = serializers.SerializerMethodField()
@@ -358,8 +353,6 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_external_action',
             'can_action',
             'can_reinstate',
-            #'can_renew',
-            #'can_amend',
             'amend_or_renew',
             'renewal_document',
             'renewal_sent',
@@ -398,19 +391,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_amend_or_renew(self,obj):
         return obj.amend_or_renew
 
-    #def get_can_amend(self,obj):
-    #    return obj.can_amend
-
-    #def get_can_renew(self,obj):
-    #    return obj.can_renew
-
     def get_is_approver(self, obj):
-        #return_list = []
         request = self.context.get('request')
         return obj.is_approver(request.user)
 
     def get_mooring_licence_vessels(self, obj):
-        #return_list = []
         links = ''
         request = self.context.get('request')
         if type(obj.child_obj) == MooringLicence:
@@ -429,7 +414,6 @@ class ApprovalSerializer(serializers.ModelSerializer):
         if type(obj.child_obj) == MooringLicence:
             moa_set = MooringOnApproval.objects.filter(
                     mooring=obj.child_obj.mooring,
-                    #approval__status__in=['current', 'suspended']
                     )
             for moa in moa_set:
                 approval = moa.approval
@@ -473,30 +457,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     })
         return vessel_details
 
-    #def get_mooring_licence_vessels_detail(self, obj):
-    #    vessels = []
-    #    vessel_details = []
-    #    if type(obj.child_obj) == MooringLicence:
-    #        for sticker in obj.stickers.all():
-    #            if sticker.status in ['current', 'awaiting_printing', 'to_be_returned']:
-    #            #if sticker.status in ['current', 'ready', 'awaiting_printing', 'to_be_returned']:
-    #                vessel = sticker.vessel_ownership.vessel
-    #                vessels.append(vessel)
-
-    #                vessel_details.append({
-    #                    "id": vessel.id,
-    #                    "vessel_name": vessel.latest_vessel_details.vessel_name,
-    #                    "sticker_number": sticker.number,
-    #                    "owner": sticker.vessel_ownership.owner.emailuser.get_full_name(),
-    #                    "mobile": sticker.vessel_ownership.owner.emailuser.mobile_number,
-    #                    "email": sticker.vessel_ownership.owner.emailuser.email,
-    #                    })
-    #    return vessel_details
-
     def get_authorised_user_moorings_detail(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
-            #for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
                 if moa.mooring.mooring_licence:
                     licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
@@ -512,12 +475,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
         return moorings
 
     def get_authorised_user_moorings(self, obj):
-        #import ipdb; ipdb.set_trace()
-        #return_list = []
         links = ''
         request = self.context.get('request')
         if type(obj.child_obj) == AuthorisedUserPermit:
-            #for mooring in obj.moorings.all():
             for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
                 if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
@@ -530,17 +490,13 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
     def get_ria_generated_proposals(self, obj):
         links = '<br/>'
-        #internal_external = 'internal'
         if type(obj.child_obj) == WaitingListAllocation:
             for mla in obj.ria_generated_proposal.all():
-                #links += '<a href="{}/proposal/{}">{} : {}</a><br/>'.format(
                 links += '<a href="/internal/proposal/{}">{} : {}</a><br/>'.format(
-                        #internal_external,
                         mla.id,
                         mla.lodgement_number,
                         mla.get_processing_status_display(),
                         )
-                #links.append(link)
         return links
 
     def get_offer_link(self, obj):
@@ -681,15 +637,12 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
-    #mooring_licence_vessels = serializers.SerializerMethodField()
-    #authorised_user_moorings = serializers.SerializerMethodField()
     can_reissue = serializers.SerializerMethodField()
     can_external_action = serializers.SerializerMethodField()
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
     allowed_assessors_user = serializers.SerializerMethodField()
-    #allowed_assessors_user = EmailUserSerializer(many=True)
     stickers = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
     vessel_regos = serializers.SerializerMethodField()
@@ -717,18 +670,14 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_registration',
             'vessel_name',
             'wla_order',
-            #wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
-            #'mooring_licence_vessels',
-            #'authorised_user_moorings',
             'can_reissue',
             'can_external_action',
             'can_action',
             'can_reinstate',
             'amend_or_renew',
             'renewal_document',
-            #'renewal_sent',
             'allowed_assessors_user',
             'stickers',
             'licence_document',
@@ -758,18 +707,14 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_registration',
             'vessel_name',
             'wla_order',
-            #wla_queue_date',
             'offer_link',
             'ria_generated_proposals',
-            #'mooring_licence_vessels',
-            #'authorised_user_moorings',
             'can_reissue',
             'can_external_action',
             'can_action',
             'can_reinstate',
             'amend_or_renew',
             'renewal_document',
-            #'renewal_sent',
             'allowed_assessors_user',
             'stickers',
             'licence_document',
@@ -777,16 +722,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_regos',
         )
 
-    #def get_stickers(self, obj):
-     #   return [sticker.number for sticker in obj.stickers.filter(status__in=['current','awaiting_printing'])]
-
-    #def get_allowed_assessors(self, obj):
-     #   return [assessor.id for assessor in obj.allowed_assessors]
     def get_allowed_assessors_user(self, obj):
         request = self.context.get('request')
         if request:
-            #return EmailUserSerializer(obj.allowed_assessors, many=True).data
-            #return True
             return obj.allowed_assessors_user(request)
         else:
             return False
@@ -795,7 +733,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return obj.current_proposal.processing_status == 'approved'
 
     def get_is_approver(self, obj):
-        #return_list = []
         request = self.context.get('request')
         if request:
             return obj.is_approver(request.user)
@@ -827,12 +764,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_amend_or_renew(self,obj):
         return obj.amend_or_renew
 
-    #def get_can_amend(self,obj):
-    #    return obj.can_amend
-
-    #def get_can_renew(self,obj):
-    #    return obj.can_renew
-
     def get_vessel_regos(self, obj):
         regos = ''
         if type(obj.child_obj) == MooringLicence:
@@ -843,7 +774,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return regos
 
     def get_mooring_licence_vessels(self, obj):
-        #return_list = []
         links = ''
         request = self.context.get('request')
         if type(obj.child_obj) == MooringLicence:
@@ -858,7 +788,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return links
 
     def get_authorised_user_moorings(self, obj):
-        #return_list = []
         links = ''
         request = self.context.get('request')
         if type(obj.child_obj) == AuthorisedUserPermit:
@@ -874,22 +803,17 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_ria_generated_proposals(self, obj):
         links = '<br/>'
-        #internal_external = 'internal'
         if type(obj.child_obj) == WaitingListAllocation:
             for mla in obj.ria_generated_proposal.all():
-                #links += '<a href="{}/proposal/{}">{} : {}</a><br/>'.format(
                 links += '<a href="/internal/proposal/{}">{} : {}</a><br/>'.format(
-                        #internal_external,
                         mla.id,
                         mla.lodgement_number,
                         mla.get_processing_status_display(),
                         )
-                #links.append(link)
         return links
 
     def get_offer_link(self, obj):
         link = ''
-        #if type(obj.child_obj) == WaitingListAllocation and obj.status == 'current' and obj.current_proposal.preferred_bay:
         if (
                 type(obj.child_obj) == WaitingListAllocation and 
                 obj.status == 'current' and
@@ -1031,7 +955,6 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
         )
 
     def get_url(self, obj):
-        #return '<a href=/internal/approval/{}>View</a>'.format(obj.id)
         return '/internal/approval/{}'.format(obj.id)
 
     def get_status(self, obj):
@@ -1054,7 +977,6 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_submitter_phone_number(self, obj):
-        #return obj.submitter.phone_number if obj.submitter.phone_number else obj.submitter.mobile_number
         return obj.submitter.mobile_number if obj.submitter.mobile_number else obj.submitter.phone_number
 
     def get_vessel_data(self, obj):
@@ -1324,10 +1246,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
 
 
 class ListDcvAdmissionSerializer(serializers.ModelSerializer):
-    #dcv_organisation_name = serializers.SerializerMethodField()
-    #status = serializers.SerializerMethodField()
     lodgement_date = serializers.SerializerMethodField()
-    #fee_season = serializers.SerializerMethodField()
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
     admission_urls = serializers.SerializerMethodField()
@@ -1373,24 +1292,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
         return url
 
-    #def get_dcv_organisation_name(self, obj):
-    #    if obj.dcv_organisation:
-    #        return obj.dcv_organisation.name
-    #    else:
-    #        return ''
-
-    #def get_status(self, obj):
-    #    status = ''
-    #    if obj.status:
-    #        status = obj.status[1]
-    #    return status
-
-    #def get_fee_season(self, obj):
-    #    fee_season = ''
-    #    if obj.fee_season:
-    #        fee_season = obj.fee_season.name
-    #    return fee_season
-
     def get_lodgement_date(self, obj):
         lodgement_datetime = ''
         if obj.lodgement_datetime:
@@ -1400,7 +1301,6 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
 class ApprovalHistorySerializer(serializers.ModelSerializer):
     reason = serializers.SerializerMethodField()
-    #approval_letter = serializers.SerializerMethodField()
     approval_letter = serializers.CharField(source='approval_letter._file.url')
     sticker_numbers = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
@@ -1417,10 +1317,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
                 'approval_type_description',
                 'approval_status',
                 'holder',
-                #vessel_ownership,
-                #proposal,
                 'start_date_str',
-                #end_date = models.DateTimeField(blank=True, null=True)
                 'sticker_numbers',
                 'reason',
                 'approval_letter',
@@ -1431,10 +1328,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
                 'approval_type_description',
                 'approval_status',
                 'holder',
-                #vessel_ownership,
-                #proposal,
                 'start_date_str',
-                #end_date = models.DateTimeField(blank=True, null=True)
                 'sticker_numbers',
                 'reason',
                 'approval_letter',
@@ -1449,14 +1343,9 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
     def get_holder(self, obj):
         return obj.approval.submitter.get_full_name()
 
-    #def get_approval_letter(self, obj):
-     #   return ''
-
     def get_sticker_numbers(self, obj):
-        #numbers = []
         numbers = ""
         for sticker in obj.stickers.all():
-            #numbers.append(sticker.number)
             if numbers:
                 numbers += ',\n' + sticker.number
             else:

@@ -100,9 +100,6 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    # def has_change_permission(self, request, obj=None):
-    #     return False
-
     def get_readonly_fields(self, request, obj=None):
         return [
             'id',
@@ -126,14 +123,10 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
 class StickersPrintingResponseAdmin(admin.ModelAdmin):
     list_display = [
         'id',
-        # 'name',
-        # '_file',
         'get_attached_file',
         'uploaded_date',
         'email_subject',
         'email_date',
-        # 'received_datetime',
-        # 'email_subject',
         'processed',
         'no_errors_when_process',
     ]
@@ -155,23 +148,17 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    # def has_change_permission(self, request, obj=None):
-    #     return False
-
     def get_readonly_fields(self, request, obj=None):
         return [
             'id',
             'name',
-            # 'received_datetime',
             'uploaded_date',
             '_file',
         ]
-
-    # def save_model(self, request, obj, form, change):
-    #     pass
 
     def delete_model(self, request, obj):
         pass
 
     def save_related(self, request, form, formsets, change):
         pass
+
