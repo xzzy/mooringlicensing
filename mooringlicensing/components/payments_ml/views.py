@@ -33,7 +33,8 @@ from mooringlicensing.components.payments_ml.utils import checkout, create_fee_l
     checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
     delete_session_sticker_action_invoice, ItemNotSetInSessionException
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
-    AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication
+    AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication, \
+    VesselDetails
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
 
 logger = logging.getLogger('mooringlicensing')
@@ -583,7 +584,7 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice_ref = invoice.reference
 
             # Update the application_fee object
-            # For the AUA and MLA, the application_fee already has relations to fee_item(s) created when creating lines.
+            # For the AUA and MLA's new/amendment application, the application_fee already has relations to fee_item(s) created after creating lines.
             # In that case, there are no 'fee_item_id' and/or 'fee_item_additional_id' keys in the db_operations
             if 'fee_item_id' in db_operations:
                 fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
@@ -601,6 +602,17 @@ class ApplicationFeeSuccessView(TemplateView):
                         application_fee=application_fee,
                         vessel_details=proposal.vessel_details,
                     )
+            if isinstance(db_operations, list):
+                # This is used for AU/ML's auto renewal
+                for item in db_operations:
+                    fee_item = FeeItem.objects.get(id=item['fee_item_id'])
+                    vessel_details = VesselDetails.objects.get(id=item['vessel_details_id'])
+                    FeeItemApplicationFee.objects.create(
+                        fee_item=fee_item,
+                        application_fee=application_fee,
+                        vessel_details=vessel_details,
+                    )
+
             application_fee.invoice_reference = invoice_ref
             application_fee.save()
 
