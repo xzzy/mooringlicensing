@@ -88,6 +88,18 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
         path = default_storage.save(path_to_file, ContentFile(attachment[1]))
         email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
+    #added to add the attachments in log entry
+    if attachments:
+        for attachment in attachments:
+            ContentFile(attachment[1])
+        # attach the file to the comms_log also
+            #path_to_file = '{}/proposals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, proposal.id, filename)
+            #path_to_file = attachment[3].path
+            path_to_file = attachment[3].path.split('media/')[1]
+            path = default_storage.save(path_to_file, ContentFile(attachment[1]))
+            fname = attachment
+            email_entry.documents.get_or_create(_file=path_to_file, name=fname[0])
+
     return email_entry
 
 
@@ -647,19 +659,22 @@ def send_approval_renewal_email_notification(approval):
     # email as renewal reminders for waiting list allocations, annual admission permits, authorised user permits,
     # mooring licences and dcv permits a configurable number of days before the expiry date, including if the status
     # is suspended (technically dcv permits are not renewed, the holder is invited to apply for a new one for the next season)
+    
+    proposal = approval.current_proposal
     email = TemplateEmailBase(
-        subject='First and Final Notice: Renewal of your Rottnest Island {} {} for {}'.format(approval.description, approval.lodgement_number, '(todo)'),  # TODO
+        #subject='First and Final Notice: Renewal of your Rottnest Island {} {} for {}'.format(approval.description, approval.lodgement_number, '(todo)'),  # TODO
+        subject='First and Final Notice: Renewal of your Rottnest Island {} {} for {}'.format(approval.description, approval.lodgement_number, proposal.vessel_details.vessel.rego_no),  # TODO
         html_template='mooringlicensing/emails_2/email_16.html',
         txt_template='mooringlicensing/emails_2/email_16.txt',
     )
-    proposal = approval.current_proposal
     url = settings.SITE_URL if settings.SITE_URL else ''
     url = url + reverse('external')
 
     context = {
         'public_url': get_public_url(),
         'approval': approval,
-        'vessel_rego_no': '(todo)',  # TODO
+        #'vessel_rego_no': '(todo)',  # TODO
+        'vessel_rego_no': proposal.vessel_details.vessel.rego_no,  # TODO
         'recipient': proposal.submitter,
         'expiry_date': approval.expiry_date,
         'dashboard_external_url': url,
@@ -1054,7 +1069,6 @@ def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision
     log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
-
 def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summary_doc=False):
     from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
@@ -1143,7 +1157,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
-        attachments = get_attachments(True, True, proposal)
+        attachments = get_attachments(True, False, proposal)
 
         # Generate payment_url if needed
         if proposal.application_fees.count():
@@ -1164,8 +1178,10 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
+
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
         attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
+
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
@@ -1331,14 +1347,16 @@ def send_other_documents_submitted_notification_email(request, proposal):
     bcc = []
 
     attachments = []
+    #the below attachments_commslog array used for adding documents to the communication log entry 
+    attachments_commslog = []
     for my_file in proposal.mooring_report_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
     for my_file in proposal.written_proof_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
     for my_file in proposal.signed_licence_agreement_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
     for my_file in proposal.proof_of_identity_documents.all():
-        extract_file_for_attachment(attachments, my_file)
+        extract_file_for_attachment(attachments, attachments_commslog, my_file)
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
@@ -1353,13 +1371,17 @@ def send_other_documents_submitted_notification_email(request, proposal):
     return msg
 
 
-def extract_file_for_attachment(attachments, my_file):
+def extract_file_for_attachment(attachments, attachments_commslog, my_file):
     if my_file._file is not None:
         file_name = my_file._file.name
         mime = mimetypes.guess_type(file_name)[0]
         if mime:
             attachment = (my_file.name, my_file._file.read(), mime)
             attachments.append(attachment)
+
+            #import ipdb; ipdb.set_trace()
+            attachment2 = [my_file.name, my_file._file.read(), mime, my_file._file]
+            attachments_commslog.append(attachment2)
 
 
 def send_sticker_printing_batch_email(batches):
