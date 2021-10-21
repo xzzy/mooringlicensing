@@ -2,9 +2,7 @@ import logging
 
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address
-#from mooringlicensing.components.main.models import ApplicationType
 from ledger.payments.invoice.models import Invoice
-#from datetime import date
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalUserAction,
@@ -16,9 +14,6 @@ from mooringlicensing.components.proposals.models import (
     ProposalDeclinedDetails,
     AmendmentRequest,
     AmendmentReason,
-    #ChecklistQuestion,
-    #ProposalAssessmentAnswer,
-    #ProposalAssessment,
     RequirementDocument,
     VesselDetails,
     VesselOwnership,
@@ -48,7 +43,6 @@ class EmailUserSerializer(serializers.ModelSerializer):
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
-    #identification = DocumentSerializer()
 
     class Meta:
         model = EmailUser
@@ -60,109 +54,9 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'title',
                   'organisation',
                   'residential_address',
-                  #'identification',
                   'email',
                   'phone_number',
                   'mobile_number',)
-
-#class ProposalApplicantDetailsSerializer(serializers.ModelSerializer):
- #   class Meta:
-  #      model = ProposalApplicantDetails
-   #     fields = ('id','first_name')
-
-#class ProposalAccreditationSerializer(serializers.ModelSerializer):
-#    accreditation_type_value= serializers.SerializerMethodField()
-#    accreditation_expiry = serializers.DateField(format="%d/%m/%Y",input_formats=['%d/%m/%Y'],required=False,allow_null=True)
-#
-#    class Meta:
-#        model = ProposalAccreditation
-#        #fields = '__all__'
-#        fields=('id',
-#                'accreditation_type',
-#                'accreditation_expiry',
-#                'comments',
-#                'proposal_other_details',
-#                'accreditation_type_value'
-#                )
-#
-#    def get_accreditation_type_value(self,obj):
-#        return obj.get_accreditation_type_display()
-
-
-#class ProposalOtherDetailsSerializer(serializers.ModelSerializer):
-#    nominated_start_date = serializers.DateField(format="%d/%m/%Y",input_formats=['%d/%m/%Y'],required=False,allow_null=True)
-#    insurance_expiry = serializers.DateField(format="%d/%m/%Y",input_formats=['%d/%m/%Y'],required=False,allow_null=True)
-#    accreditations = ProposalAccreditationSerializer(many=True, read_only=True)
-#    preferred_licence_period = serializers.CharField(allow_blank=True, allow_null=True)
-#    proposed_end_date = serializers.DateField(format="%d/%m/%Y",read_only=True)
-#
-#    class Meta:
-#        model = ProposalOtherDetails
-#        fields=(
-#                'id',
-#                'accreditations',
-#                'preferred_licence_period',
-#                'nominated_start_date',
-#                'insurance_expiry',
-#                'other_comments',
-#                'credit_fees',
-#                'credit_docket_books',
-#                'docket_books_number',
-#                'mooring',
-#                'proposed_end_date',
-#                )
-
-
-#class SaveProposalOtherDetailsSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = ProposalOtherDetails
-#        fields=(
-#                'preferred_licence_period',
-#                'nominated_start_date',
-#                'insurance_expiry',
-#                'other_comments',
-#                'credit_fees',
-#                'credit_docket_books',
-#                'proposal',
-#                )
-
-
-#class ChecklistQuestionSerializer(serializers.ModelSerializer):
-#
-#    class Meta:
-#        model = ChecklistQuestion
-#        #fields = '__all__'
-#        fields=('id',
-#                'text',
-#                'answer_type',
-#                )
-#class ProposalAssessmentAnswerSerializer(serializers.ModelSerializer):
-#    question=ChecklistQuestionSerializer(read_only=True)
-#    class Meta:
-#        model = ProposalAssessmentAnswer
-#        fields = ('id',
-#                'question',
-#                'answer',
-#                'text_answer',
-#                )
-#
-#class ProposalAssessmentSerializer(serializers.ModelSerializer):
-#    checklist=serializers.SerializerMethodField()
-#
-#    class Meta:
-#        model = ProposalAssessment
-#        fields = ('id',
-#                'completed',
-#                'submitter',
-#                'referral_assessment',
-#                'referral_group',
-#                'referral_group_name',
-#                'checklist'
-#                )
-#
-#    def get_checklist(self,obj):
-#        qs= obj.checklist.order_by('question__order')
-#        return ProposalAssessmentAnswerSerializer(qs, many=True, read_only=True).data
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
@@ -230,13 +124,10 @@ class MooringSimpleSerializer(serializers.ModelSerializer):
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
-    # proposal_type = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
     submitter = EmailUserSerializer()
-    # other_details = serializers.SerializerMethodField()
 
     get_history = serializers.ReadOnlyField()
-    # fee_invoice_url = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     approval_type_text = serializers.SerializerMethodField()
@@ -244,7 +135,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
-    #company_ownership = CompanyOwnershipSerializer()
     start_date = serializers.ReadOnlyField()
     end_date = serializers.ReadOnlyField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
@@ -263,25 +153,19 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'id',
                 'start_date',
                 'end_date',
-                #'application_type',
                 'application_type_code',
                 'application_type_text',
                 'approval_type_text',
                 'application_type_dict',
                 'proposal_type',
-                # 'activity',
                 'approval_level',
                 'title',
                 'customer_status',
                 'processing_status',
-                #'review_status',
                 'applicant_type',
                 'applicant',
-                #'org_applicant',
-                #'proxy_applicant',
                 'submitter',
                 'assigned_officer',
-                #'previous_application',
                 'get_history',
                 'lodgement_date',
                 'modified_date',
@@ -291,16 +175,13 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'can_user_edit',
                 'can_user_view',
                 'documents_url',
-                #'reference',
                 'lodgement_number',
                 'lodgement_sequence',
                 'can_officer_process',
                 'allowed_assessors',
                 'pending_amendment_request',
                 'is_amendment_proposal',
-                # tab field models
                 'applicant_details',
-                # 'fee_invoice_url',
                 'fee_paid',
                 'invoices',
                 ## vessel fields
@@ -310,14 +191,12 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'vessel_ownership_id',
                 'vessel_type',
                 'vessel_name',
-                #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
                 'dot_name',
-                #'org_name',
                 'percentage',
                 'editable_vessel_details',
                 'individual_owner',
@@ -333,7 +212,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'previous_application_id',
                 'previous_application_vessel_details_id',
                 'previous_application_preferred_bay_id',
-                #'mooring_licence_vessels',
                 'current_vessels_rego_list',
                 'approval_lodgement_number',
                 'approval_vessel_rego_no',
@@ -358,7 +236,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     def get_authorised_user_moorings_str(self, obj):
         moorings_str = ''
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
-            #for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             for moa in obj.approval.mooringonapproval_set.all():
                 moorings_str += moa.mooring.name + ','
             return moorings_str[0:-1] if moorings_str else ''
@@ -383,7 +260,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             lodgement_number = obj.approval.lodgement_number
         return lodgement_number
 
-    #def get_mooring_licence_vessels(self, obj):
     def get_current_vessels_rego_list(self, obj):
         vessels = []
         if obj.approval and type(obj.approval.child_obj) is MooringLicence:
@@ -429,18 +305,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     def get_processing_status(self,obj):
         return obj.get_processing_status_display()
 
-    #def get_review_status(self,obj):
-     #   return obj.get_review_status_display()
-
     def get_customer_status(self,obj):
         return obj.get_customer_status_display()
-
-    # def get_proposal_type(self,obj):
-    #     return obj.get_proposal_type_display()
-    #     return obj.
-
-    # def get_fee_invoice_url(self,obj):
-    #     return '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
 
     def get_fee_invoice_references(self, obj):
         ret_list = []
@@ -464,16 +330,12 @@ class ListProposalSerializer(BaseProposalSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField()
-    # review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField()
     assigned_officer = serializers.SerializerMethodField()
     assigned_approver = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
 
-    # application_type = serializers.CharField(source='application_type.name', read_only=True)
     assessor_process = serializers.SerializerMethodField()
-    # fee_invoice_url = serializers.SerializerMethodField()
-    # fee_invoice_references = serializers.SerializerMethodField()
     mooring = MooringSerializer()
     uuid = serializers.SerializerMethodField()
     document_upload_url = serializers.SerializerMethodField()
@@ -484,39 +346,20 @@ class ListProposalSerializer(BaseProposalSerializer):
         fields = (
                 'id',
                 'migrated',
-                # 'application_type',
                 'application_type_dict',
                 'proposal_type',
-                # 'activity',
-                # 'approval_level',
-                # 'title',
                 'customer_status',
                 'processing_status',
-                # 'review_status',
                 'applicant',
-                # 'proxy_applicant',
                 'submitter',
                 'assigned_officer',
                 'assigned_approver',
-                # 'previous_application',
-                # 'get_history',
                 'lodgement_date',
-                # 'modified_date',
-                # 'readonly',
                 'can_user_edit',
                 'can_user_view',
-                # 'reference',
                 'lodgement_number',
-                # 'lodgement_sequence',
-                # 'can_officer_process',
                 'assessor_process',
-                # 'allowed_assessors',
-                # 'proposal_type',
-                # 'fee_invoice_url',
-                # 'fee_invoice_references',
                 'invoices',
-                # 'fee_paid',
-
                 'mooring_id',
                 'mooring',
                 'uuid',
@@ -529,28 +372,18 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'id',
                 'migrated',
                 'proposal_type',
-                # 'activity',
-                # 'title',
                 'customer_status',
                 'application_type_dict',
                 'processing_status',
-                # 'applicant',
                 'submitter',
                 'assigned_officer',
                 'assigned_approver',
                 'lodgement_date',
                 'can_user_edit',
                 'can_user_view',
-                # 'reference',
                 'lodgement_number',
-                # 'can_officer_process',
                 'assessor_process',
-                # 'allowed_assessors',
-                # 'fee_invoice_url',
-                # 'fee_invoice_references',
                 'invoices',
-                # 'fee_paid',
-
                 'mooring_id',
                 'mooring',
                 'uuid',
@@ -574,13 +407,6 @@ class ListProposalSerializer(BaseProposalSerializer):
             return obj.child_obj.uuid
         except:
             return ''
-
-    # def get_mooring(self, obj):
-    #     try:
-    #         mooring = Mooring.private_moorings.get(id=obj.mooring_site_id)
-    #         return mooring.name
-    #     except:
-    #         return ''
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
@@ -608,19 +434,14 @@ class ListProposalSerializer(BaseProposalSerializer):
 
 
 class ProposalSerializer(BaseProposalSerializer):
-    #submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
-    #review_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-
-    #application_type = serializers.CharField(source='application_type.name', read_only=True)
 
     def get_readonly(self,obj):
         return obj.can_user_view
 
 
 class SaveProposalSerializer(BaseProposalSerializer):
-    #assessor_data = serializers.JSONField(required=False)
     preferred_bay_id = serializers.IntegerField(write_only=True, required=False)
     mooring_id = serializers.IntegerField(write_only=True, required=False)
 
@@ -663,10 +484,6 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
             elif data.get("silent_elector"):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
-            # Vessel docs
-            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and
-             #       not self.instance.vessel_registration_documents.all()):
-              #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -688,10 +505,6 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
         if self.context.get("action") == 'submit':
             if not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
-            # Vessel docs
-            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and not
-             #       self.instance.vessel_registration_documents.all()):
-              #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -724,10 +537,6 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
             elif data.get("silent_elector"):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
-            # Vessel docs
-            #if (self.instance.vessel_ownership and self.instance.vessel_ownership.company_ownership and
-             #       not self.instance.vessel_registration_documents.all()):
-              #  custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -781,24 +590,19 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
-    #company_ownership_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Proposal
         fields = (
                 'rego_no',
                 'vessel_id',
-                #'vessel_details_id',
-                #'vessel_ownership_id',
                 'vessel_type',
                 'vessel_name',
-                #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
                 'vessel_beam',
                 'vessel_weight',
                 'berth_mooring',
-                #'org_name',
                 'percentage',
                 'individual_owner',
                 'company_ownership_percentage',
@@ -807,22 +611,6 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 'temporary_document_collection_id',
                 'keep_existing_mooring',
                 )
-
-
-## TODO: rename to Org applicant?
-#class ApplicantSerializer(serializers.ModelSerializer):
-#    from mooringlicensing.components.organisations.serializers import OrganisationAddressSerializer
-#    address = OrganisationAddressSerializer(read_only=True)
-#    class Meta:
-#        model = Organisation
-#        fields = (
-#                    'id',
-#                    'name',
-#                    'abn',
-#                    'address',
-#                    'email',
-#                    'phone_number',
-#                )
 
 
 class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
@@ -835,7 +623,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    #submitter = EmailUserAppViewSerializer()
     submitter = UserSerializer()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
@@ -844,8 +631,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     allowed_assessors = EmailUserSerializer(many=True)
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
-    #reversion_ids = serializers.SerializerMethodField()
-    #assessor_assessment=ProposalAssessmentSerializer(read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
     previous_application_vessel_details_id = serializers.SerializerMethodField()
@@ -900,8 +685,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'can_officer_process',
                 'proposal_type',
                 'applicant_details',
-                #'reversion_ids',
-                #'assessor_assessment',
                 'fee_invoice_url',
                 'fee_paid',
                 'requirements_completed',
@@ -945,7 +728,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_authorised_user_moorings(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
-            #for moa in obj.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
             for moa in obj.approval.mooringonapproval_set.all():
                 suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
                 color = '#000000' if suitable_for_mooring else '#FF0000'
@@ -957,7 +739,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                         '<span style="color:{}">User Requested</span>'.format(color),
                     "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else
                         '<span style="color:{}">Historical</span>'.format(color),
-                    #"checked": True if not moa.end_date else False,
                     "checked": True if suitable_for_mooring and not moa.end_date else False,
                     "suitable_for_mooring": suitable_for_mooring,
                     "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
@@ -968,7 +749,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
         vessels = []
         vessel_details = []
         if type(obj.child_obj) == MooringLicenceApplication and obj.approval:
-            #for vessel_ownership in obj.approval.child_obj.vessel_ownership_list:
             for vooa in obj.approval.vesselownershiponapproval_set.all():
                 vessel = vooa.vessel_ownership.vessel
                 vessels.append(vessel)
@@ -1010,18 +790,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'has_assessor_mode': obj.has_assessor_mode(user),
             'assessor_can_assess': obj.can_assess(user),
             'assessor_level': 'assessor',
-            #'assessor_box_view': obj.assessor_comments_view(user)
         }
-
-    # def get_can_edit_activities(self,obj):
-    #     request = self.context['request']
-    #     user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-    #     return obj.can_edit_activities(user)
-
-    # def get_can_edit_period(self,obj):
-    #     request = self.context['request']
-    #     user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-    #     return obj.can_edit_period(user)
 
     def get_readonly(self,obj):
         return True
@@ -1039,11 +808,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_assessor_data(self,obj):
         return obj.assessor_data
 
-    #def get_reversion_ids(self,obj):
-     #   return obj.reversion_ids[:5]
-
     def get_fee_invoice_url(self,obj):
-        # temp = '/cols/payments/invoice-pdf/{}'.format(obj.fee_invoice_reference) if obj.fee_paid else None
         url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
         return url
 
@@ -1097,13 +862,10 @@ class RequirementDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RequirementDocument
         fields = ('id', 'name', '_file')
-        #fields = '__all__'
 
 
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
-    # can_referral_edit=serializers.SerializerMethodField()
-    # can_district_assessor_edit=serializers.SerializerMethodField()
     requirement_documents = RequirementDocumentSerializer(many=True, read_only=True)
     read_due_date = serializers.SerializerMethodField()
 
@@ -1123,12 +885,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
             'requirement',
             'is_deleted',
             'copied_from',
-            # 'referral_group',
-            # 'can_referral_edit',
-            # 'district_proposal',
-            # 'district',
             'requirement_documents',
-            # 'can_district_assessor_edit',
             'require_due_date',
             'copied_for_renewal',
             'read_due_date',
@@ -1143,16 +900,6 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
         if obj.due_date:
             due_date_str = obj.due_date.strftime('%d/%m/%Y')
         return due_date_str
-
-    # def get_can_referral_edit(self,obj):
-    #     request = self.context['request']
-    #     user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-    #     return obj.can_referral_edit(user)
-
-    # def get_can_district_assessor_edit(self,obj):
-    #     request = self.context['request']
-    #     user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-    #     return obj.can_district_assessor_edit(user)
 
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
@@ -1172,12 +919,10 @@ class ProposedApprovalSerializer(serializers.Serializer):
     mooring_on_approval = serializers.ListField(
             child=serializers.JSONField(),
             required=False,
-            #allow_blank=True,
             )
     vessel_ownership = serializers.ListField(
             child=serializers.JSONField(),
             required=False,
-            #allow_blank=True,
             )
 
 
@@ -1189,22 +934,13 @@ class ProposedDeclineSerializer(serializers.Serializer):
 class OnHoldSerializer(serializers.Serializer):
     comment = serializers.CharField()
 
-#
-#class VesselSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = Vessel
-#        fields = '__all__'
 
 class AmendmentRequestSerializer(serializers.ModelSerializer):
-    #reason = serializers.SerializerMethodField()
 
     class Meta:
         model = AmendmentRequest
         fields = '__all__'
 
-    #def get_reason (self,obj):
-        #return obj.get_reason_display()
-        #return obj.reason.reason
 
 class AmendmentRequestDisplaySerializer(serializers.ModelSerializer):
     reason = serializers.SerializerMethodField()
@@ -1214,7 +950,6 @@ class AmendmentRequestDisplaySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_reason (self,obj):
-        #return obj.get_reason_display()
         return obj.reason.reason if obj.reason else None
 
 
@@ -1223,18 +958,11 @@ class SearchKeywordSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
     applicant = serializers.CharField()
-    #text = serializers.CharField(required=False,allow_null=True)
     text = serializers.JSONField(required=False)
 
 class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
-
-#class ApplicationTypeDescriptionsSerializer(serializers.Serializer):
-#    descriptions = serializers.SerializerMethodField()
-#
-#    def get_descriptions(self, obj):
-#        return Proposal.application_type_descriptions
 
 
 class VesselSerializer(serializers.ModelSerializer):
@@ -1268,13 +996,8 @@ class ListVesselDetailsSerializer(serializers.ModelSerializer):
                 'vessel_type',
                 'rego_no', # link to rego number
                 'vessel_name',
-                #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
-                #'vessel_weight',
-                #'berth_mooring',
-                #status
-                #exported
                 )
 
     def get_rego_no(self, obj):
@@ -1328,8 +1051,6 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
             return obj.percentage
 
     def get_record_sale_link(self, obj):
-        #return '<a href="{}" class="action-{}" data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id, obj.id)
-        #return '<a href=# class="action-{}" data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
         return '<a href=# data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
 
     def get_sale_date(self, obj):
@@ -1346,11 +1067,9 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
         model = VesselDetails
         fields = (
                 'id',
-                #'blocking_proposal',
                 'vessel_type',
                 'vessel',
                 'vessel_name',
-                #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
                 'vessel_beam',
@@ -1358,7 +1077,6 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'created',
                 'updated',
-                #'status',
                 'exported',
                 'read_only',
                 'vessel_type_display',
@@ -1368,18 +1086,7 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
         return obj.get_vessel_type_display()
 
     def get_read_only(self, obj):
-        # ???
         return False
-
-    #def get_read_only(self, obj):
-    #    ro = True
-    #    if obj.status == 'draft' and (
-    #        not obj.blocking_proposal
-    #        # WG advised to remove 20210505
-    #        #or obj.blocking_proposal.submitter == self.context.get('request').user
-    #        ):
-    #        ro = False
-    #    return ro
 
 
 class SaveVesselDetailsSerializer(serializers.ModelSerializer):
@@ -1390,13 +1097,10 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
                 'vessel_type',
                 'vessel', # link to rego number
                 'vessel_name',
-                #'vessel_overall_length',
                 'vessel_length',
                 'vessel_draft',
                 'vessel_weight',
                 'berth_mooring',
-                #status
-                #exported
                 )
 
     def validate(self, data):
@@ -1495,7 +1199,6 @@ class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
-    #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = VesselOwnership
@@ -1504,25 +1207,19 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'vessel',
                 'percentage',
                 'company_ownership',
-                #'org_name',
                 'start_date',
                 'end_date',
                 'dot_name',
                 )
 
     def validate(self, data):
-        #import ipdb; ipdb.set_trace()
         custom_errors = {}
         percentage = data.get("percentage")
         owner = data.get("owner")
-        #org_name = data.get("org_name")
         vessel = data.get("vessel")
         total = 0
         if data.get("percentage") and data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
-        # Vessel docs
-        #if self.instance.company_ownership and not self.instance.vessel_registration_documents.all():
-         #   custom_errors["Vessel Registration Papers"] = "Please attach"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -1533,8 +1230,6 @@ class MooringBaySerializer(serializers.ModelSerializer):
     class Meta:
         model = MooringBay
         fields = '__all__'
-
-
 
 
 class ListMooringSerializer(serializers.ModelSerializer):
@@ -1571,21 +1266,18 @@ class ListMooringSerializer(serializers.ModelSerializer):
         return obj.mooring_bay.name
 
     def get_authorised_user_permits(self, obj):
-        # mooring_on_approval_qs = MooringOnApproval.objects.filter(mooring=obj, approval__status='current')  # MooringOnApproval is used only from the AUP
         preference_count_ria = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=False).count()
         preference_count_site_licensee = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=True).count()
         return {
             'ria': preference_count_ria,
             'site_licensee': preference_count_site_licensee
         }
-        # return mooring_on_approval_qs.count()
 
     def get_status(status, obj):
         return obj.status
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
-    #org_name = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = CompanyOwnership

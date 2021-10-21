@@ -4,10 +4,8 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
-# from mooringlicensing.components.proposals.utils import create_data_from_form
 from mooringlicensing import settings
-from mooringlicensing.components.proposals.models import (Proposal,  # Referral,
-    # ProposalType,
+from mooringlicensing.components.proposals.models import (Proposal,
                                                           HelpPage, AuthorisedUserApplication, Mooring,
                                                           MooringLicenceApplication
                                                           )
@@ -57,7 +55,6 @@ class ProposalFilteredHistoryCompareView(HistoryCompareDetailView):
         action_list = [
             {"version": version, "revision": version.revision}
             for version in self._order_version_queryset(
-                #Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(revision__comment__icontains='status')
                 Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
             )
         ]
@@ -103,10 +100,8 @@ class PreviewLicencePDFView(View):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
 
 
-#from mooringlicensing.components.proposals.utils import test_proposal_emails
 class TestEmailView(View):
     def get(self, request, *args, **kwargs):
-        #test_proposal_emails(request)
         return HttpResponse('Test Email Script Completed')
 
 
@@ -171,3 +166,4 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
         }
 
         return render(request, self.template_name, context)
+

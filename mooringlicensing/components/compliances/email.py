@@ -88,7 +88,6 @@ def send_amendment_email_notification(amendment_request, request, compliance, is
 def send_reminder_email_notification(compliance, is_test=False):
     """ Used by the management command, therefore have no request object - therefore explicitly defining base_url """
     email = ComplianceReminderNotificationEmail()
-    #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url=settings.SITE_URL if settings.SITE_URL else ''
     url+=reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id})
     login_url=settings.SITE_URL if settings.SITE_URL else ''
@@ -124,14 +123,9 @@ def send_reminder_email_notification(compliance, is_test=False):
 def send_internal_reminder_email_notification(compliance, is_test=False):
     from mooringlicensing.components.emails.utils import make_url_for_internal
     email = ComplianceInternalReminderNotificationEmail()
-    #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = settings.SITE_URL
     url += reverse('internal-compliance-detail', kwargs={'compliance_pk': compliance.id})
     url = make_url_for_internal(url)
-
-#    if "-internal" not in url:
-#        # add it. This email is for internal staff
-#        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
 
     context = {
         'compliance': compliance,
@@ -156,7 +150,6 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
 
 def send_due_email_notification(compliance, is_test=False):
     email = ComplianceDueNotificationEmail()
-    #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url=settings.SITE_URL
     url+=reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id})
     context = {
