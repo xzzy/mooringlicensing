@@ -57,10 +57,6 @@ class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
             else:
                 size_list.append(form.cleaned_data['start_size'])
 
-        # if null_vessel_count < 1:
-        #     raise forms.ValidationError('There must be one null-vessel catergory.  There is {} defined.'.format(null_vessel_count))
-        # elif null_vessel_count > 1:
-        #     raise forms.ValidationError('There must be one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
         if null_vessel_count > 1:
             raise forms.ValidationError('There can be at most one null-vessel catergory.  There are {} defined.'.format(null_vessel_count))
 
@@ -105,8 +101,6 @@ class OracleCodeItemInline(admin.TabularInline):
     model = OracleCodeItem
     extra = 0
     can_delete = True
-    # formset = FeePeriodFormSet
-    # form = FeePeriodForm
 
     def has_delete_permission(self, request, obj=None):
         if obj.oracle_code_items.count() <= 1:
@@ -132,11 +126,6 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
-    # def get_fields(self, request, obj=None):
-    #     fields = super(ApplicationTypeAdmin, self).get_fields(request, obj)
-    #     fields.remove('identifier')
-    #     return fields
-
     def get_value_today(self, obj):
         try:
             return obj.get_oracle_code_by_date()
@@ -157,14 +146,12 @@ class NumberOfDaysSettingInline(admin.TabularInline):
     model = NumberOfDaysSetting
     extra = 0
     can_delete = True
-    # form = VesselSizeCategoryForm
 
 
 @admin.register(NumberOfDaysType)
 class NumberOfDaysTypeAdmin(admin.ModelAdmin):
     list_display = ['name', 'description', 'number_by_date',]
     list_display_links = ['name',]
-    # readonly_fields = ['name',]
     fields = ['name', 'description',]
     inlines = [NumberOfDaysSettingInline,]
 
@@ -174,11 +161,3 @@ class NumberOfDaysTypeAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-
-# @admin.register(NumberOfDaysSetting)
-# class NumberOfDaysSettingAdmin(admin.ModelAdmin):
-#     list_display = [
-#         'number_of_days',
-#         'date_of_enforcement',
-#         'number_of_days_type',
-#     ]

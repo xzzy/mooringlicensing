@@ -36,7 +36,6 @@ router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationVi
 router.register(r'annualadmissionapplication', proposal_api.AnnualAdmissionApplicationViewSet)
 router.register(r'authoriseduserapplication', proposal_api.AuthorisedUserApplicationViewSet)
 router.register(r'mooringlicenceapplication', proposal_api.MooringLicenceApplicationViewSet)
-#router.register(r'proposal_submit',proposal_api.ProposalSubmitViewSet)
 router.register(r'proposals_paginated', proposal_api.ProposalPaginatedViewSet)
 router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet)
 router.register(r'dcvpermits_paginated', approval_api.DcvPermitPaginatedViewSet)
@@ -45,8 +44,6 @@ router.register(r'stickers_paginated', approval_api.StickerPaginatedViewSet)
 router.register(r'stickers', approval_api.StickerViewSet)
 router.register(r'compliances_paginated', compliances_api.CompliancePaginatedViewSet)
 router.register(r'moorings_paginated', proposal_api.MooringPaginatedViewSet)
-#router.register(r'booking_paginated',booking_api.BookingPaginatedViewSet)
-#router.register(r'compliance_paginated',compliances_api.CompliancePaginatedViewSet)
 router.register(r'approvals', approval_api.ApprovalViewSet)
 router.register(r'waitinglistallocation', approval_api.WaitingListAllocationViewSet)
 router.register(r'mooringlicence', approval_api.MooringLicenceViewSet)
@@ -60,10 +57,6 @@ router.register(r'users', users_api.UserViewSet)
 router.register(r'amendment_request', proposal_api.AmendmentRequestViewSet)
 router.register(r'compliance_amendment_request', compliances_api.ComplianceAmendmentRequestViewSet)
 router.register(r'global_settings', main_api.GlobalSettingsViewSet)
-#router.register(r'application_types', main_api.ApplicationTypeViewSet)
-#router.register(r'assessments', proposal_api.ProposalAssessmentViewSet)
-#router.register(r'required_documents', main_api.RequiredDocumentViewSet)
-#router.register(r'questions', main_api.QuestionViewSet)
 router.register(r'payment', main_api.PaymentViewSet)
 router.register(r'mooringbays', proposal_api.MooringBayViewSet)
 router.register(r'vessel', proposal_api.VesselViewSet)
@@ -80,7 +73,6 @@ api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     url(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
     url(r'^api/submitter_profile$', users_api.GetSubmitterProfile.as_view(), name='get-submitter-profile'),
-    #url(r'^api/department_users$', users_api.DepartmentUserList.as_view(), name='department-users-list'),
     url(r'^api/filtered_users$', users_api.UserListFilterView.as_view(), name='filtered_users'),
     url(r'^api/filtered_organisations$', org_api.OrganisationListFilterView.as_view(), name='filtered_organisations'),
     url(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
@@ -117,18 +109,12 @@ api_patterns = [
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
-    #url(r'^api/accreditation_choices',proposal_api.AccreditationTypeView.as_view(),name='accreditation_choices'),
-    #url(r'^api/licence_period_choices',proposal_api.LicencePeriodChoicesView.as_view(),name='licence_period_choices'),
-
-
     url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
 ]
 
 # URL Patterns
 urlpatterns = [
-    #url(r'^admin/', include(mooringlicensing_admin_site.urls)),
-    #url(r'^admin/', mooringlicensing_admin_site.urls),
     url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
     url(r'^chaining/', include('smart_selects.urls')),
     url(r'', include(api_patterns)),
@@ -136,14 +122,12 @@ urlpatterns = [
     url(r'^contact/', views.MooringLicensingContactView.as_view(), name='ds_contact'),
     url(r'^further_info/', views.MooringLicensingFurtherInformationView.as_view(), name='ds_further_info'),
     url(r'^internal/', views.InternalView.as_view(), name='internal'),
-    #url(r'^internal/proposal/(?P<proposal_pk>\d+)/referral/(?P<referral_pk>\d+)/$', views.ReferralView.as_view(), name='internal-referral-detail'),
     url(r'^external/', views.ExternalView.as_view(), name='external'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     url(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
     url(r'^help/(?P<application_type>[^/]+)/(?P<help_type>[^/]+)/$', views.HelpView.as_view(), name='help'),
     url(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
-    #url(r'test-emails/$', proposal_views.TestEmailView.as_view(), name='test-emails'),
 
     #following url is used to include url path when sending Proposal amendment request to user.
     url(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
@@ -152,8 +136,6 @@ urlpatterns = [
     # payment related urls
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
     url(r'^application_fee_existing/(?P<proposal_pk>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
-    # url(r'^sticker_replacement_fee/(?P<approval_pk>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
-    # url(r'^sticker_replacement_fee_by_sticker_id/(?P<sticker_id>\d+)/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee_by_sticker_id'),
     url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
     url(r'^sticker_replacement_fee_success/fee/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
@@ -165,26 +147,10 @@ urlpatterns = [
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
-    # url(r'^dcv_permit_form/$', DcvPermitFormView.as_view(), name='dcv_permit_form'),
     url(r'^dcv_admission_form/$', DcvAdmissionFormView.as_view(), name='dcv_admission_form'),
-
-                  #url(r'^payment/(?P<proposal_pk>\d+)/$', booking_views.MakePaymentView.as_view(), name='make_payment'),
-    #url(r'^zero_fee_success/', booking_views.ZeroApplicationFeeView.as_view(), name='zero_fee_success'),
-    #url(r'^payment_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingView.as_view(), name='deferred_invoicing'),
-    #url(r'^preview_deferred/(?P<proposal_pk>\d+)/$', booking_views.DeferredInvoicingPreviewView.as_view(), name='preview_deferred_invoicing'),
-    #url(r'^success/booking/$', booking_views.BookingSuccessView.as_view(), name='public_booking_success'),
-    #url(r'^success/fee/$', booking_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
-    #url(r'^success/compliance_fee/$', booking_views.ComplianceFeeSuccessView.as_view(), name='compliance_fee_success'),
-    #url(r'^success/filming_fee/$', booking_views.FilmingFeeSuccessView.as_view(), name='filming_fee_success'),
-    # url(r'cols/payments/invoice-pdf/(?P<reference>\d+)',booking_views.InvoicePDFView.as_view(), name='cols-invoice-pdf'),
     url(r'payments/invoice-pdf/(?P<reference>\d+)', InvoicePDFView.as_view(), name='invoice-pdf'),
     url(r'payments/dcv-permit-pdf/(?P<id>\d+)', DcvPermitPDFView.as_view(), name='dcv-permit-pdf'),
     url(r'payments/dcv-admission-pdf/(?P<id>\d+)', DcvAdmissionPDFView.as_view(), name='dcv-admission-pdf'),
-    #url(r'cols/payments/invoice-compliance-pdf/(?P<reference>\d+)',booking_views.InvoiceCompliancePDFView.as_view(), name='cols-invoice-compliance-pdf'),
-    #url(r'cols/payments/confirmation-pdf/(?P<reference>\d+)',booking_views.ConfirmationPDFView.as_view(), name='cols-confirmation-pdf'),
-    #url(r'cols/payments/monthly-confirmation-pdf/booking/(?P<id>\d+)',booking_views.MonthlyConfirmationPDFBookingView.as_view(), name='cols-monthly-confirmation-pdf'),
-    #url(r'cols/payments/monthly-confirmation-pdf/park-booking/(?P<id>\d+)',booking_views.MonthlyConfirmationPDFParkBookingView.as_view(), name='cols-monthly-confirmation-pdf-park'),
-    #url(r'cols/payments/awaiting-payment-pdf/(?P<id>\d+)',booking_views.AwaitingPaymentInvoicePDFView.as_view(), name='cols-awaiting-payment-pdf'),
 
     #following url is defined so that to include url path when sending Proposal amendment request to user.
     url(r'^external/proposal/(?P<proposal_pk>\d+)/$', views.ExternalProposalView.as_view(), name='external-proposal-detail'),
@@ -197,7 +163,6 @@ urlpatterns = [
     url(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
     url(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
     url(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
-    #url(r'^history/proposaltype/(?P<pk>\d+)/$', proposal_views.ProposalTypeHistoryCompareView.as_view(), name='proposaltype_history'),
     url(r'^history/helppage/(?P<pk>\d+)/$', proposal_views.HelpPageHistoryCompareView.as_view(), name='helppage_history'),
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
 
@@ -218,3 +183,4 @@ if not are_migrations_running():
 admin.site.site_header = "RIA Mooring Licensing System Administration"
 admin.site.site_title = "RIA Mooring Licensing Site"
 admin.site.index_title = "RIA Mooring Licensing"
+

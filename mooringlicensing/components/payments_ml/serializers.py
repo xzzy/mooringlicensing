@@ -35,18 +35,6 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             if not data['contact_number']:
                 field_errors['contact_number'] = ['Please enter the contact number.',]
 
-            # dcv_permit_qs = DcvAdmission.objects.filter(dcv_vessel_id=data.get('dcv_vessel_id', 0), fee_season_id=data.get('fee_season_id', 0))
-            # if dcv_permit_qs:
-            #     dcv_organisation = DcvOrganisation.objects.get(id=data.get('dcv_organisation_id'))
-            #     dcv_vessel = DcvVessel.objects.get(id=data.get('dcv_vessel_id'))
-            #     fee_season = FeeSeason.objects.get(id=data.get('fee_season_id'))
-            #     non_field_errors.append('{} already is the holder of DCV Permit: {} for the vessel: {} for the year: {}'.format(
-            #         dcv_organisation,
-            #         dcv_permit_qs.first().lodgement_number,
-            #         dcv_vessel,
-            #         fee_season.name,
-            #     ))
-
             # Raise errors
             if field_errors:
                 raise serializers.ValidationError(field_errors)
@@ -136,19 +124,11 @@ class DcvPermitSimpleSerializer(serializers.ModelSerializer):
             'fee_season',
         )
 
-    # def get_fee_season(self, obj):
-    #     if obj.fee_season:
-    #         serializer = FeeSeasonSerializer(obj.fee_season)
-    #         return serializer.data
-    #     else:
-    #         return ''
-
 
 class DcvPermitSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
     dcv_organisation_id = serializers.IntegerField(required=True)
     fee_season_id = serializers.IntegerField(required=True)
-    # permits = serializers.SerializerMethodField()
 
     def validate(self, data):
         field_errors = {}
@@ -157,12 +137,6 @@ class DcvPermitSerializer(serializers.ModelSerializer):
         if not self.partial:
             if not data['fee_season_id']:
                 field_errors['Season'] = ['Please select a season.',]
-            # if not data['period_to']:
-            #     field_errors['Period to'] = ['Please select a date.',]
-            # # if not data['apiary_site_id'] and not data['apiary_site_id'] > 0:
-            # #     field_errors['Site'] = ['Please select a site',]
-            # if not data['comments']:
-            #     field_errors['comments'] = ['Please enter comments.',]
 
             dcv_permit_qs = DcvPermit.objects.filter(
                 dcv_vessel_id=data.get('dcv_vessel_id', 0),
@@ -219,26 +193,6 @@ class DcvPermitSerializer(serializers.ModelSerializer):
         )
 
 
-# class AgeGroupSerializer(serializers.ModelSerializer):
-#
-#     class Meta:
-#         model = AgeGroup
-#         fields = (
-#             'id',
-#             'code',
-#         )
-#
-#
-# class AdmissionTypeSerializer(serializers.ModelSerializer):
-#
-#     class Meta:
-#         model = AdmissionType
-#         fields = (
-#             'id',
-#             'code',
-#         )
-
-
 class FeePeriodSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -248,20 +202,6 @@ class FeePeriodSerializer(serializers.ModelSerializer):
             'start_date',
             'name',
         )
-
-
-# class FeeItemSerializer(serializers.ModelSerializer):
-#     age_group = serializers.CharField(source='age_group.code')
-#     admission_type = serializers.CharField(source='admission_type.code')
-#
-#     class Meta:
-#         model = FeeItem
-#         fields = (
-#             'id',
-#             'amount',
-#             'age_group',
-#             'admission_type'
-#         )
 
 
 class FeeConstructorSerializer(serializers.ModelSerializer):
@@ -291,3 +231,4 @@ class FeeConstructorSerializer(serializers.ModelSerializer):
                 fee_configurations[fee_item.age_group.code].update({fee_item.admission_type.code: fee_item.amount})
 
         return fee_configurations
+
