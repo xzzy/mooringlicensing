@@ -45,6 +45,7 @@ from mooringlicensing.components.proposals.email import (
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
     send_aua_approved_or_declined_email_new_renewal, send_mla_approved_or_declined_email_new_renewal,
+    send_au_summary_to_ml_holder,
 )
 from mooringlicensing.ordered_model import OrderedModel
 import copy
@@ -1250,11 +1251,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             # Link between ApplicationFee and FeeItem(s)
                             for item in fee_items_to_store:
+                                fee_item = FeeItem.objects.get(id=item['fee_item_id'])
+                                vessel_details = VesselDetails.objects.get(id=item['vessel_details_id'])
+
                                 FeeItemApplicationFee.objects.create(
-                                        fee_item=item['fee_item'],
-                                        application_fee=application_fee,
-                                        vessel_details=item['vessel_details'],
-                                    )
+                                    fee_item=fee_item,
+                                    application_fee=application_fee,
+                                    vessel_details=vessel_details,
+                                )
 
                             send_application_approved_or_declined_email(self, 'approved', request)
 
@@ -2081,14 +2085,16 @@ class AuthorisedUserApplication(Proposal):
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length)
         fee_item_amendment_calculation = self.get_corresponding_amendment_fee_item(accept_null_vessel, fee_constructor, fee_item, target_date, vessel_length)
-        fee_items_to_store.append({'fee_item': fee_item_amendment_calculation, 'vessel_details': self.vessel_details})
+        # fee_items_to_store.append({'fee_item': fee_item_amendment_calculation, 'vessel_details': self.vessel_details})
+        fee_items_to_store.append({'fee_item_id': fee_item_amendment_calculation.id, 'vessel_details_id': self.vessel_details.id})
         line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor, self, current_datetime))
 
         if not aap_exists_for_this_vessel:
             fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
             fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length) if fee_item_for_aa else None
             fee_item_for_aa_amendment_calculation = self.get_corresponding_amendment_fee_item(accept_null_vessel, fee_constructor_for_aa, fee_item_for_aa, target_date, vessel_length)
-            fee_items_to_store.append({'fee_item': fee_item_for_aa_amendment_calculation, 'vessel_details': self.vessel_details})
+            # fee_items_to_store.append({'fee_item': fee_item_for_aa_amendment_calculation, 'vessel_details': self.vessel_details})
+            fee_items_to_store.append({'fee_item_id': fee_item_for_aa_amendment_calculation.id, 'vessel_details_id': self.vessel_details.id})
             line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime))
 
         logger.info('{}'.format(line_items))
@@ -2300,18 +2306,24 @@ class AuthorisedUserApplication(Proposal):
         self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+        # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
+        mls_to_be_emailed = None
+        from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
+        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True)  # New moa doesn't have stickers.
+        for new_moa in new_moas:
+            mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
 
         ## set proposal status after manage _stickers
-        from mooringlicensing.components.approvals.models import Sticker
-        #awaiting_payment = False
         awaiting_printing = False
 
         if self.approval:
             stickers = self.approval.stickers.filter(status__in=(Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING))
             if stickers.count() >0:
                 awaiting_printing = True
+
         if awaiting_printing or auto_renew:
             self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             self.customer_status = Proposal.CUSTOMER_STATUS_PRINTING_STICKER
@@ -2322,7 +2334,12 @@ class AuthorisedUserApplication(Proposal):
             self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
 
+        # Email
         send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+        # Email to ML holder when new moorings added
+        for mooring_licence in mls_to_be_emailed:
+            mooring_licence.generate_au_summary_doc(request.user)
+            send_au_summary_to_ml_holder(mooring_licence, request)
 
         # Log proposal action
         if request:
@@ -2420,7 +2437,8 @@ class MooringLicenceApplication(Proposal):
         fee_item = fee_constructor_for_ml.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length)
         fee_item_amendment_calculation = self.get_corresponding_amendment_fee_item(accept_null_vessel, fee_constructor_for_ml, fee_item, target_date, vessel_length)
-        fee_items_to_store.append({'fee_item': fee_item_amendment_calculation, 'vessel_details': vessel_details_largest})
+        # fee_items_to_store.append({'fee_item': fee_item_amendment_calculation, 'vessel_details': vessel_details_largest})
+        fee_items_to_store.append({'fee_item_id': fee_item_amendment_calculation.id, 'vessel_details_id': vessel_details_largest.id})
         line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime))
 
         # For Annual Admission component
@@ -2439,7 +2457,8 @@ class MooringLicenceApplication(Proposal):
                 fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
                 fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length)
                 fee_item_for_aa_amendment_calculation = self.get_corresponding_amendment_fee_item(accept_null_vessel, fee_constructor_for_aa, fee_item_for_aa, target_date, vessel_length)
-                fee_items_to_store.append({'fee_item': fee_item_for_aa_amendment_calculation, 'vessel_details': vessel_details})
+                # fee_items_to_store.append({'fee_item': fee_item_for_aa_amendment_calculation, 'vessel_details': vessel_details})
+                fee_items_to_store.append({'fee_item_id': fee_item_for_aa_amendment_calculation.id, 'vessel_details_id': vessel_details.id})
                 line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime))
 
         logger.info('{}'.format(line_items))
@@ -2682,12 +2701,14 @@ class MooringLicenceApplication(Proposal):
                 self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             self.save()
 
-            # Check if this is OK
-            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
-
             if request:
                 # Creating documents should be performed at the end
                 approval.generate_doc(request.user)
+                if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+                    approval.generate_au_summary_doc(request.user)
+
+            # Email with attachments
+            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
 
             # Log proposal action
             if request:
