@@ -138,6 +138,7 @@ class GlobalSettings(models.Model):
     KEY_AAP_TEMPLATE_FILE = 'aap_template_file'
     KEY_AUP_TEMPLATE_FILE = 'aup_template_file'
     KEY_ML_TEMPLATE_FILE = 'ml_template_file'
+    KEY_ML_AU_LIST_TEMPLATE_FILE = 'ml_au_list_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
     KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
@@ -149,6 +150,7 @@ class GlobalSettings(models.Model):
         KEY_AAP_TEMPLATE_FILE,
         KEY_AUP_TEMPLATE_FILE,
         KEY_ML_TEMPLATE_FILE,
+        KEY_ML_AU_LIST_TEMPLATE_FILE,
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
@@ -157,6 +159,7 @@ class GlobalSettings(models.Model):
         (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
         (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit template file'),
         (KEY_ML_TEMPLATE_FILE, 'Mooring Licence template file'),
+        (KEY_ML_AU_LIST_TEMPLATE_FILE, 'Mooring Licence Authorised User Summary template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit')
@@ -169,6 +172,7 @@ class GlobalSettings(models.Model):
         KEY_AAP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AAP.docx'),
         KEY_AUP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AUP.docx'),
         KEY_ML_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML.docx'),
+        KEY_ML_AU_LIST_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML - AU Summary.docx'),
         KEY_MINIMUM_VESSEL_LENGTH: 3.75,
         KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.50,
         KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
