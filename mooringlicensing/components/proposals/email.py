@@ -1168,7 +1168,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
             all_ccs = cc_list.split(',')
 
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
-        attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
+        attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
 
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
