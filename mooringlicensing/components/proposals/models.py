@@ -44,7 +44,6 @@ from mooringlicensing.components.proposals.email import (
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
-    send_aua_approved_or_declined_email_new_renewal, send_mla_approved_or_declined_email_new_renewal,
     send_au_summary_to_ml_holder,
 )
 from mooringlicensing.ordered_model import OrderedModel
@@ -2335,7 +2334,9 @@ class AuthorisedUserApplication(Proposal):
         self.save()
 
         # Email
-        send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+        # send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+        send_application_approved_or_declined_email(self, 'approved_paid', request, stickers_to_be_returned)
+
         # Email to ML holder when new moorings added
         for mooring_licence in mls_to_be_emailed:
             mooring_licence.generate_au_summary_doc(request.user)
@@ -2708,7 +2709,8 @@ class MooringLicenceApplication(Proposal):
                     approval.generate_au_summary_doc(request.user)
 
             # Email with attachments
-            send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+            # send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
+            send_application_approved_or_declined_email(self, 'approved_paid', request, stickers_to_be_returned)
 
             # Log proposal action
             if request:
