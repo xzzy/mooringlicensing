@@ -876,15 +876,18 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
 
     all_ccs = []
     all_bccs = []
-    attach_invoice = False
-    attach_licence_doc = False
 
     subject = ''
     details = ''
     attachments = []
     payment_url = ''
+    html_template = 'mooringlicensing/emails_2/'
+    txt_template = 'mooringlicensing/emails_2/',
 
     if decision == 'approved':
+        # for payment
+        html_template += 'email_20a.html'
+        txt_template += 'email_20a.txt'
         subject = 'Payment Due: Application for Rottnest Island Authorised User Permit'
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -899,27 +902,32 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
             if invoice.payment_status not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
-
-    elif decision == 'declined':
-        subject = 'Declined: Application for Rottnest Island Authorised User Permit'
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
-        if cc_list:
-            all_ccs = cc_list.split(',')
     elif decision == 'approved_paid':
+        # after payment
+        html_template += 'email_20b.html'
+        txt_template += 'email_20b.txt'
         subject = 'Approved: Application for Rottnest Island Authorised User Permit'
         details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
         cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
-        attachments = get_attachments(True, True, proposal)
+        attachments = get_attachments(False, True, proposal)
+    elif decision == 'declined':
+        # declined
+        html_template += 'email_20c.html'
+        txt_template += 'email_20c.txt'
+        subject = 'Declined: Application for Rottnest Island Authorised User Permit'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_20.html',
-        txt_template='mooringlicensing/emails_2/email_20.txt',
+        html_template=html_template,
+        txt_template=txt_template
     )
 
     context = {
@@ -947,8 +955,6 @@ def send_aua_approved_or_declined_email_amendment_no_payment(proposal, decision,
     # email to applicant when application is issued or declined (authorised user application, amendment where no payment is required)
     all_ccs = []
     all_bccs = []
-    attach_invoice = False
-    attach_licence_doc = False
 
     subject = ''
     details = ''
@@ -1007,8 +1013,13 @@ def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision
     details = ''
     attachments = []
     payment_url = ''
+    html_template = 'mooringlicensing/emails_2/'
+    txt_template = 'mooringlicensing/emails_2/'
 
     if decision == 'approved':
+        # for payment
+        html_template += 'email_22a.html'
+        txt_template += 'email_22a.txt'
         subject = 'Payment Due: Amendment to Rottnest Island Authorised User Permit'
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -1023,7 +1034,20 @@ def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision
             if invoice.payment_status not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+    elif decision == 'approved_paid':
+        # after payment
+        html_template += 'email_22b.html'
+        txt_template += 'email_22b.txt'
+        subject = 'Approved: Amendment to Rottnest Island Authorised User Permit'
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attachments = get_attachments(False, True, proposal)
     elif decision == 'declined':
+        # declined
+        html_template += 'email_22c.html'
+        txt_template += 'email_22c.txt'
         subject = 'Declined: Amendment Application for Rottnest Island Authorised User Permit'
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
@@ -1034,8 +1058,8 @@ def send_aua_approved_or_declined_email_amendment_yes_payment(proposal, decision
 
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_22.html',
-        txt_template = 'mooringlicensing/emails_2/email_22.txt',
+        html_template=html_template,
+        txt_template=txt_template,
     )
 
     context = {
@@ -1133,6 +1157,8 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     all_bccs = []
     attach_invoice = False
     attach_licence_doc = False
+    html_template = 'mooringlicensing/emails_2/'
+    txt_template = 'mooringlicensing/emails_2/'
 
     subject = ''
     details = ''
@@ -1140,6 +1166,9 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     payment_url = ''
 
     if decision == 'approved':
+        # for payment
+        html_template += 'email_23a.html'
+        txt_template += 'email_23a.txt'
         subject = 'Payment Due: Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -1154,13 +1183,9 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
             if invoice.payment_status not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
-    elif decision == 'declined':
-        subject = 'Declined: Application for Rottnest Island Mooring Site Licence'
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
-        if cc_list:
-            all_ccs = cc_list.split(',')
     elif decision == 'approved_paid':
+        html_template += 'email_23b.html'
+        txt_template += 'email_23b.txt'
         subject = 'Approved: Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
         cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
@@ -1170,13 +1195,22 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
         attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
 
+    elif decision == 'declined':
+        html_template += 'email_23c.html'
+        txt_template += 'email_23c.txt'
+        subject = 'Declined: Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposaldeclineddetails.reason
+        cc_list = proposal.proposaldeclineddetails.cc_email
+        if cc_list:
+            all_ccs = cc_list.split(',')
+
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_23.html',
-        txt_template='mooringlicensing/emails_2/email_23.txt',
+        html_template=html_template,
+        txt_template=txt_template,
     )
 
     context = {
@@ -1263,8 +1297,13 @@ def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision
     details = ''
     attachments = []
     payment_url = ''
+    html_template = 'mooringlicensing/emails_2/'
+    txt_template = 'mooringlicensing/emails_2/'
 
     if decision == 'approved':
+        # for payment
+        html_template += 'email_25a.html'
+        txt_template += 'email_25a.txt'
         subject = 'Payment Due: Amendment Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposed_issuance_approval.get('details')
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
@@ -1280,7 +1319,22 @@ def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision
             if invoice.payment_status not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+    elif decision == 'approved_paid':
+        # after payment
+        html_template += 'email_25b.html'
+        txt_template += 'email_25b.txt'
+        subject = 'Approved: Amendment Application for Rottnest Island Mooring Site Licence'
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
+        if cc_list:
+            all_ccs = cc_list.split(',')
+        attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT,
+                                                                        PROPOSAL_TYPE_RENEWAL, ] else False
+        attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
     elif decision == 'declined':
+        # declined
+        html_template += 'email_25c.html'
+        txt_template += 'email_25c.txt'
         subject = 'Declined: Amendment Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
@@ -1291,8 +1345,8 @@ def send_mla_approved_or_declined_email_amendment_yes_payment(proposal, decision
 
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_25.html',
-        txt_template = 'mooringlicensing/emails_2/email_25.txt',
+        html_template=html_template,
+        txt_template=txt_template,
     )
 
     context = {

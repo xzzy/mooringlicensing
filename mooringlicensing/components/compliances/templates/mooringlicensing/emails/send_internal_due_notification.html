@@ -1,12 +1,8 @@
-{% extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{% block content %}
-
-	A Compliance with requirements {{ compliance.reference }} {{compliance.requirement.requirement}} is due for submission.   
-    <p>
-    You can access this Compliance using the following link:
-    </p>
-    <a href="{{url}}">Access Compliance</a>
-
-
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>A Compliance with requirements {{ compliance.reference }} {{compliance.requirement.requirement}} is due for submission.</p>
+<p>You can access this Compliance using the following link: <a href="{{url}}">Access Compliance</a></p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}
