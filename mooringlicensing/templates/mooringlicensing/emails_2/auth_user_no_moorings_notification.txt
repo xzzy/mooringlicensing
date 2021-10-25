@@ -2,6 +2,6 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-The licence requirement to submit {{ compliance.reference }} has been completed.
+Please be aware that there are no moorings available for your {{ approval.child_obj.description }}: {{ approval.lodgement_number }}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {%  endblock %}
