@@ -4,10 +4,10 @@
 {% include "mooringlicensing/emails_2/salutation.txt" %}
 {% if payment_made %}
 Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.
-Once your application has been assessed, you will be notified of the outcome via email. You can check the progress of your application at any time by logging into to your online account here {{ dashboad_external_url }}.
+Once your application has been assessed, you will be notified of the outcome via email. You can check the progress of your application at any time by logging into to your online account here {{ dashboard_external_url }}.
 {% else %}
 Your {{ proposal.description }} {{ proposal.lodgement_number }} has been successfully submitted.  Please find your invoice as proof of payment attached to this email.
-Once your application has been assessed, you will be notified of the outcome via email. You can check the progress of your application at any time by logging into to your online account here {{ dashboad_external_url }}.
+Once your application has been assessed, you will be notified of the outcome via email. You can check the progress of your application at any time by logging into to your online account here {{ dashboard_external_url }}.
 {% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}
