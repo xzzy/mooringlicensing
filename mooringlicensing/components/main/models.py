@@ -238,6 +238,14 @@ class VesselSizeCategoryGroup(RevisionedMixin):
             # Probably the vessel_size_category passed as a parameter is the smallest vessel size category in this group
             return None
 
+    def get_one_larger_category(self, vessel_size_category):
+        larger_categories = self.vessel_size_categories.filter(start_size__gt=vessel_size_category.start_size, null_vessel=False).order_by('start_size')
+        if larger_categories:
+            return larger_categories.first()
+        else:
+            # Probably the vessel_size_category passed as a parameter is the largest vessel size category in this group
+            return None
+
     def __str__(self):
         num_item = self.vessel_size_categories.count()
         return '{} ({} category)'.format(self.name, num_item) if num_item == 1 else '{} ({} categories)'.format(self.name, num_item)
