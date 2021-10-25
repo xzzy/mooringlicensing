@@ -13,7 +13,6 @@ from ledger.payments.invoice.models import Invoice
 from ledger.settings_base import TIME_ZONE
 
 from mooringlicensing import settings
-# from mooringlicensing.components.approvals.models import AgeGroup, AdmissionType
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
     AuthorisedUserApplication, VesselDetails
@@ -78,15 +77,7 @@ class Payment(RevisionedMixin):
         return "unpaid"
 
     def __check_payment_status(self):
-        # invoices = []
         amount = Decimal('0.0')
-
-        # references = self.invoices.all().values('invoice_reference')
-        # for r in references:
-        #     try:
-        #         invoices.append(Invoice.objects.get(reference=r.get("invoice_reference")))
-        #     except Invoice.DoesNotExist:
-        #         pass
         invoice = Invoice.objects.filter(reference=self.invoice_reference)
         if invoice:
             invoice = invoice.first()
@@ -94,18 +85,6 @@ class Payment(RevisionedMixin):
         else:
             return '---'
             # raise Exception('No invoice found for the ApplicationFee: {}'.format(self))
-
-        # for i in invoices:
-        #     if not i.voided:
-        #         amount += i.payment_amount
-
-        # if amount == 0:
-        #     return 'unpaid'
-        # elif self.cost_total < amount:
-        #     return 'over_paid'
-        # elif self.cost_total > amount:
-        #     return 'partially_paid'
-        # return "paid"
 
 
 class DcvAdmissionFee(Payment):
@@ -125,8 +104,6 @@ class DcvAdmissionFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
-    # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_admission_fees')
 
     def __str__(self):
@@ -153,8 +130,6 @@ class DcvPermitFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
-    # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_permit_fees')
 
     def __str__(self):
@@ -176,7 +151,6 @@ class StickerActionFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    # sticker_action_detail = models.ForeignKey('StickerActionDetail', on_delete=models.PROTECT, blank=True, null=True, related_name='sticker_action_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
@@ -221,10 +195,6 @@ class ApplicationFee(Payment):
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    # fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
-    # fee_item = models.ForeignKey('FeeItem', on_delete=models.PROTECT, blank=True, null=True,)
-    # fee_items = models.ManyToManyField('FeeItem', related_name='application_fees')  # For WL/AA/AU/ML
-    # fee_items_additional_aa = models.ManyToManyField('FeeItem', related_name='application_fees_additional_aa')  # For additional AA when AU/ML
     fee_items = models.ManyToManyField('FeeItem', related_name='application_fees', through='FeeItemApplicationFee')
 
     def __str__(self):
@@ -247,28 +217,13 @@ class FeeSeason(RevisionedMixin):
 
     def __str__(self):
         if self.start_date:
-            # return '{} ({} - {})'.format(self.name, self.start_date, self.end_date)
             return self.name
         else:
             return '{} (No periods found)'.format(self.name)
 
-        # num_item = self.fee_periods.count()
-        # num_str = '{} period'.format(num_item) if num_item == 1 else '{} periods'.format(num_item)
-        #
-        # if self.start_date:
-        #     return '{} [{} to {}] ({})'.format(self.name, self.start_date, self.end_date, num_str)
-        # else:
-        #     return '{} (No periods found)'.format(self.name)
-
     def get_first_period(self):
         first_period = self.fee_periods.order_by('start_date').first()
         return first_period
-
-    # def save(self, **kwargs):
-    #     if not self.is_editable:
-    #         raise ValidationError('Season cannot be changed once used for payment calculation')
-    #     else:
-    #         super(FeeSeason, self).save(**kwargs)
 
     @property
     def is_editable(self):
@@ -301,7 +256,6 @@ class FeePeriod(RevisionedMixin):
     fee_season = models.ForeignKey(FeeSeason, null=True, blank=True, related_name='fee_periods')
     name = models.CharField(max_length=50, null=True, blank=True, default='')
     start_date = models.DateField(null=True, blank=True)
-    # end_date = (next fee_period - 1day) or fee_season.end_date, which is start_date + 1year
 
     def __str__(self):
         return '{} (start: {})'.format(self.name, self.start_date)
@@ -312,12 +266,6 @@ class FeePeriod(RevisionedMixin):
             return self.fee_season.is_editable
         return True
 
-    # def save(self, **kwargs):
-    #     if not self.is_editable:
-    #         raise ValidationError('Period cannot be changed once used for payment calculation')
-    #     else:
-    #         super(FeePeriod, self).save(**kwargs)
-
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['start_date']
@@ -325,7 +273,6 @@ class FeePeriod(RevisionedMixin):
 
 class FeeConstructor(RevisionedMixin):
     application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True})
-    # fee_season = models.ForeignKey(FeeSeason, null=False, blank=False, related_name='fee_constructors')
     fee_season = ChainedForeignKey(FeeSeason,
                                    chained_field='application_type',
                                    chained_model_field='application_type',
@@ -394,7 +341,6 @@ class FeeConstructor(RevisionedMixin):
 
     @property
     def num_of_times_used_for_payment(self):
-        # return self.application_fees.count() + self.dcv_permit_fees.count()
         application_fees = ApplicationFee.objects.filter(fee_items__in=self.feeitem_set.all())
         return application_fees.count()
 
@@ -583,7 +529,6 @@ class FeeItem(RevisionedMixin):
     vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
     proposal_type = models.ForeignKey('ProposalType', null=True, blank=True)
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
-    # absolute_amount = models.BooleanField(default=True)  # When True, the amount is the price for this item.  When False, self.amount is the price per meter.
     incremental_amount = models.BooleanField(default=False, help_text='When ticked, The amount will be the increase in the rate per meter')  # When True, the amount is the price for this item.  When False, self.amount is the price per meter.
     # For DcvAdmission
     age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
@@ -624,39 +569,7 @@ class FeeItem(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
-# class OracleCodeApplication(models.Model):
-#     identifier = models.CharField(max_length=50, null=True, blank=True)
-#     name = models.CharField(max_length=50, null=True, blank=True)
-#
-#     def __str__(self):
-#         return self.name
-#
-#     def get_oracle_code_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
-#         try:
-#             oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
-#             return oracle_code_item.value
-#         except:
-#             raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
-#
-#     def get_enforcement_date_by_date(self, target_date=datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
-#         try:
-#             oracle_code_item = self.oracle_code_items.filter(date_of_enforcement__lte=target_date).order_by('-date_of_enforcement').first()
-#             return oracle_code_item.date_of_enforcement
-#         except:
-#             raise ValueError('Oracle code not found for the application: {} at the date: {}'.format(self, target_date))
-#
-#     @staticmethod
-#     def get_current_oracle_code_by_application(oracle_code_id):
-#         oracle_code_application = OracleCodeApplication.objects.get(identifier=oracle_code_id)
-#         return oracle_code_application.get_oracle_code_by_date()
-#
-#     class Meta:
-#         app_label = 'mooringlicensing'
-#         verbose_name = 'Oracle Codes'
-
-
 class OracleCodeItem(RevisionedMixin):
-    # oracle_code_application = models.ForeignKey(OracleCodeApplication, related_name='oracle_code_items')
     application_type = models.ForeignKey(ApplicationType, blank=True, null=True, related_name='oracle_code_items')
     value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
     date_of_enforcement = models.DateField(blank=True, null=True)

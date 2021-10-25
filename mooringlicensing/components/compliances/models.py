@@ -25,7 +25,6 @@ from mooringlicensing.components.main.models import (
     Document, NumberOfDaysSetting, NumberOfDaysType
 )
 from mooringlicensing.components.proposals.models import ProposalRequirement, AmendmentReason
-#from mooringlicensing.components.approvals.models import DistrictApproval
 from mooringlicensing.components.compliances.email import (
                         send_compliance_accept_email_notification,
                         send_amendment_email_notification,
@@ -75,22 +74,16 @@ class Compliance(RevisionedMixin):
     approval = models.ForeignKey('mooringlicensing.Approval',related_name='compliances')
     due_date = models.DateField()
     text = models.TextField(blank=True)
-    #meta = JSONField(null=True, blank=True)
     num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
     processing_status = models.CharField(choices=PROCESSING_STATUS_CHOICES,max_length=20)
     customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20, default=CUSTOMER_STATUS_CHOICES[1][0])
     assigned_to = models.ForeignKey(EmailUser,related_name='mooringlicensing_compliance_assignments',null=True,blank=True)
-    #requirement = models.TextField(null=True,blank=True)
     requirement = models.ForeignKey(ProposalRequirement, blank=True, null=True, related_name='compliance_requirement', on_delete=models.SET_NULL)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-    # TODO: does submitter need to be here?
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_compliances')
     reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
     fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    #district_proposal = models.ForeignKey(DistrictProposal,related_name='district_compliance', null=True, blank=True)
-    #district_approval = models.ForeignKey(DistrictApproval,related_name='district_compliance', null=True, blank=True)
-
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -113,7 +106,6 @@ class Compliance(RevisionedMixin):
 
     @property
     def reference(self):
-        #return 'C{0:06d}'.format(self.id)
         return self.lodgement_number
 
     @property
@@ -183,7 +175,6 @@ class Compliance(RevisionedMixin):
                                 q.status = 'amended'
                                 q.save()
 
-                #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
                 self.lodgement_date = timezone.now()
                 self.save(version_comment='Compliance Submitted: {}'.format(self.id))
                 self.proposal.save(version_comment='Compliance Submitted: {}'.format(self.id))
@@ -347,20 +338,8 @@ class ComplianceAmendmentReason(models.Model):
 
 class ComplianceAmendmentRequest(CompRequest):
     STATUS_CHOICES = (('requested', 'Requested'), ('amended', 'Amended'))
-    # try:
-    #     # model requires some choices if AmendmentReason does not yet exist or is empty
-    #     REASON_CHOICES = list(AmendmentReason.objects.values_list('id', 'reason'))
-    #     if not REASON_CHOICES:
-    #         REASON_CHOICES = ((0, 'The information provided was insufficient'),
-    #                           (1, 'There was missing information'),
-    #                           (2, 'Other'))
-    # except:
-    #     REASON_CHOICES = ((0, 'The information provided was insufficient'),
-    #                       (1, 'There was missing information'),
-    #                       (2, 'Other'))
 
     status = models.CharField('Status', max_length=30, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    # reason = models.CharField('Reason', max_length=30, choices=REASON_CHOICES, default=REASON_CHOICES[0][0])
     reason = models.ForeignKey(ComplianceAmendmentReason, blank=True, null=True)
 
     class Meta:
@@ -383,7 +362,6 @@ class ComplianceAmendmentRequest(CompRequest):
 
 
 import reversion
-# reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set', 'compliance_fees'])
 reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set',])
 reversion.register(ComplianceDocument)
 reversion.register(ComplianceUserAction)
@@ -392,5 +370,4 @@ reversion.register(ComplianceLogDocument)
 reversion.register(CompRequest)
 reversion.register(ComplianceAmendmentReason, follow=['complianceamendmentrequest_set'])
 reversion.register(ComplianceAmendmentRequest)
-
 

@@ -1,5 +1,7 @@
 from django.conf import settings
 from ledger.accounts.models import EmailUser,Address, Profile,EmailIdentity, EmailUserAction, EmailUserLogEntry, CommunicationsLogEntry
+
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
@@ -42,7 +44,6 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
     email = serializers.SerializerMethodField()
     is_consultant = serializers.SerializerMethodField(read_only=True)
     is_admin = serializers.SerializerMethodField(read_only=True)
-    #active_proposals = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Organisation
@@ -53,7 +54,6 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
             'email',
             'is_consultant',
             'is_admin',
-            #'active_proposals',
         )
 
     def get_is_admin(self, obj):
@@ -67,14 +67,6 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
     def get_email(self, obj):
         email = EmailUser.objects.get(id=self.context.get('user_id')).email
         return email
-
-    #def get_active_proposals(self, obj):
-    #    _list = []
-    #    #for application_type in ['T Class', 'Filming', 'Event']:
-    #    for application_type in [ApplicationType.TCLASS, ApplicationType.FILMING, ApplicationType.EVENT ]:
-    #        qs = Proposal.objects.filter(application_type__name=application_type, org_applicant=obj).exclude(processing_status__in=['approved', 'declined', 'discarded']).values_list('lodgement_number', flat=True)
-    #        _list.append( dict(application_type=application_type, proposals=list(qs)) )
-    #    return _list
 
 
 class UserFilterSerializer(serializers.ModelSerializer):
@@ -95,14 +87,12 @@ class UserFilterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    #mooringlicensing_organisations = serializers.SerializerMethodField()
     residential_address = UserAddressSerializer()
     postal_address = serializers.SerializerMethodField()
     personal_details = serializers.SerializerMethodField()
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
-    #identification = DocumentSerializer()
     is_department_user = serializers.SerializerMethodField()
     is_payment_admin = serializers.SerializerMethodField()
     system_settings= serializers.SerializerMethodField()
@@ -120,12 +110,10 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'first_name',
             'email',
-            #'identification',
             'residential_address',
             'postal_address',
             'phone_number',
             'mobile_number',
-            #'mooringlicensing_organisations',
             'personal_details',
             'address_details',
             'contact_details',
@@ -189,13 +177,6 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_payment_admin(self, obj):
         return is_payment_admin(obj)
 
-    #def get_mooringlicensing_organisations(self, obj):
-    #    mooringlicensing_organisations = obj.mooringlicensing_organisations
-    #    serialized_orgs = UserOrganisationSerializer(
-    #        mooringlicensing_organisations, many=True, context={
-    #            'user_id': obj.id}).data
-    #    return serialized_orgs
-
     def get_system_settings(self, obj):
         try:
             user_system_settings = obj.system_settings.first()
@@ -252,10 +233,36 @@ class EmailUserActionSerializer(serializers.ModelSerializer):
         model = EmailUserAction
         fields = '__all__'
 
-class EmailUserCommsSerializer(serializers.ModelSerializer):
+# class EmailUserCommsSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = EmailUserLogEntry
+#         fields = '__all__'
+
+class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
+    documents = serializers.SerializerMethodField()
+    type = serializers.CharField(source='log_type')
+
     class Meta:
         model = EmailUserLogEntry
-        fields = '__all__'
+        # fields = '__all__'
+        fields = (
+            'id',
+            'customer',
+            'to',
+            'fromm',
+            'cc',
+            'type',
+            'reference',
+            'subject',
+            'text',
+            'created',
+            'staff',
+            'emailuser',
+            'documents',
+        )
+        read_only_fields = (
+            'customer',
+        )
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=EmailUser.objects.all(),required=False)
