@@ -1,0 +1,6 @@
+{% extends 'mooringlicensing/emails/base_email.txt' %}
+
+{% block content %}
+    Please be aware that your {{ approval.child_obj.description }}: {{ approval.lodgement_number }} expired on {{ approval.expiry_date}}
+    To apply for a new {{ approval.child_obj.description }} please access {{ url }}
+{%  endblock %}
