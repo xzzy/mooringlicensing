@@ -23,7 +23,6 @@ def is_email_auth_backend(request):
     return 'EmailAuth' in request.session.get('_auth_user_backend')
 
 def is_mooringlicensing_admin(request):
-    #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
     return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
 
 def in_dbca_domain(request):
@@ -44,12 +43,8 @@ def is_departmentUser(request):
     return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request)
 
 def is_customer(request):
-    # return request.user.is_authenticated() and is_email_auth_backend(request)
     return request.user.is_authenticated() and (is_model_backend(request) or is_email_auth_backend(request))
 
 def is_internal(request):
     return is_departmentUser(request)
-
-def get_all_officers():
-    return EmailUser.objects.filter(groups__name='Commercial Operator Admin')
 

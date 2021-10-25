@@ -33,9 +33,4 @@ class GetFeeConfigurations(views.APIView):
         serializer = FeeConstructorSerializer(fee_constructors, many=True)
 
         return Response(serializer.data)
-        # search_term = request.GET.get('term', '')
-        # if search_term:
-        #     data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-        #     data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
-        #     return Response({"results": data_transform})
-        # return Response()
+

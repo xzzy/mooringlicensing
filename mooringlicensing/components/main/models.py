@@ -105,7 +105,6 @@ class ApplicationType(models.Model):
     fee_by_fee_constructor = models.BooleanField(default=True)
 
     def __str__(self):
-        # return 'id:{}({}) {}'.format(self.id, self.code, self.description)
         return '{}'.format(self.description)
 
     def get_oracle_code_by_date(self, target_date=datetime.now(pytz.timezone(settings.TIME_ZONE)).date()):
@@ -130,73 +129,6 @@ class ApplicationType(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = 'Oracle code'
-
-
-
-#@python_2_unicode_compatible
-#class ApplicationType(models.Model):
-#    WL = 'Waiting List Application'
-#    AA = 'Annual Admission Application'
-#    AU = 'Authorised User Application'
-#    ML = 'Mooring License Application'
-#
-#    APPLICATION_TYPES = (
-#        (WL, 'Waiting List Application'),
-#        (AA, 'Annual Admission Application'),
-#        (AU, 'Authorised User Application'),
-#        (ML, 'Mooring License Application'),
-#    )
-#
-#    # name = models.CharField(max_length=64, unique=True)
-#    name = models.CharField(
-#        verbose_name='Application Type name',
-#        max_length=64,
-#        choices=APPLICATION_TYPES,
-#    )
-#    order = models.PositiveSmallIntegerField(default=0)
-#    visible = models.BooleanField(default=True)
-#    application_fee = models.DecimalField(max_digits=6, decimal_places=2)
-#    oracle_code_application = models.CharField(max_length=50)
-#    is_gst_exempt = models.BooleanField(default=True)
-#    #domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
-#
-#    class Meta:
-#        ordering = ['order', 'name']
-#        app_label = 'mooringlicensing'
-#
-#    def __str__(self):
-#        return self.name
-#
-#    @property
-#    def acronym(self):
-#        if self.name:
-#            return self.name[0]
-
-
-#class Question(models.Model):
-#    CORRECT_ANSWER_CHOICES = (
-#        ('answer_one', 'Answer one'), ('answer_two', 'Answer two'), ('answer_three', 'Answer three'),
-#        ('answer_four', 'Answer four'))
-#    question_text = models.TextField(blank=False)
-#    answer_one = models.CharField(max_length=200, blank=True)
-#    answer_two = models.CharField(max_length=200, blank=True)
-#    answer_three = models.CharField(max_length=200, blank=True)
-#    answer_four = models.CharField(max_length=200, blank=True)
-#    #answer_five = models.CharField(max_length=200, blank=True)
-#    correct_answer = models.CharField('Correct Answer', max_length=40, choices=CORRECT_ANSWER_CHOICES,
-#                                       default=CORRECT_ANSWER_CHOICES[0][0])
-#    #application_type = models.ForeignKey(ApplicationType, null=True, blank=True)
-#
-#    class Meta:
-#        #ordering = ['name']
-#        app_label = 'mooringlicensing'
-#
-#    def __str__(self):
-#        return self.question_text
-#
-#    @property
-#    def correct_answer_value(self):
-#        return getattr(self, self.correct_answer)
 
 
 class GlobalSettings(models.Model):
@@ -253,27 +185,6 @@ class GlobalSettings(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name_plural = "Global Settings"
-
-
-#def update_mooringlicensing_word_filename(instance, filename):
-#    cur_time = datetime.now().strftime('%Y%m%d_%H_%M') 
-#    new_filename = 'fee_waiver_template_{}'.format(cur_time)
-#    return 'mooringlicensing_template/{}.docx'.format(new_filename)
-#
-#
-#class FeeWaiverWordTemplate(models.Model):
-#    _file = models.FileField(upload_to=update_mooringlicensing_word_filename, max_length=255)
-#    uploaded_date = models.DateTimeField(auto_now_add=True, editable=False)
-#    description = models.TextField(blank=True,
-#                                   verbose_name='description', help_text='')
-#
-#    class Meta:
-#        app_label = 'mooringlicensing'
-#        verbose_name_plural = 'Fee Waiver Templates'
-#        ordering = ['-id']
-#
-#    def __str__(self):
-#        return "Version: {}, {}".format(self.id, self._file.name)
 
 
 @python_2_unicode_compatible
@@ -351,12 +262,6 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         return True
 
 
-# @receiver(post_save, sender=VesselSizeCategoryGroup)
-# def _post_save_vscg(sender, instance, **kwargs):
-#     print('VesselSizeCategoryGroup post save()')
-#     print(instance)
-
-
 class VesselSizeCategory(RevisionedMixin):
     name = models.CharField(max_length=100)
     start_size = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='unit [m]')
@@ -409,12 +314,6 @@ def _post_delete_vsc(sender, instance, **kwargs):
     for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
         if fee_constructor.is_editable:
             fee_constructor.reconstruct_fees()
-
-
-# @receiver(pre_delete, sender=VesselSizeCategory)
-# def _pre_delete_vsc(sender, instance, **kwargs):
-#     print('VesselSizeCategory pre delete()')
-#     print(instance.vessel_size_category_group)
 
 
 class NumberOfDaysType(RevisionedMixin):

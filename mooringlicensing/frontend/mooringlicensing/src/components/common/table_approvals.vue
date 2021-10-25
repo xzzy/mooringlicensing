@@ -438,12 +438,10 @@ export default {
                                 if(full.can_action || vm.debug){
                                     if(full.amend_or_renew === 'amend' || vm.debug){
                                        links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
+                                    } else if(full.amend_or_renew === 'renew' || vm.debug){
+                                        links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                     }
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
-                                }
-                                if(full.amend_or_renew === 'renew' || vm.debug){
-                                //if(full.renewal_document && full.renewal_sent && full.can_renew) {
-                                    links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                 }
 
                                 if (full.approval_type_dict.code != 'wla') {
@@ -1111,7 +1109,7 @@ export default {
             }).then(() => {
                 //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_approval')),{
                 //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')), {
-                vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=renew', {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=renew', {
 
                 })
                 .then((response) => {
@@ -1146,7 +1144,7 @@ export default {
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')),{
-                vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=amend', {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=amend', {
 
                 })
                 .then((response) => {

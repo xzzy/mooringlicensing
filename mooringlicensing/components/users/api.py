@@ -59,18 +59,6 @@ import logging
 logger = logging.getLogger('mooringlicensing')
 
 
-#class DepartmentUserList(views.APIView):
-#    renderer_classes = [JSONRenderer,]
-#    def get(self, request, format=None):
-#        data = cache.get('department_users')
-#        if not data:
-#            retrieve_department_users()
-#            data = cache.get('department_users')
-#        return Response(data)
-#
-#        serializer  = UserSerializer(request.user)
-
-
 class GetCountries(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
@@ -82,15 +70,12 @@ class GetCountries(views.APIView):
             cache.set('country_list',country_list, settings.LOV_CACHE_TIMEOUT)
             data = cache.get('country_list')
         return Response(data)
-        #return Response(country_list)
 
 
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        #logger.info('request user: {}'.format(request.user))
         serializer  = UserSerializer(request.user, context={'request':request})
-        #logger.info('user serializer data: {}'.format(serializer.data))
         response = Response(serializer.data)
         return response
 
@@ -124,7 +109,6 @@ class GetPerson(views.APIView):
 class GetSubmitterProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        #import ipdb; ipdb.set_trace()
         submitter_id = request.GET.get('submitter_id')
         submitter = EmailUser.objects.get(id=submitter_id)
         serializer  = UserSerializer(submitter, context={'request':request})
@@ -144,10 +128,6 @@ class UserListFilterView(generics.ListAPIView):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.all()
     serializer_class = UserSerializer
-
-    # def get_queryset(self):
-    #     queryset = EmailUser.objects.all()
-    #     pass
 
     @detail_route(methods=['POST',])
     def update_personal(self, request, *args, **kwargs):
@@ -239,14 +219,11 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_system_settings(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            # serializer = UserSystemSettingsSerializer(data=request.data)
-            # serializer.is_valid(raise_exception=True)
             user_setting, created = UserSystemSettings.objects.get_or_create(
                 user = instance
             )
             serializer = UserSystemSettingsSerializer(user_setting, data=request.data)
             serializer.is_valid(raise_exception=True)
-            #instance.residential_address = address
             serializer.save()
             instance = self.get_object()
             serializer = UserSerializer(instance)
@@ -319,13 +296,12 @@ class UserViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['GET',])
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             qs = instance.comms_logs.all()
-            serializer = EmailUserCommsSerializer(qs,many=True)
+            serializer = EmailUserCommsSerializer(qs, many=True)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
