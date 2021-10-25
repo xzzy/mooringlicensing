@@ -1,12 +1,8 @@
-{% extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{% block content %}
-    A Compliance with requirements{{ compliance.reference }} has passed the due date and has not been lodged yet.
-
-    <p>
-    You can access this Compliance using the following link:
-    </p>
-    {{url}}
-
-
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+A Compliance with requirements {{ compliance.reference }} has passed the due date and has not been lodged yet.
+You can access this Compliance using the following url: {{ url }}
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {%  endblock %}
