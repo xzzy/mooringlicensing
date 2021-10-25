@@ -2,6 +2,8 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-The licence requirement to submit {{ compliance.reference }} has been completed.
+Your approval has been cancelled due to no vessels nominated.
+    Approval : {{ approval.lodgement_number }}
+    Due date : {{ due_date }}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {%  endblock %}
