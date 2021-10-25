@@ -1,0 +1,8 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Your authorised user application {{ proposal.lodgement_number }} has been declined.
+{% if details %}Details: {{ details }}{% endif %}
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
