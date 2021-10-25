@@ -146,6 +146,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     authorised_user_moorings_str = serializers.SerializerMethodField()
     previous_application_vessel_details_obj = serializers.SerializerMethodField()
     previous_application_vessel_ownership_obj = serializers.SerializerMethodField()
+    max_vessel_length_with_no_payment = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -220,6 +221,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'temporary_document_collection_id',
                 'previous_application_vessel_details_obj',
                 'previous_application_vessel_ownership_obj',
+                'max_vessel_length_with_no_payment',
                 )
         read_only_fields=('documents',)
 
@@ -324,6 +326,18 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         else:
             serializer = InvoiceSerializer(invoices, many=True)
             return serializer.data
+
+    def get_max_vessel_length_with_no_payment(self, obj):
+        max_length = 0
+        # no need to specify current proposal type due to previous_application check
+        if obj.previous_application and obj.previous_application.application_fees.count():
+            app_fee = obj.previous_application.application_fees.first()
+            for fee_item in app_fee.fee_items.all():
+                vessel_size_category = fee_item.vessel_size_category
+                larger_group = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(vessel_size_category)
+                if (not max_length and larger_group) or (max_length and larger_group.start_size < max_length):
+                    max_length = larger_group.start_size
+        return max_length
 
 
 class ListProposalSerializer(BaseProposalSerializer):

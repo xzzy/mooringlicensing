@@ -42,6 +42,7 @@
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
             />
 
             <AnnualAdmissionApplication
@@ -52,6 +53,7 @@
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
@@ -60,6 +62,7 @@
             ref="authorised_user_application"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
@@ -69,6 +72,7 @@
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
             />
 
             <div>
@@ -99,9 +103,9 @@
                                             <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
 
                                             <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
-                                                {{ submit_text() }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                                {{ submitText }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                             </button>
-                                            <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="saveExitProposal || savingProposal"/>
+                                            <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submitText" :disabled="saveExitProposal || savingProposal"/>
 
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                                         </p>
@@ -159,6 +163,7 @@ export default {
       terms_and_conditions_checked: false,
       vesselChanged: false,
       mooringOptionsChanged: false,
+      submitText: "Submit",
     }
   },
   components: {
@@ -280,18 +285,22 @@ export default {
       }
       */
     },
-
-    submit_text: function() {
-        let submitText = 'Submit';
+    updateSubmitText: function(submitText) {
+        this.submitText = submitText;
+    },
+      /*
+    set_submit_text: function() {
+        //let submitText = 'Submit';
         if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
             if (this.proposal.fee_paid){
-                submitText = 'Submit';
+                this.submitText = 'Submit';
             } else {
-                submitText = 'Pay / Submit';
+                this.submitText = 'Pay / Submit';
             }
         }
-        return submitText;
+        //return submitText;
     },
+    */
     save_applicant_data:function(){
       if(this.proposal.applicant_type == 'SUB')
       {
@@ -695,11 +704,11 @@ export default {
 
         try {
             await swal({
-                title: this.submit_text() + " Application",
-                text: "Are you sure you want to " + this.submit_text().toLowerCase()+ " this application?",
+                title: this.submitText + " Application",
+                text: "Are you sure you want to " + this.submitText.toLowerCase()+ " this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: this.submit_text()
+                confirmButtonText: this.submitText
             })
         } catch (cancel) {
             this.submitting = false;
