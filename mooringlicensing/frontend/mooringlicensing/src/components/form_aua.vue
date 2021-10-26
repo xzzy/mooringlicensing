@@ -79,6 +79,7 @@
                   :readonly="readonly"
                   :is_internal="is_internal"
                   @updateVesselLength="updateVesselLength"
+                  @vesselChanged="vesselChanged"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -192,6 +193,13 @@
                 showPaymentTab: false,
             }
         },
+        watch: {
+            change_mooring: {
+                handler: async function() {
+                    await this.$emit("changeMooring", this.change_mooring);
+                },
+            },
+        },
         components: {
             Applicant,
             Confirmation,
@@ -229,6 +237,9 @@
             },
         },
         methods:{
+            vesselChanged: async function(vesselChanged) {
+                await this.$emit("vesselChanged", vesselChanged);
+            },
             updateVesselLength: function(length) {
                 let higherCategory = false;
                 if (this.is_external && this.proposal) {
