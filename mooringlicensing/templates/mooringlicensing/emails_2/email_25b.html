@@ -2,7 +2,6 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
-{% if decision == 'approved' %}
 <p>Your amendment application {{ proposal.lodgement_number }} for mooring site licence {{ approval.lodgement_number }} has been conditionally approved pending payment of your fees. Please see attached document for more details.</p>
 {% if stickers_to_be_returned|length > 0 %}
 <p>If you have not already done so, you are required to return your old sticker
@@ -11,13 +10,7 @@
     {% endfor %}
 to the Rottnest Island Authority. Failure to return stickers to RIA upon request, or prior to the sale or disposal of your vessel, can result in the relinquishment of your mooring site licence. Once relinquished, a mooring site licence cannot be re-instated.</p>
 {% endif %}
-<p>The new sticker for your vessel will be mailed to you once payment has been received.</p>
+<p>The new sticker for your vessel will be mailed to you in the coming days.</p>
 <p>Entry to the Reserve and access to the Shared Mooring System (including use of your own mooring site) is NOT approved until your current sticker is clearly displayed on the port side of your vessel. Penalties apply.</p>
-<p>Please click <a href="{{ payment_url }}">here</a> to pay the fees for your mooring site licence.</p>
-{% endif %}
-{% if decision == 'declined' %}
-<p>Your mooring licence application {{ proposal.lodgement_number }} has been declined.</p>
-{% endif %}
-{% if details %}<p>Details: {{ details }}</p>{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}
