@@ -34,7 +34,7 @@ def create_dcv_admission_document(dcv_admission_arrival):
     return document
 
 
-def create_approval_doc(approval, proposal, copied_to_permit, user):
+def create_approval_doc(approval):
     # create bytes
     contents_as_bytes = create_approval_doc_bytes(approval)
 
