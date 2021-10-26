@@ -1034,7 +1034,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 )
 
                 # Generate the preview document - get the value of the BytesIO buffer
-                licence_buffer = preview_approval.generate_doc(request.user, preview=True)
+                licence_buffer = preview_approval.generate_doc(preview=True)
 
                 # clean temp preview licence object
                 transaction.set_rollback(True)
@@ -1114,9 +1114,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 if self.previous_application:
-                    approval_compliances = Compliance.objects.filter(approval=self.approval,
-                                                                     proposal=self.previous_application,
-                                                                     processing_status='future')
+                    approval_compliances = Compliance.objects.filter(
+                        approval=self.approval,
+                        proposal=self.previous_application,
+                        processing_status='future'
+                    )
                     if approval_compliances:
                         for c in approval_compliances:
                             c.delete()
@@ -1127,16 +1129,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 else:
                     # Generate the document
                     # Delete the future compliances if Approval is reissued and generate the compliances again.
-                    approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
-                                                                     processing_status='future')
+                    approval_compliances = Compliance.objects.filter(
+                        approval=approval,
+                        proposal=self,
+                        processing_status='future'
+                    )
                     if approval_compliances:
                         for c in approval_compliances:
                             c.delete()
-                    # Log proposal action
-                    self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
-                    # Log entry for organisation
-                    applicant_field = getattr(self, self.applicant_field)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
+                    self.generate_compliances(approval, request)
+
+                # Log proposal action
+                self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
+                # Log entry for organisation
+                applicant_field = getattr(self, self.applicant_field)
+                applicant_field.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
 
                 # set proposal status to approved - can change later after manage_stickers
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -1170,7 +1177,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approval = approval.set_wla_order()
 
                 # send Proposal approval email with attachment
-                approval.generate_doc(request.user)
+                approval.generate_doc()
                 send_application_approved_or_declined_email(self, 'approved', request, stickers_to_be_returned)
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
@@ -2287,18 +2294,19 @@ class AuthorisedUserApplication(Proposal):
                         c.delete()
                 # Log creation
                 # Generate the document
-                approval.generate_doc(request.user)
+                # approval.generate_doc(request.user)
                 self.generate_compliances(approval, request)
                 # send the doc and log in approval and org
             else:
                 # Generate the document
-                approval.generate_doc(request.user)
+                # approval.generate_doc(request.user)
                 # Delete the future compliances if Approval is reissued and generate the compliances again.
                 approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
                                                                  processing_status='future')
                 if approval_compliances:
                     for c in approval_compliances:
                         c.delete()
+                self.generate_compliances(approval, request)
 
         # always reset this flag
         approval.renewal_sent = False
@@ -2337,6 +2345,8 @@ class AuthorisedUserApplication(Proposal):
             self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
             self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
         self.save()
+
+        approval.generate_doc()
 
         # Email
         # send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
@@ -2668,6 +2678,7 @@ class MooringLicenceApplication(Proposal):
                     if approval_compliances:
                         for c in approval_compliances:
                             c.delete()
+                    self.generate_compliances(approval, request)
 
             mooring.log_user_action(
                     MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
@@ -2707,11 +2718,10 @@ class MooringLicenceApplication(Proposal):
                 self.customer_status = Proposal.CUSTOMER_STATUS_APPROVED
             self.save()
 
-            if request:
-                # Creating documents should be performed at the end
-                approval.generate_doc(request.user)
-                if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
-                    approval.generate_au_summary_doc(request.user)
+            # Creating documents should be performed at the end
+            approval.generate_doc()
+            if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+                approval.generate_au_summary_doc(request.user)
 
             # Email with attachments
             # send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
