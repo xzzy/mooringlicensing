@@ -23,8 +23,10 @@ SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
 class ApprovalExpireNotificationEmail(TemplateEmailBase):
     subject = 'Approval expired'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/emails/approval_expire_notification.html'
-    txt_template = 'mooringlicensing/emails/approval_expire_notification.txt'
+    # html_template = 'mooringlicensing/emails/approval_expire_notification.html'
+    # txt_template = 'mooringlicensing/emails/approval_expire_notification.txt'
+    html_template = 'mooringlicensing/emails_2/approval_expire_notification.html'
+    txt_template = 'mooringlicensing/emails_2/approval_expire_notification.txt'
 
     def __init__(self, approval):
         self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
@@ -41,17 +43,8 @@ class ApprovalVesselNominationNotificationEmail(TemplateEmailBase):
 
 class ApprovalCancelledDueToNoVesselsNominatedEmail(TemplateEmailBase):
     subject = 'Notification: Approval {} cancelled'
-    html_template = 'mooringlicensing/emails/approval_cancelled_due_to_no_vessels_nominated.html'
-    txt_template = 'mooringlicensing/emails/approval_cancelled_due_to_no_vessels_nominated.txt'
-
-    def __init__(self, approval):
-        self.subject = self.subject.format(approval.lodgement_number)
-
-
-class ApprovalVesselNominationReminderEmail(TemplateEmailBase):
-    subject = 'Reminder: Nominate vessel for Permit {}'
-    html_template = 'mooringlicensing/emails/approval_vessel_nomination_reminder.html'
-    txt_template = 'mooringlicensing/emails/approval_vessel_nomination_reminder.txt'
+    html_template = 'mooringlicensing/emails_2/approval_cancelled_due_to_no_vessels_nominated.html'
+    txt_template = 'mooringlicensing/emails_2/approval_cancelled_due_to_no_vessels_nominated.txt'
 
     def __init__(self, approval):
         self.subject = self.subject.format(approval.lodgement_number)
@@ -59,8 +52,8 @@ class ApprovalVesselNominationReminderEmail(TemplateEmailBase):
 
 class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
     subject = 'No moorings remaining'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.html'
-    txt_template = 'mooringlicensing/emails/auth_user_no_moorings_notification.txt'
+    html_template = 'mooringlicensing/emails_2/auth_user_no_moorings_notification.html'
+    txt_template = 'mooringlicensing/emails_2/auth_user_no_moorings_notification.txt'
 
     def __init__(self, approval):
         self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
@@ -68,8 +61,8 @@ class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
 
 class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
     subject = 'Mooring removed'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/emails/auth_user_mooring_removed_notification.html'
-    txt_template = 'mooringlicensing/emails/auth_user_mooring_removed_notification.txt'
+    html_template = 'mooringlicensing/emails_2/auth_user_mooring_removed_notification.html'
+    txt_template = 'mooringlicensing/emails_2/auth_user_mooring_removed_notification.txt'
 
     def __init__(self, approval):
         self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
@@ -194,48 +187,6 @@ def send_approval_expire_email_notification(approval):
         _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
     else:
         _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-
-def send_vessel_nomination_notification_main(approval, request=None):
-    from mooringlicensing.components.approvals.models import WaitingListAllocation, MooringLicence#, AnnualAdmissionPermit, AuthorisedUserPermit
-    email = ApprovalVesselNominationNotificationEmail(approval)
-    proposal = approval.current_proposal
-
-    due_date = approval.expiry_date
-    sale_date = approval.current_proposal.vessel_ownership.end_date
-    six_months = timedelta(weeks=26)
-    if type(approval.child_obj) in (WaitingListAllocation, MooringLicence):
-        due_date = sale_date if (sale_date + six_months) < approval.expiry_date else approval.expiry_date
-
-    context = {
-        'public_url': get_public_url(request),
-        'approval': approval,
-        'due_date': due_date,
-    }
-
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-
-    to_address = approval.submitter.email
-    all_ccs = []
-    bcc = []
-    # if proposal.org_applicant and proposal.org_applicant.email:
-    #     cc_list = proposal.org_applicant.email
-    #     if cc_list:
-    #         all_ccs = [cc_list]
-    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
-
-    _log_approval_email(msg, approval, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user)
-
-    return msg
 
 
 def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=None):

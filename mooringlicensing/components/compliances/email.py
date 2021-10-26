@@ -13,45 +13,55 @@ from django.core.files.base import ContentFile
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
+
+
 class ComplianceExternalSubmitSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence requirement.'.format(settings.RIA_NAME)
+    subject = 'Licence/Permit requirement'
     html_template = 'mooringlicensing/emails/send_external_submit_notification.html'
     txt_template = 'mooringlicensing/emails/send_external_submit_notification.txt'
+
 
 class ComplianceSubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'A new Compliance has been submitted.'
     html_template = 'mooringlicensing/emails/send_submit_notification.html'
     txt_template = 'mooringlicensing/emails/send_submit_notification.txt'
 
+
 class ComplianceAcceptNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations- Confirmation - Licence requirement completed.'.format(settings.RIA_NAME)
+    subject = 'Confirmation - Licence/Permit requirement completed.'
     html_template = 'mooringlicensing/emails/compliance_accept_notification.html'
     txt_template = 'mooringlicensing/emails/compliance_accept_notification.txt'
 
+
 class ComplianceAmendmentRequestSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence requirement.'.format(settings.RIA_NAME)
+    subject = 'Licence/Permit requirement.'
     html_template = 'mooringlicensing/emails/send_amendment_notification.html'
     txt_template = 'mooringlicensing/emails/send_amendment_notification.txt'
 
+
 class ComplianceReminderNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence requirement overdue.'.format(settings.RIA_NAME)
+    subject = 'Licence/Permit requirement overdue.'
     html_template = 'mooringlicensing/emails/send_reminder_notification.html'
     txt_template = 'mooringlicensing/emails/send_reminder_notification.txt'
+
 
 class ComplianceInternalReminderNotificationEmail(TemplateEmailBase):
     subject = 'A Compliance with requirements has passed the due date.'
     html_template = 'mooringlicensing/emails/send_internal_reminder_notification.html'
     txt_template = 'mooringlicensing/emails/send_internal_reminder_notification.txt'
 
+
 class ComplianceDueNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence requirement due.'.format(settings.RIA_NAME)
+    subject = 'Licence/Permit requirement due'
     html_template = 'mooringlicensing/emails/send_due_notification.html'
     txt_template = 'mooringlicensing/emails/send_due_notification.txt'
+
 
 class ComplianceInternalDueNotificationEmail(TemplateEmailBase):
     subject = 'A Compliance with requirements is due for submission.'
     html_template = 'mooringlicensing/emails/send_internal_due_notification.html'
     txt_template = 'mooringlicensing/emails/send_internal_due_notification.txt'
+
 
 def send_amendment_email_notification(amendment_request, request, compliance, is_test=False):
     email = ComplianceAmendmentRequestSendNotificationEmail()

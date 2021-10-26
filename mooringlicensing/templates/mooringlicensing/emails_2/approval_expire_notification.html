@@ -1,0 +1,8 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+    <p>Please be aware that your {{ approval.child_obj.description }}: {{ approval.lodgement_number }} expired on {{ approval.expiry_date }}</p>
+    <p>To apply for a new {{ approval.child_obj.description }} please click <a href="{{url}}">here</a></p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}
