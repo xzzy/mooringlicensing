@@ -257,6 +257,14 @@ export default {
               return this.proposal.application_type_code;
           }
       },
+      amendmentOrRenewal: function(){
+          let amendRenew=false;
+          //if (this.proposal && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) 
+          if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new'){
+              amendRenew=true;
+          }
+          return amendRenew;
+      },
       /*
       annualAdmissionApplication: function() {
           let retVal = false;
@@ -365,6 +373,9 @@ export default {
             if (this.$refs.annual_admission_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
+            }
+            if(this.amendmentOrRenewal && this.$refs.annual_admission_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
             }
         // AUA
         } else if (this.$refs.authorised_user_application) {
