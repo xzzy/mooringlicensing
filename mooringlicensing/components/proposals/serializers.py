@@ -226,13 +226,14 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         read_only_fields=('documents',)
 
     def get_previous_application_vessel_details_obj(self, obj):
-        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
-                obj.previous_application.vessel_details and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        #if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
+        if (obj.previous_application and obj.previous_application.vessel_details):
             return VesselDetailsSerializer(obj.previous_application.vessel_details).data
 
     def get_previous_application_vessel_ownership_obj(self, obj):
-        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
-                obj.previous_application.vessel_ownership and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        #if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
+         #       obj.previous_application.vessel_ownership and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        if (obj.previous_application and obj.previous_application.vessel_details):
             return VesselOwnershipSerializer(obj.previous_application.vessel_ownership).data
 
     def get_authorised_user_moorings_str(self, obj):
