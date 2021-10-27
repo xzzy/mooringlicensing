@@ -79,6 +79,7 @@
                   :readonly="readonly"
                   :is_internal="is_internal"
                   @updateVesselLength="updateVesselLength"
+                  @vesselChanged="vesselChanged"
                   />
               </div>
               <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
@@ -87,6 +88,7 @@
                   id="mooring" 
                   ref="mooring"
                   :readonly="readonly"
+                  @mooringPreferenceChanged="mooringPreferenceChanged"
                   />
               </div>
               <div class="tab-pane fade" id="pills-confirm" role="tabpanel" aria-labelledby="pills-confirm-tab">
@@ -225,6 +227,12 @@
             },
         },
         methods:{
+            vesselChanged: async function(vesselChanged) {
+                await this.$emit("vesselChanged", vesselChanged);
+            },
+            mooringPreferenceChanged: async function(preferenceChanged) {
+                await this.$emit("mooringPreferenceChanged", preferenceChanged);
+            },
             updateVesselLength: function(length) {
                 let higherCategory = false;
                 if (this.is_external && this.proposal) {
