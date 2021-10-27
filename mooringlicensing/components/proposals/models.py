@@ -1113,31 +1113,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-                if self.previous_application:
-                    approval_compliances = Compliance.objects.filter(
-                        approval=self.approval,
-                        proposal=self.previous_application,
-                        processing_status='future'
-                    )
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
-                    # Log creation
-                    # Generate the document
-                    self.generate_compliances(approval, request)
-                    # send the doc and log in approval and org
-                else:
-                    # Generate the document
-                    # Delete the future compliances if Approval is reissued and generate the compliances again.
-                    approval_compliances = Compliance.objects.filter(
-                        approval=approval,
-                        proposal=self,
-                        processing_status='future'
-                    )
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
-                    self.generate_compliances(approval, request)
+                target_proposal = self.previous_application if self.previous_application else self
+                approval_compliances = Compliance.objects.filter(
+                    approval=self.approval,
+                    proposal=target_proposal,
+                    processing_status='future',
+                )
+                approval_compliances.delete()
+                self.generate_compliances(approval, request)
 
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_UPDATE_APPROVAL_.format(self.id), request)
@@ -2285,28 +2268,36 @@ class AuthorisedUserApplication(Proposal):
         if request:
             # Generate compliances
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-            if self.previous_application:
-                approval_compliances = Compliance.objects.filter(approval=self.approval,
-                                                                 proposal=self.previous_application,
-                                                                 processing_status='future')
-                if approval_compliances:
-                    for c in approval_compliances:
-                        c.delete()
-                # Log creation
-                # Generate the document
-                # approval.generate_doc(request.user)
-                self.generate_compliances(approval, request)
-                # send the doc and log in approval and org
-            else:
-                # Generate the document
-                # approval.generate_doc(request.user)
-                # Delete the future compliances if Approval is reissued and generate the compliances again.
-                approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
-                                                                 processing_status='future')
-                if approval_compliances:
-                    for c in approval_compliances:
-                        c.delete()
-                self.generate_compliances(approval, request)
+            target_proposal = self.previous_application if self.previous_application else self
+            approval_compliances = Compliance.objects.filter(
+                approval=self.approval,
+                proposal=target_proposal,
+                processing_status='future',
+            )
+            approval_compliances.delete()
+            self.generate_compliances(approval, request)
+#            if self.previous_application:
+#                approval_compliances = Compliance.objects.filter(approval=self.approval,
+#                                                                 proposal=self.previous_application,
+#                                                                 processing_status='future')
+#                if approval_compliances:
+#                    for c in approval_compliances:
+#                        c.delete()
+#                # Log creation
+#                # Generate the document
+#                # approval.generate_doc(request.user)
+#                self.generate_compliances(approval, request)
+#                # send the doc and log in approval and org
+#            else:
+#                # Generate the document
+#                # approval.generate_doc(request.user)
+#                # Delete the future compliances if Approval is reissued and generate the compliances again.
+#                approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+#                                                                 processing_status='future')
+#                if approval_compliances:
+#                    for c in approval_compliances:
+#                        c.delete()
+#                self.generate_compliances(approval, request)
 
         # always reset this flag
         approval.renewal_sent = False
@@ -2659,26 +2650,35 @@ class MooringLicenceApplication(Proposal):
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                if self.previous_application:
-                    approval_compliances = Compliance.objects.filter(approval=self.approval,
-                                                                     proposal=self.previous_application,
-                                                                     processing_status='future')
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
-                    # Log creation
-                    # Generate the document
-                    self.generate_compliances(approval, request)
-                    # send the doc and log in approval and org
-                else:
-                    # Generate the document
-                    # Delete the future compliances if Approval is reissued and generate the compliances again.
-                    approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
-                                                                     processing_status='future')
-                    if approval_compliances:
-                        for c in approval_compliances:
-                            c.delete()
-                    self.generate_compliances(approval, request)
+                target_proposal = self.previous_application if self.previous_application else self
+                approval_compliances = Compliance.objects.filter(
+                    approval=self.approval,
+                    proposal=target_proposal,
+                    processing_status='future',
+                )
+                approval_compliances.delete()
+                self.generate_compliances(approval, request)
+
+            #                if self.previous_application:
+#                    approval_compliances = Compliance.objects.filter(approval=self.approval,
+#                                                                     proposal=self.previous_application,
+#                                                                     processing_status='future')
+#                    if approval_compliances:
+#                        for c in approval_compliances:
+#                            c.delete()
+#                    # Log creation
+#                    # Generate the document
+#                    self.generate_compliances(approval, request)
+#                    # send the doc and log in approval and org
+#                else:
+#                    # Generate the document
+#                    # Delete the future compliances if Approval is reissued and generate the compliances again.
+#                    approval_compliances = Compliance.objects.filter(approval=approval, proposal=self,
+#                                                                     processing_status='future')
+#                    if approval_compliances:
+#                        for c in approval_compliances:
+#                            c.delete()
+#                    self.generate_compliances(approval, request)
 
             mooring.log_user_action(
                     MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
