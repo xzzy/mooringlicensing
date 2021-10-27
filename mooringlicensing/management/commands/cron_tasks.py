@@ -38,13 +38,13 @@ class Command(BaseCommand):
         #subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True)
         subprocess.call('python manage_ml.py export_and_email_sticker_data' + stdout_redirect, shell=True)
         subprocess.call('python manage_ml.py import_sticker_data' + stdout_redirect, shell=True)
-        subprocess.call('python manage_ml.py export_to_mooring_booking' + stdout_redirect, shell=True)
 
         logger.info('Command {} completed'.format(__name__))
         self.send_email()
 
     def send_email(self):
-        email_instance = env('EMAIL_INSTANCE','DEV')
+        #email_instance = env('EMAIL_INSTANCE','DEV')
+        email_instance = settings.EMAIL_INSTANCE
         log_txt = Path(LOGFILE).read_text()
         subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
         body = ''
