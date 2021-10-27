@@ -610,7 +610,6 @@ export default {
 
             let vm = this;
             if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
-                console.log('0')
                 vm.checkAssessorData();
                 let formData = new FormData(vm.form);
                 let data = {'status': status, 'approver_comment': vm.approver_comment}
@@ -640,10 +639,8 @@ export default {
             }
 
             //if approver is pushing back proposal to Assessor then navigate the approver back to dashboard page
-            if(vm.proposal.processing_status == 'With Approver' && (status == 'with_assessor_requirements' || status=='with_assessor')) {
+            else if(vm.proposal.processing_status == 'With Approver' && (status == 'with_assessor_requirements' || status=='with_assessor')) {
                 let data = {'status': status, 'approver_comment': vm.approver_comment}
-
-                console.log('1')
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')),JSON.stringify(data),{
                     emulateJSON:true,
                 })
@@ -668,8 +665,6 @@ export default {
                 });
             } else {
                 let data = {'status': status, 'approver_comment': vm.approver_comment}
-
-                console.log('2')
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')), JSON.stringify(data),{
                     emulateJSON:true,
                 })
