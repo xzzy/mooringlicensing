@@ -290,16 +290,22 @@ from '@/utils/hooks'
               type: Boolean,
             },
         },
-        /*
         watch: {
+            vessel: {
+                handler: async function() {
+                    await this.vesselChanged();
+                },
+                deep: true
+            },
+            /*
             individualOwner: async function() {
                 if (this.individualOwner) {
                     console.log("watch indiv")
                     await this.retrieveIndividualOwner();
                 }
             },
+            */
         },
-        */
         computed: {
             vesselLength: function() {
                 let length = 0;
@@ -503,7 +509,8 @@ from '@/utils/hooks'
                         vesselChanged = true;
                     }
                 });
-                return vesselChanged;
+                this.$emit("vesselChanged", vesselChanged)
+                //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
                 this.temporary_document_collection_id = temp_doc_id;
