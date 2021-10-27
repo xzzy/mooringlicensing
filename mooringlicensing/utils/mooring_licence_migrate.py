@@ -18,7 +18,7 @@ from mooringlicensing.components.proposals.models import (
     Mooring,
     MooringBay,
 )
-from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
+from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence, VesselOwnershipOnApproval
 
 
 class MooringLicenceMigration(object):
@@ -313,6 +313,10 @@ class MooringLicenceMigration(object):
                     proposal.allocated_mooring.mooring_licence = approval
                     proposal.allocated_mooring.save()
 
+                    vooa = VesselOwnershipOnApproval.objects.create(
+                        approval=approval,
+                        vessel_ownership=vessel_ownership,
+                    )
 #                    moa = MooringOnApproval.objects.create(
 #                        approval=approval,
 #                        mooring=mooring,
