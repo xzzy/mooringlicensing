@@ -198,9 +198,11 @@ export default {
       disableSubmit: function() {
           let disable = false;
           if (this.proposal.proposal_type.code ==='amendment') {
-              if (['aaa', ].includes(this.proposal.application_type_code) && !this.vesselChanged) {
+              if (['aaa', 'mla'].includes(this.proposal.application_type_code) && !this.vesselChanged) {
                   disable = true;
               } else if (this.proposal.application_type_code === 'wla' && !this.vesselChanged && !this.mooringPreferenceChanged) {
+                  disable = true;
+              } else if (this.proposal.application_type_code === 'aua' && !this.vesselChanged && !this.mooringOptionsChanged) {
                   disable = true;
               }
           }
