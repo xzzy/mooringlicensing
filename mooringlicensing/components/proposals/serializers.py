@@ -516,8 +516,11 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
+        ignore_insurance_check=self.context.get("ignore_insurance_check")
         if self.context.get("action") == 'submit':
-            if not data.get("insurance_choice"):
+            if ignore_insurance_check:
+                pass 
+            elif not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
