@@ -20,7 +20,7 @@ class Command(BaseCommand):
         if approvals_to_export:
             errors = []
             updates = []
-            approvals_to_process = approvals_to_export[:10]
+            approvals_to_process = approvals_to_export[:30]
             for approval in approvals_to_process:
                 approval_errors, approval_updates = export_to_mooring_booking(approval.id)
                 errors.extend(approval_errors)
