@@ -37,5 +37,6 @@ class Command(BaseCommand):
                 #reply_to=reply_to, 
                 headers={'System-Environment': email_instance}
                 )
+        msg.send()
         #send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt,)
 
