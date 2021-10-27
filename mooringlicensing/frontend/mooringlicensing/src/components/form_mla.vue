@@ -79,6 +79,7 @@
                   :readonly="readonlyMLA"
                   :is_internal="is_internal"
                   @updateVesselLength="updateVesselLength"
+                  @vesselChanged="vesselChanged"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -219,6 +220,9 @@
             */
         },
         methods:{
+            vesselChanged: async function(vesselChanged) {
+                await this.$emit("vesselChanged", vesselChanged);
+            },
             updateVesselLength: function(length) {
                 let higherCategory = false;
                 if (this.is_external && this.proposal) {
