@@ -360,7 +360,7 @@ def export_to_mooring_booking(approval_id):
                 approval.export_to_mooring_booking = False
                 approval.save()
             else:
-                errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
+                errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id, resp.text))
         elif approval and type(approval.child_obj) == MooringLicence:
             for vessel_ownership in approval.child_obj.vessel_ownership_list:
                 myobj = {
@@ -377,7 +377,7 @@ def export_to_mooring_booking(approval_id):
                 if resp_dict.get("status") == 200:
                     updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
                 else:
-                    errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
+                    errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, vessel_ownership.vessel.id, resp.text))
             if not errors:
                 approval.export_to_mooring_booking = False
                 approval.save()
