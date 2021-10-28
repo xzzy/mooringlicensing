@@ -180,8 +180,11 @@ def process_sticker_printing_response():
 
                 # Retrieve the first worksheet
                 ws = wb.worksheets[0]
+            except IndexError as e:
+                logger.warning('No worksheet found in the file: {}'.format(response._file.name))
+                continue
             except Exception as e:
-                err_msg = 'Error loading the file/worksheet {}'.format(response._file.name)
+                err_msg = 'Error loading the file/worksheet: {}'.format(response._file.name)
                 logger.exception('{}\n{}'.format(err_msg, str(e)))
                 errors.append(err_msg)
                 response.no_errors_when_process = False
