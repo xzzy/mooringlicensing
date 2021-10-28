@@ -48,11 +48,11 @@ class Command(BaseCommand):
         queries &= Q(date_invited__lt=boundary_date)
 
         # For debug
-        params = options.get('params')
-        debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        approval_lodgement_number = params.get('expire_mooring_licence_application_due_to_no_submit_lodgement_number', 'no-lodgement-number')
-        if debug:
-            queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
+        # params = options.get('params')
+        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
+        # approval_lodgement_number = params.get('expire_mooring_licence_application_due_to_no_submit_lodgement_number', 'no-lodgement-number')
+        # if debug:
+        #     queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
 
         for a in MooringLicenceApplication.objects.filter(queries):
             try:
