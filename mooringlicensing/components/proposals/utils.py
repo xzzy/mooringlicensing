@@ -426,7 +426,8 @@ def save_proponent_data_mla(instance, request, viewset):
             instance, 
             data=proposal_data, 
             context={
-                "action": viewset.action
+                "action": viewset.action,
+                "ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
     )
     serializer.is_valid(raise_exception=True)

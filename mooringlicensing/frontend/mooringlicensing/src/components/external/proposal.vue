@@ -478,6 +478,9 @@ export default {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
             }
+            if(this.amendmentOrRenewal && this.$refs.mooring_licence_application.keep_current_vessel){
+              payload.ignore_insurance_check=true;
+            }
         }
 
         //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
