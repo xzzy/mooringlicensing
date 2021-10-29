@@ -21,38 +21,36 @@ class Command(BaseCommand):
         subprocess.call('cat /dev/null > {}'.format(LOGFILE), shell=True)  # empty the log file
 
         logger.info('Running command {}'.format(__name__))
-        subprocess.call('python manage_co.py update_compliance_status' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py send_compliance_reminder' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py send_endorser_reminder' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py send_vessel_nominate_reminder' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py cancel_approvals_due_to_no_vessels_nominated' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py send_waiting_list_application_submit_due_reminder' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py expire_mooring_licence_application_due_to_no_documents' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py expire_mooring_licence_application_due_to_no_submit' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py update_approval_status' + stdout_redirect, shell=True)
-        subprocess.call('python manage_co.py approval_renewal_notices' + stdout_redirect, shell=True)
-        #subprocess.call('python manage_co.py eclass_expiry_notices' + stdout_redirect, shell=True)
-        #subprocess.call('python manage_co.py eclass_renewal_notices' + stdout_redirect, shell=True)
-        #subprocess.call('python manage_co.py monthly_invoices' + stdout_redirect, shell=True) 
+        subprocess.call('python manage_ml.py update_compliance_status' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py send_compliance_reminder' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py send_endorser_reminder' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py send_vessel_nominate_reminder' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py cancel_approvals_due_to_no_vessels_nominated' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py send_waiting_list_application_submit_due_reminder' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py expire_mooring_licence_application_due_to_no_documents' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py expire_mooring_licence_application_due_to_no_submit' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py update_approval_status' + stdout_redirect, shell=True)
+        subprocess.call('python manage_ml.py approval_renewal_notices' + stdout_redirect, shell=True)
         subprocess.call('python manage_ml.py import_mooring_bookings_data' + stdout_redirect, shell=True) 
-        #subprocess.call('python manage_ml.py reset_waiting_list_allocations' + stdout_redirect, shell=True)
         subprocess.call('python manage_ml.py export_and_email_sticker_data' + stdout_redirect, shell=True)
         subprocess.call('python manage_ml.py import_sticker_data' + stdout_redirect, shell=True)
-        subprocess.call('python manage_ml.py export_to_mooring_booking' + stdout_redirect, shell=True)
 
         logger.info('Command {} completed'.format(__name__))
         self.send_email()
 
     def send_email(self):
-        email_instance = env('EMAIL_INSTANCE','DEV')
+        #email_instance = env('EMAIL_INSTANCE','DEV')
+        email_instance = settings.EMAIL_INSTANCE
         log_txt = Path(LOGFILE).read_text()
         subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
         body = ''
         to = settings.CRON_NOTIFICATION_EMAIL if isinstance(settings.NOTIFICATION_EMAIL, list) else [settings.CRON_NOTIFICATION_EMAIL]
-        msg = EmailMultiAlternatives(self.subject, log_txt, settings.EMAIL_FROM, to,
+        msg = EmailMultiAlternatives(subject, log_txt, settings.EMAIL_FROM, to,
                 #attachments=_attachments, cc=cc, bcc=bcc, 
                 #reply_to=reply_to, 
                 headers={'System-Environment': email_instance}
                 )
+        msg.attach_alternative(log_txt, "text/html")
+        msg.send()
         #send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt,)
 

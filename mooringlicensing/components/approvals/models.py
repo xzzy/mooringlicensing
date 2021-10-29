@@ -596,13 +596,13 @@ class Approval(RevisionedMixin):
         except Exception as e:
             raise e
 
-    def generate_doc(self, user, preview=False):
+    def generate_doc(self, preview=False):
 
         if preview:
             from mooringlicensing.doctopdf import create_approval_doc_bytes
             return create_approval_doc_bytes(self)
 
-        self.licence_document = create_approval_doc(self, self.current_proposal, None, user)  # Update the attribute to the latest doc
+        self.licence_document = create_approval_doc(self)  # Update the attribute to the latest doc
 
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
@@ -1015,7 +1015,7 @@ class AuthorisedUserPermit(Approval):
             m['name'] = mooring.name
             m['licensee_full_name'] = mooring.mooring_licence.submitter.get_full_name()
             m['licensee_email'] = mooring.mooring_licence.submitter.email
-            m['licensee_phone'] = ','.join(numbers)
+            m['licensee_phone'] = ', '.join(numbers)
             moorings.append(m)
 
         context = {

@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
 
 from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email, _log_user_email
 from mooringlicensing.components.compliances.email import _log_compliance_email
@@ -214,6 +215,8 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
     # in send() method, self.html_template is rendered by context and attached as alternative
     # In other words, self.html_template should be full html-email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
+    if not msg:
+        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
     sender = get_user_as_email_user(msg.from_email)
     log_proposal_email(msg, proposal, sender, attachments)
 
@@ -503,8 +506,8 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
     # 12 email to mooring licence applicant when mooring licence application is not submitted within configurable
     #    number of days after being invited to apply for a mooring licence
-    html_template = 'mooringlicensing/emails_2/email_12.html',
-    txt_template = 'mooringlicensing/emails_2/email_12.txt',
+    html_template = 'mooringlicensing/emails_2/email_12.html'
+    txt_template = 'mooringlicensing/emails_2/email_12.txt'
 
     email = TemplateEmailBase(
         subject='Lapsed: Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
@@ -536,8 +539,8 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
     # 13
     # Expire mooring licence application if additional documents are not submitted within a configurable number of days
     # from the initial submit of the mooring licence application and email to inform the applicant
-    html_template = 'mooringlicensing/emails_2/email_13.html',
-    txt_template = 'mooringlicensing/emails_2/email_13.txt',
+    html_template = 'mooringlicensing/emails_2/email_13.html'
+    txt_template = 'mooringlicensing/emails_2/email_13.txt'
 
     email = TemplateEmailBase(
         subject='Lapsed: Offer for Rottnest Island Mooring Site Licence - Rottnest Island Authority',
@@ -979,7 +982,7 @@ def send_aua_approved_or_declined_email_amendment_no_payment(proposal, decision,
     email = TemplateEmailBase(
         subject=subject,
         html_template='mooringlicensing/emails_2/email_21.html',
-        txt_template = 'mooringlicensing/emails_2/email_21.txt',
+        txt_template='mooringlicensing/emails_2/email_21.txt',
     )
 
     context = {
