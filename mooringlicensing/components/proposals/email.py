@@ -882,7 +882,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
     attachments = []
     payment_url = ''
     html_template = 'mooringlicensing/emails_2/'
-    txt_template = 'mooringlicensing/emails_2/',
+    txt_template = 'mooringlicensing/emails_2/'
 
     if decision == 'approved':
         # for payment

@@ -335,9 +335,17 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             app_fee = obj.previous_application.application_fees.first()
             for fee_item in app_fee.fee_items.all():
                 vessel_size_category = fee_item.vessel_size_category
+                #import ipdb; ipdb.set_trace()
                 larger_group = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(vessel_size_category)
-                if (not max_length and larger_group) or (max_length and larger_group.start_size < max_length):
-                    max_length = larger_group.start_size
+                if larger_group:
+                    if not max_length or larger_group.start_size < max_length:
+                        max_length = larger_group.start_size
+            # no larger categories
+            if not max_length:
+                for fee_item in app_fee.fee_items.all():
+                    vessel_size_category = fee_item.vessel_size_category
+                    if not max_length or vessel_size_category.start_size < max_length:
+                        max_length = vessel_size_category.start_size
         return max_length
 
 
@@ -544,11 +552,15 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
+        ignore_insurance_check=self.context.get("ignore_insurance_check")
         if self.context.get("action") == 'submit':
-            if not data.get("insurance_choice"):
-                custom_errors["Insurance Choice"] = "You must make an insurance selection"
-            if not self.instance.insurance_certificate_documents.all():
-                custom_errors["Insurance Certificate"] = "Please attach"
+            if ignore_insurance_check:
+                pass
+            else:
+                if not data.get("insurance_choice"):
+                    custom_errors["Insurance Choice"] = "You must make an insurance selection"
+                if not self.instance.insurance_certificate_documents.all():
+                    custom_errors["Insurance Certificate"] = "Please attach"
             # electoral roll validation
             if 'silent_elector' not in data.keys():
                 custom_errors["Electoral Roll"] = "You must complete this section"
