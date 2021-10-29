@@ -361,7 +361,7 @@ class AuthUserPermitMigration(object):
                         mooring=mooring,
                         sticker=None,
                         site_licensee=site_licensee,
-                        end_date=expiry_date
+                        #end_date=expiry_date
                     )
 
                     try:
