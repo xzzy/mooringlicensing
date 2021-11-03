@@ -17,7 +17,7 @@
                   Vessel
                 </a>
               </li>
-              <li class="nav-item">
+              <li v-if="showInsuranceTab" class="nav-item">
                 <a class="nav-link" id="pills-insurance-tab" data-toggle="pill" href="#pills-insurance" role="tab" aria-controls="pills-insurance" aria-selected="false">
                   Insurance
                 </a>
@@ -209,6 +209,13 @@
                 }
                 return text;
             },
+            showInsuranceTab:function(){
+                let show=true;
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new' && this.keep_current_vessel){
+                    show=false;
+                }
+                return show;
+            },
             /*
             showElectoralRoll: function() {
                 let show = false;
@@ -228,7 +235,8 @@
                 if (this.is_external && this.proposal) {
                     if (!this.proposal.previous_application_id) {
                         // new application
-                        higherCategory = true;
+                        //higherCategory = true;
+                        //pass
                     } else if (this.proposal.max_vessel_length_with_no_payment && 
                         this.proposal.max_vessel_length_with_no_payment <= length) {
                         // vessel length is in higher category

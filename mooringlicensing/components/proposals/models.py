@@ -2182,7 +2182,6 @@ class AuthorisedUserApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
-
         mooring_preference = self.get_mooring_authorisation_preference()
 
         if mooring_preference.lower() != 'ria':
