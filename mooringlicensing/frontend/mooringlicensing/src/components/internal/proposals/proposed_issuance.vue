@@ -7,47 +7,6 @@
                         <!-- <alert v-if="isApprovalLevelDocument" type="warning"><strong>{{warningString}}</strong></alert> -->
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
-                            <div v-show="showProposedStartEndDate" class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Start Date</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Start Date</label>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        <div class="input-group date" ref="start_date" style="width: 70%;">
-                                            <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="approval.start_date">
-                                            <span class="input-group-addon">
-                                                <span class="glyphicon glyphicon-calendar"></span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row" v-show="showstartDateError">
-                                    <alert  class="col-sm-12" type="danger"><strong>{{startDateErrorString}}</strong></alert>
-
-                                </div>
-                            </div>
-                            <div v-show="showProposedStartEndDate" class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Expiry Date</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Expiry Date</label>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        <div class="input-group date" ref="due_date" style="width: 70%;">
-                                            <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="approval.expiry_date" :readonly="is_amendment">
-                                            <span class="input-group-addon">
-                                                <span class="glyphicon glyphicon-calendar"></span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row" v-show="showtoDateError">
-                                    <alert  class="col-sm-12" type="danger"><strong>{{toDateErrorString}}</strong></alert>
-
-                                </div>
-
-                            </div>
                             <div class="form-group" v-if="displayBayField">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -532,10 +491,6 @@ export default {
         },
         preview_licence_url: function() {
           return (this.proposal_id) ? `/preview/licence-pdf/${this.proposal_id}` : '';
-        },
-        showProposedStartEndDate: function(){
-            // For mooringlicensing, we don't neeed 'start date' and 'expiry date' at all...?
-            return false
         },
     },
     methods:{
