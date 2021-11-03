@@ -459,6 +459,9 @@ export default {
                     payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
             }
+            if(this.amendmentOrRenewal && this.$refs.authorised_user_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
+            }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
             //this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();

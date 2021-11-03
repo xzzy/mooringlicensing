@@ -235,7 +235,8 @@
                 if (this.is_external && this.proposal) {
                     if (!this.proposal.previous_application_id) {
                         // new application
-                        higherCategory = true;
+                        //higherCategory = true;
+                        //pass
                     } else if (this.proposal.max_vessel_length_with_no_payment && 
                         this.proposal.max_vessel_length_with_no_payment <= length) {
                         // vessel length is in higher category

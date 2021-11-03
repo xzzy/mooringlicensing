@@ -1467,7 +1467,6 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
         html_template='mooringlicensing/emails/send_endorsement_of_aua.html',
         txt_template='mooringlicensing/emails/send_endorsement_of_aua.txt',
     )
-
     url = settings.SITE_URL if settings.SITE_URL else ''
     endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.uuid})
     decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})

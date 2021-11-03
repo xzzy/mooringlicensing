@@ -453,13 +453,13 @@ def save_proponent_data_aua(instance, request, viewset):
             instance, 
             data=proposal_data, 
             context={
-                "action": viewset.action
+                "action": viewset.action,
+                "ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
     )
     serializer.is_valid(raise_exception=True)
     #instance = serializer.save()
     serializer.save()
-
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
 
