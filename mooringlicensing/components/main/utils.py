@@ -353,6 +353,9 @@ def export_to_mooring_booking(approval_id):
                     'status' : status,
                     }
             resp = requests.post(url, data = myobj)
+            if not resp or not resp.text:
+                print("Server unavailable")
+                raise Exception("Server unavailable")
             resp_dict = json.loads(resp.text)
             #logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
             if resp_dict.get("status") == 200:
@@ -372,6 +375,9 @@ def export_to_mooring_booking(approval_id):
                         'status' : status,
                         }
                 resp = requests.post(url, data = myobj)
+                if not resp or not resp.text:
+                    print("Server unavailable")
+                    raise Exception("Server unavailable")
                 resp_dict = json.loads(resp.text)
                 #logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
                 if resp_dict.get("status") == 200:
