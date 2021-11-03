@@ -595,11 +595,15 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         print("validate data")
         print(data)
         custom_errors = {}
+        ignore_insurance_check=self.context.get("ignore_insurance_check")
         if self.context.get("action") == 'submit':
-            if not data.get("insurance_choice"):
-                custom_errors["Insurance Choice"] = "You must make an insurance selection"
-            if not self.instance.insurance_certificate_documents.all():
-                custom_errors["Insurance Certificate"] = "Please attach"
+            if ignore_insurance_check:
+                pass
+            else:
+                if not data.get("insurance_choice"):
+                    custom_errors["Insurance Choice"] = "You must make an insurance selection"
+                if not self.instance.insurance_certificate_documents.all():
+                    custom_errors["Insurance Certificate"] = "Please attach"
             if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
             if data.get("mooring_authorisation_preference") == 'site_licensee':
