@@ -18,7 +18,7 @@
                   Vessel
                 </a>
               </li>
-              <li class="nav-item">
+              <li v-if="showInsuranceTab" class="nav-item">
                 <a class="nav-link" id="pills-insurance-tab" data-toggle="pill" href="#pills-insurance" role="tab" aria-controls="pills-insurance" aria-selected="false">
                   Insurance
                 </a>
@@ -190,6 +190,14 @@
                     text = this.proposal.proposal_type.description;
                 }
                 return text;
+            },
+            showInsuranceTab: function(){
+                let show=true;
+                if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new' && this.keep_current_vessel)
+                {
+                    show=false;
+                }
+                return show;
             },
         },
         methods:{
