@@ -1,6 +1,6 @@
 import traceback
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
-from ledger.payments.utils import oracle_parser
+from ledger.payments.utils import oracle_parser_on_invoice
 from django.conf import settings
 from django.db import transaction
 from wsgiref.util import FileWrapper
@@ -88,7 +88,7 @@ class BookingSettlementReportView(views.APIView):
 
 def oracle_integration(date, override):
     system = PAYMENT_SYSTEM_PREFIX
-    oracle_codes = oracle_parser(date, system, SYSTEM_NAME, override=override)
+    oracle_codes = oracle_parser_on_invoice(date, system, SYSTEM_NAME, override=override)
 
 
 class OracleJob(views.APIView):
