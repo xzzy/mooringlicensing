@@ -608,8 +608,8 @@ def send_endorser_reminder_email(proposal, request=None):
     )
 
     url = settings.SITE_URL if settings.SITE_URL else ''
-    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.child_obj.uuid})
-    decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.child_obj.uuid})
+    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.uuid})
+    decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
     proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     try:
