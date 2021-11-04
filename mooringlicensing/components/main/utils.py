@@ -384,7 +384,8 @@ def export_to_mooring_booking(approval_id):
                     updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
                 else:
                     errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, vessel_ownership.vessel.id, resp.text))
-            if not errors:
+            # do not mark mooring licences without vessels as exported
+            if not errors and approval.child_obj.vessel_ownership_list:
                 approval.export_to_mooring_booking = False
                 approval.save()
         return errors, updates
