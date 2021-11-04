@@ -2182,7 +2182,6 @@ class AuthorisedUserApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
-
         mooring_preference = self.get_mooring_authorisation_preference()
 
         if mooring_preference.lower() != 'ria':
@@ -2265,6 +2264,9 @@ class AuthorisedUserApplication(Proposal):
                     if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
                         moa2.end_date = current_datetime.date()
                         moa2.save()
+                    elif moa1.get("id") == moa2.id and moa1.get("checked") and moa2.end_date:
+                        moa2.end_date = None
+                        moa2.save()
         if request:
             # Generate compliances
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
@@ -2310,7 +2312,7 @@ class AuthorisedUserApplication(Proposal):
         self.save()
 
         # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
-        mls_to_be_emailed = None
+        mls_to_be_emailed = []
         from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
         new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True)  # New moa doesn't have stickers.
         for new_moa in new_moas:
@@ -2645,6 +2647,9 @@ class MooringLicenceApplication(Proposal):
                         # convert proposed_issuance_approval to an end_date
                         if vo1.get("id") == vo2.vessel_ownership.id and not vo1.get("checked") and not vo2.end_date:
                             vo2.end_date = current_datetime.date()
+                            vo2.save()
+                        elif vo1.get("id") == vo2.vessel_ownership.id and vo1.get("checked") and vo2.end_date:
+                            vo2.end_date = None
                             vo2.save()
             if request:
                 # Generate compliances
