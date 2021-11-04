@@ -2264,6 +2264,9 @@ class AuthorisedUserApplication(Proposal):
                     if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
                         moa2.end_date = current_datetime.date()
                         moa2.save()
+                    elif moa1.get("id") == moa2.id and moa1.get("checked") and moa2.end_date:
+                        moa2.end_date = None
+                        moa2.save()
         if request:
             # Generate compliances
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
@@ -2644,6 +2647,9 @@ class MooringLicenceApplication(Proposal):
                         # convert proposed_issuance_approval to an end_date
                         if vo1.get("id") == vo2.vessel_ownership.id and not vo1.get("checked") and not vo2.end_date:
                             vo2.end_date = current_datetime.date()
+                            vo2.save()
+                        elif vo1.get("id") == vo2.vessel_ownership.id and vo1.get("checked") and vo2.end_date:
+                            vo2.end_date = None
                             vo2.save()
             if request:
                 # Generate compliances
