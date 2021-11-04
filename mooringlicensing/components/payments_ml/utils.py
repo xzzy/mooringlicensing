@@ -354,3 +354,8 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
     )
     return response
 
+
+def oracle_integration(date,override):
+    #system = '0517'
+    oracle_codes = oracle_parser(date, settings.PAYMENT_SYSTEM_ID, 'Disturbance Approval System', override=override)
+

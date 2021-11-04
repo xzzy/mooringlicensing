@@ -75,8 +75,7 @@ from mooringlicensing.components.proposals.serializers import (
 )
 from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
-from mooringlicensing.components.approvals.email import send_vessel_nomination_notification_main, \
-    send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, \
+from mooringlicensing.components.approvals.email import send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, \
     send_reissue_aap_after_sale_recorded_email, send_reissue_aup_after_sale_recorded_email
 from mooringlicensing.components.approvals.serializers import (
         ApprovalSerializer, 

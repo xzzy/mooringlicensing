@@ -42,6 +42,9 @@
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
+            @mooringPreferenceChanged="updateMooringPreference"
             />
 
             <AnnualAdmissionApplication
@@ -52,6 +55,8 @@
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
@@ -60,6 +65,9 @@
             ref="authorised_user_application"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
+            @changeMooring="updateMooringAuth"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
@@ -69,6 +77,8 @@
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
             :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
             />
 
             <div>
@@ -99,9 +109,17 @@
                                             <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
 
                                             <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
-                                                {{ submit_text() }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                                {{ submitText }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                             </button>
-                                            <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="saveExitProposal || savingProposal"/>
+                                            <input v-else 
+                                            type="button" 
+                                            @click.prevent="submit" 
+                                            class="btn btn-primary" 
+                                            :value="submitText" 
+                                            :disabled="saveExitProposal || savingProposal || disableSubmit"
+                                            id="submitButton"
+                                            :title="disabledSubmitText"
+                                            />
 
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                                         </p>
@@ -158,7 +176,11 @@ export default {
       proposal_parks:null,
       terms_and_conditions_checked: false,
       vesselChanged: false,
+      // AUA
       mooringOptionsChanged: false,
+      // WLA
+      mooringPreferenceChanged: false,
+      submitText: "Submit",
     }
   },
   components: {
@@ -173,6 +195,26 @@ export default {
       */
   },
   computed: {
+      disableSubmit: function() {
+          let disable = false;
+          if (this.proposal.proposal_type.code ==='amendment') {
+              if (['aaa', 'mla'].includes(this.proposal.application_type_code) && !this.vesselChanged) {
+                  disable = true;
+              } else if (this.proposal.application_type_code === 'wla' && !this.vesselChanged && !this.mooringPreferenceChanged) {
+                  disable = true;
+              } else if (this.proposal.application_type_code === 'aua' && !this.vesselChanged && !this.mooringOptionsChanged) {
+                  disable = true;
+              }
+          }
+          return disable;
+      },
+      disabledSubmitText: function() {
+          let text = "";
+          if (this.disableSubmit) {
+              text = "No relevant details have been detected in this amendment application";
+          }
+          return text;
+      },
       autoRenew: function() {
           let renew = false;
           if (!this.vesselChanged && !this.mooringOptionsChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
@@ -252,6 +294,14 @@ export default {
               return this.proposal.application_type_code;
           }
       },
+      amendmentOrRenewal: function(){
+          let amendRenew=false;
+          //if (this.proposal && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) 
+          if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new'){
+              amendRenew=true;
+          }
+          return amendRenew;
+      },
       /*
       annualAdmissionApplication: function() {
           let retVal = false;
@@ -264,6 +314,24 @@ export default {
 
   },
   methods: {
+      /*
+    addEventListeners: function() {
+        const submitButton = document.getElementById("submitButton");
+        console.log(submitButton);
+        submitButton.addEventListener("mouseenter", function(e) {
+            e.target.title = "mouse over"
+        }, false);
+    },
+    */
+    updateMooringAuth: function(changed) {
+        this.mooringOptionsChanged = changed;
+    },
+    updateVesselChanged: function(vesselChanged) {
+        this.vesselChanged = vesselChanged;
+    },
+    updateMooringPreference: function(preferenceChanged) {
+        this.mooringPreferenceChanged = preferenceChanged;
+    },
     proposal_refs:function(){
       if(this.applicationTypeCode == 'wla') {
           return this.$refs.waiting_list_application;
@@ -280,18 +348,22 @@ export default {
       }
       */
     },
-
-    submit_text: function() {
-        let submitText = 'Submit';
+    updateSubmitText: function(submitText) {
+        this.submitText = submitText;
+    },
+      /*
+    set_submit_text: function() {
+        //let submitText = 'Submit';
         if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
             if (this.proposal.fee_paid){
-                submitText = 'Submit';
+                this.submitText = 'Submit';
             } else {
-                submitText = 'Pay / Submit';
+                this.submitText = 'Pay / Submit';
             }
         }
-        return submitText;
+        //return submitText;
     },
+    */
     save_applicant_data:function(){
       if(this.proposal.applicant_type == 'SUB')
       {
@@ -357,12 +429,12 @@ export default {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
             }
+            if(this.amendmentOrRenewal && this.$refs.annual_admission_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
+            }
         // AUA
         } else if (this.$refs.authorised_user_application) {
-            this.vesselChanged = await this.$refs.authorised_user_application.$refs.vessels.vesselChanged();
-            //this.mooringOptionsChanged = await this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringOptionsChanged();
-            this.mooringOptionsChanged = this.$refs.authorised_user_application.change_mooring;
-            //console.log(vesselChanged);
+            //this.mooringOptionsChanged = this.$refs.authorised_user_application.change_mooring;
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                 payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
@@ -387,9 +459,12 @@ export default {
                     payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
             }
+            if(this.amendmentOrRenewal && this.$refs.authorised_user_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
+            }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
-            this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            //this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
             //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
@@ -405,6 +480,9 @@ export default {
             if (this.$refs.mooring_licence_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
+            }
+            if(this.amendmentOrRenewal && this.$refs.mooring_licence_application.keep_current_vessel){
+              payload.ignore_insurance_check=true;
             }
         }
 
@@ -695,11 +773,11 @@ export default {
 
         try {
             await swal({
-                title: this.submit_text() + " Application",
-                text: "Are you sure you want to " + this.submit_text().toLowerCase()+ " this application?",
+                title: this.submitText + " Application",
+                text: "Are you sure you want to " + this.submitText.toLowerCase()+ " this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: this.submit_text()
+                confirmButtonText: this.submitText
             })
         } catch (cancel) {
             this.submitting = false;
@@ -750,6 +828,7 @@ export default {
   mounted: function() {
     let vm = this;
     vm.form = document.forms.new_proposal;
+    //this.addEventListeners();
       /* uncomment later - too annoying while making front end changes
     window.addEventListener('beforeunload', vm.leaving);
     window.addEventListener('onblur', vm.leaving);
