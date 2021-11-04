@@ -178,7 +178,16 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Vessel length</label>
                 <div class="col-sm-2">
-                    <input :readonly="readonly" type="number" min="1" class="form-control" id="vessel_length" placeholder="" v-model="vessel.vessel_details.vessel_length" required=""/>
+                    <input 
+                    :readonly="readonly" 
+                    type="number" 
+                    min="1" 
+                    class="form-control" 
+                    id="vessel_length" 
+                    placeholder="" 
+                    v-model="vessel.vessel_details.vessel_length" 
+                    required=""
+                    @change="emitVesselLength"/>
                 </div>
             </div>
             <!--div class="row form-group">
@@ -281,17 +290,30 @@ from '@/utils/hooks'
               type: Boolean,
             },
         },
-        /*
         watch: {
+            vessel: {
+                handler: async function() {
+                    await this.vesselChanged();
+                },
+                deep: true
+            },
+            /*
             individualOwner: async function() {
                 if (this.individualOwner) {
                     console.log("watch indiv")
                     await this.retrieveIndividualOwner();
                 }
             },
+            */
         },
-        */
         computed: {
+            vesselLength: function() {
+                let length = 0;
+                if (this.vessel && this.vessel.vessel_details && this.vessel.vessel_details.vessel_length) {
+                    length = this.vessel.vessel_details.vessel_length;
+                }
+                return length;
+            },
             hinReadonly: function() {
                 let readonly = true;
                 if (this.proposal && this.proposal.processing_status === 'Draft') {
@@ -452,6 +474,11 @@ from '@/utils/hooks'
             },
         },
         methods:{
+            emitVesselLength: function() {
+                this.$nextTick(() => {
+                    this.$emit("updateVesselLength", this.vesselLength)
+                });
+            },
             vesselChanged: async function() {
                 let vesselChanged = false;
                 await this.$nextTick(() => {
@@ -482,7 +509,8 @@ from '@/utils/hooks'
                         vesselChanged = true;
                     }
                 });
-                return vesselChanged;
+                this.$emit("vesselChanged", vesselChanged)
+                //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
                 this.temporary_document_collection_id = temp_doc_id;

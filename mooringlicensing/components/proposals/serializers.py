@@ -146,6 +146,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     authorised_user_moorings_str = serializers.SerializerMethodField()
     previous_application_vessel_details_obj = serializers.SerializerMethodField()
     previous_application_vessel_ownership_obj = serializers.SerializerMethodField()
+    max_vessel_length_with_no_payment = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -220,17 +221,19 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'temporary_document_collection_id',
                 'previous_application_vessel_details_obj',
                 'previous_application_vessel_ownership_obj',
+                'max_vessel_length_with_no_payment',
                 )
         read_only_fields=('documents',)
 
     def get_previous_application_vessel_details_obj(self, obj):
-        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
-                obj.previous_application.vessel_details and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        #if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
+        if (obj.previous_application and obj.previous_application.vessel_details):
             return VesselDetailsSerializer(obj.previous_application.vessel_details).data
 
     def get_previous_application_vessel_ownership_obj(self, obj):
-        if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
-                obj.previous_application.vessel_ownership and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        #if (type(obj.child_obj) in [AuthorisedUserApplication, MooringLicenceApplication] and obj.previous_application and 
+         #       obj.previous_application.vessel_ownership and obj.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        if (obj.previous_application and obj.previous_application.vessel_details):
             return VesselOwnershipSerializer(obj.previous_application.vessel_ownership).data
 
     def get_authorised_user_moorings_str(self, obj):
@@ -324,6 +327,26 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         else:
             serializer = InvoiceSerializer(invoices, many=True)
             return serializer.data
+
+    def get_max_vessel_length_with_no_payment(self, obj):
+        max_length = 0
+        # no need to specify current proposal type due to previous_application check
+        if obj.previous_application and obj.previous_application.application_fees.count():
+            app_fee = obj.previous_application.application_fees.first()
+            for fee_item in app_fee.fee_items.all():
+                vessel_size_category = fee_item.vessel_size_category
+                #import ipdb; ipdb.set_trace()
+                larger_group = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(vessel_size_category)
+                if larger_group:
+                    if not max_length or larger_group.start_size < max_length:
+                        max_length = larger_group.start_size
+            # no larger categories
+            if not max_length:
+                for fee_item in app_fee.fee_items.all():
+                    vessel_size_category = fee_item.vessel_size_category
+                    if not max_length or vessel_size_category.start_size < max_length:
+                        max_length = vessel_size_category.start_size
+        return max_length
 
 
 class ListProposalSerializer(BaseProposalSerializer):
@@ -502,8 +525,11 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
+        ignore_insurance_check=self.context.get("ignore_insurance_check")
         if self.context.get("action") == 'submit':
-            if not data.get("insurance_choice"):
+            if ignore_insurance_check:
+                pass 
+            elif not data.get("insurance_choice"):
                 custom_errors["Insurance Choice"] = "You must make an insurance selection"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -526,11 +552,15 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
+        ignore_insurance_check=self.context.get("ignore_insurance_check")
         if self.context.get("action") == 'submit':
-            if not data.get("insurance_choice"):
-                custom_errors["Insurance Choice"] = "You must make an insurance selection"
-            if not self.instance.insurance_certificate_documents.all():
-                custom_errors["Insurance Certificate"] = "Please attach"
+            if ignore_insurance_check:
+                pass
+            else:
+                if not data.get("insurance_choice"):
+                    custom_errors["Insurance Choice"] = "You must make an insurance selection"
+                if not self.instance.insurance_certificate_documents.all():
+                    custom_errors["Insurance Certificate"] = "Please attach"
             # electoral roll validation
             if 'silent_elector' not in data.keys():
                 custom_errors["Electoral Roll"] = "You must complete this section"
@@ -565,11 +595,15 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         print("validate data")
         print(data)
         custom_errors = {}
+        ignore_insurance_check=self.context.get("ignore_insurance_check")
         if self.context.get("action") == 'submit':
-            if not data.get("insurance_choice"):
-                custom_errors["Insurance Choice"] = "You must make an insurance selection"
-            if not self.instance.insurance_certificate_documents.all():
-                custom_errors["Insurance Certificate"] = "Please attach"
+            if ignore_insurance_check:
+                pass
+            else:
+                if not data.get("insurance_choice"):
+                    custom_errors["Insurance Choice"] = "You must make an insurance selection"
+                if not self.instance.insurance_certificate_documents.all():
+                    custom_errors["Insurance Certificate"] = "Please attach"
             if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
             if data.get("mooring_authorisation_preference") == 'site_licensee':

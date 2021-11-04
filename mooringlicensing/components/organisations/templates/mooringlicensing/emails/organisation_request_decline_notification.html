@@ -1,7 +1,7 @@
-{% extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{% block content %}
-    <p>Your organisation request has been declined:</p>
+{% block content_body %}
+<p>Your organisation request has been declined:</p>
     <p><strong>Organisation : {{ request.name }}</strong></p>
     <p><strong>ABN : {{ request.abn}}</strong></p>
 {%  endblock %}

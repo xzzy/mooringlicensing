@@ -17,12 +17,12 @@
                   Vessel
                 </a>
               </li>
-              <li class="nav-item">
+              <li v-if="showInsuranceTab" class="nav-item">
                 <a class="nav-link" id="pills-insurance-tab" data-toggle="pill" href="#pills-insurance" role="tab" aria-controls="pills-insurance" aria-selected="false">
                   Insurance
                 </a>
               </li>
-              <li v-if="is_external" class="nav-item" id="li-payment">
+              <li v-if="showPaymentTab" class="nav-item" id="li-payment">
                 <a class="nav-link disabled" id="pills-payment-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-payment" aria-selected="false">
                   Payment
                 </a>
@@ -78,6 +78,8 @@
                   ref="vessels"
                   :readonly="readonlyMLA"
                   :is_internal="is_internal"
+                  @updateVesselLength="updateVesselLength"
+                  @vesselChanged="vesselChanged"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -164,6 +166,7 @@
                 profile: {},
                 uuid: 0,
                 keep_current_vessel: true,
+                showPaymentTab: false,
             }
         },
         components: {
@@ -206,6 +209,13 @@
                 }
                 return text;
             },
+            showInsuranceTab:function(){
+                let show=true;
+                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new' && this.keep_current_vessel){
+                    show=false;
+                }
+                return show;
+            },
             /*
             showElectoralRoll: function() {
                 let show = false;
@@ -217,6 +227,29 @@
             */
         },
         methods:{
+            vesselChanged: async function(vesselChanged) {
+                await this.$emit("vesselChanged", vesselChanged);
+            },
+            updateVesselLength: function(length) {
+                let higherCategory = false;
+                if (this.is_external && this.proposal) {
+                    if (!this.proposal.previous_application_id) {
+                        // new application
+                        //higherCategory = true;
+                        //pass
+                    } else if (this.proposal.max_vessel_length_with_no_payment && 
+                        this.proposal.max_vessel_length_with_no_payment <= length) {
+                        // vessel length is in higher category
+                        higherCategory = true;
+                    }
+                }
+                console.log(higherCategory);
+                if (higherCategory) {
+                    this.showPaymentTab = true;
+                    this.$emit("updateSubmitText", "Pay / Submit");
+                }
+            },
+
             resetCurrentVessel: function(keep) {
                 this.keep_current_vessel = keep;
                 this.uuid++
@@ -247,6 +280,7 @@
                 $('#pills-confirm-tab').attr('style', 'background-color:#E5E8E8 !important; color: #99A3A4;');
                 $('#li-confirm').attr('class', 'nav-item disabled');
             },
+            /*
             eventListener: function(){
               let vm=this;
               $('a[href="#pills-activities-land"]').on('shown.bs.tab', function (e) {
@@ -256,13 +290,14 @@
                 vm.$refs.activities_marine.$refs.vessel_table.$refs.vessel_datatable.vmDataTable.columns.adjust().responsive.recalc();
               });
             },
+            */
 
         },
         mounted: function() {
             let vm = this;
             vm.set_tabs();
             vm.form = document.forms.new_proposal;
-            vm.eventListener();
+            //vm.eventListener();
             //window.addEventListener('beforeunload', vm.leaving);
             //indow.addEventListener('onblur', vm.leaving);
 
