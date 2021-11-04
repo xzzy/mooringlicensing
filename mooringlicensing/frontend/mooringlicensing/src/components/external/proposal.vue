@@ -294,6 +294,14 @@ export default {
               return this.proposal.application_type_code;
           }
       },
+      amendmentOrRenewal: function(){
+          let amendRenew=false;
+          //if (this.proposal && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) 
+          if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new'){
+              amendRenew=true;
+          }
+          return amendRenew;
+      },
       /*
       annualAdmissionApplication: function() {
           let retVal = false;
@@ -421,6 +429,9 @@ export default {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
             }
+            if(this.amendmentOrRenewal && this.$refs.annual_admission_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
+            }
         // AUA
         } else if (this.$refs.authorised_user_application) {
             //this.mooringOptionsChanged = this.$refs.authorised_user_application.change_mooring;
@@ -448,6 +459,9 @@ export default {
                     payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
             }
+            if(this.amendmentOrRenewal && this.$refs.authorised_user_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
+            }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
             //this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
@@ -466,6 +480,9 @@ export default {
             if (this.$refs.mooring_licence_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
+            }
+            if(this.amendmentOrRenewal && this.$refs.mooring_licence_application.keep_current_vessel){
+              payload.ignore_insurance_check=true;
             }
         }
 

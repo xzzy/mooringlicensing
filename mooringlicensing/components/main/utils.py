@@ -353,6 +353,9 @@ def export_to_mooring_booking(approval_id):
                     'status' : status,
                     }
             resp = requests.post(url, data = myobj)
+            if not resp or not resp.text:
+                print("Server unavailable")
+                raise Exception("Server unavailable")
             resp_dict = json.loads(resp.text)
             #logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
             if resp_dict.get("status") == 200:
@@ -360,7 +363,7 @@ def export_to_mooring_booking(approval_id):
                 approval.export_to_mooring_booking = False
                 approval.save()
             else:
-                errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
+                errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id, resp.text))
         elif approval and type(approval.child_obj) == MooringLicence:
             for vessel_ownership in approval.child_obj.vessel_ownership_list:
                 myobj = {
@@ -372,13 +375,17 @@ def export_to_mooring_booking(approval_id):
                         'status' : status,
                         }
                 resp = requests.post(url, data = myobj)
+                if not resp or not resp.text:
+                    print("Server unavailable")
+                    raise Exception("Server unavailable")
                 resp_dict = json.loads(resp.text)
                 #logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
                 if resp_dict.get("status") == 200:
                     updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
                 else:
-                    errors.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
-            if not errors:
+                    errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, vessel_ownership.vessel.id, resp.text))
+            # do not mark mooring licences without vessels as exported
+            if not errors and approval.child_obj.vessel_ownership_list:
                 approval.export_to_mooring_booking = False
                 approval.save()
         return errors, updates
