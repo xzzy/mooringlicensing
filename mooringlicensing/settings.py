@@ -371,3 +371,7 @@ LOV_CACHE_TIMEOUT=10800
 CSRF_MIDDLEWARE_TOKEN=env('CSRF_MIDDLEWARE_TOKEN', '')
 EMAIL_INSTANCE = env('EMAIL_INSTANCE','DEV')
 os.environ['UPDATE_PAYMENT_ALLOCATION'] = 'True'
+
+CRON_CLASSES = [
+    'mooringlicensing.cron.OracleIntegrationCronJob',
+]
