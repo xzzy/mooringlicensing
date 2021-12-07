@@ -1,10 +1,9 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content %}
-    Please be aware that the following is due for submission:<br>
- 	{{ compliance.reference }} {{compliance.requirement.requirement}}
-
-    To complete the licence requirement please login to your account <a href="{{url}}">here</a>.
-
-
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Please be aware that the following is due for submission:
+{{ compliance.reference }} {{compliance.requirement.requirement}}
+To complete the licence requirement please login to your account here: {{url}}.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {%  endblock %}

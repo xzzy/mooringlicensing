@@ -1,0 +1,7 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>Please be aware that the mooring {{ mooring_licence.mooring }} is no longer available on your {{ approval.child_obj.description }}: {{ approval.lodgement_number }}</p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{%  endblock %}

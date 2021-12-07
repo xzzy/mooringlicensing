@@ -99,14 +99,18 @@ module.exports = {
         } );
     } );
   },
-  add_endpoint_json: function ( string, addition ) {
-    var res = string.split( ".json" )
-    return res[ 0 ] + '/' + addition + '.json';
-  },
-  add_endpoint_join: function ( api_string, addition ) {
-    // assumes api_string has trailing forward slash "/" character required for POST
-    return api_string + addition;
-  },
+    add_endpoint_json: function ( string, addition ) {
+        let res = string.split( ".json" )
+        let endpoint = res[ 0 ] + '/' + addition + '.json';
+        endpoint = endpoint.replace("//", "/")  // Remove duplicated '/' just in case
+        return endpoint
+    },
+    add_endpoint_join: function ( api_string, addition ) {
+        // assumes api_string has trailing forward slash "/" character required for POST
+        let endpoint = api_string + addition;
+        endpoint = endpoint.replace("//", "/")  // Remove duplicated '/' just in case
+        return endpoint
+    },
     dtPopover: function(value,truncate_length=30,trigger='hover'){
         var ellipsis = '...',
         truncated = _.truncate(value, {
@@ -166,5 +170,23 @@ module.exports = {
             }
         }
         await swal("Error", errorText, "error");
+    },
+    post_and_redirect: function(url, postData) {
+        /* http.post and ajax do not allow redirect from Django View (post method), 
+           this function allows redirect by mimicking a form submit.
+
+           usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+        */
+        var postFormStr = "<form method='POST' action='" + url + "'>";
+
+        for (var key in postData) {
+            if (postData.hasOwnProperty(key)) {
+                postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+            }
+        }
+        postFormStr += "</form>";
+        var formElement = $(postFormStr);
+        $('body').append(formElement);
+        $(formElement).submit();
     },
 };

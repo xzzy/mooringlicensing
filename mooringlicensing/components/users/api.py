@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django_countries import countries
 from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route,renderer_classes
 from rest_framework.response import Response
@@ -33,6 +34,7 @@ from mooringlicensing.components.main.decorators import (
 from mooringlicensing.components.organisations.models import  (
                                     Organisation,
                                 )
+from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 
 from mooringlicensing.components.users.serializers import   (
                                                 UserSerializer,
@@ -48,7 +50,6 @@ from mooringlicensing.components.users.serializers import   (
 from mooringlicensing.components.organisations.serializers import (
     OrganisationRequestDTSerializer,
 )
-from mooringlicensing.components.main.utils import retrieve_department_users
 from mooringlicensing.components.main.models import UserSystemSettings
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -58,26 +59,61 @@ import logging
 logger = logging.getLogger('mooringlicensing')
 
 
-class DepartmentUserList(views.APIView):
+class GetCountries(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        data = cache.get('department_users')
+        data = cache.get('country_list')
         if not data:
-            retrieve_department_users()
-            data = cache.get('department_users')
+            country_list = []
+            for country in list(countries):
+                country_list.append({"name": country.name, "code": country.code})
+            cache.set('country_list',country_list, settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('country_list')
         return Response(data)
 
-        serializer  = UserSerializer(request.user)
 
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
-        logger.info('request user: {}'.format(request.user))
         serializer  = UserSerializer(request.user, context={'request':request})
-        logger.info('user serializer data: {}'.format(serializer.data))
-        #print("serializer.data")
-        #print(serializer.data)
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        return response
+
+
+class GetPerson(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data = EmailUser.objects.filter(
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term) |
+                Q(email__icontains=search_term)
+            )[:10]
+            data_transform = []
+            for email_user in data:
+                if email_user.dob:
+                    text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
+                else:
+                    text = '{} {}'.format(email_user.first_name, email_user.last_name)
+
+                serializer = EmailUserAppViewSerializer(email_user)
+                email_user_data = serializer.data
+                email_user_data['text'] = text
+                data_transform.append(email_user_data)
+            return Response({"results": data_transform})
+        return Response()
+
+
+class GetSubmitterProfile(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        submitter_id = request.GET.get('submitter_id')
+        submitter = EmailUser.objects.get(id=submitter_id)
+        serializer  = UserSerializer(submitter, context={'request':request})
+        response = Response(serializer.data)
+        return response
 
 from rest_framework import filters
 class UserListFilterView(generics.ListAPIView):
@@ -87,6 +123,7 @@ class UserListFilterView(generics.ListAPIView):
     serializer_class = UserFilterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('email', 'first_name', 'last_name')
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.all()
@@ -100,7 +137,7 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -119,7 +156,7 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -134,20 +171,40 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_address(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = UserAddressSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            address, created = Address.objects.get_or_create(
-                line1 = serializer.validated_data['line1'],
-                locality = serializer.validated_data['locality'],
-                state = serializer.validated_data['state'],
-                country = serializer.validated_data['country'],
-                postcode = serializer.validated_data['postcode'],
+            # residential address
+            residential_serializer = UserAddressSerializer(data=request.data.get('residential_address'))
+            residential_serializer.is_valid(raise_exception=True)
+            residential_address, created = Address.objects.get_or_create(
+                line1 = residential_serializer.validated_data['line1'],
+                locality = residential_serializer.validated_data['locality'],
+                state = residential_serializer.validated_data['state'],
+                country = residential_serializer.validated_data['country'],
+                postcode = residential_serializer.validated_data['postcode'],
                 user = instance
             )
-            instance.residential_address = address
+            instance.residential_address = residential_address
+            # postal address
+            postal_address_data = request.data.get('postal_address')
+            if request.data.get('postal_same_as_residential'):
+                instance.postal_same_as_residential = True
+                instance.postal_address = residential_address
+            elif postal_address_data:
+                postal_serializer = UserAddressSerializer(data=postal_address_data)
+                postal_serializer.is_valid(raise_exception=True)
+                postal_address, created = Address.objects.get_or_create(
+                    line1 = postal_serializer.validated_data['line1'],
+                    locality = postal_serializer.validated_data['locality'],
+                    state = postal_serializer.validated_data['state'],
+                    country = postal_serializer.validated_data['country'],
+                    postcode = postal_serializer.validated_data['postcode'],
+                    user = instance
+                )
+                instance.postal_address = postal_address
+                instance.postal_same_as_residential = False
+
             instance.save()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -162,18 +219,15 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_system_settings(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            # serializer = UserSystemSettingsSerializer(data=request.data)
-            # serializer.is_valid(raise_exception=True)
             user_setting, created = UserSystemSettings.objects.get_or_create(
                 user = instance
             )
             serializer = UserSystemSettingsSerializer(user_setting, data=request.data)
             serializer.is_valid(raise_exception=True)
-            #instance.residential_address = address
             serializer.save()
             instance = self.get_object()
             serializer = UserSerializer(instance)
-            return Response(serializer.data);
+            return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -242,13 +296,12 @@ class UserViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['GET',])
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             qs = instance.comms_logs.all()
-            serializer = EmailUserCommsSerializer(qs,many=True)
+            serializer = EmailUserCommsSerializer(qs, many=True)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

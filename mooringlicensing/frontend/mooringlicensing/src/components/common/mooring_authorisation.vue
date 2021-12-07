@@ -1,47 +1,72 @@
 <template lang="html">
-    <FormSection label="Mooring details" Index="mooring_authorisation">
-        <div class="row form-group">
-            <label for="" class="col-sm-9 control-label">Do you want to be authorised
-            </label>
-        </div>
-        <div class="form-group">
-            <div class="row">
-                <div class="col-sm-9">
-                    <input :disabled="readonly" type="radio" id="site_licensee" value="site_licensee" v-model="mooringAuthPreference" required=""/>
-                    <label for="site_licensee" class="control-label">By a mooring site licensee for their mooring</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-9">
-                    <input :disabled="readonly" type="radio" id="ria" value="ria" v-model="mooringAuthPreference" required=""/>
-                    <label for="ria" class="control-label">By Rottnest Island Authority for a mooring allocated by the Authority</label>
-                </div>
-            </div>
-        </div>
-
-        <div v-show="mooringAuthPreference==='site_licensee'">
+    <div v-if="change_mooring || newAua" id="mooring_authorisation">
+        <FormSection label="Mooring details" Index="mooring_authorisation">
             <div class="row form-group">
-                <label for="site_licensee_email" class="col-sm-3 control-label">Site licensee email</label>
-                <div class="col-sm-9">
-                    <input :readonly="readonly" class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
-                </div>
+                <label for="" class="col-sm-9 control-label">Do you want to be authorised
+                </label>
             </div>
-            <div class="row form-group">
-                <label for="mooring_site_id" class="col-sm-3 control-label">Mooring site ID</label>
-                <div class="col-sm-9">
-                    <input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/>
-                </div>
-            </div>
-        </div>
-
-        <div v-show="mooringAuthPreference==='ria'" class="row form-group">
-            <draggable :disabled="readonly" class="col-sm-6" v-model="mooringBays">
-                    <div class="form-control" id="mooringList" v-for="mooring in mooringBays" :key="mooring.id">
-                        {{ mooring.name }}
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-sm-9">
+                        <input :disabled="readonly" type="radio" id="site_licensee" value="site_licensee" v-model="mooringAuthPreference" required=""/>
+                        <label for="site_licensee" class="control-label">By a mooring site licensee for their mooring</label>
                     </div>
-            </draggable>
-        </div>
-    </FormSection>
+                </div>
+                <div class="row">
+                    <div class="col-sm-9">
+                        <input :disabled="readonly" type="radio" id="ria" value="ria" v-model="mooringAuthPreference" required=""/>
+                        <label for="ria" class="control-label">By Rottnest Island Authority for a mooring allocated by the Authority</label>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="mooringAuthPreference==='site_licensee'">
+                <div class="row form-group">
+                    <label for="site_licensee_email" class="col-sm-3 control-label">Site licensee email</label>
+                    <div class="col-sm-9">
+                        <input :readonly="readonly" class="form-control" type="text" placeholder="" id="site_licensee_email" v-model="siteLicenseeEmail" required=""/>
+                    </div>
+                </div>
+                <div class="row form-group">
+                    <label for="mooring_id" class="col-sm-3 control-label">Mooring site ID</label>
+                    <div class="col-sm-9">
+                        <select 
+                            id="mooring_lookup"  
+                            name="mooring_lookup"  
+                            ref="mooring_lookup" 
+                            class="form-control" 
+                            style="width: 40%"
+                        />
+                        <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="mooringAuthPreference==='ria'" class="row form-group">
+                <div class="col-sm-9">
+                <label for="ria_draggable" class="draggable-label-class control-label">Order the bays in your preferred order with most preferred bay on top</label>
+                <draggable 
+                id="ria_draggable"
+                :disabled="readonly" 
+                :list="mooringBays"
+                tag="ul"
+                class="list-group col-sm-5 draggable-class"
+                handle=".handle"
+                >
+                    <li
+                        class="list-group-item"
+                        v-for="mooring in mooringBays"
+                        :key="mooring.name"
+                    >
+                        <i class="fa fa-align-justify handle"></i>
+                        <span class="col-sm-1"/>
+                        <span class="text">{{ mooring.name }}</span>
+                    </li>
+                </draggable>
+                </div>
+            </div>
+        </FormSection>
+    </div>
 </template>
 
 <script>
@@ -68,6 +93,12 @@ import draggable from 'vuedraggable';
                 type: Boolean,
                 default: true,
             },
+            change_mooring: {
+              type: Boolean,
+            },
+            newAua: {
+              type: Boolean,
+            },
         },
         data:function () {
             return {
@@ -75,6 +106,7 @@ import draggable from 'vuedraggable';
                 mooringAuthPreference: null,
                 siteLicenseeEmail: null,
                 mooringSiteId: null,
+                dragging: false,
             }
         },
         computed: {
@@ -82,6 +114,12 @@ import draggable from 'vuedraggable';
         watch: {
         },
         methods:{
+            /*
+            mooringOptionsChanged: async function() {
+                await this.$nextTick(() => {
+                });
+            },
+            */
             fetchMooringBays: async function(){
                 const response = await this.$http.get(api_endpoints.mooring_bays);
                 // reorder array based on proposal.bay_preferences_numbered
@@ -101,6 +139,53 @@ import draggable from 'vuedraggable';
                     }
                 }
             },
+            initialiseMooringLookup: function(){
+                let vm = this;
+                $(vm.$refs.mooring_lookup).select2({
+                    minimumInputLength: 2,
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Mooring",
+                    ajax: {
+                        url: api_endpoints.mooring_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                                private_moorings: true,
+                            }
+                            return query;
+                        },
+                    },
+                }).
+                on("select2:select", function (e) {
+                    var selected = $(e.currentTarget);
+                    let data = e.params.data.id;
+                    vm.mooringSiteId = data;
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.mooringSiteId = null;
+                }).
+                on("select2:open",function (e) {
+                    const searchField = $(".select2-search__field")
+                    // move focus to select2 field
+                    searchField[0].focus();
+                });
+                vm.readMooringSiteId();
+            },
+            readMooringSiteId: async function() {
+                let vm = this;
+                if (vm.proposal.mooring_id) {
+                    const res = await vm.$http.get(`${api_endpoints.mooring}${vm.proposal.mooring_id}/fetch_mooring_name`);
+                    var option = new Option(res.body.name, vm.proposal.mooring_id, true, true);
+                    $(vm.$refs.mooring_lookup).append(option).trigger('change');
+                }
+            },
+
+
         },
         mounted:function () {
             this.$nextTick(async () => {
@@ -108,12 +193,13 @@ import draggable from 'vuedraggable';
                 if (this.proposal.site_licensee_email) {
                     this.siteLicenseeEmail = this.proposal.site_licensee_email;
                 }
-                if (this.proposal.mooring_site_id) {
-                    this.mooringSiteId = this.proposal.mooring_site_id;
+                if (this.proposal.mooring_id) {
+                    this.mooringSiteId = this.proposal.mooring_id;
                 }
                 if (this.proposal.mooring_authorisation_preference) {
                     this.mooringAuthPreference = this.proposal.mooring_authorisation_preference;
                 }
+                this.initialiseMooringLookup();
             });
 
         },
@@ -121,5 +207,18 @@ import draggable from 'vuedraggable';
 </script>
 
 <style lang="css" scoped>
+.handle {
+    float: left;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    cursor: pointer;
+}
+.draggable-class {
+    padding-left: 3%;
+}
+.draggable-label-class {
+    padding-left: 3%;
+    padding-bottom: 3%;
+}
 </style>
 

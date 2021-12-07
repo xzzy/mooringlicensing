@@ -15,7 +15,7 @@
                       <div class="panel-body collapse in" :id="pBody">
                         <div v-for="a in amendment_request">
                           <p>Reason: {{a.reason}}</p>
-                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>  
+                          <p>Details: <p v-for="t in splitText(a.text)">{{t}}</p></p>
                       </div>
                     </div>
                   </div>
@@ -36,35 +36,49 @@
             <ProposalEvent v-else-if="proposal && proposal.application_type==application_type_event" :proposal="proposal" id="proposalStart" :canEditActivities="canEditActivities" :canEditPeriod="canEditPeriod" :is_external="true" :proposal_parks="proposal_parks" ref="proposal_event"></ProposalEvent-->
             <WaitingListApplication
             v-if="proposal && proposal.application_type_code==='wla'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="waiting_list_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
+            :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
+            @mooringPreferenceChanged="updateMooringPreference"
             />
 
             <AnnualAdmissionApplication
             v-if="proposal && proposal.application_type_code==='aaa'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="annual_admission_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
+            :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
             />
             <AuthorisedUserApplication
             v-if="proposal && proposal.application_type_code==='aua'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="authorised_user_application"
             :readonly="readonly"
+            :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
+            @changeMooring="updateMooringAuth"
             />
             <MooringLicenceApplication
             v-if="proposal && proposal.application_type_code==='mla'"
-            :proposal="proposal" 
-            :is_external="true" 
+            :proposal="proposal"
+            :is_external="true"
             ref="mooring_licence_application"
             :showElectoralRoll="showElectoralRoll"
             :readonly="readonly"
+            :submitterId="submitterId"
+            @updateSubmitText="updateSubmitText"
+            @vesselChanged="updateVesselChanged"
             />
 
             <div>
@@ -78,20 +92,37 @@
                               <div class="navbar navbar-fixed-bottom"  style="background-color: #f5f5f5;">
                                   <div class="navbar-inner">
                                     <div v-if="proposal && !proposal.readonly" class="container">
-                                      <p class="pull-right" style="margin-top:5px">
-                                        <button v-if="saveExitProposal" type="button" class="btn btn-primary" disabled>Save and Exit&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit" :disabled="savingProposal || paySubmitting"/>
-                                        <button v-if="savingProposal" type="button" class="btn btn-primary" disabled>Save and Continue&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
+                                        <p class="pull-right" style="margin-top:5px">
+                                            <input type="checkbox" v-model="terms_and_conditions_checked" id="terms_and_conditions_checked" />
+                                            <label for="terms_and_conditions_checked">
+                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc" target="_blank">RIA Terms and Conditions</a>
+                                            </label>
 
-                                        <button v-if="paySubmitting" type="button" class="btn btn-primary" disabled>{{ submit_text() }}&nbsp;
-                                                <i class="fa fa-circle-o-notch fa-spin fa-fw"></i></button>
-                                        <!-- <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="!proposal.training_completed || saveExitProposal || savingProposal"/> -->
-                                        <input v-else type="button" @click.prevent="submit" class="btn btn-primary" :value="submit_text()" :disabled="saveExitProposal || savingProposal"/>
-                                        <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
-                                      </p>
+                                            <button v-if="saveExitProposal || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
+                                                Save and Exit&nbsp;<i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                            </button>
+                                            <input v-else type="button" @click.prevent="save_exit" class="btn btn-primary" value="Save and Exit" :disabled="savingProposal || paySubmitting"/>
+
+                                            <button v-if="savingProposal || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
+                                                Save and Continue&nbsp;<i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                            </button>
+                                            <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
+
+                                            <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
+                                                {{ submitText }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                            </button>
+                                            <input v-else 
+                                            type="button" 
+                                            @click.prevent="submit" 
+                                            class="btn btn-primary" 
+                                            :value="submitText" 
+                                            :disabled="saveExitProposal || savingProposal || disableSubmit"
+                                            id="submitButton"
+                                            :title="disabledSubmitText"
+                                            />
+
+                                            <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
+                                        </p>
                                     </div>
                                     <div v-else class="container">
                                       <p class="pull-right" style="margin-top:5px;">
@@ -118,7 +149,7 @@ import WaitingListApplication from '../form_wla.vue';
 import AnnualAdmissionApplication from '../form_aaa.vue';
 import AuthorisedUserApplication from '../form_aua.vue';
 import MooringLicenceApplication from '../form_mla.vue';
-import Vue from 'vue' 
+import Vue from 'vue'
 import {
   api_endpoints,
   helpers
@@ -143,6 +174,13 @@ export default {
       pBody: 'pBody',
       missing_fields: [],
       proposal_parks:null,
+      terms_and_conditions_checked: false,
+      vesselChanged: false,
+      // AUA
+      mooringOptionsChanged: false,
+      // WLA
+      mooringPreferenceChanged: false,
+      submitText: "Submit",
     }
   },
   components: {
@@ -157,6 +195,40 @@ export default {
       */
   },
   computed: {
+      disableSubmit: function() {
+          let disable = false;
+          if (this.proposal.proposal_type.code ==='amendment') {
+              if (['aaa', 'mla'].includes(this.proposal.application_type_code) && !this.vesselChanged) {
+                  disable = true;
+              } else if (this.proposal.application_type_code === 'wla' && !this.vesselChanged && !this.mooringPreferenceChanged) {
+                  disable = true;
+              } else if (this.proposal.application_type_code === 'aua' && !this.vesselChanged && !this.mooringOptionsChanged) {
+                  disable = true;
+              }
+          }
+          return disable;
+      },
+      disabledSubmitText: function() {
+          let text = "";
+          if (this.disableSubmit) {
+              text = "No relevant details have been detected in this amendment application";
+          }
+          return text;
+      },
+      autoRenew: function() {
+          let renew = false;
+          if (!this.vesselChanged && !this.mooringOptionsChanged && this.proposal.proposal_type.code ==='renewal' && ['mla', 'aua'].includes(this.proposal.application_type_code)) {
+              renew = true;
+          }
+          return renew;
+      },
+      submitterId: function() {
+          let submitter = null;
+          if (this.proposal && this.proposal.submitter && this.proposal.submitter.id) {
+              submitter = this.proposal.submitter.id;
+          }
+          return submitter;
+      },
       readonly: function() {
           let returnVal = true;
           if (this.proposal.processing_status === 'Draft') {
@@ -192,6 +264,7 @@ export default {
       canEditPeriod: function(){
         return this.proposal ? this.proposal.can_user_edit: 'false';
       },
+      /*
       application_type_tclass: function(){
         return api_endpoints.t_class;
       },
@@ -201,6 +274,7 @@ export default {
       application_type_event: function(){
         return api_endpoints.event;
       },
+      */
       trainingCompleted: function(){
         if(this.proposal.application_type== 'Event')
           {
@@ -215,17 +289,57 @@ export default {
           }
           return show;
       },
+      applicationTypeCode: function() {
+          if (this.proposal) {
+              return this.proposal.application_type_code;
+          }
+      },
+      amendmentOrRenewal: function(){
+          let amendRenew=false;
+          //if (this.proposal && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) 
+          if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new'){
+              amendRenew=true;
+          }
+          return amendRenew;
+      },
+      /*
+      annualAdmissionApplication: function() {
+          let retVal = false;
+          if (this.proposal && this.proposal.application_type_code === 'aaa') {
+              retVal = true;
+          }
+          return retVal;
+      },
+      */
 
   },
   methods: {
+      /*
+    addEventListeners: function() {
+        const submitButton = document.getElementById("submitButton");
+        console.log(submitButton);
+        submitButton.addEventListener("mouseenter", function(e) {
+            e.target.title = "mouse over"
+        }, false);
+    },
+    */
+    updateMooringAuth: function(changed) {
+        this.mooringOptionsChanged = changed;
+    },
+    updateVesselChanged: function(vesselChanged) {
+        this.vesselChanged = vesselChanged;
+    },
+    updateMooringPreference: function(preferenceChanged) {
+        this.mooringPreferenceChanged = preferenceChanged;
+    },
     proposal_refs:function(){
-      if(this.proposal.application_type_code == 'wla') {
+      if(this.applicationTypeCode == 'wla') {
           return this.$refs.waiting_list_application;
-      } else if (this.proposal.application_type_code == 'aaa') {
+      } else if (this.applicationTypeCode == 'aaa') {
           return this.$refs.annual_admission_application;
-      } else if (this.proposal.application_type_code == 'aua') {
+      } else if (this.applicationTypeCode == 'aua') {
           return this.$refs.authorised_user_application;
-      } else if (this.proposal.application_type_code == 'mla') {
+      } else if (this.applicationTypeCode == 'mla') {
           return this.$refs.mooring_licence_application;
       } /*else if(vm.proposal.application_type == vm.application_type_filming) {
           return vm.$refs.proposal_filming;
@@ -234,14 +348,22 @@ export default {
       }
       */
     },
-
-    submit_text: function() {
-        let submitText = 'Submit';
-        if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
-            submitText = 'Pay and Submit';
-        }
-        return submitText;
+    updateSubmitText: function(submitText) {
+        this.submitText = submitText;
     },
+      /*
+    set_submit_text: function() {
+        //let submitText = 'Submit';
+        if(['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+            if (this.proposal.fee_paid){
+                this.submitText = 'Submit';
+            } else {
+                this.submitText = 'Pay / Submit';
+            }
+        }
+        //return submitText;
+    },
+    */
     save_applicant_data:function(){
       if(this.proposal.applicant_type == 'SUB')
       {
@@ -285,48 +407,70 @@ export default {
         if (this.$refs.waiting_list_application) {
             if (this.$refs.waiting_list_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
+                //payload.proposal.dot_name = this.$refs.waiting_list_application.$refs.vessels.dotName;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.waiting_list_application.$refs.vessels.vessel.vessel_ownership.dotName;
+                payload.proposal.temporary_document_collection_id = this.$refs.waiting_list_application.$refs.vessels.temporary_document_collection_id;
             }
             if (typeof(this.$refs.waiting_list_application.$refs.profile.silentElector) === 'boolean') {
                 payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
             }
             if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
-                payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
+                //payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring.id;
+                payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring;
             }
         // AAA
         } else if (this.$refs.annual_admission_application) {
             if (this.$refs.annual_admission_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+                payload.proposal.temporary_document_collection_id = this.$refs.annual_admission_application.$refs.vessels.temporary_document_collection_id;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.annual_admission_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (this.$refs.annual_admission_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
             }
+            if(this.amendmentOrRenewal && this.$refs.annual_admission_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
+            }
         // AUA
         } else if (this.$refs.authorised_user_application) {
+            //this.mooringOptionsChanged = this.$refs.authorised_user_application.change_mooring;
             if (this.$refs.authorised_user_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
+                payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.authorised_user_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (this.$refs.authorised_user_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
             }
             if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
+                payload.proposal.keep_existing_mooring =
+                    !this.$refs.authorised_user_application.$refs.mooring_authorisation.change_mooring;
                 if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference) {
-                    payload.proposal.mooring_authorisation_preference = 
+                    payload.proposal.mooring_authorisation_preference =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
                 }
-                if (payload.proposal.mooring_authorisation_preference === 'ria') { 
-                    payload.proposal.bay_preferences_numbered = 
+                if (payload.proposal.mooring_authorisation_preference === 'ria') {
+                    payload.proposal.bay_preferences_numbered =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
-                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') { 
+                } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') {
                     payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
-                    payload.proposal.mooring_site_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
+                    payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                 }
+            }
+            if(this.amendmentOrRenewal && this.$refs.authorised_user_application.keep_current_vessel){
+                payload.ignore_insurance_check=true;
             }
         // MLA
         } else if (this.$refs.mooring_licence_application) {
+            //this.vesselChanged = await this.$refs.mooring_licence_application.$refs.vessels.vesselChanged();
+            //console.log(vesselChanged);
             if (this.$refs.mooring_licence_application.$refs.vessels) {
                 payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
+                payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;
+                payload.proposal.temporary_document_collection_id = this.$refs.mooring_licence_application.$refs.vessels.temporary_document_collection_id;
+                //payload.vessel.vessel_ownership.dot_name = this.$refs.mooring_licence_application.$refs.vessels.vessel.vessel_ownership.dotName;
             }
             if (typeof(this.$refs.mooring_licence_application.$refs.profile.silentElector) === 'boolean') {
             //if (this.$refs.mooring_licence_application.$refs.profile.silentElector !== null) {
@@ -336,6 +480,9 @@ export default {
             if (this.$refs.mooring_licence_application.$refs.insurance.selectedOption) {
                 // modify if additional proposal attributes required
                 payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
+            }
+            if(this.amendmentOrRenewal && this.$refs.mooring_licence_application.keep_current_vessel){
+              payload.ignore_insurance_check=true;
             }
         }
 
@@ -350,7 +497,6 @@ export default {
                 );
             };
             vm.savingProposal=false;
-            console.log(res);
             return res;
         } else {
             swal({
@@ -383,17 +529,48 @@ export default {
       vm.$http.post(vm.proposal_form_url,formData);
       */
     },
-    submit_and_pay: async function() {
+    save_and_pay: async function() {
         //let formData = this.set_formData()
+        console.log('in save_and_pay')
         try {
             const res = await this.save(false, this.proposal_submit_url);
-            if (this.proposal.application_type_code === 'wla' || this.proposal.application_type_code === 'aaa'){
-                await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-            } else {
-                await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                //this.$router.push({
-                //    name: 'external-dashboard'
-                //});
+            this.$nextTick(async () => {
+                if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+                    await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                //} else if (['mla', 'aua'].includes(this.proposal.application_type_code) && this.autoRenew) {
+                } else if (this.autoRenew) {
+                    await this.post_and_redirect(this.application_fee_url, {'auto_renew': true, 'csrfmiddlewaretoken' : this.csrf_token});
+                } else {
+                    await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    //this.$router.push({
+                    //    name: 'external-dashboard'
+                    //});
+                }
+            });
+        } catch(err) {
+            console.log(err)
+            console.log(typeof(err.body))
+            await swal({
+                title: 'Submit Error',
+                //text: helpers.apiVueResourceError(err),
+                html: helpers.formatError(err),
+                type: "error",
+                //html: true,
+            })
+            this.savingProposal=false;
+            this.paySubmitting=false;
+            //this.submitting = false;
+        }
+    },
+    save_without_pay: async function(){
+        /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+        let vm = this
+        try {
+            const res = await this.save(false, this.proposal_submit_url);
+            if (res.ok) {
+                vm.$router.push({
+                  name: 'external-dashboard'
+                });
             }
         } catch(err) {
             console.log(err)
@@ -410,17 +587,16 @@ export default {
             //this.submitting = false;
         }
     },
-
     setdata: function(readonly){
       this.proposal_readonly = readonly;
     },
 
     setAmendmentData: function(amendment_request){
       this.amendment_request = amendment_request;
-      
+
       if (amendment_request.length > 0)
         this.hasAmendmentRequest = true;
-        
+
     },
 
     splitText: function(aText){
@@ -441,7 +617,7 @@ export default {
         return null;
       }
     },
-    
+
     highlight_missing_fields: function(){
         let vm = this;
         for (var missing_field of vm.missing_fields) {
@@ -588,63 +764,38 @@ export default {
 
     },
     submit: async function(){
-        let vm = this;
-        //let formData = vm.set_formData()
-        /*
-        var missing_data= vm.can_submit();
-        if(missing_data!=true){
-          swal({
-            title: "Please fix following errors before submitting",
-            text: missing_data,
-            type:'error'
-          })
-          //vm.paySubmitting=false;
-          return false;
-        }
-        */
+        console.log('in submit()')
+        //let vm = this;
 
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
-        vm.submitting = true;
-        vm.paySubmitting=true;
+        this.submitting = true;
+        this.paySubmitting=true;
 
         try {
             await swal({
-                title: vm.submit_text() + " Application",
-                text: "Are you sure you want to " + vm.submit_text().toLowerCase()+ " this application?",
+                title: this.submitText + " Application",
+                text: "Are you sure you want to " + this.submitText.toLowerCase()+ " this application?",
                 type: "question",
                 showCancelButton: true,
-                confirmButtonText: vm.submit_text()
+                confirmButtonText: this.submitText
             })
         } catch (cancel) {
-            vm.submitting = false;
-            vm.paySubmitting=false;
+            this.submitting = false;
+            this.paySubmitting=false;
             return;
         }
-      
-        if (!vm.proposal.fee_paid) {
-            await vm.submit_and_pay();
 
-        } else {
-            /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
-            vm.save_wo_confirm()
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/submit'),formData).then(res=>{
-                vm.proposal = res.body;
-                vm.$router.push({
-                    name: 'submit_proposal',
-                    params: { proposal: vm.proposal}
-                });
-            },err=>{
-                swal(
-                    'Submit Error',
-                    helpers.apiVueResourceError(err),
-                    'error'
-                )
+        if (!this.proposal.fee_paid) {
+            this.$nextTick(async () => {
+                await this.save_and_pay();
             });
+        } else {
+            await this.save_without_pay();
         }
     },
 
     post_and_redirect: function(url, postData) {
-        /* http.post and ajax do not allow redirect from Django View (post method), 
+        /* http.post and ajax do not allow redirect from Django View (post method),
            this function allows redirect by mimicking a form submit.
 
            usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
@@ -663,7 +814,7 @@ export default {
     },
     fetchProposalParks: function(proposal_id){
       let vm=this;
-      vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposals,proposal_id+'/parks_and_trails')).then(response => {
+      vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,proposal_id+'/parks_and_trails')).then(response => {
                 vm.proposal_parks = helpers.copyObject(response.body);
                 console.log(vm.proposal_parks)
             },
@@ -677,12 +828,13 @@ export default {
   mounted: function() {
     let vm = this;
     vm.form = document.forms.new_proposal;
-      /* uncomment later - too annoying while making front end changes 
+    //this.addEventListeners();
+      /* uncomment later - too annoying while making front end changes
     window.addEventListener('beforeunload', vm.leaving);
     window.addEventListener('onblur', vm.leaving);
     */
   },
-  
+
 
   beforeRouteEnter: function(to, from, next) {
     if (to.params.proposal_id) {
@@ -698,7 +850,7 @@ export default {
             Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
                       vm.setAmendmentData(res.body);
                 },
-              err => { 
+              err => {
                         console.log(err);
                   });
               */

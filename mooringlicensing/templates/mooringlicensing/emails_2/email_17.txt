@@ -1,0 +1,13 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+{% if decision == 'approved' %}
+Your waiting list allocation application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached.
+{% endif %}
+{% if decision == 'declined' %}
+Your waiting list allocation application {{ approval.lodgement_number }} has been declined.
+{% endif %}
+{% if details %}Details: {{ details }}{% endif %}
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}
