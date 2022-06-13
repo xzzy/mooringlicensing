@@ -27,7 +27,7 @@ django-dynamic-fixture==1.9.1
 openpyxl==3.0.7
 datapackage==0.8.1
 jsontableschema==0.10.1
-python-dateutil==2.6.1
+python-dateutil==2.8.1
 py4j==0.10.2.1
 djangorestframework==3.5.0
 djangorestframework-gis==0.11

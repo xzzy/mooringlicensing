@@ -160,6 +160,7 @@ class AnnualAdmissionMigration(object):
                             proposal=AnnualAdmissionApplication.objects.create(
                                 proposal_type_id=1, # new application
                                 submitter=user,
+                                lodgement_date=datetime.now(),
                                 migrated=True,
                                 vessel_details=vessel_details,
                                 vessel_ownership=vessel_ownership,

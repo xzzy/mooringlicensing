@@ -294,6 +294,7 @@ class AuthUserPermitMigration(object):
                     proposal=AuthorisedUserApplication.objects.create(
                         proposal_type_id=1, # new application
                         submitter=user,
+                        lodgement_date=datetime.now(),
                         mooring_authorisation_preference=mooring_authorisation_preference,
                         site_licensee_email=site_licensee_email,
                         keep_existing_mooring=True,

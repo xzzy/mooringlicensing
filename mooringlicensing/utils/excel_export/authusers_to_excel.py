@@ -163,7 +163,7 @@ def write():
     fields += VESSEL_MOORING_FIELDS
     #fields += FEESEASON_FIELDS
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     authusers_qs = AuthorisedUserApplication.objects.filter(migrated=True).values_list(*fields)
     #print(fields)
 

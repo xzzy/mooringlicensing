@@ -196,6 +196,7 @@ class WaitingListMigration(object):
                     proposal=WaitingListApplication.objects.create(
                         proposal_type_id=1,
                         submitter=user,
+                        lodgement_date=datetime.now(),
                         migrated=True,
                         vessel_details=vessel_details,
                         vessel_ownership=vessel_ownership,
