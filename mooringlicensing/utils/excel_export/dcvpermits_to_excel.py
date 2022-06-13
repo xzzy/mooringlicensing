@@ -81,6 +81,8 @@ def write():
     df = pd.DataFrame(dcvp_qs, columns=fields)
     if not df['lodgement_datetime'].empty:
         df['lodgement_datetime'] = df['lodgement_datetime'].dt.tz_localize(None) # remove timezone for excel output
+    #if not df['approval__issue_date'].empty:
+    #    df['approval__issue_date'] = df['approval__issue_date'].dt.tz_localize(None) # remove timezone for excel output
     df.to_excel('dcv.xlsx', index=0)
     return df
 

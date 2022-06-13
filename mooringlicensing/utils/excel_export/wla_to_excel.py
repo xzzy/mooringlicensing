@@ -142,6 +142,8 @@ def write():
     df = pd.DataFrame(wla_qs, columns=fields)
     if not df['lodgement_date'].empty:
         df['lodgement_date'] = df['lodgement_date'].dt.tz_localize(None) # remove timezone for excel output
+    if not df['approval__issue_date'].empty:
+        df['approval__issue_date'] = df['approval__issue_date'].dt.tz_localize(None) # remove timezone for excel output
     df.to_excel('wla.xlsx', index=0)
     return df
 

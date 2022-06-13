@@ -163,13 +163,15 @@ def write():
     fields += VESSEL_MOORING_FIELDS
     #fields += FEESEASON_FIELDS
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     authusers_qs = AuthorisedUserApplication.objects.filter(migrated=True).values_list(*fields)
     #print(fields)
 
     df = pd.DataFrame(authusers_qs, columns=fields)
     if not df['lodgement_date'].empty:
         df['lodgement_date'] = df['lodgement_date'].dt.tz_localize(None) # remove timezone for excel output
+    if not df['approval__issue_date'].empty:
+        df['approval__issue_date'] = df['approval__issue_date'].dt.tz_localize(None) # remove timezone for excel output
     df.to_excel('aua.xlsx', index=0)
     return df
 

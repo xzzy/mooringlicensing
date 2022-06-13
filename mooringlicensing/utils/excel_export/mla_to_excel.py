@@ -156,7 +156,7 @@ def write():
     fields += VESSEL_MOORING_FIELDS
     fields += FEESEASON_FIELDS
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     #mla_qs = MooringLicenceApplication.objects.filter()[:10].values_list(*fields)
     mla_qs = MooringLicenceApplication.objects.filter(migrated=True).values_list(*fields)
     #print(fields)
@@ -164,6 +164,8 @@ def write():
     df = pd.DataFrame(mla_qs, columns=fields)
     if not df['lodgement_date'].empty:
         df['lodgement_date'] = df['lodgement_date'].dt.tz_localize(None) # remove timezone for excel output
+    if not df['approval__issue_date'].empty:
+        df['approval__issue_date'] = df['approval__issue_date'].dt.tz_localize(None) # remove timezone for excel output
     df.to_excel('mla.xlsx', index=0)
     return df
 
