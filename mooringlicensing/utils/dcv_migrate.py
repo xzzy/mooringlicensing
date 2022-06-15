@@ -72,7 +72,7 @@ class DcvMigration(object):
         #fee_season = FeeSeason.objects.get(name='2020-2021')
         fee_season = FeeSeason.objects.filter(name='2022 - 2023')[0]
         start_date = datetime.date(2021, 9, 1)
-        end_date = datetime.date(2022, 10, 7)
+        end_date = datetime.date(2023,8,31)
 
         address_list = []
         user_list = []

@@ -65,7 +65,7 @@ class MooringLicenceMigration(object):
     def migrate(self):
 
         #submitter = EmailUser.objects.get(email='jawaid.mushtaq@dbca.wa.gov.au')
-        expiry_date = datetime.date(2022,11,30)
+        expiry_date = datetime.date(2023,8,31)
         start_date = datetime.date(2021,8,31)
         date_applied = '2021-08-31'
 

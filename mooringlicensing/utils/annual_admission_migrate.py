@@ -39,7 +39,7 @@ class AnnualAdmissionMigration(object):
 
     def migrate(self):
 
-        expiry_date = datetime.date(2022,11,30)
+        expiry_date = datetime.date(2023,8,31)
         start_date = datetime.date(2021,8,31)
 
         address_list = []
