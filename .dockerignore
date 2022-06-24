@@ -4,3 +4,6 @@
 **/lotus_notes*
 **/excel_export*
 */utils/tests*
+**/*.pyc
+**/*.csv
+**/*.xls*
