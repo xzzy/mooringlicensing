@@ -38,7 +38,6 @@ var/
 .installed.cfg
 *.egg
 *.bak
-*.csv
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -119,9 +118,9 @@ mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
 
 git_history_recent
 
-#mooringlicensing/utils/csv/ml_20210831.csv
-mooringlicensing/utils/csv/*
-*.xls*
-
 # Reversion utility
 reversion_utility_output.txt
+
+# data files
+*.csv
+*.xls*
