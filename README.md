@@ -57,3 +57,4 @@ required environment variables at run time. Example content:
     DEV_APP_BUILD_URL="http://localhost:8080/app.js"
     # Below prints emails to screen instead of sending via mail server
     CONSOLE_EMAIL_BACKEND=True
+
