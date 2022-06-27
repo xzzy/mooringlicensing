@@ -8,8 +8,8 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
-REPO_NO_DASH=$(awk '{split($0, arr, "\/"); print arr[2]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/-//g'|sed 's/....$//'))
-REPO=$(awk '{split($0, arr, "\/"); print arr[2]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/....$//'))
+REPO_NO_DASH=$(awk '{n=split($0, arr, "\\/"); print arr[n]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/-//g'|sed 's/....$//'))
+REPO=$(awk '{n=split($0, arr, "\\/"); print arr[n]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/....$//'))
 # Docker repo may be named differently to github repo
 BUILD_TAG=dbcawa/$REPO_NO_DASH:$1_v$(date +%Y.%m.%d.%H.%M%S)
 
