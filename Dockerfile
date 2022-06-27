@@ -48,7 +48,8 @@ RUN npm install --omit=dev
 RUN npm run build
 WORKDIR /app
 RUN touch /app/.env
-RUN python manage.py collectstatic --no-input
+RUN python manage_ml.py collectstatic --no-input
+RUN rm -rf node_modules/
 RUN git log --pretty=medium -30 > ./git_history_recent
 
 # Install the project (ensure that frontend projects have been built prior to this step).
