@@ -5,7 +5,7 @@ env > /etc/.cronenv
 sed -i 's/\"/\\"/g' /etc/.cronenv
 cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 > /app/rand_hash
 
-if [ $ENABLE_CRON == "True" ];
+if [[ $ENABLE_CRON == "True" ]];
 then
 echo "Starting Cron"
 service cron start &
@@ -17,7 +17,7 @@ fi
 
 fi
 
-if [ $ENABLE_WEB == "True" ];
+if [[ $ENABLE_WEB == "True" ]];
     then
 echo "Starting Gunicorn"
 # Start the second process
