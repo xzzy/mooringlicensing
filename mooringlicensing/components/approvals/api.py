@@ -304,7 +304,8 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
+        #all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
+        all = Approval.objects.exclude(migrated=True)  # We may need to exclude the approvals created from the Waiting List Application
 
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
 
