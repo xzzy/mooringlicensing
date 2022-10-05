@@ -3,7 +3,8 @@ import base64
 import geojson
 from six.moves.urllib.parse import urlparse
 from wsgiref.util import FileWrapper
-from django.db.models import Q, Min
+from django.db.models import Q, Min, CharField, Value
+from django.db.models.functions import Concat
 from django.db import transaction
 from django.http import HttpResponse
 from django.core.files.base import ContentFile
@@ -87,18 +88,32 @@ class GetPerson(views.APIView):
         search_term = request.GET.get('term', '')
         # a space in the search term is interpreted as first name, last name
         if search_term:
-            if ' ' in search_term:
-                first_name_part, last_name_part = search_term.split(' ')
-                data = EmailUser.objects.filter(
-                    Q(first_name__icontains=first_name_part) &
-                    Q(last_name__icontains=last_name_part)
-                )[:10]
-            else:
-                data = EmailUser.objects.filter(
-                    Q(first_name__icontains=search_term) |
-                    Q(last_name__icontains=search_term) |
-                    Q(email__icontains=search_term)
-                )[:10]
+            #if ' ' in search_term:
+            #    first_name_part, last_name_part = search_term.split(' ')
+            #    data = EmailUser.objects.filter(
+            #        (Q(first_name__icontains=first_name_part) &
+            #        Q(last_name__icontains=last_name_part)) |
+            #        Q(first_name__icontains=search_term) |
+            #        Q(last_name__icontains=search_term)
+            #    )[:10]
+            #else:
+            #    data = EmailUser.objects.filter(
+            #        Q(first_name__icontains=search_term) |
+            #        Q(last_name__icontains=search_term) |
+            #        Q(email__icontains=search_term)
+            #    )[:10]
+            data = EmailUser.objects.annotate(
+                    search_term=Concat(
+                        "first_name",
+                        Value(" "),
+                        "last_name",
+                        Value(" "),
+                        "email",
+                        output_field=CharField(),
+                        )
+                    ).filter(search_term__icontains=search_term)[:10]
+            print(data[0].__dict__)
+            print(len(data))
             data_transform = []
             for email_user in data:
                 if email_user.dob:
