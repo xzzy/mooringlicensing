@@ -85,12 +85,20 @@ class GetPerson(views.APIView):
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
+        # a space in the search term is interpreted as first name, last name
         if search_term:
-            data = EmailUser.objects.filter(
-                Q(first_name__icontains=search_term) |
-                Q(last_name__icontains=search_term) |
-                Q(email__icontains=search_term)
-            )[:10]
+            if ' ' in search_term:
+                first_name_part, last_name_part = search_term.split(' ')
+                data = EmailUser.objects.filter(
+                    Q(first_name__icontains=first_name_part) &
+                    Q(last_name__icontains=last_name_part)
+                )[:10]
+            else:
+                data = EmailUser.objects.filter(
+                    Q(first_name__icontains=search_term) |
+                    Q(last_name__icontains=search_term) |
+                    Q(email__icontains=search_term)
+                )[:10]
             data_transform = []
             for email_user in data:
                 if email_user.dob:
