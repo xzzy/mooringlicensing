@@ -501,7 +501,10 @@ def save_vessel_data(instance, request, vessel_data):
 def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     json_string = json.dumps(payload)
     dot_response_str = get_dot_vessel_information(request, json_string)
-    dot_response_json = json.loads(dot_response_str)
+    try:
+        dot_response_json = json.loads(dot_response_str)
+    except Exception as e:
+        raise serializers.ValidationError("Cannot load as JSON: {}".format(dot_response_str))
     logger.info("dot_response_json")
     logger.info(dot_response_json)
     logger.info(dot_response_json.get("status"))
