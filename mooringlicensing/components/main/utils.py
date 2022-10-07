@@ -1,6 +1,7 @@
 from io import BytesIO
 from ledger.settings_base import TIME_ZONE
 from django.utils import timezone
+from confy import env
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -100,7 +101,11 @@ def retrieve_mooring_areas():
         with transaction.atomic():
             for mooring in data:
                 # get mooring_group_id from MB admin Mooring Groups, Rottnest Is Auth and store as env var
-                mooring_group_id = 1
+                if not env('MOORING_GROUP_ID'):
+                    raise Exception('You must set MOORING_GROUP_ID env var')
+                else:
+                    mooring_group_id = env('MOORING_GROUP_ID')
+                #mooring_group_id = 1
                 if mooring.get('mooring_specification') != 2 or mooring_group_id not in mooring.get('mooring_group'):
                     continue
                 mooring_qs = Mooring.objects.filter(mooring_bookings_id=mooring.get("id"))
@@ -166,7 +171,11 @@ def retrieve_marine_parks():
         with transaction.atomic():
             for bay in data:
                 # get mooring_group_id from MB admin Mooring Groups, Rottnest Is Auth and store as env var
-                mooring_group_id = 1
+                if not env('MOORING_GROUP_ID'):
+                    raise Exception('You must set MOORING_GROUP_ID env var')
+                else:
+                    mooring_group_id = env('MOORING_GROUP_ID')
+                #mooring_group_id = 1
                 if mooring_group_id != bay.get('mooring_group'):
                     continue
                 mooring_bay_qs = MooringBay.objects.filter(mooring_bookings_id=bay.get("id"))
