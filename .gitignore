@@ -9,6 +9,7 @@ node_modules/
 mooring/cache/*
 lotus_notes*
 tmp/*
+csv*
 #mooringlicensing/utils/lotus_notes/*
 mooringlicensing/utils/tests
 .ropeproject/
