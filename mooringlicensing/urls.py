@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.conf.urls import url, include
 from django.conf.urls.static import static
 from rest_framework import routers
+from django_media_serv.urls import urlpatterns as media_serv_patterns
 
 import mooringlicensing.components.approvals.api
 from mooringlicensing import views
@@ -173,7 +174,7 @@ urlpatterns = [
     url(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
     url(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
-] + ledger_patterns
+] + ledger_patterns + media_serv_patterns
 
 if settings.DEBUG:  # Serve media locally in development.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

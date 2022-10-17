@@ -28,3 +28,13 @@ npm test
 ```
 
 For detailed explanation on how things work, checkout the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+
+## Nodeenv
+
+Install nodeenv globally into your dev environment with `sudo pip install nodeenv==1.6.0`
+
+In this dir, run the following command to use a nodeenv virtual environment
+`nodeenv --node=10.19.0 venv`
+
+`. venv/bin/active` activates the virtual environment
+

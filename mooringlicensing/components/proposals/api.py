@@ -474,7 +474,8 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        all = Proposal.objects.all()
+        #all = Proposal.objects.all()
+        all = Proposal.objects.exclude(migrated=True)
 
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
 
