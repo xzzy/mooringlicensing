@@ -1,6 +1,5 @@
 <template lang="html">
     <div id="vessels">
-        vessels.vue
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>

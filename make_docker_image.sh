@@ -1,5 +1,6 @@
 #!/bin/bash
-## first parameter is DBCA branch name, optional second parameter is an integer indicating incremental daily version
+## first parameter is DBCA branch name
+
 set -e
 if [[ $# -lt 1 ]]; then
     echo "ERROR: DBCA branch must be specified"
@@ -7,45 +8,23 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-#REPO=$(basename -s .git `git config --get remote.origin.url` | sed 's/-//g')
-REPO=$(awk '{split($0, arr, "\/"); print arr[2]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/-//g'|sed 's/....$//'))
-DBCA_BRANCH="dbca_"$1
-BUILD_TAG=dbcawa/$REPO:$1_v$(date +%Y.%m.%d.%H.%M%S)
+REPO_NO_DASH=$(awk '{n=split($0, arr, "\\/"); print arr[n]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/-//g'|sed 's/....$//'))
+REPO=$(awk '{n=split($0, arr, "\\/"); print arr[n]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/....$//'))
+# Docker repo may be named differently to github repo
+BUILD_TAG=dbcawa/$REPO_NO_DASH:$1_v$(date +%Y.%m.%d.%H.%M%S)
+
 {
-    git checkout $DBCA_BRANCH
-} ||
-{
-    echo "ERROR: You must have your local code checked in and the DBCA branch set up on local with the 'dbca_' prefix.  Example Instructions:"
-    echo "git remote add dbca git@github.com:dbca-wa/wildlifecompliance.git"
-    echo "git checkout -b dbca_compliance_mgt_dev dbca/compliance_mgt_dev"
-    echo "$0 1"
-    exit 1
-}
-{
-    git pull &&
-    cd $REPO/frontend/$REPO/ &&
-    npm run build &&
-    cd ../../../ &&
-    source venv/bin/activate &&
-    #./manage.py collectstatic --no-input &&
-    $(find . -maxdepth 1 -name "manage*.py") collectstatic --no-input &&
-    git log --pretty=medium -30 > ./git_history_recent &&
-    docker image build --no-cache --tag $BUILD_TAG . &&
-    git checkout $CURRENT_BRANCH
+    docker image build --build-arg REPO_ARG=$REPO --build-arg REPO_NO_DASH_ARG=$REPO_NO_DASH --build-arg BRANCH_ARG=$1 --no-cache --tag $BUILD_TAG . &&
     echo $BUILD_TAG
 } ||
 {
-    git checkout $CURRENT_BRANCH
     echo "ERROR: Docker build failed"
-    echo "NB: This script assumes that your virtual environment folder is 'venv'"
     echo "$0 1"
     exit 1
 }
 {
     docker push $BUILD_TAG
 } || {
-    git checkout $CURRENT_BRANCH
     echo "ERROR: Docker push failed"
     echo "$0 1"
     exit 1

@@ -4,9 +4,9 @@
             <div class="row">
                 <div class="col-sm-10">
                 </div>
-                <div class="col-sm-2">
+                <!--div class="col-sm-2">
                     <button type="button" class="btn btn-primary pull-right" @click="addVessel">Add Vessel</button>
-                </div>
+                </div-->
                 <!--div class="col-sm-1">
                 </div-->
             </div>
