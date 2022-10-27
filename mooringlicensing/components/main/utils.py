@@ -151,6 +151,9 @@ def retrieve_mooring_areas():
                 if mooring_obj.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_obj.active = False
                     mooring_obj.save()
+                elif mooring_obj.mooring_bookings_id in [x.get("id") for x in data]:
+                    mooring_obj.active = True
+                    mooring_obj.save()
             return [], records_updated
 
     except Exception as e:
