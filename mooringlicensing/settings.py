@@ -9,7 +9,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
 os.environ.setdefault("BASE_DIR", BASE_DIR)
 
-from ledger.settings_base import *
+# from ledger.settings_base import *
+from ledger_api_client.settings_base import *
 
 ROOT_URLCONF = 'mooringlicensing.urls'
 SITE_ID = 1
@@ -60,6 +61,7 @@ INSTALLED_APPS += [
     'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
+    'ledger_api_client',
 ]
 
 ADD_REVERSION_ADMIN=True

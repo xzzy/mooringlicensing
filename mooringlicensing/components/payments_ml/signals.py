@@ -2,7 +2,7 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
-from ledger.payments.models import CashTransaction
+# from ledger.payments.models import CashTransaction
 
 from mooringlicensing.components.proposals.models import Proposal
 
