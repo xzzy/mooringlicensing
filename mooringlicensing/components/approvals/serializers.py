@@ -1,8 +1,9 @@
 import logging
 
 from django.conf import settings
-from ledger.accounts.models import EmailUser
-from ledger.payments.models import Invoice
+# from ledger.accounts.models import EmailUser
+# from ledger.payments.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
 from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers

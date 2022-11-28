@@ -6,7 +6,7 @@ import json
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *
-from ledger.payments.bpoint.models import BpointTransaction
+# from ledger.payments.bpoint.models import BpointTransaction
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
@@ -26,7 +26,8 @@ from django.views.generic import TemplateView
 from ledger_api_client.ledger_models import Invoice, Basket
 # from ledger.payments.utils import update_payments
 from ledger_api_client.utils import update_payments, calculate_excl_gst
-from oscar.apps.order.models import Order
+# from oscar.apps.order.models import Order
+from ledger_api_client.order import Order
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
