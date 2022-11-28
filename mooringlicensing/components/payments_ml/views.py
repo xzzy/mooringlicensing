@@ -1,11 +1,12 @@
 import datetime
 import logging
-from ledger.checkout.utils import calculate_excl_gst
+# from ledger.checkout.utils import calculate_excl_gst
 import pytz
 import json
-from ledger.settings_base import TIME_ZONE
+# from ledger.settings_base import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE
 from decimal import *
-from ledger.payments.bpoint.models import BpointTransaction, BpointToken
+from ledger.payments.bpoint.models import BpointTransaction
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
@@ -14,14 +15,17 @@ from rest_framework.response import Response
 import dateutil.parser
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
-from django.core.urlresolvers import reverse
+# from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
 from django.views.generic import TemplateView
-from ledger.basket.models import Basket
-from ledger.payments.invoice.models import Invoice
-from ledger.payments.utils import update_payments
+# from ledger.basket.models import Basket
+# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import Invoice, Basket
+# from ledger.payments.utils import update_payments
+from ledger_api_client.utils import update_payments, calculate_excl_gst
 from oscar.apps.order.models import Order
 
 from mooringlicensing import settings
