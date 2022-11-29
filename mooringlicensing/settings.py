@@ -255,6 +255,7 @@ LOGGING['loggers']['cron_email'] = {
 
 # Logging all to mooringlicensing.log file
 LOGGING['loggers']['']['handlers'].append('file_mooringlicensing')
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
 GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
