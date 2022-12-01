@@ -278,7 +278,7 @@ class FeePeriod(models.Model):
 
 
 class FeeConstructor(models.Model):
-    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.SET_NULL)
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.PROTECT)
     fee_season = ChainedForeignKey(FeeSeason,
                                    chained_field='application_type',
                                    chained_model_field='application_type',
@@ -288,7 +288,7 @@ class FeeConstructor(models.Model):
                                    null=True,
                                    blank=True,
                                    related_name='fee_constructors')
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.SET_NULL)
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.PROTECT)
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
 
