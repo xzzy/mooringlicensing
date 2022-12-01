@@ -444,3 +444,5 @@ GIT_COMMIT_DATE = ''
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
 
+MIDDLEWARE = MIDDLEWARE_CLASSES
+MIDDLEWARE_CLASSES = None
