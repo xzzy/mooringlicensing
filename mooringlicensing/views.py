@@ -63,7 +63,8 @@ class MooringLicensingRoutingView(TemplateView):
     template_name = 'mooringlicensing/index.html'
 
     def get(self, *args, **kwargs):
-        if self.request.user.is_authenticated():
+        # if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             if is_internal(self.request):
                 return redirect('internal')
             return redirect('external')
@@ -100,7 +101,8 @@ class InternalProposalView(DetailView):
         return super(MooringLicensingRoutingDetailView, self).get(*args, **kwargs)
 
 
-@login_required(login_url='ds_home')
+# @login_required(login_url='ds_home')
+@login_required(login_url='home')
 def first_time(request):
     context = {}
     if request.method == 'POST':

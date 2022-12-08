@@ -55,7 +55,7 @@
 
                         <!--   Auth2   -->
                         <a href="/ssologin">Login</a>
-
+{% comment %}
                         {% bootstrap_messages %}
                         <form method="post" action="{% url "social:complete" backend="email" %}">
                             {% csrf_token %}
@@ -74,6 +74,7 @@
                             a password. When you need to login to a site, such as {{ system_name }}, simply enter your email and an 
                             authentication link will be sent to your registered email address. From there, simply follow the link to complete the login process.
                         </p>
+{% endcomment %}
                     </div>
                 {% endif %}
             </div>

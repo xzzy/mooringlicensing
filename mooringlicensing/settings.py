@@ -83,7 +83,6 @@ MIDDLEWARE_CLASSES += [
 MIDDLEWARE = MIDDLEWARE_CLASSES
 WSGI_APPLICATION = "mooringlicensing.wsgi.application"
 
-
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('mooringlicensing.context_processors.mooringlicensing_processor')
 del BOOTSTRAP3['css_url']
@@ -446,4 +445,3 @@ GIT_COMMIT_DATE = ''
 #    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
-print('step1')
