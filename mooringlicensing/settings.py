@@ -443,6 +443,5 @@ GIT_COMMIT_DATE = ''
 #    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
-
 MIDDLEWARE = MIDDLEWARE_CLASSES
 MIDDLEWARE_CLASSES = None

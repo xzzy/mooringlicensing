@@ -104,7 +104,8 @@ class DcvAdmissionFee(Payment):
     dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
+    # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
+    created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_admission_fees')
 
@@ -130,7 +131,8 @@ class DcvPermitFee(Payment):
     dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_permit_fees')
 
@@ -155,7 +157,8 @@ class StickerActionFee(Payment):
 
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    created_by = models.IntegerField(blank=True, null=True,)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     def __str__(self):
@@ -198,7 +201,8 @@ class ApplicationFee(Payment):
     proposal = models.ForeignKey('Proposal', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
+    # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
+    created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='application_fees', through='FeeItemApplicationFee')
     system_invoice = models.BooleanField(default=False)

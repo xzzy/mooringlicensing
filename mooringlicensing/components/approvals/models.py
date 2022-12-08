@@ -225,9 +225,11 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField(blank=True, null=True)
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
-    submitter = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='mooringlicensing_approvals')
+    # submitter = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='mooringlicensing_approvals')
+    submitter = models.IntegerField(blank=True, null=True)
     org_applicant = models.ForeignKey(Organisation, on_delete=models.PROTECT, blank=True, null=True, related_name='org_approvals')
-    proxy_applicant = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='proxy_approvals')
+    # proxy_applicant = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='proxy_approvals')
+    proxy_applicant = models.IntegerField(blank=True, null=True)
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
     extend_details = models.TextField(blank=True)
@@ -1943,7 +1945,8 @@ class ApprovalUserAction(UserAction):
             what=str(action)
         )
 
-    who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.PROTECT)
+    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.PROTECT)
+    who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
     approval= models.ForeignKey(Approval, related_name='action_logs', on_delete=models.PROTECT)
@@ -1975,7 +1978,8 @@ class DcvVessel(RevisionedMixin):
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     skipper = models.CharField(max_length=50, blank=True, null=True)
@@ -2157,7 +2161,8 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
@@ -2652,7 +2657,8 @@ class StickerActionDetail(models.Model):
     date_of_lost_sticker = models.DateField(blank=True, null=True)
     date_of_returned_sticker = models.DateField(blank=True, null=True)
     action = models.CharField(max_length=50, null=True, blank=True)
-    user = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    # user = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    user = models.IntegerField(null=True, blank=True)
     sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
 
     class Meta:

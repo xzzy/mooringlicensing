@@ -245,11 +245,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     lodgement_date = models.DateTimeField(blank=True, null=True)
 
-    proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy', on_delete=models.SET_NULL) # not currently used by ML
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals', on_delete=models.SET_NULL)
+    # proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy', on_delete=models.SET_NULL) # not currently used by ML
+    proxy_applicant = models.IntegerField(blank=True, null=True) # not currently used by ML
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
 
-    assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
-    assigned_approver = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_approvals', on_delete=models.SET_NULL)
+    # assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
+    assigned_officer = models.IntegerField(blank=True, null=True)
+    # assigned_approver = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_approvals', on_delete=models.SET_NULL)
+    assigned_approver = models.IntegerField(blank=True, null=True)
     processing_status = models.CharField('Processing Status', max_length=40, choices=PROCESSING_STATUS_CHOICES,
                                          default=PROCESSING_STATUS_CHOICES[0][0])
     prev_processing_status = models.CharField(max_length=40, blank=True, null=True)
@@ -3794,7 +3798,8 @@ class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set', on_delete=models.CASCADE)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
-    officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    officer = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.subject, self.text)
@@ -3860,7 +3865,8 @@ class AmendmentRequest(ProposalRequest):
 
 class ProposalDeclinedDetails(models.Model):
     proposal = models.OneToOneField(Proposal, null=True, on_delete=models.SET_NULL)
-    officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    officer = models.IntegerField(null=True, blank=True)
     reason = models.TextField(blank=True)
     cc_email = models.TextField(null=True)
 
@@ -3963,7 +3969,8 @@ class ProposalUserAction(UserAction):
             what=str(action)
         )
 
-    who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
     proposal = models.ForeignKey(Proposal, related_name='action_logs', on_delete=models.CASCADE)

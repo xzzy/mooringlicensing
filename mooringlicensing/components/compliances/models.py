@@ -69,10 +69,12 @@ class Compliance(RevisionedMixin):
     num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
     processing_status = models.CharField(choices=PROCESSING_STATUS_CHOICES,max_length=20)
     customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20)
-    assigned_to = models.ForeignKey(EmailUser, related_name='mooringlicensing_compliance_assignments', null=True, blank=True, on_delete=models.SET_NULL)
+    # assigned_to = models.ForeignKey(EmailUser, related_name='mooringlicensing_compliance_assignments', null=True, blank=True, on_delete=models.SET_NULL)
+    assigned_to = models.IntegerField( null=True, blank=True)
     requirement = models.ForeignKey(ProposalRequirement, blank=True, null=True, related_name='compliance_requirement', on_delete=models.SET_NULL)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_compliances', on_delete=models.SET_NULL)
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_compliances', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
     reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
     fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
@@ -314,7 +316,8 @@ class CompRequest(models.Model):
     compliance = models.ForeignKey(Compliance, on_delete=models.PROTECT)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
-    officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    officer = models.IntegerField(null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'

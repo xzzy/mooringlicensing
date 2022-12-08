@@ -2,7 +2,8 @@ import csv
 from datetime import datetime
 import pytz
 import os
-from ledger.settings_base import TIME_ZONE
+# from ledger.settings_base import TIME_ZONE
+from ledger_api_client.settings_base import TIME_ZONE
 from mooringlicensing.settings import BASE_DIR
 from mooringlicensing.components.approvals.models import (
         Approval, WaitingListAllocation, AnnualAdmissionPermit, 
