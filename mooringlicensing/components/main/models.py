@@ -25,7 +25,7 @@ class UserSystemSettings(models.Model):
 # @python_2_unicode_compatible
 class UserAction(models.Model):
     # who = models.ForeignKey(EmailUser, null=False, blank=False)
-    who = models.IntegerField()  # EmailUserRO
+    who = models.IntegerField(null=False, blank=False)  # EmailUserRO
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
 
@@ -67,7 +67,7 @@ class CommunicationsLogEntry(models.Model):
     # customer = models.ForeignKey(EmailUser, null=True, related_name='+')
     customer = models.IntegerField(null=True)  # EmailUserRO
     # staff = models.ForeignKey(EmailUser, null=True, related_name='+')
-    staff = models.IntegerField()  # EmailUserRO
+    staff = models.IntegerField(null=True, blank=True)  # EmailUserRO
 
     created = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 

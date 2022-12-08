@@ -3672,7 +3672,8 @@ class VesselRegistrationDocument(Document):
 
 
 class Owner(RevisionedMixin):
-    emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)
+    # emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)
+    emailuser = models.IntegerField(unique=True)  # unique=True keeps the OneToOne relation
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 

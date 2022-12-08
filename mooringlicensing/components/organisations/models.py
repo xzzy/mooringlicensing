@@ -615,7 +615,7 @@ class OrganisationRequest(models.Model):
     # requester = models.ForeignKey(EmailUser)
     requester = models.IntegerField()  # EmailUserRO
     # assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='org_request_assignee')
-    assigned_officer = models.IntegerField()  # EmailUserRO
+    assigned_officer = models.IntegerField(null=True, blank=True)  # EmailUserRO
     identification = models.FileField(upload_to='organisation/requests/%Y/%m/%d', max_length=512, null=True, blank=True)
     status = models.CharField(max_length=100,choices=STATUS_CHOICES, default="with_assessor")
     lodgement_date = models.DateTimeField(auto_now_add=True)
@@ -766,7 +766,7 @@ class OrganisationRequestUserAction(UserAction):
 class OrganisationRequestDeclinedDetails(models.Model):
     request = models.ForeignKey(OrganisationRequest, on_delete=models.CASCADE)
     # officer = models.ForeignKey(EmailUser, null=False)
-    officer = models.IntegerField()  # EmailUserRO
+    officer = models.IntegerField(null=False, blank=False)  # EmailUserRO
     reason = models.TextField(blank=True)
 
     class Meta:
