@@ -75,11 +75,14 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE_CLASSES += [
-    'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
+    # 'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
-    'mooringlicensing.middleware.CacheControlMiddleware',
+    # 'mooringlicensing.middleware.CacheControlMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
+MIDDLEWARE = MIDDLEWARE_CLASSES
+WSGI_APPLICATION = "mooringlicensing.wsgi.application"
+
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('mooringlicensing.context_processors.mooringlicensing_processor')
@@ -443,5 +446,4 @@ GIT_COMMIT_DATE = ''
 #    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
-MIDDLEWARE = MIDDLEWARE_CLASSES
-MIDDLEWARE_CLASSES = None
+print('step1')
