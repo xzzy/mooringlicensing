@@ -2,6 +2,7 @@ import os
 import subprocess
 import json
 import ast
+import csv
 import datetime
 from decimal import Decimal
 from django.db import transaction
@@ -14,12 +15,14 @@ from mooringlicensing.components.proposals.models import (
     Owner,
     VesselOwnership,
     VesselDetails,
-    AuthorisedUserApplication,
+    MooringLicenceApplication,
     ProposalUserAction,
     Mooring,
     MooringBay,
+    MooringBay,
 )
-from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringOnApproval, AuthorisedUserPermit
+from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence, VesselOwnershipOnApproval, Sticker
+
 
 
 class VesselMigration(object):
@@ -58,7 +61,8 @@ class VesselMigration(object):
         self.mooring_details = self.read_dict('Mooring_Details.json')
         self.people_lictype = self.read_dict('PeopleLicType.json')
         self.vessel_details = self.read_dict('Vessel___Details_All.json')
-        self.vessel_multiple = self.read_dict('Vessel___Multiple_Vessels.json') # vessel rego and name
+        #self.vessel_multiple = self.read_dict('Vessel___Multiple_Vessels.json') # vessel rego and name
+        self.vessel_multiple = self.read_dict('Licencees___Sticker_No.json') # vessel rego and name
         self.user_rego = self.read_dict('UserRego.json') # vessel length/draft - if not available in vessel_multiple
         self.user_mooring = self.read_dict('UserMooring.json') # vessel length/draft - if not available in vessel_multiple
         self.people_no = self.read_dict('PeopleNo.json')                        # address/phone details (if no vessel_multiple details)
@@ -70,12 +74,6 @@ class VesselMigration(object):
         self._auth_users = [
             #... can be found in directory tests/test.json
         ]
-
-        self.vessels_found = []
-        self.vessels_not_found = []
-        self.vessel_details_not_found = []
-        self.emailuser = []
-        self.errors = []
 
         #self.migrate()
 
@@ -104,14 +102,38 @@ class VesselMigration(object):
 
 
     def get_vessels(self, no_vessel, record):
-        keys = ['_6', '_7', '_8', '_9', '_10']
+        if not record:
+            # ML with no linked vessel
+            #return [('', '', 0.0, 0.0)] # rego/name/length/draft
+            return [] # rego/name/length/draft
+
+        #keys = ['_6', '_7', '_8', '_9', '_10']
+        ves_keys = ['_10', '_11', '_12', '_13', '_14']
+        sticker_keys = ['StickerLNo1', 'StickerLNo2', 'StickerLNo3', 'StickerLNo4', 'StickerLNo5']
         _vessels = []
         for i in range(no_vessel):
-            items = record[keys[i]].split('-')
+            items = record[ves_keys[i]].split('-')
             rego = items[0].strip()
             vessel_name = items[1].strip()
-            _vessels.append((rego, vessel_name, 0.0, 0.0)) # rego/name/length/draft
+            sticker_no = record[sticker_keys[i]].strip()
+            if sticker_no == 'None':
+                sticker_no = ''
+#                import ipdb; ipdb.set_trace()
+            _vessels.append((rego, vessel_name, 0.0, 0.0, sticker_no)) # rego/name/length/draft
         return _vessels
+
+#    def get_stickers(self, no_vessel, record):
+#        if not record:
+#            # ML with no linked vessel
+#            return []
+#
+#        keys = ['StickerLNo1', 'StickerLNo2', 'StickerLNo3', 'StickerLNo4', 'StickerLNo5']
+#        _stickers = []
+#        for i in range(no_vessel):
+#            sticker_no = record[keys[i]].strip()
+#            _stickers.append((rego, vessel_name, 0.0, 0.0)) # rego/name/length/draft
+#        return _vessels
+
 
     def to_float(self, val):
         try:
@@ -124,7 +146,10 @@ class VesselMigration(object):
 
         #submitter = EmailUser.objects.get(email='jawaid.mushtaq@dbca.wa.gov.au')
         expiry_date = datetime.date(2023,8,31)
-        date_applied = '2021-08-31'
+        start_date = datetime.date(2022,8,31)
+        date_applied = '2022-08-31'
+        date_invited = None #date_invited,
+        migrated = False
 
 # Licencees___Mooring_No.json --> self.mooring_no
 #{'_8': '1', '_7': 'Stark Bay', 'MooringNo': 'SB008', 'UserName': 'Bain Kevin', 'PersNo': '000477', '_9': 'L Au', 'NoVessel': '4', '_1': 'P O Box 168, NORTH FREMANTLE, WA, 6159', 'StickerLNo1': 'None'    , '_4': 'DW106 - REALITY', 'StickerLNo2': 'None', '_11': 'DK819 - NO NAME', 'StickerLNo3': 'None', '_12': 'None', 'StickerLNo4': 'None', '_13': 'EF824 - NO NAME', 'StickerLNo5': 'None', '_15': 'None'    }
@@ -148,13 +173,41 @@ class VesselMigration(object):
 #People___eMail.csv:78: self.people_email
 #{'LastName': 'Abbott', '_7': 'William', 'PersNo': '207907', '_8': 'W', 'NoVessel': '1', '_9': '1', 'EMail': 'wabbinator@gmail.com', 'LicContactEmail': 'None'}
 
+        self.num_vessels = []
+        self.vessels_found = []
+        self.vessels_not_found = []
+        self.vessel_details_not_found = []
+        self.emailuser = []
+        self.errors = []
+        self.approvals = []
+
+        user_data = []
+        vessel_data = []
+        mla_data = []
+        ml_all_data = []
+        user_data.append(['PersNo', 'Email', 'DoB', 'FirstName', 'LastName', 'MobileNo', 'PhoneNo', 'Address', 'NoVessel'])
+        vessel_data.append(['Owner', 'Email', 'DoB', 'Rego No', 'DoT Name', 'Percentage Ownership', 'Vessel Type', 'Vessel Name', 'Length', 'Draft', 'Weight', 'berth_mooring'])
+        mla_data.append(['PersNo', 'Email', 'DoB', 'Rego No', 'MooringNo', 'Date Invited'])
+        ml_all_data.append(['PersNo', 'Email', 'DoB', 'DoB', 'FirstName', 'LastName', 'MobileNo', 'PhoneNo', 'Address', 'Rego No', 'DoT Name', 'Percentage Ownership', 'Vessel Type', 'Vessel Name', 'Length', 'Draft', 'Weight', 'berth_mooring', 'MooringNo', 'Date Invited'])
+
+        rego_no=''
+        dot_name=''
+        percentage=''
+        vessel_type=''
+        vessel_name=''
+        vessel_overall_length=''
+        vessel_draft=''
+        vessel_weight=''
+        berth_mooring=''
+
         with transaction.atomic():
             #for idx, record in enumerate(self.moorings[827:], 827):
             import ipdb; ipdb.set_trace()
             #for idx, record in enumerate(self.vessel_rego_current[:60], 0):
             #for idx, record in enumerate(self.vessel_rego_current, 0):
             #for idx, record in enumerate(self.mooring_no[:300], 0):
-            for idx, record in enumerate(self.mooring_no[12:], 0):
+            #for idx, record in enumerate(self.mooring_no[200:205], 0):
+            for idx, record in enumerate(self.mooring_no[0:], 0):
                 try:
                     mooring_no  = record['MooringNo']
                     username = record['UserName']
@@ -162,39 +215,58 @@ class VesselMigration(object):
                     address = record['_1']
                     no_vessel = int(float(record['NoVessel']))
 
-                    if no_vessel > 0:
-                        #print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel}')          
-                        record_ves_details = self.search('PersNo', pers_no, self.vessel_multiple)
-                        if not record_ves_details:
-                            #import ipdb; ipdb.set_trace()
-                            record_user_mooring = self.search('MooringNo', mooring_no, self.user_mooring)
-                            # 'VesRego': 'EI520', 'VesName': 'CEE CEE', '_6': 'Lic', 'VesLen': '6.40', 'VesDraft': '0.20'
-                            if record_user_mooring:
-                                vessels = [(
-                                    record_user_mooring['VesRego'], 
-                                    record_user_mooring['VesName'], 
-                                    record_user_mooring['VesLen'],
-                                    record_user_mooring['VesDraft']
-                                )]
-                            else:
-                                #record_mooring_details = self.search('MooringNo', mooring_no, self.mooring_details)
-                                #vessels = [(record_mooring_details['VesLength'], record_user_mooring['Draft'], record_user_mooring['VesLen'], record_user_mooring['VesDraft'])]
-                                items = record['_4'].split('-')
-                                rego = items[0].strip()
-                                vessel_name = items[1].strip()
-                                vessels = [(rego, vessel_name, 0.0, 0.0)] #rego/name/length/draft
+                    if no_vessel>5:
+                        self.num_vessels.append(dict(username=username, pers_no=pers_no, no_vessel=no_vessel, mooring_no=mooring_no))
+                        no_vessel = 5 # ignore the remainder (JSON file only list max. 5)
 
-                        else:
+                    if pers_no not in ['000477', '206776', '207209', '030742']:
+                        continue
+#                    if pers_no == '073604':
+#                        import ipdb; ipdb.set_trace()
+#                    else:
+#                        continue
 
-                            vessels = self.get_vessels(no_vessel, record_ves_details)
-                        print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')          
-                
-                    else:
-                        #print(f'{idx} No vessel details found: {username} {pers_no} {mooring_no} {no_vessel}')          
-                        vessels = self.get_vessels(no_vessel, record_ves_details)
-                        self.vessels_not_found.append(f'{idx} No vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')
-                        #import ipdb; ipdb.set_trace()
-                        record_people_no = self.search('PersNo', pers_no, self.people_no)
+#PersNo': '073604'
+#                    if no_vessel > 0:
+#                        #print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel}')          
+#                        record_ves_details = self.search('PersNo', pers_no, self.vessel_multiple)
+#                        if not record_ves_details:
+#                            # import ipdb; ipdb.set_trace()
+#                            record_user_mooring = self.search('MooringNo', mooring_no, self.user_mooring)
+#                            # 'VesRego': 'EI520', 'VesName': 'CEE CEE', '_6': 'Lic', 'VesLen': '6.40', 'VesDraft': '0.20'
+#                            if record_user_mooring:
+#                                vessels = [(
+#                                    record_user_mooring['VesRego'], 
+#                                    record_user_mooring['VesName'], 
+#                                    record_user_mooring['VesLen'],
+#                                    record_user_mooring['VesDraft']
+#                                )]
+#                            else:
+#                                #record_mooring_details = self.search('MooringNo', mooring_no, self.mooring_details)
+#                                #vessels = [(record_mooring_details['VesLength'], record_user_mooring['Draft'], record_user_mooring['VesLen'], record_user_mooring['VesDraft'])]
+#                                items = record['_4'].split('-')
+#                                rego = items[0].strip()
+#                                vessel_name = items[1].strip()
+#                                vessels = [(rego, vessel_name, 0.0, 0.0)] #rego/name/length/draft
+#
+#                        else:
+#                            import ipdb; ipdb.set_trace()
+#
+#                            vessels = self.get_vessels(no_vessel, record_ves_details)
+#                        print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')          
+#                
+#                    else:
+#                        #print(f'{idx} No vessel details found: {username} {pers_no} {mooring_no} {no_vessel}')          
+#                        vessels = self.get_vessels(no_vessel, record_ves_details)
+#                        self.vessels_not_found.append(f'{idx} No vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')
+#                        #import ipdb; ipdb.set_trace()
+#                        record_people_no = self.search('PersNo', pers_no, self.people_no)
+
+                    # assume first vessel is licenced to Mooring
+                    record_ves_details = self.search('PersNo', pers_no, self.vessel_multiple)
+                    vessels = self.get_vessels(no_vessel, record_ves_details)
+                    print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')          
+                    #vessel_mooring = vessels[0]
 
                     #import ipdb; ipdb.set_trace()
                     record_people_no = self.search('PersNo', pers_no, self.people_cur_mooring)
@@ -203,58 +275,285 @@ class VesselMigration(object):
                     phone_mobile = record_people_no['PhoneMobile']
                     phone_work = record_people_no['PhoneWork']
 
-                    {'LastName': 'Abbott', '_7': 'William', 'PersNo': '207907', '_8': 'W', 'NoVessel': '1', '_9': '1', 'EMail': 'wabbinator@gmail.com', 'LicContactEmail': 'None'}
+                    #{'LastName': 'Abbott', '_7': 'William', 'PersNo': '207907', '_8': 'W', 'NoVessel': '1', '_9': '1', 'EMail': 'wabbinator@gmail.com', 'LicContactEmail': 'None'}
                     record_people_email = self.search('PersNo', pers_no, self.people_email)
                     email = record_people_email['EMail'].split(';')[0].strip().lower()
 
                     user = self.set_emailuser(username, email, address, phone_mobile, phone_home)
 
-                    for ves in vessels:
-                        try:
-                            vessel = Vessel.objects.get(rego_no=ves[0])
-                        except ObjectDoesNotExist:
-                            vessel = Vessel.objects.create(rego_no=ves[0])
+                    # see mooringlicensing/utils/tests/mooring_names.txt
+                    if Mooring.objects.filter(name=mooring_no).count()>0:
+                        mooring = Mooring.objects.filter(name=mooring_no)[0]
+                    else:
+                        import ipdb; ipdb.set_trace()
+                        print(f'Mooring not found: {mooring}')
+                        self.errors.append(dict(idx=idx, record=record))
+                        continue
 
-                        try:
-                            owner = Owner.objects.get(emailuser=user)
-                        except ObjectDoesNotExist:
-                            owner = Owner.objects.create(emailuser=user)
+                    approval = MooringLicence.objects.create(
+                        status='current',
+                        #internal_status=None,
+                        #current_proposal=proposal,
+                        issue_date = datetime.datetime.now(datetime.timezone.utc),
+                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
+                        start_date = start_date,
+                        expiry_date = expiry_date,
+                        submitter=user,
+                        migrated=migrated,
+                        export_to_mooring_booking=True,
+                    )
+                    self.approvals.append(approval.id)
 
-                        try:
-                            vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
-                            vessel_ownership.dot_name = '' #dot_name
-                            vessel_ownership.save()
-                        except ObjectDoesNotExist:
-                            #vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=percentage, dot_name=dot_name)
-                            vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=None, dot_name='')
+                    if not vessels:
+                        proposal=MooringLicenceApplication.objects.create(
+                            proposal_type_id=1, # new application
+                            submitter=user,
+                            lodgement_date=datetime.datetime.now(datetime.timezone.utc),
+                            migrated=migrated,
 
-                        if VesselDetails.objects.filter(vessel=vessel).count()>0:
-                            vessel_details = VesselDetails.objects.filter(vessel=vessel)[0]
-                        else:
-                            vessel_details = VesselDetails.objects.create(
-                                vessel_type='', #vessel_type,
+                            preferred_bay= mooring.mooring_bay,
+                            processing_status='approved',
+                            customer_status='approved',
+                            allocated_mooring=mooring,
+                            proposed_issuance_approval={
+                                "start_date": start_date.strftime('%d/%m/%Y'),
+                                "expiry_date": expiry_date.strftime('%d/%m/%Y'),
+                                "details": None,
+                                "cc_email": None,
+                                "mooring_id": mooring.id,
+                                "ria_mooring_name": mooring.name,
+                                "mooring_bay_id": mooring.mooring_bay.id,
+    #                            "vessel_ownership": [{
+    #                                    "dot_name": vessel_mooring[0], # vessel_mooring[0] --> rego_no #vessel_dot
+    #                                }],
+                                "vessel_ownership": [dict(dot_name=i[0]) for i in vessels],
+                                "mooring_on_approval": []
+                            },
+                            date_invited=date_invited,
+                        )
+
+                        approval.current_proposal=proposal
+                        approval.save()
+
+                    else:
+                        #import ipdb; ipdb.set_trace()
+                        vessel_objs = []
+                        #proposal = None
+                        for ves_idx, ves in enumerate(vessels):
+                            ves_rego_no = ves[0]
+                            ves_name    = ves[1]
+                            ves_length  = self.to_float(ves[2])
+                            ves_draft   = self.to_float(ves[3])
+                            sticker_no  = ves[4]
+                            ves_type = ''
+                            ves_weight = Decimal( 0.0 )
+                            berth_mooring = ''
+                            percentage = None # force user to set at renewal time
+                            vessel_type = ''
+
+                            try:
+                                vessel = Vessel.objects.get(rego_no=ves_rego_no)
+                            except ObjectDoesNotExist:
+                                vessel = Vessel.objects.create(rego_no=ves_rego_no)
+
+                            try:
+                                owner = Owner.objects.get(emailuser=user)
+                            except ObjectDoesNotExist:
+                                owner = Owner.objects.create(emailuser=user)
+
+                            try:
+                                vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
+                                vessel_ownership.dot_name = ves_rego_no # rego_no
+                                vessel_ownership.save()
+                            except ObjectDoesNotExist:
+                                #vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=percentage, dot_name=dot_name)
+                                vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=percentage, dot_name=ves_rego_no)
+
+                            if VesselDetails.objects.filter(vessel=vessel).count()>0:
+                                vessel_details = VesselDetails.objects.filter(vessel=vessel)[0]
+                            else:
+                                vessel_details = VesselDetails.objects.create(
+                                    vessel_type=vessel_type,
+                                    vessel=vessel,
+                                    vessel_name=ves_name,
+                                    vessel_length=ves_length,
+                                    vessel_draft=ves_draft,
+                                    vessel_weight= ves_weight,
+                                    berth_mooring=berth_mooring
+                                )
+
+                            vessel_objs.append(dict(
                                 vessel=vessel,
-                                vessel_name=ves[1],
-                                vessel_length=self.to_float(ves[2]),
-                                vessel_draft=self.to_float(ves[3]),
-                                #vessel_weight= vessel_weight,
-                                #berth_mooring=berth_mooring
+                                owner=owner,
+                                vessel_ownership=vessel_ownership,
+                                vessel_details=vessel_details,
+                            ))
+
+
+                            try:
+                                start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                            except:
+                                start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+
+
+                            #import ipdb; ipdb.set_trace()
+                            proposal=MooringLicenceApplication.objects.create(
+                                proposal_type_id=1, # new application
+                                submitter=user,
+                                lodgement_date=datetime.datetime.now(datetime.timezone.utc),
+                                migrated=migrated,
+
+                                vessel_details=vessel_details,
+                                vessel_ownership=vessel_ownership,
+                                rego_no=ves_rego_no,
+                                vessel_type=ves_type,
+                                vessel_name=ves_name,
+                                vessel_length=ves_length,
+                                vessel_draft=ves_draft,
+                                #vessel_beam='',
+                                vessel_weight=ves_weight,
+                                berth_mooring=berth_mooring,
+                                percentage=percentage,
+                                individual_owner=True,
+                                dot_name='', #vessel_mooring[0], #vessel_dot,
+
+                                preferred_bay= mooring.mooring_bay,
+                                #proposed_issuance_approval={},
+                                processing_status='approved',
+                                customer_status='approved',
+                                allocated_mooring=mooring,
+                                proposed_issuance_approval={
+                                    "start_date": start_date.strftime('%d/%m/%Y'),
+                                    "expiry_date": expiry_date.strftime('%d/%m/%Y'),
+                                    "details": None,
+                                    "cc_email": None,
+                                    "mooring_id": mooring.id,
+                                    "ria_mooring_name": mooring.name,
+                                    "mooring_bay_id": mooring.mooring_bay.id,
+        #                            "vessel_ownership": [{
+        #                                    "dot_name": vessel_mooring[0], # vessel_mooring[0] --> rego_no #vessel_dot
+        #                                }],
+                                    "vessel_ownership": [dict(dot_name=i[0]) for i in vessels],
+                                    "mooring_on_approval": []
+                                },
+                                date_invited=date_invited,
                             )
 
+#                            proposal.vessel_details=vessel_details
+#                            proposal.vessel_ownership=vessel_ownership
+#                            proposal.rego_no=ves_rego_no
+#                            proposal.vessel_type=ves_type
+#                            proposal.vessel_name=ves_name
+#                            proposal.vessel_length=ves_length
+#                            proposal.vessel_draft=ves_draft
+#                            #proposal.vessel_beam=''
+#                            proposal.vessel_weight=ves_weight
+#                            proposal.berth_mooring=berth_mooring
+#                            proposal.percentage=percentage
+#                            proposal.individual_owner=True
+#                            proposal.dot_name='' #vessel_mooring[0], #vessel_dot,
+#                            proposal.save()
+
+                            sticker=Sticker.objects.create(
+                                number=sticker_no,
+                                status='current',
+                                approval=approval,
+                                printing_date=start_date,
+                                mailing_date=start_date,
+                                vessel_ownership=vessel_ownership,
+                                proposal_initiated=proposal,
+                                #dcv_permit=null,
+                            )
+
+                            ua=ProposalUserAction.objects.create(
+                                proposal=proposal,
+                                who=user,
+                                what='Mooring Licence - Migrated Application',
+                            )
+
+                            vooa = VesselOwnershipOnApproval.objects.create(
+                                approval=approval,
+                                vessel_ownership=vessel_ownership,
+                            )
+
+                            #import ipdb; ipdb.set_trace()
+                            approval_history = ApprovalHistory.objects.create(
+                                reason='new',
+                                approval=approval,
+                                vessel_ownership=vessel_ownership,
+                                proposal = proposal,
+                                #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                                start_date = start_date,
+                                #stickers = [sticker.id],
+                            )
+                            approval_history.stickers.add(sticker.id),
+
+#                    for approval_id in self.approvals:
+#                        a = MooringLicence.objects.get(id=approval_id)
+#                        import ipdb; ipdb.set_trace()
+#                        a.generate_doc()
+
+
+                    proposal.approval = approval
+                    proposal.save()
+                    #proposal.allocated_mooring.mooring_licence = approval
+                    #proposal.allocated_mooring.save()
+                    #approval.generate_doc()
+
+#                    moa = MooringOnApproval.objects.create(
+#                        approval=approval,
+#                        mooring=mooring,
+#                        sticker=None,
+#                        site_licensee=True, # ???
+#                        end_date=expiry_date
+#                    )
+
+                    ml_all_data.append([pers_no, email, user.dob, user.first_name, user.last_name, user.mobile_number, user.phone_number, user.residential_address, rego_no, dot_name, percentage, vessel_type, vessel_name, vessel_overall_length, vessel_draft, vessel_weight, berth_mooring, mooring.name, date_invited])
+
+                    user_data.append([pers_no, email, user.dob, user.first_name, user.last_name, user.mobile_number, user.phone_number, user.residential_address, no_vessel])
+
+                    berth_mooring = ''
+                    vessel_data.append([pers_no, email, user.dob, rego_no, dot_name, percentage, vessel_type, vessel_name, vessel_overall_length, vessel_draft, vessel_weight, berth_mooring])
+
+                    #date_invited = ''
+                    mla_data.append([pers_no, email, user.dob, rego_no, mooring.name, date_invited])
 
                 except Exception as e:
                     self.errors.append(f'{idx} {record}\n{e}')
                     import ipdb; ipdb.set_trace()
                     print(e)
 
+        #import ipdb; ipdb.set_trace()
+        with open('ml_all.csv', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerows(ml_all_data)
+
+        with open('user.csv', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerows(user_data)
+
+        with open('vessel.csv', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerows(vessel_data)
+
+        with open('mla.csv', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerows(mla_data)
+
+
+
+
+
         print(f'vessels_found: {self.vessels_found}')
         print(f'vessels_not_found: {self.vessels_not_found}')
         print(f'vessel_details_not_found: {self.vessel_details_not_found}')
+        print(f'num_vessels: {self.num_vessels}')
         print(f'errors: {self.errors}')
         print(f'no. vessels_found: {len(self.vessels_found)}')
         print(f'no. vessels_not_found: {len(self.vessels_not_found)}')
         print(f'no. vessel_details_not_found: {len(self.vessel_details_not_found)}')
         print(f'no. emailuser: {len(self.emailuser)}')
+        print(f'no. num_vessels: {len(self.num_vessels)}')
         print(f'no. errors: {len(self.errors)}')
 
     def set_emailuser(self, username, email, address, phone_mobile, phone_home):
@@ -320,592 +619,4 @@ class VesselMigration(object):
             #print(e)
 
 
-    def _migrate(self):
-
-        #submitter = EmailUser.objects.get(email='jawaid.mushtaq@dbca.wa.gov.au')
-        expiry_date = datetime.date(2023,8,31)
-        date_applied = '2021-08-31'
-
-        address_not_found = []
-        address_l_not_found = []
-        address_list = []
-        user_list = []
-        vessel_list = []
-        owner_list = []
-        ownership_list = []
-        details_list = []
-        proposal_list = []
-        aup_list = []
-        user_action_list = []
-        approval_list = []
-        approval_history_list = []
-
-        added = []
-        errors = []
-        no_records = []
-        fnames = []
-        no_persno = []
-        no_email = []
-        no_email_l = []
-        no_licencee = []
-        count_no_mooring = 0
-        with transaction.atomic():
-            #for idx, record in enumerate(self.moorings[827:], 827):
-            for idx, record in enumerate(self.moorings, 1):
-                try:
-                    #import ipdb; ipdb.set_trace()
-                    username = record.get('_1') #.lower()
-                    permit_type = record['_6'] # RIA or Lic
-                    mooring_no  = record['MooringNo']
-                    vessel_name = record['VesName']
-                    #vessel_len  = aup_records[0]['VesLen']
-                    rego_no = record['VesRego']
-
-                    gs2 = GrepSearch2(username=username, mooring_no=mooring_no, path=self.path_csv)
-                    try:
-                        pers_no = gs2.get_persno()
-                        if not pers_no and (username, pers_no) not in no_persno:
-                            no_persno.append((username, pers_no))
-                            print(f'** NO PersNo FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                            continue
-                    except:
-                        if (username, pers_no) not in no_persno:
-                            no_persno.append((username, pers_no))
-                            print(f'NO PersNo FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-                        import ipdb; ipdb.set_trace()
-                        continue
-
-#                    if (username, pers_no) not in no_email:
-#                        no_email.append((username,pers_no))
-#                        print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-
-                    address, phone_home, phone_mobile, phone_work = gs2.get_address(pers_no)
-                    if address is None:
-                        address_not_found.append(pers_no)
-                        print(f'ADDRESS NOT FOUND: {idx}, {pers_no}, {username} {permit_type}, {mooring_no}')
-                        continue
-                    email, username = gs2.get_email()
-                    if not email:
-                        continue
-                    email = email.split(';')[0]
-                    email = email.strip().replace('{','').replace('}','')
-                    firstname = username.split(' ')[-1]
-                    lastname = ' '.join(username.split(' ')[:-1])
-
-#                    if (username, pers_no) not in no_email:
-#                        no_email.append((username,pers_no))
-#                        print(f'NO EMAIL FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}')
-
-                    email_l, username_l = gs2.get_email(licencee=True)
-                    if username == username_l:
-                        print(f'{idx}, Licencee and AUP Same User: {username}, {mooring_no}')
-                        continue
-
-                    #if not address_l and (username, pers_no, mooring_no) not in no_licencee and permit_type=='Lic':
-                    if not email_l and permit_type=='Lic':
-                        if (username, pers_no, mooring_no) not in no_licencee:
-                            no_licencee.append((username, pers_no, mooring_no))
-                        permit_type = 'RIA' # override and save as RIA nominated mooring
-                        print(f'{idx}, {pers_no}, {address}, {username}, {permit_type}, {mooring_no}')
-                    elif permit_type=='Lic':
-                        email_l = email_l.split(';')[0]
-                        firstname_l = username.split(' ')[-1]
-                        lastname_l = ' '.join(username.split(' ')[:-1])
-                        pers_no_l = gs2.get_persno(username_l)
-                        #import ipdb; ipdb.set_trace()
-                        address_l, phone_home_l, phone_mobile_l, phone_work_l = gs2.get_address(pers_no_l)
-                        print(f'{idx}, {pers_no}, {address}, {username}, {permit_type}, {mooring_no}: Licencee - ({email_l} {username_l} {address_l}, {phone_mobile})')
-                        if address_l is None:
-                            address_l_not_found.append(pers_no_l)
-                            print(f'ADDRESS_L NOT FOUND: {idx}, {pers_no}, {username}, {permit_type}, {mooring_no}: Licencee - ({pers_no_l})')
-                            continue
-                    else:
-                        print(f'{idx}, {pers_no}, {address}, {username}, {permit_type}, {mooring_no}')
-
-
-
-                    vessel_overall_length, vessel_draft = gs2.get_vessel_size(rego_no)
-                    vessel_type = 'other'
-                    vessel_weight = Decimal( 0.0 )
-                    berth_mooring = ''
-                    percentage = None # force user to set at renewal time
-                    dot_name = gs2.get_dot_rego(rego_no)
-
-                    if self.test:
-                        #import ipdb; ipdb.set_trace()
-                        continue
-     
-                    if Mooring.objects.filter(name=mooring_no).count()>0:
-                        mooring = Mooring.objects.filter(name=mooring_no)[0]
-                    elif mooring_no=='TB999':
-                        print(f'{idx}, Mooring ignored: {mooring_no}')
-                        continue
-                    else:
-                        import ipdb; ipdb.set_trace()
-                        print(f'Mooring not found: {mooring_no}')
-                        #mooring_bay = MooringBay.objects.get(name='Rottnest Island')
-                        #mooring_bay = MooringBay.objects.get(name='Thomson Bay')
-
-                    # User email user
-                    items = address.split(',')
-                    line1 = items[0].strip()
-                    line2 = items[1].strip() if len(items) > 3 else ''
-                    line3 = items[2].strip() if len(items) > 4 else ''
-                    state = items[-2].strip()
-                    postcode = items[-1].strip()
-
-                    try:
-                        user = EmailUser.objects.get(email=email)
-                    except:
-                        user = EmailUser.objects.create(email=email, first_name=firstname, last_name=lastname, mobile_number=phone_mobile, phone_number=phone_home)
-
-                    country = Country.objects.get(printable_name='Australia')
-                    try:
-                        _address = Address.objects.get(user=user)
-                    except:
-                        _address, address_created = Address.objects.get_or_create(line1=line1, line2=line2, line3=line3, postcode=postcode, state=state, country=country, user=user)
-                    user.residential_address = _address
-                    user.postal_address = _address
-                    user.save()
-
-                    #if permit_type=='Lic' and email_l:
-                    bay_preferences_numbered = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
-                    mooring_authorisation_preference = 'ria'
-                    site_licensee_email = None
-                    keep_existing_mooring = True
-                    site_licensee = False
-                    if permit_type=='Lic':
-                        # Licensee email usee
-                        items = address_l.split(',')
-                        line1 = items[0].strip()
-                        line2 = items[1].strip() if len(items) > 3 else ''
-                        line3 = items[2].strip() if len(items) > 4 else ''
-                        state = items[-2].strip()
-                        postcode = items[-1].strip()
-
-                        #import ipdb; ipdb.set_trace()
-                        try:
-                            licensee = EmailUser.objects.get(email=email_l)
-                        except:
-                            licensee = EmailUser.objects.create(email=email_l, first_name=firstname_l, last_name=lastname_l, mobile_number=phone_mobile_l, phone_number=phone_home_l)
-
-                        country = Country.objects.get(printable_name='Australia')
-                        try:
-                            _address_l = Address.objects.get(user=licensee)
-                        except:
-                            _address_l, address_created_l = Address.objects.get_or_create(line1=line1, line2=line2, line3=line3, postcode=postcode, state=state, country=country, user=licensee)
-                        licensee.residential_address = _address_l
-                        licensee.postal_address = _address_l
-                        licensee.save()
-
-                        mooring_authorisation_preference='site_licensee'
-                        site_licensee_email=email_l
-                        bay_preferences_numbered = None
-                        site_licensee = True
-
-                    try:
-                        vessel = Vessel.objects.get(rego_no=rego_no)
-                    except ObjectDoesNotExist:
-                        vessel = Vessel.objects.create(rego_no=rego_no)
-
-                    try:
-                        owner = Owner.objects.get(emailuser=user)
-                    except ObjectDoesNotExist:
-                        owner = Owner.objects.create(emailuser=user)
-
-                    try:
-                        vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
-                        vessel_ownership.dot_name = dot_name
-                        vessel_ownership.save()
-                    except ObjectDoesNotExist:
-                        vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=percentage, dot_name=dot_name)
-
-                    if VesselDetails.objects.filter(vessel=vessel).count()>0:
-                        vessel_details = VesselDetails.objects.filter(vessel=vessel)[0]
-                    else:
-                        vessel_details = VesselDetails.objects.create(
-                            vessel_type=vessel_type,
-                            vessel=vessel,
-                            vessel_name=vessel_name,
-                            vessel_length=vessel_overall_length,
-                            vessel_draft=vessel_draft,
-                            vessel_weight= vessel_weight,
-                            #berth_mooring=berth_mooring
-                        )
-
-                    proposal=AuthorisedUserApplication.objects.create(
-                        proposal_type_id=1, # new application
-                        submitter=user,
-                        lodgement_date=datetime.now(),
-                        mooring_authorisation_preference=mooring_authorisation_preference,
-                        site_licensee_email=site_licensee_email,
-                        keep_existing_mooring=True,
-                        mooring=mooring,
-                        bay_preferences_numbered=bay_preferences_numbered,
-                        migrated=True,
-                        vessel_details=vessel_details,
-                        vessel_ownership=vessel_ownership,
-                        rego_no=rego_no,
-                        vessel_type=vessel_type,
-                        vessel_name=vessel_name,
-                        vessel_length=vessel_overall_length,
-                        vessel_draft=vessel_draft,
-                        #vessel_beam='',
-                        vessel_weight=vessel_weight,
-                        berth_mooring='home',
-                        preferred_bay= mooring.mooring_bay,
-                        percentage=percentage,
-                        individual_owner=True,
-                        dot_name=dot_name,
-                        #proposed_issuance_approval={},
-                        processing_status='approved',
-                        customer_status='approved',
-                        proposed_issuance_approval={
-                            "details": None,
-                            "cc_email": None,
-                            "mooring_id": mooring.id,
-                            "ria_mooring_name": mooring.name,
-                            "mooring_bay_id": mooring.mooring_bay.id,
-                            "vessel_ownership": [],
-                            "mooring_on_approval": []
-                        },
-                    )
-#>         "proposed_issuance_approval": {
-#>             "details": "dd",
-#>             "cc_email": null,
-#>             "mooring_id": 127,
-#>             "mooring_bay_id": 7,
-#>             "ria_mooring_name": "CB005",
-#>             "vesSEL_OWNERSHIP": [],
-#>             "mooring_on_approval": []
-#>         },
-#
-#>         "berth_mooring": "home",
-#>         "dot_name": "abc",
-#>         "insurance_choice": "over_ten",
-#>         "preferred_bay": null,
-#>         "silent_elector": null,
-#>         "mooring_authorisation_preference": "ria",
-#>         "bay_preferences_numbered": "[\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\"]",
-
-                    ua=ProposalUserAction.objects.create(
-                        proposal=proposal,
-                        who=user,
-                        what='Authorised User Permit - Migrated Application',
-                    )
-
-                    try:
-                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
-                    except:
-                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
-
-                    #approval = WaitingListAllocation.objects.create(
-                    approval = AuthorisedUserPermit.objects.create(
-                        status='current',
-                        #internal_status=None,
-                        current_proposal=proposal,
-                        issue_date = datetime.datetime.now(datetime.timezone.utc),
-                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
-                        start_date = start_date,
-                        expiry_date = expiry_date,
-                        submitter=user,
-                        migrated=True,
-                        export_to_mooring_booking=True,
-                    )
-                    #print(f'wla_order: {position_no}')
-
-                    proposal.approval = approval
-                    proposal.save()
-
-                    moa = MooringOnApproval.objects.create(
-                        approval=approval,
-                        mooring=mooring,
-                        sticker=None,
-                        site_licensee=site_licensee,
-                        #end_date=expiry_date
-                    )
-
-                    try:
-                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                    except:
-                        start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-
-                    approval_history = ApprovalHistory.objects.create(
-                        reason='new',
-                        approval=approval,
-                        vessel_ownership = vessel_ownership,
-                        proposal = proposal,
-                        #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                        start_date = start_date,
-                    )
-
-                    added.append(proposal.id)
-
-                    address_list.append(_address.id)
-                    user_list.append(user.id)
-                    vessel_list.append(vessel.id)
-                    owner_list.append(owner.id)
-                    ownership_list.append(vessel_ownership.id)
-                    details_list.append(vessel_details.id)
-                    proposal_list.append(proposal.proposal.id)
-                    aup_list.append(proposal.id)
-                    user_action_list.append(ua.id)
-                    approval_list.append(approval.id)
-                    approval_history_list.append(approval_history.id)
-
-                except Exception as e:
-                    #errors.append(str(e))
-                    import ipdb; ipdb.set_trace()
-                    raise Exception(str(e))
-
-#        print(f'Address.objects.get(id__in={address_list}).delete()')
-#        print(f'EmailUser.objects.get(id__in={user_list}).delete()')
-#        print(f'Vessel.objects.get(id__in={vessel_list}).delete()')
-#        print(f'Owner.objects.get(id__in={owner_list}).delete()')
-#        print(f'VesselOwnership.objects.get(id__in={ownership_list}).delete()')
-#        print(f'VesselDetails.objects.get(id__in={details_list}).delete()')
-        print(f'AuthorisedUserApplication.objects.get(id__in={aup_list}).delete()')
-#        print(f'ProposalUserAction.objects.get(id__in={user_action_list}).delete()')
-        print(f'AuthorisedUserPermit.objects.get(id__in={approval_list}).delete()')
-        print(f'ApprovalHistory.objects.get(id__in={approval_history_list}).delete()')
-#        print(f'count_no_mooring: {count_no_mooring}')
-        print(f'no_records: {no_records}')
-        print(f'fnames_records: {fnames}')
-        print(f'no_persno: {no_persno}')
-        print(f'no_email: {no_email}')
-        print(f'no_licencee: {no_licencee}')
-        print(f'address_not_found: {address_not_found}')
-        print(f'address_l_not_found: {address_l_not_found}')
-
-
-class GrepSearch(object):
-    '''
-    from mooringlicensing.utils.waiting_list_migrate import WaitingListMigration, GrepSearch
-
-    GrepSearch('123').search('key', '_1')     --> Search for string key='123' in all files. The result record/dict must also have key '_1'
-    '''
-
-    #def __init__(self, search_str1, path='mooringlicensing/utils/lotus_notes'):
-    def __init__(self, search_str1, path):
-        self.path = path
-        self.search_str1 = search_str1
-        #self.search()
-
-    def get_files(self, search_str):
-        ''' Read all files in directory '''
-        r=subprocess.check_output(['grep', '-rl', search_str, self.path])
-        files = [i for i in r.decode('UTF-8').split('\n') if i.endswith(".json") ]
-        return files
-
-    def search(self, key1, key2):
-        ''' Iteratively search for key:value pair in grep'd files '''
-
-        def find(key, value, records):
-            for record in records:
-                if value in record.get(key):
-                    return record
-            return None
-
-        #import ipdb; ipdb.set_trace()
-        # Get all files that contains string 'self.search_str1'
-        _files = self.get_files(self.search_str1)
-        files=[
-
-            self.path + os.sep + 'Auth_Users___Surname___with_L.json',
-            self.path + os.sep + 'Auth_Users___Surname___No_L.json',
-            self.path + os.sep + 'Vessel___People___All.json',
-            self.path + os.sep + 'PeopleName.json',
-
-            self.path + os.sep + 'Vessel___People___All.json',
-            self.path + os.sep + 'Vessel___Rego___Current.json',
-            self.path + os.sep + 'PeopleLicType.json',
-            self.path + os.sep + 'People___Trim_File.json',
-            self.path + os.sep + 'HINCurrent.json',
-            self.path + os.sep + 'PeopleNo.json',
-            self.path + os.sep + 'Vessel___Vessel_Name___Current.json',
-
-            self.path + os.sep + 'Admin___EContacts___5_Licencee.json',
-            self.path + os.sep + 'Admin___Labels___Postal.json',
-        ]
-
-        for fname in files:
-            with open(fname) as f:
-                f_json = json.load(f)
-                #import ipdb; ipdb.set_trace()
-                # check the files (json) also has the key2
-                if key2 in f_json[0]:
-                    # find record in json that contains key1:search_str1
-                    #import ipdb; ipdb.set_trace()
-                    record = find(key1, self.search_str1, f_json)
-                    if not record or (key2=='_1' and len(record['_1'].split(',')) <= 1):
-                        continue
-                    #print('****************' + fname)
-                    return record, fname
-        return None, None
-
-class GrepSearch2(object):
-    '''
-    from mooringlicensing.utils.waiting_list_migrate import WaitingListMigration, GrepSearch
-
-    GrepSearch('123').search('key', '_1')     --> Search for string key='123' in all files. The result record/dict must also have key '_1'
-    '''
-
-    def __init__(self, username, mooring_no, path):
-        self.path = path
-        self.username = username.replace('  ', ' ')
-        self.mooring_no = mooring_no
-
-    def _get_result1(self):
-        ''' Read all files in directory '''
-        cmd = f"grep -r '{self.username}' {self.path} | grep \"'MooringNo': '{self.mooring_no}'\" | grep FirstNameL"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            #import ipdb; ipdb.set_trace()
-            res = output.decode('utf-8')
-            firstname_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['FirstNameL']
-            lastname_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['LastNameL']
-            username_l = '{} {}'.format(lastname_l, firstname_l)
-            return username_l
-
-        except:
-            return None
-
-    def _get_result2(self):
-        ''' Read all files in directory '''
-        cmd = "grep -r '{self.username}' {self.path} | grep \"'MooringNo': '{self.mooring_no}'\" | grep '_12'"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            #import ipdb; ipdb.set_trace()
-            res = output.decode('utf-8')
-            username_l = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['_12']
-            return username_l
-
-        except:
-            return None
-
-
-    def get_email(self, licencee=False):
-        ''' Read all files in directory - Get Licensee email'''
-        if licencee:
-            username = self._get_result1()
-            if not username:
-                username = self._get_result2()
-            #import ipdb; ipdb.set_trace()
-            if not username:
-                #import ipdb; ipdb.set_trace()
-                return None, None
-        else:
-            username = self.username
-
-        cmd = f"grep -r '{username}' {self.path} | grep '@'"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        #import ipdb; ipdb.set_trace()
-        try: 
-            res = output.decode('utf-8')
-            email = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['EMail']
-            email = email.lower().strip('>').strip('<').strip()
-        except:
-            email = None
-
-        #import ipdb; ipdb.set_trace()
-        return email, username
-
-    def get_persno(self, username=None):
-        ''' Read all files in directory - Get PersNo'''
-        #import ipdb; ipdb.set_trace()
-        #cmd = "grep -r '{}' {} | grep -v PersNoL | grep 'PersNo'".format(self.username, self.path)
-        #cmd = "grep -ir '{}' {}/Auth_Users___*.* | grep -v PersNoL | grep 'PersNo'".format(self.username, self.path)
-        if not username:
-            username = self.username
-
-        cmd = f"grep -ir '{username}' {self.path}/Auth_Users___*.* {self.path}/People___PersNo.csv {self.path}/People___Surname.csv | grep -v PersNoU | grep -v PersNoL | grep PersNo"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            res = output.decode('utf-8')
-            persno = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['PersNo']
-            #persno = ast.literal_eval(res.splitlines()[0])['PersNo']
-        except:
-            persno = None
-
-        return persno 
-
-    def get_vessel_size(self, rego_no):
-        ''' Read all files in directory - Get PersNo'''
-        #import ipdb; ipdb.set_trace()
-        cmd = f"grep -ir '{rego_no}' {self.path} | grep RegLength1 | grep Draft1"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            res = output.decode('utf-8')
-            ves_length = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['RegLength1']
-            ves_draft = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['Draft1']
-            if ves_length == 'None':
-                ves_length = 0.0
-            if ves_draft == 'None':
-                ves_draft = 0.0
-        except:
-            ves_length = 0.0
-            ves_draft = 0.0
-
-        return Decimal(ves_length), Decimal(ves_draft)
-
-    def get_dot_rego(self, rego_no):
-        ''' Read all files in directory - Get PersNo'''
-        #import ipdb; ipdb.set_trace()
-        cmd = f"grep -ir '{rego_no}' {self.path} | grep DoTRego1"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-            res = output.decode('utf-8')
-            dot_rego = ast.literal_eval(res.splitlines()[0].split('csv:')[1])['DoTRego1']
-        except:
-            dot_rego = None
-
-        return dot_rego
-
-
-    def get_address(self, pers_no):
-        ''' Read all files in directory - Get PersNo'''
-        #import ipdb; ipdb.set_trace()
-        cmd = f"grep -ir \"'PersNo': '{pers_no}'\" {self.path} | grep \"'_1'\" | grep UserName| grep Phone"
-        ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        output = ps.communicate()[0]
-
-        try: 
-#            res = output.decode('utf-8')
-#            lines = res.splitlines()
-#            for i in lines:
-#                line = ast.literal_eval(lines[i].split('csv:')[1])
-#                address = line['_1']
-#                if len(address.split(',')) > 2:
-#                    phone_home = line['PhoneHome']
-#                    phone_mobile = line['PhoneMobile']
-#                    phone_work = line['PhoneWork']
-#                    break
-
-            res = output.decode('utf-8')
-            lines = res.splitlines()
-            line = ast.literal_eval(lines[0].split('csv:')[1])
-            address = line['_1']
-            phone_home = line['PhoneHome']
-            phone_mobile = line['PhoneMobile']
-            phone_work = line['PhoneWork']
-
-        except:
-            address = None
-            phone_home = None
-            phone_mobile = None
-            phone_work = None
-
-        return address, phone_home, phone_mobile, phone_work
 

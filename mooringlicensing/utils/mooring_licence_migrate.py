@@ -1,6 +1,7 @@
 import os
 import subprocess
 import json
+import csv
 import datetime
 from decimal import Decimal
 from django.db import transaction, IntegrityError
@@ -83,9 +84,18 @@ class MooringLicenceMigration(object):
         added = []
         errors = []
         count_no_mooring = 0
+
+        user_data = []
+        vessel_data = []
+        mla_data = []
+        ml_all_data = []
+        user_data.append(['PersNo', 'Email', 'DoB', 'FirstName', 'LastName', 'MobileNo', 'PhoneNo', 'Address'])
+        vessel_data.append(['Owner', 'Email', 'DoB', 'Rego No', 'DoT Name', 'Percentage Ownership', 'Vessel Type', 'Vessel Name', 'Length', 'Draft', 'Weight', 'berth_mooring'])
+        mla.append(['PersNo', 'Email', 'DoB', 'Rego No', 'MooringNo', 'Date Invited'])
+        ml_all_data.append(['PersNo', 'Email', 'DoB', 'DoB', 'FirstName', 'LastName', 'MobileNo', 'PhoneNo', 'Address', 'Rego No', 'DoT Name', 'Percentage Ownership', 'Vessel Type', 'Vessel Name', 'Length', 'Draft', 'Weight', 'berth_mooring', 'MooringNo', 'Date Invited'])
         with transaction.atomic():
-            for idx, record in enumerate(self.mooring_no, 1):
-            #for idx, record in enumerate(self.mooring_no[257:], 1):
+            #for idx, record in enumerate(self.mooring_no, 1):
+            for idx, record in enumerate(self.mooring_no[257:260], 257):
                 #if idx==258:
                 #    import ipdb; ipdb.set_trace()
                 try:
@@ -213,6 +223,8 @@ class MooringLicenceMigration(object):
                     user.residential_address = address
                     user.postal_address = address
                     user.save()
+                    
+                    user_data.append([pers_no, email, user.dob, firstname, lastname, mobile_no, phone_no, address])
 
                     try:
                         vessel = Vessel.objects.get(rego_no=rego_no)
@@ -245,6 +257,9 @@ class MooringLicenceMigration(object):
                         vessel_weight= vessel_weight,
                         berth_mooring='home'
                     )
+
+                    berth_mooring = ''
+                    vessel_data.append([pers_no, email, user.dob, rego_no, dot_name, percentage, vessel_type, vessel_name, vessel_overall_length, vessel_draft, vessel_weight, berth_mooring])
 
                     proposal=MooringLicenceApplication.objects.create(
                         proposal_type_id=1, # new application
@@ -281,9 +296,13 @@ class MooringLicenceMigration(object):
                                 }],
                             "mooring_on_approval": []
                         },
-                        date_invited=date_invited,
+                        date_invited=None #date_invited,
                         dot_name=vessel_dot,
                     )
+
+                    date_invited = ''
+                    mla_data.append([pers_no, email, user.dob, rego_no, mooring.mooring_bay, date_invited])
+
 #>         "proposed_issuance_approval": {
 #>             "details": "dd",
 #>             "cc_email": null,
@@ -340,6 +359,7 @@ class MooringLicenceMigration(object):
 #                        end_date=expiry_date
 #                    )
 
+
                     try:
                         start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                     except:
@@ -367,6 +387,8 @@ class MooringLicenceMigration(object):
                     approval_list.append(approval.id)
                     approval_history_list.append(approval_history.id)
 
+                    ml_all_data.append([pers_no, email, user.dob, firstname, lastname, mobile_no, phone_no, address, rego_no, dot_name, percentage, vessel_type, vessel_name, vessel_overall_length, vessel_draft, vessel_weight, berth_mooring, mooring.mooring_bay, date_invited])
+
 #                except IntegrityError as e:
 #                    errors.append(repr(e))
 #                    continue
@@ -374,6 +396,11 @@ class MooringLicenceMigration(object):
                     #errors.append(str(e))
                     import ipdb; ipdb.set_trace()
                     raise Exception(str(e))
+
+        with open('ml_all.csv', 'w') as f:
+            writer = csv.writer(f)
+            #writer.writerow(header)
+            writer.writerows(ml_all_data)
 
 #        print(f'Address.objects.get(id__in={address_list}).delete()')
 #        print(f'EmailUser.objects.get(id__in={user_list}).delete()')
@@ -385,6 +412,7 @@ class MooringLicenceMigration(object):
 #        print(f'WaitingListAllocation.objects.get(id__in={approval_list}).delete()')
 #        print(f'ApprovalHistory.objects.get(id__in={approval_history_list}).delete()')
         print(f'errors: {errors}')
+
 
 def clear_record():
     Address.objects.last().delete()
