@@ -503,10 +503,11 @@ export default {
 
             // Applicant
             if (vm.is_internal){
-                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    vm.applicants = response.body
-                },(error) => {
-                })
+                // TODO: Get applicants
+                // vm.$http.get(api_endpoints.applicants_dict).then((response) => {
+                //     vm.applicants = response.body
+                // },(error) => {
+                // })
             }
         },
         addEventListeners: function(){

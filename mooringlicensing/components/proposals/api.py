@@ -306,12 +306,12 @@ class GetPaymentSystemId(views.APIView):
         return Response({'payment_system_id': PAYMENT_SYSTEM_ID})
 
 
-class GetApplicantsDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
-
-    def get(self, request, format=None):
-        applicants = EmailUser.objects.filter(mooringlicensing_proposals__in=Proposal.objects.all()).order_by('first_name', 'last_name').distinct()
-        return Response(EmailUserSerializer(applicants, many=True).data)
+# class GetApplicantsDict(views.APIView):
+#     renderer_classes = [JSONRenderer, ]
+#
+#     def get(self, request, format=None):
+#         applicants = EmailUser.objects.filter(mooringlicensing_proposals__in=Proposal.objects.all()).order_by('first_name', 'last_name').distinct()
+#         return Response(EmailUserSerializer(applicants, many=True).data)
 
 
 class GetApplicationTypeDict(views.APIView):
@@ -439,10 +439,13 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             filter_query &= ~Q(customer_status='discarded')
 
         queryset = queryset.filter(filter_query)
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
         #queryset = queryset.order_by(*ordering)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+        queryset = queryset.order_by(*ordering)
         if len(ordering):
             #for num, item in enumerate(ordering):
             #    if item == 'lodgement_number':
