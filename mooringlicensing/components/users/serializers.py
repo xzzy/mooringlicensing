@@ -170,10 +170,15 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
     def get_is_department_user(self, obj):
+        # if obj.email:
+        #     return in_dbca_domain(obj)
+        # else:
+        #     return False
         if obj.email:
-            return in_dbca_domain(obj)
-        else:
-            return False
+            request = self.context["request"] if self.context else None
+            if request:
+                return in_dbca_domain(request)
+        return False
 
     def get_is_payment_admin(self, obj):
         return is_payment_admin(obj)

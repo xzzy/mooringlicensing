@@ -45,15 +45,16 @@ def is_mooringlicensing_admin(request):
     return request.user.is_authenticated and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
 
 def in_dbca_domain(request):
-    user = request.user
-    domain = user.email.split('@')[1]
-    if domain in settings.DEPT_DOMAINS:
-        if not user.is_staff:
-            # hack to reset department user to is_staff==True, if the user logged in externally (external departmentUser login defaults to is_staff=False)
-            user.is_staff = True
-            user.save()
-        return True
-    return False
+    return request.user.is_staff
+    # user = request.user
+    # domain = user.email.split('@')[1]
+    # if domain in settings.DEPT_DOMAINS:
+    #     if not user.is_staff:
+    #         # hack to reset department user to is_staff==True, if the user logged in externally (external departmentUser login defaults to is_staff=False)
+    #         user.is_staff = True
+    #         user.save()
+    #     return True
+    # return False
 
 def is_in_organisation_contacts(request, organisation):
     return request.user.email in organisation.contacts.all().values_list('email', flat=True)
