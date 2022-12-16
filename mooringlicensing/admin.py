@@ -8,7 +8,7 @@ from django.conf import settings
 # from ledger.accounts import admin as ledger_admin
 #from ledger.accounts.models import EmailUser, Document, Address, Profile
 # from ledger.accounts.models import EmailUser
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+from ledger_api_client.ledger_models import EmailUserRO
 from copy import deepcopy
 
 
@@ -49,7 +49,7 @@ mooringlicensing_admin_site = MooringLicensingAdminSite(name='mooringlicensingad
 #         return fieldsets
 #
 #
-@admin.register(EmailUser)
+# @admin.register(EmailUserRO)
 class EmailUserAdmin(admin.ModelAdmin):
     list_display = (
         "email",
