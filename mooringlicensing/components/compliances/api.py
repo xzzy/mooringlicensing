@@ -370,9 +370,11 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         if filter_compliance_status and not filter_compliance_status.lower() == 'all':
             queryset = queryset.filter(customer_status=filter_compliance_status)
 
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)

@@ -1843,9 +1843,11 @@ class MooringFilterBackend(DatatablesFilterBackend):
         if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
             queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
 
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
