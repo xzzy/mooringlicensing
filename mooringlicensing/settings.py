@@ -44,6 +44,7 @@ STATIC_URL = '/static/'
 
 INSTALLED_APPS += [
     'smart_selects',
+    'reversion',
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',

@@ -30,6 +30,7 @@ from ledger_api_client.urls import urlpatterns as ledger_patterns
 # API patterns
 from mooringlicensing.management.default_data_manager import DefaultDataManager
 from mooringlicensing.utils import are_migrations_running
+from django.urls import path
 
 router = routers.DefaultRouter()
 router.register(r'organisations', org_api.OrganisationViewSet)
@@ -119,7 +120,8 @@ api_patterns = [
 
 # URL Patterns
 urlpatterns = [
-    url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
+    # url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
+    path(r"admin/", admin.site.urls),
     url(r'^chaining/', include('smart_selects.urls')),
     url(r'', include(api_patterns)),
     # url(r'^$', views.MooringLicensingRoutingView.as_view(), name='ds_home'),
