@@ -11,7 +11,8 @@ from django.conf import settings
 from ledger_api_client.ledger_models import EmailUserRO
 from copy import deepcopy
 
-
+admin.site.index_template = 'admin-index.html'
+admin.autodiscover()
 
 class MooringLicensingAdminSite(AdminSite):
     site_header = 'Mooring Licensing Administration'
