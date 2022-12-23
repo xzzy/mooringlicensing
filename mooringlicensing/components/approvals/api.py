@@ -171,10 +171,10 @@ class GetWlaAllowed(views.APIView):
         from mooringlicensing.components.proposals.models import WaitingListApplication
         wla_allowed = True
         # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
-        if (WaitingListApplication.objects.filter(submitter=request.user).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-            WaitingListAllocation.objects.filter(submitter=request.user).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
-            MooringLicenceApplication.objects.filter(submitter=request.user).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-            MooringLicence.objects.filter(submitter=request.user).filter(status__in=['current', 'suspended'])):
+        if (WaitingListApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+            WaitingListAllocation.objects.filter(submitter=request.user.id).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
+            MooringLicenceApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+            MooringLicence.objects.filter(submitter=request.user.id).filter(status__in=['current', 'suspended'])):
             wla_allowed = False
         return Response({"wla_allowed": wla_allowed})
 
@@ -321,7 +321,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
                 all = all.filter(Q(submitter=target_user))
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(submitter=request_user))
+            qs = all.filter(Q(submitter=request_user.id))
             return qs
         return Approval.objects.none()
 
@@ -346,8 +346,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Approval.objects.all()
         elif is_customer(self.request):
-            user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
-            queryset =  Approval.objects.filter(Q(org_applicant_id__in = user_orgs) | Q(submitter = self.request.user))
+            # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
+            # queryset =  Approval.objects.filter(Q(org_applicant_id__in = user_orgs) | Q(submitter = self.request.user))
+            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            queryset =  Approval.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter = self.request.user.id))
             return queryset
         return Approval.objects.none()
 
@@ -374,7 +376,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def existing_licences(self, request, *args, **kwargs):
         existing_licences = []
         l_list = Approval.objects.filter(
-                submitter=request.user,
+                submitter=request.user.id,
                 #status__in=['current', 'fulfilled'],
                 status__in=['current'],
                 )

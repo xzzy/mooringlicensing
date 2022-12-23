@@ -16,6 +16,7 @@ from ledger_api_client.settings_base import TIME_ZONE
 # from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing import settings
+from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
         save_proponent_data,
         )
@@ -491,11 +492,14 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
                 user_orgs = [org.id for org in target_user.mooringlicensing_organisations.all()]
-                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user) | Q(site_licensee_email=target_user.email))
+                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
-            user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            qs = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user) | Q(site_licensee_email=request_user.email))
+            orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
+            # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
+            # user_orgs = [org.id for org in orgs]
+            # qs = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
+            qs = all.filter(Q(org_applicant__in=orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
             return qs
         return Proposal.objects.none()
 
@@ -524,7 +528,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
             qs = AnnualAdmissionApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AnnualAdmissionApplication.objects.none()
@@ -533,7 +537,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
         proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
 
         obj = AnnualAdmissionApplication.objects.create(
-                submitter=request.user,
+                submitter=request.user.id,
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj.proposal)
@@ -551,7 +555,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
             qs = AuthorisedUserApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AuthorisedUserApplication.objects.none()
@@ -560,7 +564,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
         proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
 
         obj = AuthorisedUserApplication.objects.create(
-                submitter=request.user,
+                submitter=request.user.id,
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj.proposal)
@@ -578,7 +582,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
             qs = MooringLicenceApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
@@ -591,7 +595,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
             mooring = Mooring.objects.get(id=mooring_id)
 
         obj = MooringLicenceApplication.objects.create(
-                submitter=request.user,
+                submitter=request.user.id,
                 proposal_type=proposal_type,
                 allocated_mooring=mooring,
                 )
@@ -610,7 +614,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
             qs = WaitingListApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = WaitingListApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user))
+            # queryset = WaitingListApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            queryset = WaitingListApplication.objects.filter(Q(proxy_applicant=user.id) | Q(submitter=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListApplication.objects.none()
@@ -619,7 +624,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
 
         obj = WaitingListApplication.objects.create(
-                submitter=request.user,
+                submitter=request.user.id,
                 proposal_type=proposal_type
                 )
         serialized_obj = ProposalSerializer(obj.proposal)
@@ -708,7 +713,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return qs
         elif is_customer(self.request):
             user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user) | Q(site_licensee_email=request_user.email))
+            queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
