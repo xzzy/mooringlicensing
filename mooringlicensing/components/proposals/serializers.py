@@ -12,6 +12,7 @@ from django.conf import settings
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, Address
 
 from mooringlicensing.components.main.models import ApplicationType
+# from mooringlicensing.components.main.utils import retrieve_email_user
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.proposals.models import (
     Proposal,
@@ -51,7 +52,12 @@ logger = logging.getLogger('mooringlicensing')
 class EmailUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
+        fields = ('id',
+                  'email',
+                  'first_name',
+                  'last_name',
+                  'title',
+                  'organisation')
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
@@ -526,7 +532,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
 
 class ListProposalSerializer(BaseProposalSerializer):
-    submitter = EmailUserSerializer()
+    # submitter = EmailUserSerializer()
+    submitter = serializers.SerializerMethodField(read_only=True)
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField()
     customer_status = serializers.SerializerMethodField()
@@ -592,6 +599,14 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'can_view_payment_details',
                 'invoice_links',
                 )
+
+    def get_submitter(self, obj):
+        if obj.submitter:
+            from mooringlicensing.components.main.utils import retrieve_email_user
+            email_user = retrieve_email_user(obj.submitter)
+            return EmailUserSerializer(email_user).data
+        else:
+            return ""
 
     def get_invoice_links(self, proposal):
         links = ""

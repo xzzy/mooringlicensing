@@ -24,21 +24,25 @@ from mooringlicensing.components.main.decorators import basic_exception_handler,
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
+from ledger_api_client.ledger_models import EmailUserRO
 import logging
+
 logger = logging.getLogger('mooringlicensing')
 
-def belongs_to(user, group_name):
-    """
-    Check if the user belongs to the given group.
-    :param user:
-    :param group_name:
-    :return:
-    """
-    return user.groups.filter(name=group_name).exists()
+# def belongs_to(user, group_name):
+#     """
+#     Check if the user belongs to the given group.
+#     :param user:
+#     :param group_name:
+#     :return:
+#     """
+#     return user.groups.filter(name=group_name).exists()
 
 
 def is_payment_officer(user):
-    return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+    # return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+    from mooringlicensing.helpers import belongs_to
+    return user.is_authenticated and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
 
 
 def to_local_tz(_date):
@@ -485,3 +489,7 @@ def calculate_max_length(fee_constructor, max_amount_paid, proposal_type):
     max_length = calculate_minimum_max_length(fee_items_interested, max_amount_paid)
     return max_length
 
+
+@basic_exception_handler
+def retrieve_email_user(email_user_id):
+    return EmailUserRO.objects.get(id=email_user_id)
