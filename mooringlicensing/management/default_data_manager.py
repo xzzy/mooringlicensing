@@ -71,7 +71,8 @@ class DefaultDataManager(object):
                             obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=True)
                         obj.save()
                     else:
-                        obj.value = item[1]
+                        # obj.value = item[1]
+                        obj.value = GlobalSettings.default_values[item[0]]
                         obj.save()
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
