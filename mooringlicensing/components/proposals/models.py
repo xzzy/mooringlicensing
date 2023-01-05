@@ -8,6 +8,8 @@ import traceback
 
 import pytz
 import uuid
+
+# from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
@@ -809,7 +811,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         elif self.proxy_applicant:
             return self.proxy_applicant.email
         else:
-            return self.submitter.email
+            # return self.submitter.email
+            from mooringlicensing.components.main.utils import retrieve_email_user
+            return retrieve_email_user(self.submitter).email
 
     @property
     def applicant_details(self):

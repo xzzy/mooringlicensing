@@ -25,7 +25,8 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.components.organisations.models import (
     Organisation
 )
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
+    EmailUserSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
     MooringSimpleSerializer  # EmailUserAppViewSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
@@ -36,23 +37,23 @@ from django.core.exceptions import ObjectDoesNotExist
 logger = logging.getLogger('mooringlicensing')
 
 
-class EmailUserSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = EmailUser
-        fields = (
-                'id',
-                'email',
-                'first_name',
-                'last_name',
-                'title',
-                'organisation',
-                'full_name',
-                )
-
-    def get_full_name(self, obj):
-        return obj.get_full_name()
+# class EmailUserSerializer(serializers.ModelSerializer):
+#     full_name = serializers.SerializerMethodField()
+#
+#     class Meta:
+#         model = EmailUser
+#         fields = (
+#                 'id',
+#                 'email',
+#                 'first_name',
+#                 'last_name',
+#                 'title',
+#                 'organisation',
+#                 'full_name',
+#                 )
+#
+#     def get_full_name(self, obj):
+#         return obj.get_full_name()
 
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):

@@ -6,12 +6,36 @@ from mooringlicensing.components.main.models import (
         )
 # from ledger.payments.invoice.models import Invoice
 # from ledger.accounts.models import EmailUser
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from datetime import datetime, date
 
 
+class EmailUserSerializer(serializers.ModelSerializer):
+    fullname = serializers.SerializerMethodField()
+    # text = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EmailUserRO
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "title",
+            "organisation",
+            "fullname",
+            # "text",
+        )
+
+    def get_fullname(self, obj):
+        return "{} {}".format(obj.first_name, obj.last_name)
+
+    def get_text(self, obj):
+        return self.get_fullname(obj)
+
+
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
-    customer = serializers.PrimaryKeyRelatedField(queryset=EmailUser.objects.all(),required=False)
+    customer = serializers.PrimaryKeyRelatedField(queryset=EmailUserRO.objects.all(),required=False)
     documents = serializers.SerializerMethodField()
     class Meta:
         model = CommunicationsLogEntry

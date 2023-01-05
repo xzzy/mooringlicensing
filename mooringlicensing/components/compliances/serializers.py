@@ -4,14 +4,15 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing.components.compliances.models import (
     Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
 )
+from mooringlicensing.components.main.serializers import EmailUserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
 from rest_framework import serializers
 
 
-class EmailUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
+# class EmailUserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = EmailUser
+#         fields = ('id','email','first_name','last_name','title','organisation')
 
 class ComplianceSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='proposal.title')

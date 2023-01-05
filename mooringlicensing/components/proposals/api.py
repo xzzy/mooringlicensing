@@ -712,10 +712,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = Proposal.objects.all()
             return qs
         elif is_customer(self.request):
-            user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
+            # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
+            # queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
+            user_orgs = []  # TODO array of organisations' id for this user
+            queryset = Proposal.objects.filter(
+                Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
+            ).exclude(migrated=True)
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
+        logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
 
     def internal_serializer_class(self):

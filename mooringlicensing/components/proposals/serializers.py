@@ -38,7 +38,8 @@ from mooringlicensing.components.proposals.models import (
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, AuthorisedUserPermit, \
     AnnualAdmissionPermit
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
+    EmailUserSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from rest_framework import serializers
@@ -49,15 +50,15 @@ from mooringlicensing.helpers import is_internal
 logger = logging.getLogger('mooringlicensing')
 
 
-class EmailUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailUser
-        fields = ('id',
-                  'email',
-                  'first_name',
-                  'last_name',
-                  'title',
-                  'organisation')
+# class EmailUserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = EmailUser
+#         fields = ('id',
+#                   'email',
+#                   'first_name',
+#                   'last_name',
+#                   'title',
+#                   'organisation')
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
@@ -142,9 +143,8 @@ class MooringSimpleSerializer(serializers.ModelSerializer):
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
-    submitter = EmailUserSerializer()
-
+    # allowed_assessors = EmailUserSerializer(many=True)
+    # submitter = EmailUserSerializer()
     get_history = serializers.ReadOnlyField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
