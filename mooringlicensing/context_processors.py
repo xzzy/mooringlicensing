@@ -3,6 +3,10 @@ def mooringlicensing_processor(request):
 
     web_url = request.META.get('HTTP_HOST', None)
 
-    return {'public_url': web_url}
+    return {
+        'public_url': web_url,
+        # 'template_group': 'parksv2',
+        'template_group': 'ria',
+    }
 
 

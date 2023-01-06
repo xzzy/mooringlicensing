@@ -43,6 +43,7 @@ STATIC_URL = '/static/'
 
 
 INSTALLED_APPS += [
+    'webtemplate_dbca',
     'smart_selects',
     'reversion',
     'reversion_compare',
@@ -446,3 +447,4 @@ GIT_COMMIT_DATE = ''
 #    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
+LEDGER_TEMPLATE = 'bootstrap5'

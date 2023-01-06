@@ -73,3 +73,4 @@ git+https://github.com/dbca-wa/django-media-serv.git#egg=django_media_serv
 django-widget-tweaks==1.4.12
 django-phonenumber-field==6.1.0
 babel==2.10.1
+git+https://github.com/dbca-wa/webtemplate2.git#egg=webtemplate_dbca
