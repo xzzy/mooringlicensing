@@ -822,7 +822,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     else:
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
-    owner, created = Owner.objects.get_or_create(emailuser=request.user)
+    owner, created = Owner.objects.get_or_create(emailuser=request.user.id)
 
     vessel_ownership_data['owner'] = owner.id
     vessel_ownership, created = VesselOwnership.objects.get_or_create(

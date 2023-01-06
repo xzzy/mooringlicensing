@@ -1,6 +1,7 @@
 import logging
-from _pydecimal import Decimal
+# from _pydecimal import Decimal
 from datetime import datetime
+import decimal
 
 import pytz
 from django.http import HttpResponse, HttpResponseRedirect
@@ -22,15 +23,26 @@ from mooringlicensing.components.proposals.models import Proposal, AuthorisedUse
 logger = logging.getLogger('mooringlicensing')
 
 
-def checkout(request, email_user, lines, return_url_ns='public_payment_success', return_preload_url_ns='public_payment_success', invoice_text=None, vouchers=[], proxy=False):
+def checkout(
+        request,
+        email_user,
+        lines,
+        return_url_ns='public_payment_success',
+        return_preload_url_ns='public_payment_success',
+        invoice_text=None,
+        vouchers=[],
+        proxy=False,
+):
     basket_params = {
-        'products': lines,
+        'products': make_serializable(lines),
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
     }
 
-    basket, basket_hash = create_basket_session(request, basket_params)
+    # basket, basket_hash = create_basket_session(request, basket_params)
+    # basket, basket_hash = create_basket_session(request, request.user.id, basket_params)
+    basket_hash = create_basket_session(request, request.user.id, basket_params)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),                                      # 'http://mooring-ria-jm.dbca.wa.gov.au/'
@@ -38,21 +50,25 @@ def checkout(request, email_user, lines, return_url_ns='public_payment_success',
         'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
         'force_redirect': True,
         'invoice_text': invoice_text,                                                         # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
+        'basket_owner': email_user,
     }
-    if proxy or request.user.is_anonymous():
-        checkout_params['basket_owner'] = email_user.id
-
+    # if proxy or request.user.is_anonymous():
+    if proxy or request.user.is_anonymous:
+        # checkout_params['basket_owner'] = email_user.id
+        checkout_params['basket_owner'] = email_user
 
     create_checkout_session(request, checkout_params)
 
-    response = HttpResponseRedirect(reverse('checkout:index'))
+    # response = HttpResponseRedirect(reverse('checkout:index'))
+    response = HttpResponseRedirect(reverse('ledgergw-payment-details'))
     # inject the current basket into the redirect response cookies
     # or else, anonymous users will be directionless
-    response.set_cookie(
-        settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
-        max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
-        secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
-    )
+    # response.set_cookie(
+    #     settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
+    #     max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
+    #     secure=settings.OSCAR_BASKET_COOKIE_SECURE,
+    #     httponly=True,
+    # )
 
     return response
 
@@ -324,9 +340,9 @@ def delete_session_dcv_admission_invoice(session):
 def make_serializable(line_items):
     for line in line_items:
         for key in line:
-            if isinstance(line[key], Decimal):
+            if isinstance(line[key], decimal.Decimal):
                 # Convert Decimal to str
-                line[key] = str(line[key])
+                line[key] = float(line[key])
     return line_items
 
 

@@ -3,6 +3,8 @@ import logging
 # from ledger.checkout.utils import calculate_excl_gst
 import pytz
 import json
+
+from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *
@@ -345,7 +347,7 @@ class ApplicationFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         proposal = self.get_object()
-        application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=request.user, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
+        application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=request.user.id, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
         logger.info('ApplicationFee.id: {} has been created for the Proposal: {}'.format(application_fee.id, proposal))
 
         try:
@@ -375,7 +377,9 @@ class ApplicationFeeView(TemplateView):
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
-                logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
+                user = retrieve_email_user(proposal.submitter)
+
+                logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(user.get_full_name(), user.id), proposal.id))
                 return checkout_response
 
         except Exception as e:

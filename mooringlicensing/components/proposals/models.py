@@ -3690,7 +3690,12 @@ class Owner(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return self.emailuser.get_full_name()
+        if self.emailuser:
+            from mooringlicensing.components.main.utils import retrieve_email_user
+            return retrieve_email_user(self.emailuser).get_full_name()
+        else:
+            return ''
+        # return self.emailuser.get_full_name()
 
 
 class Company(RevisionedMixin):
