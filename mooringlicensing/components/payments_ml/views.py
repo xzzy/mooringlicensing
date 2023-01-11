@@ -75,8 +75,10 @@ class DcvAdmissionFeeView(TemplateView):
                     request,
                     dcv_admission.submitter,
                     lines,
-                    return_url_ns='dcv_admission_fee_success',
-                    return_preload_url_ns='dcv_admission_fee_success',
+                    # return_url_ns='dcv_admission_fee_success',
+                    # return_preload_url_ns='dcv_admission_fee_success',
+                    request.build_absolute_uri(reverse('dcv_admission_fee_success')),
+                    request.build_absolute_uri(reverse('dcv_admission_fee_success')),
                     invoice_text='DCV Admission Fee',
                 )
 
@@ -111,8 +113,8 @@ class DcvPermitFeeView(TemplateView):
                     request,
                     dcv_permit.submitter,
                     lines,
-                    return_url_ns='dcv_permit_fee_success',
-                    return_preload_url_ns='dcv_permit_fee_success',
+                    request.build_absolute_uri(reverse('dcv_permit_fee_success')),
+                    request.build_absolute_uri(reverse('dcv_permit_fee_success')),
                     invoice_text='DCV Permit Fee',
                 )
 
@@ -246,8 +248,8 @@ class StickerReplacementFeeView(TemplateView):
                     request,
                     request.user,
                     lines,
-                    return_url_ns='sticker_replacement_fee_success',
-                    return_preload_url_ns='sticker_replacement_fee_success',
+                    request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
+                    request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
                     invoice_text='{}'.format(application_type.description),
                 )
 
@@ -375,8 +377,8 @@ class ApplicationFeeView(TemplateView):
                     request,
                     proposal.submitter,
                     lines,
-                    return_url_ns='fee_success',
-                    return_preload_url_ns='fee_success_preload',
+                    request.build_absolute_uri(reverse('fee_success')),
+                    request.build_absolute_uri(reverse('fee_success_preload')),
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
@@ -634,14 +636,6 @@ class ApplicationFeeSuccessViewPreload(TemplateView):
         # this end-point is called by an unmonitored get request in ledger so there is no point having a
         # a response body however we will return a status in case this is used on the ledger end in future
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class ApplicationFeeSuccessView1(TemplateView):
-    template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
-
-    def get(self, request, *args, **kwargs):
-        print(request.session)
-        return render(request, self.template_name, {})
 
 
 class ApplicationFeeSuccessView(TemplateView):

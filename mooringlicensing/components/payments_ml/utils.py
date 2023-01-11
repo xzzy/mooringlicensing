@@ -27,8 +27,10 @@ def checkout(
         request,
         email_user,
         lines,
-        return_url_ns='public_payment_success',
-        return_preload_url_ns='public_payment_success',
+        # return_url_ns='public_payment_success',
+        # return_preload_url_ns='public_payment_success',
+        return_url,
+        return_preload_url,
         invoice_text=None,
         vouchers=[],
         proxy=False,
@@ -45,9 +47,11 @@ def checkout(
     basket_hash = create_basket_session(request, request.user.id, basket_params)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
-        'fallback_url': request.build_absolute_uri('/'),  # 'http://mooring-ria-jm.dbca.wa.gov.au/'
-        'return_url': request.build_absolute_uri(reverse(return_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
-        'return_preload_url': request.build_absolute_uri(reverse(return_preload_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
+        'fallback_url': request.build_absolute_uri('/'),
+        # 'return_url': request.build_absolute_uri(reverse(return_url_ns)),
+        # 'return_preload_url': request.build_absolute_uri(reverse(return_preload_url_ns)),
+        'return_url': return_url,
+        'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice_text,  # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
         'basket_owner': email_user,
