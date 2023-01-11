@@ -612,8 +612,11 @@ class ListProposalSerializer(BaseProposalSerializer):
         links = ""
         # pdf
         for invoice in proposal.invoices_display():
-            links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
-                    invoice.reference, invoice.reference)
+            # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
+            #     invoice.reference, invoice.reference)
+            api_key = settings.LEDGER_API_KEY
+            url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + invoice.reference
+            links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
         if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
             # paid invoices url
             invoices_str=''

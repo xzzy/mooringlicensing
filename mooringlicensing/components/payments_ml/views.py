@@ -4,6 +4,7 @@ import logging
 import pytz
 import json
 
+from rest_framework.views import APIView
 
 from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
@@ -373,6 +374,7 @@ class ApplicationFeeView(TemplateView):
 
                 request.session['db_processes'] = db_processes_after_success
                 #request.session['auto_approve'] = request.POST.get('auto_approve', False)
+                return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
                 checkout_response = checkout(
                     request,
                     proposal.submitter,
@@ -612,7 +614,7 @@ class ApplicationFeeAlreadyPaid(TemplateView):
         return render(request, self.template_name, context)
 
 
-class ApplicationFeeSuccessViewPreload(TemplateView):
+class ApplicationFeeSuccessViewPreload(APIView):
     template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
     LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
     
@@ -623,12 +625,14 @@ class ApplicationFeeSuccessViewPreload(TemplateView):
     #
     #     return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get(self, request, *args, **kwargs):
+    # def get(self, request, *args, **kwargs):
+    def get(self, request, uuid, format=None):
         print(request.session)
         logger.info(
             "Returning status.HTTP_204_NO_CONTENT. Order created successfully.",
         )
-        application_fee = get_session_application_invoice(request.session)
+        # application_fee = get_session_application_invoice(request.session)
+        application_fee = ApplicationFee.objects.get(uuid=uuid)
         invoice_reference = request.GET.get("invoice", "false")
 
         # TODO: process several tasks after successful payment
