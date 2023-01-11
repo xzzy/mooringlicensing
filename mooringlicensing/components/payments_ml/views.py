@@ -4,6 +4,7 @@ import logging
 import pytz
 import json
 
+
 from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
@@ -48,6 +49,8 @@ from mooringlicensing.components.proposals.models import Proposal, ProposalUserA
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication, \
     VesselDetails
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
+from rest_framework import status
+from ledger_api_client import utils
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -373,7 +376,7 @@ class ApplicationFeeView(TemplateView):
                     proposal.submitter,
                     lines,
                     return_url_ns='fee_success',
-                    return_preload_url_ns='fee_success',
+                    return_preload_url_ns='fee_success_preload',
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
@@ -607,12 +610,49 @@ class ApplicationFeeAlreadyPaid(TemplateView):
         return render(request, self.template_name, context)
 
 
+class ApplicationFeeSuccessViewPreload(TemplateView):
+    template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
+    LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
+    
+    # def get(self, request, uuid, format=None):
+    #     logger.info("Park passes Cart API SuccessView get method called.")
+    #
+    #     invoice_reference = request.GET.get("invoice", "false")
+    #
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get(self, request, *args, **kwargs):
+        print(request.session)
+        logger.info(
+            "Returning status.HTTP_204_NO_CONTENT. Order created successfully.",
+        )
+        application_fee = get_session_application_invoice(request.session)
+        invoice_reference = request.GET.get("invoice", "false")
+
+        # TODO: process several tasks after successful payment
+
+        # this end-point is called by an unmonitored get request in ledger so there is no point having a
+        # a response body however we will return a status in case this is used on the ledger end in future
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ApplicationFeeSuccessView1(TemplateView):
+    template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
+
+    def get(self, request, *args, **kwargs):
+        print(request.session)
+        return render(request, self.template_name, {})
+
+
 class ApplicationFeeSuccessView(TemplateView):
     template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
     LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
 
     def get(self, request, *args, **kwargs):
-        print('in ApplicationFeeSuccessView.get()')
+        print(request.session)
+        logger.info(
+            "ApplicationFeeSuccessView get called.",
+        )
 
         proposal = None
         submitter = None
@@ -640,11 +680,12 @@ class ApplicationFeeSuccessView(TemplateView):
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             except Exception as e:
                 # For the non-existing invoice, invoice can be retrieved from the basket
-                if self.request.user.is_authenticated():
+                # if self.request.user.is_authenticated():
+                if self.request.user.is_authenticated:
                     basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
                 else:
                     basket = Basket.objects.filter(status='Submitted', owner=proposal.submitter).order_by('-id')[:1]
-                order = Order.objects.get(basket=basket[0])
+                order = utils.Order.objects.get(basket_id=basket[0].id)
                 invoice = Invoice.objects.get(order_number=order.number)
 
             invoice_ref = invoice.reference
@@ -700,9 +741,9 @@ class ApplicationFeeSuccessView(TemplateView):
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 try:
                     inv = Invoice.objects.get(reference=invoice_ref)
-                    order = Order.objects.get(number=inv.order_number)
-                    order.user = request.user
-                    order.save()
+                    # order = Order.objects.get(number=inv.order_number)
+                    # order.user = request.user
+                    # order.save()
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
@@ -712,9 +753,12 @@ class ApplicationFeeSuccessView(TemplateView):
 
                 application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 application_fee.expiry_time = None
-                update_payments(invoice_ref)
+                # update_payments(invoice_ref)
 
-                if proposal and invoice.payment_status in ('paid', 'over_paid',):
+                # if proposal and invoice.payment_status in ('paid', 'over_paid',):
+                inv_props = utils.get_invoice_properties(inv.id)
+                invoice_payment_status = inv_props['data']['invoice']['payment_status']
+                if proposal and invoice_payment_status in ('paid', 'over_paid',):
                     logger.info('The fee for the proposal: {} has been fully paid'.format(proposal.lodgement_number))
 
                     if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):

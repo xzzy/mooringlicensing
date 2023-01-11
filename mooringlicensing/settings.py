@@ -448,3 +448,5 @@ GIT_COMMIT_DATE = ''
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
 LEDGER_TEMPLATE = 'bootstrap5'
+SESSION_COOKIE_NAME = "pp_sessionid"
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"

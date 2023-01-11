@@ -45,12 +45,13 @@ def checkout(
     basket_hash = create_basket_session(request, request.user.id, basket_params)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
-        'fallback_url': request.build_absolute_uri('/'),                                      # 'http://mooring-ria-jm.dbca.wa.gov.au/'
-        'return_url': request.build_absolute_uri(reverse(return_url_ns)),          # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
-        'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
+        'fallback_url': request.build_absolute_uri('/'),  # 'http://mooring-ria-jm.dbca.wa.gov.au/'
+        'return_url': request.build_absolute_uri(reverse(return_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
+        'return_preload_url': request.build_absolute_uri(reverse(return_preload_url_ns)),  # 'http://mooring-ria-jm.dbca.wa.gov.au/success/'
         'force_redirect': True,
-        'invoice_text': invoice_text,                                                         # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
+        'invoice_text': invoice_text,  # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
         'basket_owner': email_user,
+        'session_type': 'ledger_api',
     }
     # if proxy or request.user.is_anonymous():
     if proxy or request.user.is_anonymous:
@@ -60,7 +61,7 @@ def checkout(
     create_checkout_session(request, checkout_params)
 
     # response = HttpResponseRedirect(reverse('checkout:index'))
-    response = HttpResponseRedirect(reverse('ledgergw-payment-details'))
+    # response = HttpResponseRedirect(reverse('ledgergw-payment-details'))
     # inject the current basket into the redirect response cookies
     # or else, anonymous users will be directionless
     # response.set_cookie(
@@ -69,6 +70,11 @@ def checkout(
     #     secure=settings.OSCAR_BASKET_COOKIE_SECURE,
     #     httponly=True,
     # )
+    response = HttpResponse(
+        "<script> window.location='" + reverse('ledgergw-payment-details') + "';</script> <a href='" + reverse(
+            'ledgergw-payment-details'
+            ) + "'> Redirecting please wait: " + reverse('ledgergw-payment-details') + "</a>"
+        )
 
     return response
 

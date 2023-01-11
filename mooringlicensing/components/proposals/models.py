@@ -37,6 +37,7 @@ from mooringlicensing.components.main.models import (
     UserAction,
     Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin,
 )
+import requests
 from mooringlicensing.components.main.decorators import (
         basic_exception_handler, 
         timeit, 
@@ -1020,7 +1021,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def log_user_action(self, action, request=None):
         if request:
-            return ProposalUserAction.log_action(self, action, request.user)
+            return ProposalUserAction.log_action(self, action, request.user.id)
         else:
             return ProposalUserAction.log_action(self, action)
 
@@ -2238,9 +2239,13 @@ class WaitingListApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         attachments = []
         if self.invoice:
-            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
-            attachments.append(attachment)
+            # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+            api_key = settings.LEDGER_API_KEY
+            url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
+            invoice_pdf = requests.get(url=url)
+            if invoice_pdf.status_code == 200:
+                attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
+                attachments.append(attachment)
         ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
         if not self.auto_approve:
             send_notification_email_upon_submit_to_assessor(request, self, attachments)

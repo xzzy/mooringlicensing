@@ -72,7 +72,7 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
 
     customer = proposal.submitter
 
-    staff = sender
+    staff = sender.id
 
     kwargs = {
         'subject': subject,
@@ -184,14 +184,16 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
         'cc': all_ccs
     }
 
-    email_entry = EmailUserLogEntry.objects.create(**kwargs)
+    # email_entry = EmailUserLogEntry.objects.create(**kwargs)
 
     for attachment in attachments:
-        path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
+        # path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
+        path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user, attachment[0])
         path = default_storage.save(path_to_file, ContentFile(attachment[1]))
-        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
+        # email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
-    return email_entry
+    # return email_entry
+    return None
 
 
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
@@ -210,7 +212,8 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
         'recipient': proposal.submitter,
         'payment_made': payment_made,
     }
-    to_address = proposal.submitter.email
+    from mooringlicensing.components.main.utils import retrieve_email_user
+    to_address = retrieve_email_user(proposal.submitter).email
     cc = []
     bcc = []
 
