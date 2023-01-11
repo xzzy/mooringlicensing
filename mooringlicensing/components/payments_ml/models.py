@@ -1,5 +1,6 @@
 import datetime
 import logging
+import uuid
 from decimal import Decimal
 from math import ceil
 
@@ -220,6 +221,18 @@ class ApplicationFee(Payment):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving ApplicationFee: {self}.")
+        if not self.uuid:
+            logger.info("ApplicationFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"ApplicationFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving ApplicationFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("ApplicationFee Saved.")
 
 
 class FeeSeason(models.Model):
