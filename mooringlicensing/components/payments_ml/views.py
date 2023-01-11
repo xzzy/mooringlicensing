@@ -380,7 +380,7 @@ class ApplicationFeeView(TemplateView):
                     proposal.submitter,
                     lines,
                     request.build_absolute_uri(reverse('fee_success')),
-                    request.build_absolute_uri(reverse('fee_success_preload')),
+                    request.build_absolute_uri(reverse('ledger-api-success-callback', kwargs={"uuid": application_fee.uuid})),
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
