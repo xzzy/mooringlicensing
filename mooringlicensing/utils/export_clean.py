@@ -22,7 +22,9 @@ def clean(srcpath='/home/jawaidm/Documents/ML_Excel/Lotus_Notes_extracts', outpa
             lines = [line.rstrip() for line in inf]
 
         out_filename = filename.split('/')[-1]
-        with open(outpath + os.sep + out_filename, 'wb') as outf:
-            wr = csv.writer(outf, delimiter ='|', quotechar = '"')
+        with open(outpath + os.sep + out_filename, 'w') as outf:
+            wr = csv.writer(outf) #, delimiter ='|', quotechar = '"')
             for line in lines:
-                wr.writerow(line.strip('"').split('|'))
+                #import ipdb; ipdb.set_trace()
+                #wr.writerow(line.strip('"').split('|'))
+                wr.writerow([line.strip('"')])
