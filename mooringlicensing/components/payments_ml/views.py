@@ -40,7 +40,7 @@ from mooringlicensing.components.approvals.email import send_dcv_permit_mail, se
     send_sticker_replacement_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement, FeeItemApplicationFee
-from mooringlicensing.components.payments_ml.utils import checkout, create_fee_lines, set_session_application_invoice, \
+from mooringlicensing.components.payments_ml.utils import checkout, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
@@ -107,7 +107,8 @@ class DcvPermitFeeView(TemplateView):
             with transaction.atomic():
                 set_session_dcv_permit_invoice(request.session, dcv_permit_fee)
 
-                lines, db_processes_after_success = create_fee_lines(dcv_permit)
+                # lines, db_processes_after_success = create_fee_lines(dcv_permit)
+                lines, db_processes_after_success = dcv_permit.create_fee_lines()
 
                 request.session['db_processes'] = db_processes_after_success
                 checkout_response = checkout(
@@ -373,14 +374,15 @@ class ApplicationFeeView(TemplateView):
                     return render(request, self.template_name, context)
 
                 request.session['db_processes'] = db_processes_after_success
-                #request.session['auto_approve'] = request.POST.get('auto_approve', False)
+
+                return_url = request.build_absolute_uri(reverse('fee_success'))
                 return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
                 checkout_response = checkout(
                     request,
                     proposal.submitter,
                     lines,
-                    request.build_absolute_uri(reverse('fee_success')),
-                    request.build_absolute_uri(reverse('ledger-api-success-callback', kwargs={"uuid": application_fee.uuid})),
+                    return_url,
+                    return_preload_url,
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
@@ -615,8 +617,8 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
 
 class ApplicationFeeSuccessViewPreload(APIView):
-    template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
-    LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
+    # template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
+    # LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
     
     # def get(self, request, uuid, format=None):
     #     logger.info("Park passes Cart API SuccessView get method called.")
@@ -627,19 +629,21 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
     # def get(self, request, *args, **kwargs):
     def get(self, request, uuid, format=None):
-        print(request.session)
-        logger.info(
-            "Returning status.HTTP_204_NO_CONTENT. Order created successfully.",
-        )
-        # application_fee = get_session_application_invoice(request.session)
-        application_fee = ApplicationFee.objects.get(uuid=uuid)
+        logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
+
         invoice_reference = request.GET.get("invoice", "false")
 
-        # TODO: process several tasks after successful payment
+        if uuid and invoice_reference:
+            application_fee = ApplicationFee.objects.get(uuid=uuid)
 
-        # this end-point is called by an unmonitored get request in ledger so there is no point having a
-        # a response body however we will return a status in case this is used on the ledger end in future
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            # TODO: process several tasks after successful payment
+
+            logger.info(
+                "Returning status.HTTP_204_NO_CONTENT. Order created successfully.",
+            )
+            # this end-point is called by an unmonitored get request in ledger so there is no point having a
+            # a response body however we will return a status in case this is used on the ledger end in future
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ApplicationFeeSuccessView(TemplateView):
