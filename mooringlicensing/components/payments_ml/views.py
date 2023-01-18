@@ -39,11 +39,11 @@ from mooringlicensing.components.payments_ml.email import send_application_submi
 from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail, \
     send_sticker_replacement_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement, FeeItemApplicationFee
+    DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement, FeeItemApplicationFee, FeeCalculation
 from mooringlicensing.components.payments_ml.utils import checkout, set_session_application_invoice, \
     get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
-    create_fee_lines_for_dcv_admission, get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
+    get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
     delete_session_sticker_action_invoice, ItemNotSetInSessionException
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
@@ -69,7 +69,7 @@ class DcvAdmissionFeeView(TemplateView):
             with transaction.atomic():
                 set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
 
-                lines, db_processes_after_success = create_fee_lines_for_dcv_admission(dcv_admission)
+                lines, db_processes_after_success = dcv_admission.create_fee_lines()
 
                 request.session['db_processes'] = db_processes_after_success
                 checkout_response = checkout(
@@ -374,6 +374,7 @@ class ApplicationFeeView(TemplateView):
                     return render(request, self.template_name, context)
 
                 request.session['db_processes'] = db_processes_after_success
+                new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
                 return_url = request.build_absolute_uri(reverse('fee_success'))
                 return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
@@ -637,6 +638,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
             application_fee = ApplicationFee.objects.get(uuid=uuid)
 
             # TODO: process several tasks after successful payment
+            fee_calculation = FeeCalculation.objects.get(uuid=uuid)
 
             logger.info(
                 "Returning status.HTTP_204_NO_CONTENT. Order created successfully.",

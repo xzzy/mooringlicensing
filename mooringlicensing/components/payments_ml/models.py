@@ -623,6 +623,17 @@ class OracleCodeItem(models.Model):
         app_label = 'mooringlicensing'
 
 
+class FeeCalculation(models.Model):
+    '''
+    This model is used to store the details of fee calculation.  No relations to other tables, but has a uuid field to link to another table.
+    '''
+    uuid = models.CharField(max_length=36, blank=True, null=True)
+    data = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 import reversion
 #reversion.register(DcvAdmissionFee, follow=[])
 #reversion.register(DcvPermitFee, follow=[])

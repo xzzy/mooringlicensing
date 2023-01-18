@@ -2048,6 +2048,58 @@ class DcvAdmission(RevisionedMixin):
             urls.append(admission._file.url)
         return urls
 
+    def create_fee_lines(self, invoice_text=None, vouchers=[], internal=False):
+        db_processes_after_success = {}
+
+        target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+        target_date = target_datetime.date()
+        target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+        db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+        application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
+        vessel_length = 1  # any number greater than 0
+        proposal_type = None
+        oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)
+
+        line_items = []
+        for dcv_admission_arrival in self.dcv_admission_arrivals.all():
+            fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
+
+            if not fee_constructor:
+                raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, dcv_admission_arrival.arrival_date))
+
+            fee_items = []
+            number_of_people_str = []
+            total_amount = 0
+
+            for number_of_people in dcv_admission_arrival.numberofpeople_set.all():
+                if number_of_people.number:
+                    # When more than 1 people,
+                    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, dcv_admission_arrival.arrival_date, number_of_people.age_group, number_of_people.admission_type)
+                    fee_item.number_of_people = number_of_people.number
+                    fee_items.append(fee_item)
+                    number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
+                    total_amount += fee_item.get_absolute_amount() * number_of_people.number
+
+            line_item = {
+                'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
+                    fee_constructor.application_type.description,
+                    self.lodgement_number,
+                    dcv_admission_arrival.arrival_date,
+                    dcv_admission_arrival.private_visit,
+                    ', '.join(number_of_people_str),
+                ),
+                'oracle_code': oracle_code,
+                'price_incl_tax': total_amount,
+                'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
+                'quantity': 1,
+            }
+            line_items.append(line_item)
+
+        logger.info('{}'.format(line_items))
+
+        return line_items, db_processes_after_success
 
 class DcvAdmissionArrival(RevisionedMixin):
     dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals', on_delete=models.SET_NULL)
