@@ -182,6 +182,9 @@ class FeeItemApplicationFee(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def __str__(self):
+        return f'FeeItem: {self.fee_item}, ApplicationFee: {self.application_fee}, amount_to_be_paid: {self.amount_to_be_paid}, amount_paid: {self.amount_paid}'
+
     @property
     def application_type(self):
         return self.fee_item.application_type

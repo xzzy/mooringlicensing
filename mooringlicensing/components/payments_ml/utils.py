@@ -15,6 +15,7 @@ from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, Ad
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
     DcvAdmissionFee, StickerActionFee
+from ledger_api_client import utils
 
 #test
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
@@ -275,3 +276,8 @@ def oracle_integration(date,override):
     #system = '0517'
     oracle_codes = oracle_parser(date, settings.PAYMENT_SYSTEM_ID, 'Disturbance Approval System', override=override)
 
+
+def get_invoice_payment_status(invoice_id):
+    inv_props = utils.get_invoice_properties(invoice_id)
+    invoice_payment_status = inv_props['data']['invoice']['payment_status']
+    return invoice_payment_status

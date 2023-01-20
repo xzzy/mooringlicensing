@@ -9,6 +9,8 @@ from mooringlicensing.components.main.models import (
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from ledger_api_client import utils
 
+from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
+
 
 class EmailUserSerializer(serializers.ModelSerializer):
     fullname = serializers.SerializerMethodField()
@@ -88,9 +90,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         )
 
     def get_payment_status(self, invoice):
-        inv_props = utils.get_invoice_properties(invoice.id)
-        invoice_payment_status = inv_props['data']['invoice']['payment_status']
-        invoice_payment_status = invoice_payment_status.lower()
+        invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
 
         if invoice_payment_status == 'unpaid':
             return 'Unpaid'

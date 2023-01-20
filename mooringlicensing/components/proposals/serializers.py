@@ -14,6 +14,7 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, A
 from mooringlicensing.components.main.models import ApplicationType
 # from mooringlicensing.components.main.utils import retrieve_email_user
 from mooringlicensing.components.payments_ml.models import FeeConstructor
+from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalUserAction,
@@ -621,7 +622,8 @@ class ListProposalSerializer(BaseProposalSerializer):
             # paid invoices url
             invoices_str=''
             for inv in proposal.invoices_display():
-                if inv.payment_status == 'paid':
+                payment_status = get_invoice_payment_status(inv.id)
+                if payment_status == 'paid':
                     invoices_str += 'invoice={}&'.format(inv.reference)
             if invoices_str:
                 invoices_str = invoices_str[:-1]
