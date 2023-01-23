@@ -212,8 +212,8 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
         'recipient': proposal.submitter,
         'payment_made': payment_made,
     }
-    from mooringlicensing.components.main.utils import retrieve_email_user
-    to_address = retrieve_email_user(proposal.submitter).email
+    from mooringlicensing.components.main.utils import retrieve_email_userro
+    to_address = retrieve_email_userro(proposal.submitter).email
     cc = []
     bcc = []
 

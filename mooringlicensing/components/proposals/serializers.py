@@ -603,8 +603,8 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_submitter(self, obj):
         if obj.submitter:
-            from mooringlicensing.components.main.utils import retrieve_email_user
-            email_user = retrieve_email_user(obj.submitter)
+            from mooringlicensing.components.main.utils import retrieve_email_userro
+            email_user = retrieve_email_userro(obj.submitter)
             return EmailUserSerializer(email_user).data
         else:
             return ""
@@ -907,7 +907,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    submitter = UserSerializer()
+    # submitter = UserSerializer()
+    submitter = serializers.SerializerMethodField()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
@@ -1031,6 +1032,16 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'documents',
             'requirements',
         )
+
+    def get_submitter(self, obj):
+        if obj.submitter:
+            from mooringlicensing.components.main.utils import retrieve_email_userro
+            email_user = retrieve_email_userro(obj.submitter)
+            # return EmailUserSerializer(email_user).data
+            return UserSerializer(email_user).data
+        else:
+            return ""
+
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()

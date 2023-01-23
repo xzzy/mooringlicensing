@@ -20,6 +20,7 @@ from mooringlicensing.components.proposals.models import (
         Proposal, 
         StickerPrintingContact
         )
+import ledger_api_client
 
 logger = logging.getLogger(__name__)
 
@@ -106,14 +107,23 @@ class DefaultDataManager(object):
             except Exception as e:
                 logger.error('{}, AdmissionType: {}'.format(e, item[1]))
 
-        # Groups
+        # # Groups
+        # for group_name in settings.CUSTOM_GROUPS:
+        #     try:
+        #         group, created = Group.objects.get_or_create(name=group_name)
+        #         if created:
+        #             logger.info("Created group: {}".format(group_name))
+        #     except Exception as e:
+        #         logger.error('{}, Group name: {}'.format(e, group_name))
+
+        # SystemGroup  # For the segregated system, use the SystemGroup.
         for group_name in settings.CUSTOM_GROUPS:
             try:
-                group, created = Group.objects.get_or_create(name=group_name)
+                group, created = ledger_api_client.managed_models.SystemGroup.objects.get_or_create(name=group_name)
                 if created:
-                    logger.info("Created group: {}".format(group_name))
+                    logger.info("Created SystemGroup: {}".format(group_name))
             except Exception as e:
-                logger.error('{}, Group name: {}'.format(e, group_name))
+                logger.error('{}, SystemGroup name: {}'.format(e, group_name))
 
         # Types of configurable number of days
         for item in settings.TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS:

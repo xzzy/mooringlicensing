@@ -6,7 +6,7 @@ import json
 
 from rest_framework.views import APIView
 
-from mooringlicensing.components.main.utils import retrieve_email_user
+from mooringlicensing.components.main.utils import retrieve_email_userro
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *
@@ -387,7 +387,7 @@ class ApplicationFeeView(TemplateView):
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
-                user = retrieve_email_user(proposal.submitter)
+                user = retrieve_email_userro(proposal.submitter)
 
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(user.get_full_name(), user.id), proposal.id))
                 return checkout_response

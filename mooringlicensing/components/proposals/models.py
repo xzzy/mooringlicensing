@@ -9,6 +9,7 @@ import traceback
 import pytz
 import uuid
 
+# from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
@@ -27,7 +28,7 @@ from django.conf import settings
 # from django.core.urlresolvers import reverse
 from django.urls import reverse
 # from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import Invoice
 from mooringlicensing import exceptions
@@ -38,6 +39,7 @@ from mooringlicensing.components.main.models import (
     Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin,
 )
 import requests
+import ledger_api_client
 from mooringlicensing.components.main.decorators import (
         basic_exception_handler, 
         timeit, 
@@ -777,7 +779,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+        # if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+        from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
+        if (self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False
 
@@ -794,16 +798,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant(self):
+        from mooringlicensing.components.main.utils import retrieve_email_userro
+
         if self.org_applicant:
             return self.org_applicant.organisation.name
         elif self.proxy_applicant:
+            applicant = retrieve_email_userro(self.proxy_applicant)
             return "{} {}".format(
-                self.proxy_applicant.first_name,
-                self.proxy_applicant.last_name)
+                applicant.first_name,
+                applicant.last_name)
         else:
+            applicant = retrieve_email_userro(self.submitter)
             return "{} {}".format(
-                self.submitter.first_name,
-                self.submitter.last_name)
+                applicant.first_name,
+                applicant.last_name)
 
     @property
     def applicant_email(self):
@@ -813,8 +821,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.proxy_applicant.email
         else:
             # return self.submitter.email
-            from mooringlicensing.components.main.utils import retrieve_email_user
-            return retrieve_email_user(self.submitter).email
+            from mooringlicensing.components.main.utils import retrieve_email_userro
+            return retrieve_email_userro(self.submitter).email
 
     @property
     def applicant_details(self):
@@ -915,7 +923,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        return group.user_set.all() if group else []
+        # return group.user_set.all() if group else []
+        ids = group.get_system_group_member_ids() if group else []
+        users = EmailUserRO.objects.filter(id__in=ids)
+        return users
 
     @property
     def compliance_assessors(self):
@@ -2204,7 +2215,7 @@ class WaitingListApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Waiting List")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Waiting List")
 
     @property
     def approver_group(self):
@@ -2219,7 +2230,8 @@ class WaitingListApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user.id in self.assessor_group.get_system_group_member_ids()
 
     #def is_approver(self, user):
      #   return False
@@ -2394,7 +2406,8 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
+        # return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
 
     @property
     def approver_group(self):
@@ -2600,11 +2613,13 @@ class AuthorisedUserApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Authorised User")
+        # return Group.objects.get(name="Mooring Licensing - Assessors: Authorised User")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Authorised User")
 
     @property
     def approver_group(self):
-        return Group.objects.get(name="Mooring Licensing - Approvers: Authorised User")
+        # return Group.objects.get(name="Mooring Licensing - Approvers: Authorised User")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Approvers: Authorised User")
 
     @property
     def assessor_recipients(self):
@@ -2999,11 +3014,13 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
+        # return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
 
     @property
     def approver_group(self):
-        return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
+        # return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
 
     @property
     def assessor_recipients(self):
@@ -3696,8 +3713,8 @@ class Owner(RevisionedMixin):
 
     def __str__(self):
         if self.emailuser:
-            from mooringlicensing.components.main.utils import retrieve_email_user
-            return retrieve_email_user(self.emailuser).get_full_name()
+            from mooringlicensing.components.main.utils import retrieve_email_userro
+            return retrieve_email_userro(self.emailuser).get_full_name()
         else:
             return ''
         # return self.emailuser.get_full_name()

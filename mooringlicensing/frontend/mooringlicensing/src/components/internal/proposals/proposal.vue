@@ -368,7 +368,7 @@ export default {
             return this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null ? true : false;
         },
         applicant_email:function(){
-            return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
+            return this.proposal && this.proposal.applicant && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
     },
     methods: {

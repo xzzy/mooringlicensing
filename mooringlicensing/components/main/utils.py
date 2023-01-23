@@ -491,5 +491,5 @@ def calculate_max_length(fee_constructor, max_amount_paid, proposal_type):
 
 
 @basic_exception_handler
-def retrieve_email_user(email_user_id):
+def retrieve_email_userro(email_user_id):
     return EmailUserRO.objects.get(id=email_user_id)
