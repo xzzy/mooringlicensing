@@ -815,10 +815,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_email(self):
+        from mooringlicensing.components.main.utils import retrieve_email_userro
+
         if self.org_applicant and hasattr(self.org_applicant.organisation, 'email') and self.org_applicant.organisation.email:
             return self.org_applicant.organisation.email
         elif self.proxy_applicant:
-            return self.proxy_applicant.email
+            applicant = retrieve_email_userro(self.proxy_applicant)
+            return applicant.email
         else:
             # return self.submitter.email
             from mooringlicensing.components.main.utils import retrieve_email_userro
@@ -826,29 +829,37 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_details(self):
+        from mooringlicensing.components.main.utils import retrieve_email_userro
+
         if self.org_applicant:
             return '{} \n{}'.format(
                 self.org_applicant.organisation.name,
                 self.org_applicant.address)
         elif self.proxy_applicant:
+            applicant = retrieve_email_userro(self.proxy_applicant)
             return "{} {}\n{}".format(
-                self.proxy_applicant.first_name,
-                self.proxy_applicant.last_name,
-                self.proxy_applicant.addresses.all().first())
+                applicant.first_name,
+                applicant.last_name,
+                applicant.addresses.all().first())
         else:
+            applicant = retrieve_email_userro(self.submitter)
             return "{} {}\n{}".format(
-                self.submitter.first_name,
-                self.submitter.last_name,
-                self.submitter.addresses.all().first())
+                applicant.first_name,
+                applicant.last_name,
+                applicant.addresses.all().first())
 
     @property
     def applicant_address(self):
+        from mooringlicensing.components.main.utils import retrieve_email_userro
+
         if self.org_applicant:
             return self.org_applicant.address
         elif self.proxy_applicant:
-            return self.proxy_applicant.residential_address
+            applicant = retrieve_email_userro(self.proxy_applicant)
+            return applicant.residential_address
         else:
-            return self.submitter.residential_address
+            applicant = retrieve_email_userro(self.submitter)
+            return applicant.residential_address
 
     @property
     def applicant_id(self):
