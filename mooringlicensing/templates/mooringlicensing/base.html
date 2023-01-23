@@ -126,7 +126,8 @@
                                                 {% if show_tests and request.user.is_superuser %}
                                                     <li><a href="{% url 'test-emails' %}">Test Emails</a></li>
                                                 {% endif %}
-                                                <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
+<!--                                                <li><a href="{% url 'manage-account' %}">Manage Account</a></li>-->
+                                                <li><a class="dropdown-item" href="/ledger-ui/accounts">Manage Account</a></li>
                                                 {% if not is_internal_login %}
                                                     <li><a href="/external/vessels">Manage Vessels</a></li>
                                                 {% endif %}
