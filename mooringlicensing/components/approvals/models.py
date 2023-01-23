@@ -15,6 +15,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
+
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 # from ledger.accounts.models import EmailUser, RevisionedMixin
@@ -960,12 +961,16 @@ class WaitingListAllocation(Approval):
                 vessel_draft = ''
 
             # Return context for the licence/permit document
+            from mooringlicensing.components.main.utils import retrieve_email_userro
+            submitter = retrieve_email_userro(self.submitter)
             context = {
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
-                'applicant_full_name': self.submitter.get_full_name(),
+                # 'applicant_name': self.submitter.get_full_name(),
+                # 'applicant_full_name': self.submitter.get_full_name(),
+                'applicant_name': submitter.get_full_name(),
+                'applicant_full_name': submitter.get_full_name(),
                 'bay_name': self.current_proposal.preferred_bay.name,
                 'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y'),
                 'position_number': self.wla_order,

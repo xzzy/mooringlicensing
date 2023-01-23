@@ -807,7 +807,8 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
         txt_template=txt_template,
     )
 
-    to_address = proposal.submitter.email
+    from mooringlicensing.components.main.utils import retrieve_email_userro
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)

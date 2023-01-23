@@ -843,10 +843,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant.addresses.all().first())
         else:
             applicant = retrieve_email_userro(self.submitter)
+            test = applicant.addresses.all()
             return "{} {}\n{}".format(
                 applicant.first_name,
                 applicant.last_name,
-                applicant.addresses.all().first())
+                # applicant.addresses.all().first())
+                applicant.residential_address)
 
     @property
     def applicant_address(self):
@@ -1499,11 +1501,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if details:
                     # When not auto-approve
                     self.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
+                    # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
                 else:
                     # When auto approve
                     self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
+                    # applicant_field.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
 
                 # set proposal status to approved - can change later after manage_stickers
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
