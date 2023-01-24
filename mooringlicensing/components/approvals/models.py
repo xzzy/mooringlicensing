@@ -961,7 +961,7 @@ class WaitingListAllocation(Approval):
                 vessel_draft = ''
 
             # Return context for the licence/permit document
-            from mooringlicensing.components.main.utils import retrieve_email_userro
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
             submitter = retrieve_email_userro(self.submitter)
             context = {
                 'approval': self,

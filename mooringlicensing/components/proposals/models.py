@@ -798,7 +798,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant(self):
-        from mooringlicensing.components.main.utils import retrieve_email_userro
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
         if self.org_applicant:
             return self.org_applicant.organisation.name
@@ -815,7 +815,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_email(self):
-        from mooringlicensing.components.main.utils import retrieve_email_userro
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
         if self.org_applicant and hasattr(self.org_applicant.organisation, 'email') and self.org_applicant.organisation.email:
             return self.org_applicant.organisation.email
@@ -824,12 +824,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return applicant.email
         else:
             # return self.submitter.email
-            from mooringlicensing.components.main.utils import retrieve_email_userro
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
             return retrieve_email_userro(self.submitter).email
 
     @property
     def applicant_details(self):
-        from mooringlicensing.components.main.utils import retrieve_email_userro
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
         if self.org_applicant:
             return '{} \n{}'.format(
@@ -852,7 +852,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_address(self):
-        from mooringlicensing.components.main.utils import retrieve_email_userro
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
         if self.org_applicant:
             return self.org_applicant.address
@@ -3728,7 +3728,7 @@ class Owner(RevisionedMixin):
 
     def __str__(self):
         if self.emailuser:
-            from mooringlicensing.components.main.utils import retrieve_email_userro
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
             return retrieve_email_userro(self.emailuser).get_full_name()
         else:
             return ''

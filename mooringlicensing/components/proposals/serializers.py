@@ -603,7 +603,7 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_submitter(self, obj):
         if obj.submitter:
-            from mooringlicensing.components.main.utils import retrieve_email_userro
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
             email_user = retrieve_email_userro(obj.submitter)
             return EmailUserSerializer(email_user).data
         else:
@@ -1035,7 +1035,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
     def get_submitter(self, obj):
         if obj.submitter:
-            from mooringlicensing.components.main.utils import retrieve_email_userro
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
             email_user = retrieve_email_userro(obj.submitter)
             # return EmailUserSerializer(email_user).data
             return UserSerializer(email_user).data

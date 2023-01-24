@@ -22,6 +22,7 @@ from datetime import datetime
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url, \
     make_url_for_external, make_http_https
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
@@ -212,7 +213,6 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
         'recipient': proposal.submitter,
         'payment_made': payment_made,
     }
-    from mooringlicensing.components.main.utils import retrieve_email_userro
     to_address = retrieve_email_userro(proposal.submitter).email
     cc = []
     bcc = []
@@ -365,7 +365,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
 
     bcc = request.data.get('cc_email')
     bcc_list = bcc.split(',')
-    msg = email.send(mooring_licence_application.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
+    msg = email.send(retrieve_email_userro(mooring_licence_application.submitter).email, bcc=bcc_list, attachments=attachments, context=context)
     sender = settings.DEFAULT_FROM_EMAIL
     log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
     _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user, attachments=attachments)
@@ -807,7 +807,6 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
         txt_template=txt_template,
     )
 
-    from mooringlicensing.components.main.utils import retrieve_email_userro
     to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email

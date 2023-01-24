@@ -961,7 +961,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         holder_str = ''
         if obj.submitter:
             items = []
-            from mooringlicensing.components.main.utils import retrieve_email_userro
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
             # items.append(obj.submitter.get_full_name())
             submitter = retrieve_email_userro(obj.submitter)
             items.append(submitter.get_full_name())

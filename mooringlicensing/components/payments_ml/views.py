@@ -6,7 +6,7 @@ import json
 
 from rest_framework.views import APIView
 
-from mooringlicensing.components.main.utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *

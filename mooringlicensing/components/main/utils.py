@@ -1,5 +1,4 @@
 from io import BytesIO
-# from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE
 from django.utils import timezone
 from confy import env
@@ -12,19 +11,18 @@ from django.conf import settings
 from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
-    MooringLicence, Approval, ApprovalHistory
+    MooringLicence, Approval
 from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
-    StickerPrintingBatch, ProposalType
+    StickerPrintingBatch
 )
-from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger
+from mooringlicensing.components.main.decorators import query_debugger
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
-from ledger_api_client.ledger_models import EmailUserRO
 import logging
 
 logger = logging.getLogger('mooringlicensing')
@@ -490,6 +488,3 @@ def calculate_max_length(fee_constructor, max_amount_paid, proposal_type):
     return max_length
 
 
-@basic_exception_handler
-def retrieve_email_userro(email_user_id):
-    return EmailUserRO.objects.get(id=email_user_id)
