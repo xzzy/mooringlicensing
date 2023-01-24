@@ -643,7 +643,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
 class ListApprovalSerializer(serializers.ModelSerializer):
     licence_document = serializers.CharField(source='licence_document._file.url')
     # licence_document = serializers.SerializerMethodField()
-    authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
+    # authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
+    authorised_user_summary_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
     internal_status = serializers.SerializerMethodField()
@@ -753,6 +754,12 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
             'vessel_regos',
         )
+
+    def get_authorised_user_summary_document(self, obj):
+        if obj.authorised_user_summary_document:
+            return obj.authorised_user_summary_document._file.url
+        else:
+            return ''
 
     def get_allowed_assessors_user(self, obj):
         request = self.context.get('request')
@@ -954,12 +961,18 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         holder_str = ''
         if obj.submitter:
             items = []
-            items.append(obj.submitter.get_full_name())
-            if obj.submitter.mobile_number:
-                items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.submitter.mobile_number)
-            if obj.submitter.phone_number:
-                items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.submitter.phone_number)
-            items.append(obj.submitter.email)
+            from mooringlicensing.components.main.utils import retrieve_email_userro
+            # items.append(obj.submitter.get_full_name())
+            submitter = retrieve_email_userro(obj.submitter)
+            items.append(submitter.get_full_name())
+            # if obj.submitter.mobile_number:
+            if submitter.mobile_number:
+                items.append('<span class="glyphicon glyphicon-phone"></span> ' + submitter.mobile_number)
+            # if obj.submitter.phone_number:
+            if submitter.phone_number:
+                items.append('<span class="glyphicon glyphicon-earphone"></span> ' + submitter.phone_number)
+            # items.append(obj.submitter.email)
+            items.append(submitter.email)
 
             items = '</br>'.join(items)
             holder_str = '<span>' + items + '</span>'
