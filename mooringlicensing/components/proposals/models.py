@@ -951,7 +951,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        return True if group and group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
+        # return True if group and group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
+        return True if group and request.user.id in group.get_system_group_member_ids() else False
 
     @property
     def can_officer_process(self):
@@ -2251,7 +2252,8 @@ class WaitingListApplication(Proposal):
 
     def is_approver(self, user):
         #return user in self.approver_group.user_set.all()
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user.id in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(WaitingListApplication, self).save(*args, **kwargs)
