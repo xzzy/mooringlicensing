@@ -1610,7 +1610,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.save()
                 else:
                     ## prepare invoice
-                    from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
+                    # from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
 
                     # create fee lines tells us whether a payment is required
