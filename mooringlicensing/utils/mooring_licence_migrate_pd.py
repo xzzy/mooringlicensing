@@ -190,7 +190,6 @@ class MooringLicenceReader():
         mlr=MooringLicenceReader('PersonDets20221222-125823.txt', 'MooringDets20221222-125546.txt', 'VesselDets20221222-125823.txt', 'UserDets20221222-130353.txt', 'ApplicationDets20221222-125157.txt')
 
         self.create_users()
-        self.create_users_wl()
         self.create_vessels()
         self.create_mooring_licences()
         self.create_authuser_permits()
@@ -242,16 +241,15 @@ class MooringLicenceReader():
         self.ml_no_ves_rows = []
 
     def __get_phone_number(self, row):
-        try: 
-            return row.phone_number.replace(' ', '')
-        except: 
-            return row.mobile_number.replace(' ', '')
+        row.home_number.replace(' ', '')
+        row.work_number.replace(' ', '')
+        if row.work_number:
+            return row.work_number
+        else:
+            return row.home_number
 
     def __get_mobile_number(self, row):
-        try: 
-            return row.mobile_number.replace(' ', '')
-        except: 
-            return row.phone_number.replace(' ', '')
+        return row.mobile_number.replace(' ', '')
 
 #    def _read_excel(self, filename):
 #        def _get_country_code(x):
@@ -434,106 +432,19 @@ class MooringLicenceReader():
         print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
 
     def create_users(self):
-        self._create_users_ml()
-        self._create_users_wl()
-
-    def _create_users_ml(self):
-        # Iterate through the dataframe and create non-existent users
-        #import ipdb; ipdb.set_trace()
+        logger.info('Creating ML & AU users ...')
         for pers_type in ['pers_no_u', 'pers_no_l']:
             df = self.df_authuser.groupby(pers_type).first()
-            for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-                #if row.status != 'Vacant':
-                try:
-                    #import ipdb; ipdb.set_trace()
-                    #first_name = data['first_name'] if not pd.isnull(data['first_name']) else 'No First Name'
-                    #last_name = data['last_name'] if not pd.isnull(data['last_name']) else 'No Last Name'
-                    #email = df['email']
-                    #import ipdb; ipdb.set_trace()
+            self._create_users_df(df)
 
-                    if row.name == '203694':
-                        import ipdb; ipdb.set_trace()
+        logger.info('Creating WL users ...')
+        df = self.df_wl.groupby('pers_no').first()
+        self._create_users_df(df)
 
-                    if not row.name:
-                        continue
-
-                    user_row = self.df_user[self.df_user['pers_no']==row.name] #.squeeze() # as Pandas Series
-                    if user_row.empty:
-                        continue
-
-                    if len(user_row)>1:
-                        user_row = user_row[user_row['paid_up']=='Y']
-                    user_row = user_row.squeeze() # convert to Pandas Series
-
-                    email = user_row.email.lower().replace(' ','')
-                    if not email:
-                        self.no_email.append(user_row.pers_no)
-                        continue
-
-                    first_name = user_row.first_name.lower().capitalize().replace(' ','')
-                    last_name = user_row.last_name.lower().capitalize().replace(' ','')
-
-                    users = EmailUser.objects.filter(email=email)
-                    if users.count() == 0:
-                        #import ipdb; ipdb.set_trace()
-                        user = EmailUser.objects.create(
-                            email=email,
-                            first_name=first_name,
-                            last_name=last_name,
-                            phone_number=self.__get_phone_number(user_row),
-                            mobile_number=self.__get_mobile_number(user_row)
-                        )
-
-                        country = Country.objects.get(printable_name='Australia')
-                        address, address_created = Address.objects.get_or_create(line1=user_row.address, locality=user_row.suburb, postcode=user_row.postcode, state=user_row.state, country=country, user=user)
-                        user.residential_address = address
-                        user.postal_address = address
-                        user.save()
-                        print(f'{email}: {user.postal_address}')
-     
-                        self.user_created.append(email)
-                    else:
-                        user = users[0]
-                        # update user details
-                        user.first_name = first_name
-                        user.last_name = last_name
-                        user.phone_number = self.__get_phone_number(user_row)
-                        user.mobile_number = self.__get_mobile_number(user_row)
-
-                        country = Country.objects.get(printable_name='Australia')
-                        try:
-                            address, address_created = Address.objects.get_or_create(user=user, defaults=dict(line1=user_row.address, locality=user_row.suburb, postcode=user_row.postcode, state=user_row.state, country=country))
-                        except MultipleObjectsReturned as e:
-                            address = Address.objects.filter(user=user)[0]
-
-                        user.residential_address = address
-                        user.postal_address = address
-                        user.save()
-
-                        self.user_existing.append(email)
-                    
-                    self.pers_ids.append((user.id, row.name))
-
-
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
-                    self.user_errors.append(user_row.email)
-                    logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
-
-        print(f'users created:  {len(self.user_created)}')
-        print(f'users existing: {len(self.user_existing)}')
-        print(f'users errors:   {len(self.user_errors)}')
-        print(f'no_email errors:   {len(self.no_email)}')
-        print(f'users errors:   {self.user_errors}')
-        print(f'no_email errors:   {self.no_email}')
-
-
-    def _create_users_wl(self):
+    def _create_users_df(self, df):
         # Iterate through the dataframe and create non-existent users
         #import ipdb; ipdb.set_trace()
-        df = self.df_wl.groupby('pers_no').first()
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-        #for index, row in tqdm(self.df_wl.iterrows(), total=self.df_wl.shape[0]):
             #if row.status != 'Vacant':
             try:
                 #import ipdb; ipdb.set_trace()
@@ -542,8 +453,8 @@ class MooringLicenceReader():
                 #email = df['email']
                 #import ipdb; ipdb.set_trace()
 
-                #if row.name == '203694':
-                #    import ipdb; ipdb.set_trace()
+                if row.name == '206846':
+                    import ipdb; ipdb.set_trace()
 
                 if not row.name:
                     continue
@@ -1035,6 +946,7 @@ class MooringLicenceReader():
         start_date = START_DATE
         date_applied = DATE_APPLIED
 
+        errors = []
         vessel_not_found = []
         aup_created = []
 
