@@ -67,7 +67,7 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
     else:
         text = smart_text(email_message)
         subject = ''
-        to = proposal.submitter.email
+        to = retrieve_email_userro(proposal.submitter).email
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 
@@ -395,7 +395,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
         'proposal_external_url': make_http_https(url),
         'num_of_days_to_submit_documents': days_setting.number_of_days,
     }
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
     cc = []
     bcc = []
 

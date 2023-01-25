@@ -354,7 +354,7 @@ class ComplianceAmendmentRequest(CompRequest):
             compliance.log_user_action(ComplianceUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
             # Create a log entry for the organisation
             applicant_field=getattr(compliance.proposal, compliance.proposal.applicant_field)
-            applicant_field.log_user_action(ComplianceUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
+            # applicant_field.log_user_action(ComplianceUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
             send_amendment_email_notification(self,request, compliance)
 
 

@@ -9,6 +9,7 @@ import traceback
 import pytz
 import uuid
 
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
@@ -1079,7 +1080,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                 else:
                     if officer != self.assigned_officer:
                         self.assigned_officer = officer
@@ -1088,7 +1089,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
             except:
                 raise
 
@@ -1114,7 +1115,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 # Create a log entry for the organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 return self
             except:
                 raise
@@ -1132,7 +1133,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                 else:
                     if self.assigned_officer:
                         self.assigned_officer = None
@@ -1141,7 +1142,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
             except:
                 raise
 
@@ -1249,7 +1250,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
                 send_approver_approve_decline_email_notification(request, self)
             except:
@@ -1285,7 +1286,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
                 ## ML
                 if type(self.child_obj) == MooringLicenceApplication and self.waiting_list_allocation:
@@ -1313,7 +1314,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
             except:
                 raise
 
@@ -1332,7 +1333,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
             except:
                 raise
 
@@ -1370,7 +1371,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
 
                 send_approver_approve_decline_email_notification(request, self)
                 return self
@@ -1848,7 +1849,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 # Create a log entry for the organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 #Log entry for approval
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
@@ -2437,14 +2438,15 @@ class AnnualAdmissionApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user.id in self.assessor_group.get_system_group_member_ids()
 
     #def is_approver(self, user):
      #   return False
 
     def is_approver(self, user):
-        #return user in self.approver_group.user_set.all()
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user.id in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
@@ -3039,17 +3041,27 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        # return [i.email for i in self.assessor_group.user_set.all()]
+        emails = []
+        for id in self.assessor_group.get_system_group_member_ids():
+            emails.append(retrieve_email_userro(id).email)
+        return emails
 
     @property
     def approver_recipients(self):
-        return [i.email for i in self.approver_group.user_set.all()]
+        # return [i.email for i in self.approver_group.user_set.all()]
+        emails = []
+        for id in self.approver_group.get_system_group_member_ids():
+            emails.append(retrieve_email_userro(id).email)
+        return emails
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user.id in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
-        return user in self.approver_group.user_set.all()
+        # return user in self.approver_group.user_set.all()
+        return user.id in self.approver_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(MooringLicenceApplication, self).save(*args, **kwargs)
@@ -3898,7 +3910,7 @@ class AmendmentRequest(ProposalRequest):
                     proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
                     applicant_field = getattr(proposal, proposal.applicant_field)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
+                    # applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 
                     # send email
 

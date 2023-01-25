@@ -1718,7 +1718,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def lookup_individual_ownership(self, request, *args, **kwargs):
         vessel = self.get_object()
-        owner_set = Owner.objects.filter(emailuser=request.user)
+        owner_set = Owner.objects.filter(emailuser=request.user.id)
         if owner_set:
             vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
             if vo_set:
@@ -1747,7 +1747,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         # vessel_ownership
         vessel_ownership_data = {}
         # check if this emailuser has a matching record for this vessel
-        owner_qs = Owner.objects.filter(emailuser=request.user)
+        owner_qs = Owner.objects.filter(emailuser=request.user.id)
         if owner_qs:
             owner = owner_qs[0]
             vo_qs = vessel.vesselownership_set.filter(owner=owner)

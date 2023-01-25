@@ -36,6 +36,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication,
 )
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, AuthorisedUserPermit, \
     AnnualAdmissionPermit
@@ -145,6 +146,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
     # allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
     # submitter = EmailUserSerializer()
     get_history = serializers.ReadOnlyField()
     application_type_code = serializers.SerializerMethodField()
@@ -251,6 +253,10 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'null_vessel_on_create',
                 )
         read_only_fields=('documents',)
+
+    def get_allowed_assessors(self, obj):
+        serializer = EmailUserSerializer(obj.allowed_assessors, many=True)
+        return serializer.data
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
@@ -1539,10 +1545,13 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def get_action_link(self, obj):
-        return '/internal/person/{}'.format(obj.owner.emailuser.id)
+        # return '/internal/person/{}'.format(obj.owner.emailuser.id)
+        return '/internal/person/{}'.format(obj.owner.emailuser)
 
     def get_owner_full_name(self, obj):
-        return obj.owner.emailuser.get_full_name()
+        # return obj.owner.emailuser.get_full_name()
+        owner = retrieve_email_userro(obj.owner.emailuser)
+        return owner.get_full_name()
 
     def get_applicable_percentage(self, obj):
         if obj.company_ownership:
@@ -1563,7 +1572,9 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
         return end_date_str
 
     def get_owner_phone_number(self, obj):
-        return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
+        # return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
+        owner = retrieve_email_userro(obj.owner.emailuser)
+        return owner.phone_number if owner.phone_number else owner.mobile_number
 
     def get_individual_owner(self, obj):
         individual_owner = True

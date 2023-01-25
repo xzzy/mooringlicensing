@@ -317,7 +317,7 @@ def _log_approval_email(email_message, approval, sender=None, attachments=[]):
         'text': text,
         'approval': approval,
         'customer': customer,
-        'staff': staff,
+        'staff': staff.id,
         'to': to,
         'fromm': fromm,
         'cc': all_ccs
@@ -372,7 +372,7 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
         'text': text,
         'organisation': organisation,
         'customer': customer,
-        'staff': staff,
+        'staff': staff.id,
         'to': to,
         'fromm': fromm,
         'cc': all_ccs
@@ -419,7 +419,7 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
         'text': text,
         'emailuser': target_email_user if target_email_user else customer,
         'customer': customer,
-        'staff': staff,
+        'staff': staff.id,
         'to': to,
         'fromm': fromm,
         'cc': all_ccs
@@ -471,7 +471,7 @@ def log_mla_created_proposal_email(email_message, proposal, sender=None):
         'text': text,
         'proposal': proposal,
         'customer': customer,
-        'staff': staff,
+        'staff': staff.id,
         'to': to,
         'fromm': fromm,
         'cc': all_ccs
