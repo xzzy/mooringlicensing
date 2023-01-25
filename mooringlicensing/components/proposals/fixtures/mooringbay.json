@@ -1,0 +1,112 @@
+[
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 1,
+    "fields": {
+        "name": "Rottnest Island",
+        "code": "RI",
+        "mooring_bookings_id": 1,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 2,
+    "fields": {
+        "name": "Thomson Bay",
+        "code": "TB",
+        "mooring_bookings_id": 6,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 3,
+    "fields": {
+        "name": "Thomson Bay North",
+        "code": "TBN",
+        "mooring_bookings_id": 3,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 4,
+    "fields": {
+        "name": "Thomson Bay South",
+        "code": "TBS",
+        "mooring_bookings_id": 4,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 5,
+    "fields": {
+        "name": "Longreach Bay",
+        "code": "LR",
+        "mooring_bookings_id": 5,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 6,
+    "fields": {
+        "name": "Geordie Bay",
+        "code": "GB",
+        "mooring_bookings_id": 2,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 8,
+    "fields": {
+        "name": "Catherine Bay",
+        "code": "CB",
+        "mooring_bookings_id": 8,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 9,
+    "fields": {
+        "name": "Marjorie Bay",
+        "code": "MB",
+        "mooring_bookings_id": 9,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 10,
+    "fields": {
+        "name": "Narrow Neck",
+        "code": "NN",
+        "mooring_bookings_id": 10,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 11,
+    "fields": {
+        "name": "Porpoise Bay",
+        "code": "PB",
+        "mooring_bookings_id": 11,
+        "active": true
+    }
+},
+{
+    "model": "mooringlicensing.mooringbay",
+    "pk": 12,
+    "fields": {
+        "name": "Stark Bay",
+        "code": "SB",
+        "mooring_bookings_id": 12,
+        "active": true
+    }
+}
+]
