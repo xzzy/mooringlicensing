@@ -50,6 +50,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     AuthorisedUserPermit, Approval
 )
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 import traceback
 import os
@@ -374,7 +375,8 @@ def save_proponent_data_aaa(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     instance = serializer.save()
     if viewset.action == 'submit':
-        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
@@ -404,7 +406,8 @@ def save_proponent_data_wla(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     instance = serializer.save()
     if viewset.action == 'submit':
-        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        if instance.invoice and get_invoice_payment_status(invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))

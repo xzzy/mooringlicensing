@@ -1,25 +1,19 @@
 import logging
 # from _pydecimal import Decimal
-from datetime import datetime
 import decimal
 
 import pytz
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.urls import reverse
 # from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, use_existing_basket_from_invoice
 from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst, use_existing_basket_from_invoice
 # from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import *
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, AgeGroup, AdmissionType
-from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeConstructor, DcvPermitFee, \
+from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, StickerActionFee
-from ledger_api_client import utils
 
 #test
-from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication, MooringLicenceApplication, \
-    AnnualAdmissionApplication, ProposalType
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -277,7 +271,3 @@ def oracle_integration(date,override):
     oracle_codes = oracle_parser(date, settings.PAYMENT_SYSTEM_ID, 'Disturbance Approval System', override=override)
 
 
-def get_invoice_payment_status(invoice_id):
-    inv_props = utils.get_invoice_properties(invoice_id)
-    invoice_payment_status = inv_props['data']['invoice']['payment_status']
-    return invoice_payment_status

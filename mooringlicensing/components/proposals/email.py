@@ -22,7 +22,7 @@ from datetime import datetime
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url, \
     make_url_for_external, make_http_https
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
@@ -725,7 +725,8 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             if proposal.application_fees.count():
                 application_fee = proposal.get_main_application_fee()
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-                if invoice.payment_status not in ('paid', 'over_paid'):
+                # if invoice.payment_status not in ('paid', 'over_paid'):
+                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                     payment_required = True
             if payment_required:
                 # 22 (22a, 22b, 22c)
@@ -744,7 +745,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             if proposal.application_fees.count():
                 application_fee = proposal.get_main_application_fee()
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-                if invoice.payment_status not in ('paid', 'over_paid'):
+                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                     payment_required = True
             if payment_required:
                 # 25
@@ -914,7 +915,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -1053,7 +1054,7 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -1211,7 +1212,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -1355,7 +1356,7 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':

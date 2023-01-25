@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
 
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 # from ledger.accounts.models import EmailUser, RevisionedMixin
@@ -1049,7 +1050,7 @@ class AnnualAdmissionPermit(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
+                'applicant_name': retrieve_email_userro(self.submitter).get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1999,7 +2000,8 @@ class DcvAdmission(RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        # if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
             return True
         return False
 
@@ -2411,7 +2413,8 @@ class DcvPermit(RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        # if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
             return True
         return False
 

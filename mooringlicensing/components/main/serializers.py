@@ -9,7 +9,7 @@ from mooringlicensing.components.main.models import (
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from ledger_api_client import utils
 
-from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 
 class EmailUserSerializer(serializers.ModelSerializer):

@@ -9,7 +9,7 @@ import traceback
 import pytz
 import uuid
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
@@ -781,7 +781,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def fee_paid(self):
         # if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
-        from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
         if (self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False

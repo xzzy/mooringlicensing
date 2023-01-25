@@ -6,7 +6,7 @@ import json
 
 from rest_framework.views import APIView
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *
@@ -45,7 +45,7 @@ from mooringlicensing.components.payments_ml.utils import checkout, set_session_
     get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
     get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
     checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
-    delete_session_sticker_action_invoice, get_invoice_payment_status
+    delete_session_sticker_action_invoice
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication, \
     VesselDetails
@@ -450,11 +450,12 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 dcv_admission_fee.expiry_time = None
                 update_payments(invoice_ref)
 
-                if dcv_admission and invoice.payment_status in ('paid', 'over_paid',):
+                # if dcv_admission and invoice.payment_status in ('paid', 'over_paid',):
+                if dcv_admission and get_invoice_payment_status(invoice.id) in ('paid', 'over_paid',):
                     self.adjust_db_operations(dcv_admission, db_operations)
                     dcv_admission.generate_dcv_admission_doc()
                 else:
-                    logger.error('Invoice payment status is {}'.format(invoice.payment_status))
+                    logger.error('Invoice payment status is {}'.format(get_invoice_payment_status(invoice.id)))
                     raise
 
                 dcv_admission_fee.save()
@@ -558,7 +559,8 @@ class DcvPermitFeeSuccessView(TemplateView):
                     self.adjust_db_operations(dcv_permit, db_operations)
                     dcv_permit.generate_dcv_permit_doc()
                 else:
-                    logger.error('Invoice payment status is {}'.format(invoice.payment_status))
+                    # logger.error('Invoice payment status is {}'.format(invoice.payment_status))
+                    logger.error('Invoice payment status is {}'.format(get_invoice_payment_status(invoice.id)))
                     raise
 
                 dcv_permit_fee.save()
@@ -742,7 +744,8 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         proposal.save()
 
                 else:
-                    msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, invoice.payment_status)
+                    # msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, invoice.payment_status)
+                    msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, get_invoice_payment_status(invoice.id))
                     logger.error(msg)
                     raise Exception(msg)
 

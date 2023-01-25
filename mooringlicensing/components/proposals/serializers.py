@@ -14,7 +14,6 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, A
 from mooringlicensing.components.main.models import ApplicationType
 # from mooringlicensing.components.main.utils import retrieve_email_user
 from mooringlicensing.components.payments_ml.models import FeeConstructor
-from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalUserAction,
@@ -36,7 +35,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication,
 )
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, AuthorisedUserPermit, \
     AnnualAdmissionPermit

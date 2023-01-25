@@ -15,6 +15,7 @@ from django.conf import settings
 from ledger_api_client.utils import calculate_excl_gst
 from mooringlicensing.components.main.utils import to_local_tz
 from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeItemStickerReplacement
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 DPAW_HEADER_LOGO_SM = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo_small.png')
@@ -323,7 +324,8 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
@@ -422,7 +424,8 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
