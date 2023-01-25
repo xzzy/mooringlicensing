@@ -24,6 +24,8 @@ import numpy as np
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
+from mooringlicensing.components.payments_ml.models import FeeSeason
+
 from mooringlicensing.components.proposals.models import (
     Proposal,
     Vessel,
@@ -47,6 +49,9 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     ApprovalUserAction,
     Sticker,
+    DcvOrganisation,
+    DcvPermit,
+    DcvVessel,
 )
 
 from tqdm import tqdm
@@ -59,6 +64,7 @@ TODAY = datetime.datetime.now(datetime.timezone.utc).date()
 EXPIRY_DATE = datetime.date(2023,8,31)
 START_DATE = datetime.date(2022,9,1)
 DATE_APPLIED = '2022-09-01'
+FEE_SEASON = '2022 - 2023'
 
 USER_COLUMN_MAPPING = {
     'Person No':                        'pers_no',
@@ -193,7 +199,13 @@ class MooringLicenceReader():
         self.create_vessels()
         self.create_mooring_licences()
         self.create_authuser_permits()
-        #self.create_waiting_list()
+        self.create_waiting_list()
+        self.create_dcv()
+
+    OR
+        from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
+        mlr=MooringLicenceReader('PersonDets20221222-125823.txt', 'MooringDets20221222-125546.txt', 'VesselDets20221222-125823.txt', 'UserDets20221222-130353.txt', 'ApplicationDets20221222-125157.txt')
+        self.run_migration
 
     FROM mgt-command:
         python manage_ds.py mooring_migration_script --filename mooringlicensing/utils/csv/MooringDets20221201-083202.txt
@@ -220,6 +232,7 @@ class MooringLicenceReader():
         self.df_ves=self._read_ves()
         self.df_authuser=self._read_au()
         self.df_wl=self._read_wl()
+        self.df_dcv=self._read_dcv()
 
         # create_users
         self.pers_ids = []
@@ -386,7 +399,13 @@ class MooringLicenceReader():
         #return df[:500]
         return df_wl
 
+    def _read_dcv(self):
+        """ Read PersonDets file - for DCV Permits details """
+        if len(self.df_user)==0:
+            _read_user()
 
+        df_dcv = self.df_user[(self.df_user['company']!='') & (self.df_user['paid_up']=='Y') & (self.df_user['licences_type']=='C')]
+        return df_dcv
 
 
     def run_migration(self):
@@ -394,7 +413,10 @@ class MooringLicenceReader():
         self.create_users()
         self.create_vessels()
         self.create_mooring_licences()
-        #self.create_authuser_permits()
+        self.create_authuser_permits()
+        self.create_waiting_list()
+        self.create_dcv()
+
 
     def run_migration(self):
 
@@ -432,6 +454,11 @@ class MooringLicenceReader():
         print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
 
     def create_users(self):
+        logger.info('Creating DCV users ...')
+        df = self.df_dcv.groupby('pers_no').first()
+        self._create_users_df(df)
+        self.pers_ids_dcv = self.pers_ids
+
         logger.info('Creating ML & AU users ...')
         for pers_type in ['pers_no_u', 'pers_no_l']:
             df = self.df_authuser.groupby(pers_type).first()
@@ -440,6 +467,7 @@ class MooringLicenceReader():
         logger.info('Creating WL users ...')
         df = self.df_wl.groupby('pers_no').first()
         self._create_users_df(df)
+
 
     def _create_users_df(self, df):
         # Iterate through the dataframe and create non-existent users
@@ -453,8 +481,8 @@ class MooringLicenceReader():
                 #email = df['email']
                 #import ipdb; ipdb.set_trace()
 
-                if row.name == '206846':
-                    import ipdb; ipdb.set_trace()
+                #if row.name == '206846':
+                #    import ipdb; ipdb.set_trace()
 
                 if not row.name:
                     continue
@@ -579,14 +607,15 @@ class MooringLicenceReader():
                 val = 0.00
             return val
 
+        self.vessels_dcv = {} 
         postfix = ['Nominated Ves', 'Ad Ves 2', 'Ad Ves 3', 'Ad Ves 4', 'Ad Ves 5', 'Ad Ves 6', 'Ad Ves 7']
         for user_id, pers_no in tqdm(self.pers_ids):
             try:
                 #import ipdb; ipdb.set_trace()
                 #if pers_no=='000377':
                 #if pers_no=='213127':
-                #if pers_no=='000477':
-                #    import ipdb; ipdb.set_trace()
+                if pers_no=='210443':
+                    import ipdb; ipdb.set_trace()
 
                 #import ipdb; ipdb.set_trace()
                 ves_rows = self.df_ves[self.df_ves['Person No']==pers_no]
@@ -642,6 +671,8 @@ class MooringLicenceReader():
                                 berth_mooring=''
                             )
                         vessels.append(rego_no)
+
+                    self.vessels_dcv.update({pers_no:vessels})
                     self.vessels_created.append((pers_no, len(vessels), vessels))
 
             except Exception as e:
@@ -1154,7 +1185,6 @@ class MooringLicenceReader():
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'aup_created: {len(aup_created)}')
 
-
     def create_waiting_list(self):
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
@@ -1181,10 +1211,6 @@ class MooringLicenceReader():
                     user = EmailUser.objects.get(email=email.lower())
                 except Exception as e:
                     user = EmailUser.objects.get(first_name=row['first_name'].lower().capitalize(), last_name=row['last_name'].lower().capitalize()) 
-#                    try:
-#                        user = EmailUser.objects.get(first_name=row['first_name'].lower().capitalize(), last_name=row['last_name'].lower().capitalize()) 
-#                    except Exception as e:
-#                        user_not_found.append(pers_no)
 
                 rego_no = row['vessel_rego']
                 try:
@@ -1283,71 +1309,80 @@ class MooringLicenceReader():
         print(f'user_not_found: {len(user_not_found)}')
         print(f'wl_created: {len(wl_created)}')
 
+    def create_dcv(self):
+        expiry_date = EXPIRY_DATE
+        start_date = START_DATE
+        date_applied = DATE_APPLIED
+        fee_season = FeeSeason.objects.filter(name=FEE_SEASON)[0]
 
-    def create_licences(self):
-        count = 1
-        completed_site_numbers = []
-        duplicate_site_numbers = []
-        skipped_indices = []
-        with transaction.atomic():
-            #for index, row in self.df[3244:].iterrows():
-            for index, row in self.df.iterrows():
+        errors = []
+        vessel_not_found = []
+        user_not_found = []
+        dcv_created = []
+
+        vessel_type = 'other'
+
+        for index, row in tqdm(self.df_dcv.iterrows(), total=self.df_dcv.shape[0]):
+            try:
+                #import ipdb; ipdb.set_trace()
+                #if row.mooring_no == 'TB999':
+                #    continue
+
+                pers_no = row['pers_no']
+                email = row['email']
+                org_name = row['company']
+
+                #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    # TODO: remove once migration file has been corrected
-                    # temp solution for vacant sites causing error
-                    #if index in [3823, 6517]:
-                     #   continue
-                    site_number = None
-                    # TODO: remove once migration file has been corrected
-                    #if not row.permit_number and not row.licensed_site:
-                    #    skipped_indices.append(index)
-                    #    continue
-                    #    raise ValueError("index: {} has no permit_number or licenced_site".format(index))
-                    site_number = int(row.permit_number) if row.permit_number else int(row.licensed_site)
-                    #ApiarySite.objects.filter(id=site_number)
-                    if site_number not in completed_site_numbers and \
-                        not ApiarySite.objects.filter(id=site_number).exists():
-
-                        #if row.status != 'Vacant' and index>4474:
-                        #if row.status != 'Vacant':
-                            #import ipdb; ipdb.set_trace()
-                        if row.licencee_type == 'organisation':
-                            org = Organisation.objects.get(organisation__abn=row.abn)
-                            user = EmailUser.objects.get(email=row.email)
-                            self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
-                            print("Permit number {} migrated".format(row.get('permit_number')))
-                            print
-                            print
-
-                        elif row.licencee_type == 'individual':
-                            user = EmailUser.objects.get(email=row.email)
-                            self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
-                            print("Permit number {} migrated".format(row.get('permit_number')))
-
-                        else:
-                            # declined and not to be reissued
-                            status = data['status']
-
-                        completed_site_numbers.append(site_number)
-                        count += 1
-
-                        print()
-                        print(f'******************************************************** INDEX: {index}')
-                        print()
-                    else:
-                        duplicate_site_numbers.append(site_number)
-
-                except ValueError as e:
-                    print(f'ERROR: SITE NUMBER {site_number} - SKIPPING')
-                    import ipdb; ipdb.set_trace()
-                    raise e
+                    user = EmailUser.objects.get(email=email.lower())
                 except Exception as e:
-                    print(e)
-                    import ipdb; ipdb.set_trace()
-                    raise e
+                    user = EmailUser.objects.get(first_name=row['first_name'].lower().capitalize(), last_name=row['last_name'].lower().capitalize()) 
 
-        print(f'Duplicate Site Numbers: {duplicate_site_numbers}')
-        print('Skipped indices: {}'.format(skipped_indices))
+                try:
+                    dcv_organisation = DcvOrganisation.objects.get(name=org_name)
+                except ObjectDoesNotExist:
+                    dcv_organisation = DcvOrganisation.objects.create(name=org_name)
+
+
+                for rego_no in self.vessels_dcv[pers_no]:
+                    try:
+                        dcv_vessel = DcvVessel.objects.get(rego_no=rego_no)
+                    except ObjectDoesNotExist:
+                        vessel_details = VesselDetails.objects.get(vessel__rego_no=rego_no)
+                        dcv_vessel = DcvVessel.objects.create(
+                            rego_no = rego_no,
+                            vessel_name = vessel_details.vessel_name,
+                            dcv_organisation = dcv_organisation,
+                        )
+
+                    dcv_permit = DcvPermit.objects.create(
+                        submitter = user,
+                        lodgement_datetime = datetime.datetime.now(datetime.timezone.utc),
+                        fee_season = fee_season,
+                        start_date = start_date,
+                        end_date = expiry_date,
+                        dcv_vessel = dcv_vessel,
+                        dcv_organisation =dcv_organisation,
+                        migrated = True
+                    )
+                    #import ipdb; ipdb.set_trace()
+                    dcv_permit.generate_dcv_permit_doc()
+                    dcv_created.append(dcv_permit.id)
+
+
+
+            except Exception as e:
+                errors.append(str(e))
+                import ipdb; ipdb.set_trace()
+                pass
+                #raise Exception(str(e))
+
+        print(f'vessel_not_found: {vessel_not_found}')
+        print(f'vessel_not_found: {len(vessel_not_found)}')
+        print(f'user_not_found: {user_not_found}')
+        print(f'user_not_found: {len(user_not_found)}')
+        print(f'dcv_created: {len(dcv_created)}')
+
 
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
