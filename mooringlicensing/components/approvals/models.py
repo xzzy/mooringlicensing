@@ -284,70 +284,75 @@ class Approval(RevisionedMixin):
     def postal_address_line1(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line1
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.line1
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line1
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.line1
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line1
+                ret_value = submitter.residential_address.line1
         return ret_value
 
     @property
     def postal_address_line2(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line2
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.line2
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line2
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.line2
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line2
+                ret_value = submitter.residential_address.line2
         return ret_value
 
     @property
     def postal_address_state(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.state
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.state
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.state
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.state
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.state
+                ret_value = submitter.residential_address.state
         return ret_value
 
     @property
     def postal_address_suburb(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.locality
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.locality
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.locality
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.locality
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.locality
+                ret_value = submitter.residential_address.locality
         return ret_value
 
     @property
     def postal_address_postcode(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.postcode
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.postcode
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.postcode
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.postcode
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.postcode
+                ret_value = submitter.residential_address.postcode
         return ret_value
 
     @property
@@ -487,14 +492,16 @@ class Approval(RevisionedMixin):
         if self.org_applicant:
             return self.org_applicant.organisation.name
         elif self.proxy_applicant:
+            applicant = retrieve_email_userro(self.proxy_applicant)
             return "{} {}".format(
-                self.proxy_applicant.first_name,
-                self.proxy_applicant.last_name)
+                applicant.first_name,
+                applicant.last_name)
         else:
             try:
+                submitter = retrieve_email_userro(self.submitter)
                 return "{} {}".format(
-                    self.submitter.first_name,
-                    self.submitter.last_name)
+                    submitter.first_name,
+                    submitter.last_name)
             except:
                 return "Applicant Not Set"
 
@@ -522,9 +529,11 @@ class Approval(RevisionedMixin):
         if self.org_applicant:
             return self.org_applicant.id
         elif self.proxy_applicant:
-            return self.proxy_applicant.id
+            # return self.proxy_applicant.id
+            return self.proxy_applicant
         else:
-            return self.submitter.id
+            # return self.submitter.id
+            return self.submitter
 
     @property
     def title(self):

@@ -306,7 +306,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         'proposal_external_url': make_url_for_external(url),
     }
 
-    to = proposal.submitter.email
+    to = retrieve_email_userro(proposal.submitter).email
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
         cc_list = proposal.org_applicant.email
@@ -429,7 +429,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
         'recipient': compliance.submitter,
         'compliance_external_url': make_http_https(url),
     }
-    to_address = compliance.submitter.email
+    to_address = retrieve_email_userro(compliance.submitter).email
     cc = []
     bcc = []
 
@@ -462,7 +462,7 @@ def send_comliance_overdue_notification(request, approval, compliance,):
         'recipient': compliance.submitter,
         'compliance_external_url': make_http_https(url),
     }
-    to_address = compliance.submitter.email
+    to_address = retrieve_email_userro(compliance.submitter).email
     cc = []
     bcc = []
 
@@ -499,7 +499,7 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
         'due_date': due_date,
         'number_of_days': number_of_days,
     }
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
     cc = []
     bcc = []
 
@@ -531,7 +531,7 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
         'recipient': proposal.submitter,
         'dashboard_url': make_http_https(dashboard_url),
     }
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
     cc = []
     bcc = []
 
@@ -564,7 +564,7 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
         'recipient': proposal.submitter,
         'dashboard_url': make_http_https(dashboard_url),
     }
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
     cc = []
     bcc = []
 
@@ -691,7 +691,7 @@ def send_approval_renewal_email_notification(approval):
     if attachment:
         attachments.append(attachment)
 
-    msg = email.send(proposal.submitter.email, cc=[], attachments=attachments, context=context)
+    msg = email.send(retrieve_email_userro(proposal.submitter).email, cc=[], attachments=attachments, context=context)
 
     from mooringlicensing.components.approvals.models import Approval
     if isinstance(approval, Approval):
@@ -877,7 +877,7 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
         txt_template=txt_template,
     )
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
@@ -956,7 +956,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         'payment_url': payment_url,
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1014,7 +1014,7 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1095,7 +1095,7 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
         'payment_url': make_http_https(payment_url),
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1171,7 +1171,7 @@ def send_au_summary_to_ml_holder(mooring_licence, request, au_proposal):
         'url_for_au_dashboard_page': get_public_url(request),  # Do we have AU dashboard page for external???
     }
 
-    to_address = mooring_licence.submitter.email
+    to_address = retrieve_email_userro(mooring_licence.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=[], bcc=[],)
@@ -1255,7 +1255,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         'payment_url': make_http_https(payment_url),
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1317,7 +1317,7 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1400,7 +1400,7 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         'payment_url': make_http_https(payment_url),
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
