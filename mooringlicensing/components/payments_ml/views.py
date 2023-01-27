@@ -147,14 +147,14 @@ class ConfirmationView(TemplateView):
 
         context = {
             'proposal': proposal,
-            'submitter': proposal.submitter,
+            'submitter': proposal.submitter_obj,
         }
         return render(request, self.template_name, context)
 
     @staticmethod
     def send_confirmation_mail(proposal, request):
         # Send invoice
-        to_email_addresses = proposal.submitter.email
+        to_email_addresses = proposal.submitter_obj.email
         email_data = send_application_submit_confirmation_email(request, proposal, [to_email_addresses, ])
 
 
@@ -278,7 +278,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
             if self.request.user.is_authenticated():
                 owner = request.user
             else:
-                owner = sticker_action_details.first().sticker.approval.submitter
+                owner = sticker_action_details.first().sticker.approval.submitter_obj
             basket = Basket.objects.filter(status='Submitted', owner=owner).order_by('-id')[:1]
 
             order = Order.objects.get(basket=basket[0])
@@ -332,7 +332,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
             print('4')
             if (self.LAST_STICKER_ACTION_FEE_ID in request.session) and StickerActionFee.objects.filter(id=request.session[self.LAST_STICKER_ACTION_FEE_ID]).exists():
                 sticker_action_fee = StickerActionFee.objects.get(id=request.session[self.LAST_STICKER_ACTION_FEE_ID])
-                owner = sticker_action_fee.sticker_action_details.first().sticker.approval.submitter
+                owner = sticker_action_fee.sticker_action_details.first().sticker.approval.submitter_obj
             else:
                 return redirect('home')
 
@@ -380,14 +380,14 @@ class ApplicationFeeView(TemplateView):
                 return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
                 checkout_response = checkout(
                     request,
-                    proposal.submitter,
+                    proposal.submitter_obj,
                     lines,
                     return_url,
                     return_preload_url,
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
-                user = retrieve_email_userro(proposal.submitter)
+                user = proposal.submitter_obj
 
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(user.get_full_name(), user.id), proposal.id))
                 return checkout_response
@@ -612,7 +612,7 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
         context = {
             'proposal': proposal,
-            'submitter': proposal.submitter,
+            'submitter': proposal.submitter_obj,
             'application_fee': application_fee,
             'invoice': invoice,
         }
@@ -709,10 +709,10 @@ class ApplicationFeeSuccessViewPreload(APIView):
                     # order.user = request.user
                     # order.save()
                 except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user'))
+                    logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter_obj.get_full_name(), proposal.submitter_obj.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
                 if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
-                    logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter.get_full_name(), proposal.submitter.id) if proposal.submitter else 'An anonymous user',inv.reference))
+                    logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter_obj.get_full_name(), proposal.submitter_obj.id) if proposal.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-proposal-detail', args=(proposal.id,))
 
                 application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
@@ -786,7 +786,7 @@ class ApplicationFeeSuccessView(TemplateView):
             application_fee = ApplicationFee.objects.get(uuid=uuid)
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             proposal = application_fee.proposal
-            submitter = proposal.submitter
+            submitter = proposal.submitter_obj
             if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
                 #proposal.auto_approve_check(request)
                 if proposal.auto_approve:

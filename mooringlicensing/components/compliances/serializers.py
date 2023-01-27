@@ -264,7 +264,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             return obj.approval.child_obj.description
 
     def get_approval_submitter(self, obj):
-        return obj.approval.submitter.get_full_name()
+        return obj.approval.submitter_obj.get_full_name()
 
     def get_assigned_to_name(self, obj):
         assigned_to = ''

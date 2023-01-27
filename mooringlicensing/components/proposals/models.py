@@ -334,6 +334,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
+
     def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length, max_amount_paid):
         """
         Retrieve all the fee_items for this vessel

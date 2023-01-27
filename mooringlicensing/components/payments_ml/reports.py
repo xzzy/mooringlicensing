@@ -95,7 +95,7 @@ def booking_bpoint_settlement_report(_date):
                                      invoice.amount,
                                      invoice.reference])
                 elif compliance:
-                    submitter = compliance.approval.submitter if compliance.approval else compliance.proposal.submitter
+                    submitter = compliance.approval.submitter_obj if compliance.approval else compliance.proposal.submitter_obj
                     b_name = u'{}'.format(submitter)
                     created = timezone.localtime(b.created, pytz.timezone('Australia/Perth'))
                     settlement_date = b.settlement_date.strftime('%d/%m/%Y') if b.settlement_date else ''

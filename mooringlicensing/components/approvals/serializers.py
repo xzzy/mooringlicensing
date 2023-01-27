@@ -445,9 +445,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
                         approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
                         if approval.current_proposal.vessel_details else ''
                         ),
-                    "holder": approval.submitter.get_full_name(),
-                    "mobile": approval.submitter.mobile_number,
-                    "email": approval.submitter.email,
+                    "holder": approval.submitter_obj.get_full_name(),
+                    "mobile": approval.submitter_obj.mobile_number,
+                    "email": approval.submitter_obj.email,
                     "status": approval.get_status_display(),
                     })
         return authorised_users
@@ -1404,7 +1404,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
         return obj.approval.get_status_display()
 
     def get_holder(self, obj):
-        return obj.approval.submitter.get_full_name()
+        return obj.approval.submitter_obj.get_full_name()
 
     def get_sticker_numbers(self, obj):
         numbers = ""
