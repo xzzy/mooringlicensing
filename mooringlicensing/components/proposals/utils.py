@@ -407,7 +407,7 @@ def save_proponent_data_wla(instance, request, viewset):
     instance = serializer.save()
     if viewset.action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
-        if instance.invoice and get_invoice_payment_status(invoice.id) in ['paid', 'over_paid']:
+        if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))

@@ -38,13 +38,14 @@ def checkout(request, email_user, lines, return_url, return_preload_url, invoice
         'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice_text,  # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
-        'basket_owner': email_user,
+        # 'basket_owner': email_user,
+        'basket_owner': email_user.id,
         'session_type': 'ledger_api',
     }
     # if proxy or request.user.is_anonymous():
     if proxy or request.user.is_anonymous:
         # checkout_params['basket_owner'] = email_user.id
-        checkout_params['basket_owner'] = email_user
+        checkout_params['basket_owner'] = email_user.id
 
     create_checkout_session(request, checkout_params)
 

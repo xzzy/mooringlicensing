@@ -2241,7 +2241,7 @@ class WaitingListApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        return [retrieve_email_userro(id).email for id in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
@@ -2434,7 +2434,8 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        # return [i.email for i in self.assessor_group.user_set.all()]
+        return [retrieve_email_userro(id).email for id in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
@@ -2643,17 +2644,21 @@ class AuthorisedUserApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        # return [i.email for i in self.assessor_group.user_set.all()]
+        return [retrieve_email_userro(i).email for i in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
-        return [i.email for i in self.approver_group.user_set.all()]
+        # return [i.email for i in self.approver_group.user_set.all()]
+        return [retrieve_email_userro(i).email for i in self.approver_group.get_system_group_member_ids()]
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user.id in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
-        return user in self.approver_group.user_set.all()
+        # return user in self.approver_group.user_set.all()
+        return user in self.approver_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(AuthorisedUserApplication, self).save(*args, **kwargs)
@@ -3282,8 +3287,18 @@ class ProposalLogDocument(Document):
         app_label = 'mooringlicensing'
 
 
+class ProposalLogEntryManager(models.Manager):
+    def create(self, *args, **kwargs):
+        if 'customer' in kwargs and isinstance(kwargs['customer'], EmailUserRO):
+            kwargs['customer'] = kwargs['customer'].id
+        if 'staff' in kwargs and isinstance(kwargs['staff'], EmailUserRO):
+            kwargs['staff'] = kwargs['staff'].id
+        return super(ProposalLogEntryManager, self).create(*args, **kwargs)
+
+
 class ProposalLogEntry(CommunicationsLogEntry):
     proposal = models.ForeignKey(Proposal, related_name='comms_logs', on_delete=models.CASCADE)
+    objects = ProposalLogEntryManager()
 
     def __str__(self):
         return '{} - {}'.format(self.reference, self.subject)
