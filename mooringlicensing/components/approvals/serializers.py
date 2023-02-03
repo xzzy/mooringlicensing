@@ -624,7 +624,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_holder(self, obj):
         submitter = ''
         if obj.submitter:
-            submitter = obj.submitter.get_full_name()
+            submitter = obj.submitter_obj.get_full_name()
         return submitter
 
     def get_issue_date_str(self, obj):
@@ -963,16 +963,16 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             items = []
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
             # items.append(obj.submitter.get_full_name())
-            submitter = retrieve_email_userro(obj.submitter)
-            items.append(submitter.get_full_name())
+            # submitter = retrieve_email_userro(obj.submitter)
+            items.append(obj.submitter_obj.get_full_name())
             # if obj.submitter.mobile_number:
-            if submitter.mobile_number:
+            if obj.submitter_obj.mobile_number:
                 items.append('<span class="glyphicon glyphicon-phone"></span> ' + submitter.mobile_number)
             # if obj.submitter.phone_number:
-            if submitter.phone_number:
+            if obj.submitter_obj.phone_number:
                 items.append('<span class="glyphicon glyphicon-earphone"></span> ' + submitter.phone_number)
             # items.append(obj.submitter.email)
-            items.append(submitter.email)
+            items.append(obj.submitter_obj.email)
 
             items = '</br>'.join(items)
             holder_str = '<span>' + items + '</span>'
@@ -1291,7 +1291,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             if obj.dcv_organisation:
                 return obj.dcv_organisation.name
             else:
-                return obj.submitter.get_full_name() + ' (P)'
+                return obj.submitter_obj.get_full_name() + ' (P)'
         except:
             return ''
 

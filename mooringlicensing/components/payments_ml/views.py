@@ -456,10 +456,10 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                     order.user = submitter
                     order.save()
                 except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter.get_full_name(), dcv_admission.submitter.id) if dcv_admission.submitter else 'An anonymous user'))
+                    logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user'))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
                 if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
-                    logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter.get_full_name(), dcv_admission.submitter.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
+                    logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
 
                 dcv_admission_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
@@ -561,10 +561,10 @@ class DcvPermitFeeSuccessView(TemplateView):
                     order.user = request.user
                     order.save()
                 except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an dcv_permit fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user'))
+                    logger.error('{} tried paying an dcv_permit fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_permit.submitter_obj.get_full_name(), dcv_permit.submitter_obj.id) if dcv_permit.submitter else 'An anonymous user'))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
                 if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
-                    logger.error('{} tried paying an dcv_permit fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_permit.submitter.get_full_name(), dcv_permit.submitter.id) if dcv_permit.submitter else 'An anonymous user',inv.reference))
+                    logger.error('{} tried paying an dcv_permit fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_permit.submitter_obj.get_full_name(), dcv_permit.submitter_obj.id) if dcv_permit.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
 
                 dcv_permit_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET

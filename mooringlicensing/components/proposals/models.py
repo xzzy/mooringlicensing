@@ -3434,7 +3434,7 @@ class Mooring(RevisionedMixin):
         return self.get_mooring_bookings_mooring_specification_display()
 
     def log_user_action(self, action, request):
-        return MooringUserAction.log_action(self, action, request.user)
+        return MooringUserAction.log_action(self, action, request.user.id)
 
     @property
     def status(self):

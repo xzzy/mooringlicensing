@@ -78,7 +78,7 @@ class ComplianceSerializer(serializers.ModelSerializer):
 
     def get_submitter(self,obj):
         if obj.submitter:
-            return obj.submitter.get_full_name()
+            return obj.submitter_obj.get_full_name()
         return None
 
     def get_application_type_code(self, obj):
@@ -152,7 +152,7 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
 
     def get_submitter(self,obj):
         if obj.submitter:
-            return obj.submitter.get_full_name()
+            return obj.submitter_obj.get_full_name()
         return None
 
     def get_processing_status(self, obj):

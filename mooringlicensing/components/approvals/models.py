@@ -976,15 +976,15 @@ class WaitingListAllocation(Approval):
 
             # Return context for the licence/permit document
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            submitter = retrieve_email_userro(self.submitter)
+            # submitter = retrieve_email_userro(self.submitter)
             context = {
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
                 # 'applicant_name': self.submitter.get_full_name(),
                 # 'applicant_full_name': self.submitter.get_full_name(),
-                'applicant_name': submitter.get_full_name(),
-                'applicant_full_name': submitter.get_full_name(),
+                'applicant_name': self.submitter_obj.get_full_name(),
+                'applicant_full_name': self.submitter_obj.get_full_name(),
                 'bay_name': self.current_proposal.preferred_bay.name,
                 'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y'),
                 'position_number': self.wla_order,
@@ -1215,7 +1215,7 @@ class AuthorisedUserPermit(Approval):
                 elif mooring.mooring_licence.submitter.phone_number:
                     numbers.append(mooring.mooring_licence.submitter.phone_number)
                 m['name'] = mooring.name
-                m['licensee_full_name'] = mooring.mooring_licence.submitter.get_full_name()
+                m['licensee_full_name'] = mooring.mooring_licence.submitter_obj.get_full_name()
                 m['licensee_email'] = mooring.mooring_licence.submitter.email
                 m['licensee_phone'] = ', '.join(numbers)
                 moorings.append(m)
@@ -1237,7 +1237,7 @@ class AuthorisedUserPermit(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
+                'applicant_name': self.submitter_obj.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1587,7 +1587,7 @@ class MooringLicence(Approval):
                 authorised_by = aup.get_authorised_by()
                 authorised_by = authorised_by.upper().replace('_', ' ')
 
-                authorised_person['full_name'] = aup.submitter.get_full_name()
+                authorised_person['full_name'] = aup.submitter_obj.get_full_name()
                 authorised_person['vessel'] = {
                     'rego_no': aup.current_proposal.vessel_details.vessel.rego_no if aup.current_proposal.vessel_details else '',
                     'vessel_name': aup.current_proposal.vessel_details.vessel_name if aup.current_proposal.vessel_details else '',
@@ -1647,7 +1647,7 @@ class MooringLicence(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
+                'applicant_name': self.submitter_obj.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -2008,6 +2008,10 @@ class DcvAdmission(RevisionedMixin):
     class Meta:
         app_label = 'mooringlicensing'
 
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
+
     def __str__(self):
         return self.lodgement_number
 
@@ -2244,6 +2248,10 @@ class DcvPermit(RevisionedMixin):
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
+
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """

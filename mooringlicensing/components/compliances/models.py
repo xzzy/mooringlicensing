@@ -27,6 +27,7 @@ from mooringlicensing.components.compliances.email import (
 
 import logging
 
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_COMPLIANCE
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,10 @@ class Compliance(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
 
     @property
     def regions(self):
