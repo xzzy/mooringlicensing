@@ -1,5 +1,7 @@
 import datetime
 import logging
+
+import ledger_api_client.utils
 # from ledger.checkout.utils import calculate_excl_gst
 import pytz
 import json
@@ -158,22 +160,26 @@ class ConfirmationView(TemplateView):
         email_data = send_application_submit_confirmation_email(request, proposal, [to_email_addresses, ])
 
 
-class ApplicationFeeExistingView(TemplateView):
+# class ApplicationFeeExistingView(TemplateView):
+class ApplicationFeeExistingView(APIView):
     def get_object(self):
-        return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
+        return get_object_or_404(Invoice, reference=self.kwargs['invoice_reference'])
 
     def get(self, request, *args, **kwargs):
-        proposal = self.get_object()
-        application_fee = proposal.get_main_application_fee()
+        invoice = self.get_object()
+        # application_fee = proposal.get_main_application_fee()
+        application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
 
-        if application_fee.paid:
-            return redirect('application_fee_already_paid', proposal_pk=proposal.id)
+        # if application_fee.paid:
+        #     return redirect('application_fee_already_paid', proposal_pk=proposal.id)
+        if get_invoice_payment_status(invoice.id) in ['paid', 'over_paid',]:
+            return redirect('application_fee_already_paid', proposal_pk=application_fee.proposal.id)
 
         try:
             with transaction.atomic():
-                set_session_application_invoice(request.session, application_fee)
-                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-
+                # set_session_application_invoice(request.session, application_fee)
+                # invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+                #
                 db_processes = {
                     'for_existing_invoice': True,
                     'fee_item_application_fee_ids': [],
@@ -181,20 +187,30 @@ class ApplicationFeeExistingView(TemplateView):
                 fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
                 for fee_item_application_fee in fee_item_application_fees:
                     db_processes['fee_item_application_fee_ids'].append(fee_item_application_fee.id)
-                request.session['db_processes'] = db_processes
 
-                checkout_response = checkout_existing_invoice(
-                    request,
-                    invoice,
-                    return_url_ns='fee_success',
-                )
+                new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes)
 
-                logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format(
-                    'User {} with id {}'.format(
-                        request.user.get_full_name(), request.user.id
-                    ), application_fee.proposal.lodgement_number
-                ))
-                return checkout_response
+                # request.session['db_processes'] = db_processes
+                #
+                # checkout_response = checkout_existing_invoice(
+                #     request,
+                #     invoice,
+                #     return_url_ns='fee_success',
+                # )
+
+                # logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format(
+                #     'User {} with id {}'.format(
+                #         request.user.get_full_name(), request.user.id
+                #     ), application_fee.proposal.lodgement_number
+                # ))
+                # return checkout_response
+
+                # return_url = 'test1'
+                # fallback_url = 'test2'
+                return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
+                fallback_url = request.build_absolute_uri(reverse("external"))
+                payment_session = ledger_api_client.utils.generate_payment_session(request, invoice.reference, return_url, fallback_url)
+                return HttpResponseRedirect(payment_session['payment_url'])
 
         except Exception as e:
             logger.error('Error Creating Application Fee: {}'.format(e))
@@ -623,11 +639,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
 
-        invoice_reference = request.GET.get("invoice", "false")
-
-        if uuid and invoice_reference:
-            logger.info(f"Invoice reference: {invoice_reference} and uuid: {uuid}.",)
-
+        if uuid:  # and invoice_reference:
             if not ApplicationFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'ApplicationFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -635,6 +647,11 @@ class ApplicationFeeSuccessViewPreload(APIView):
                 logger.info(f'ApplicationFee with uuid: {uuid} exist.')
             application_fee = ApplicationFee.objects.get(uuid=uuid)
 
+            # invoice_reference is set in the URL when normal invoice,
+            # invoice_reference is not set in the URL when future invoice, but it is set in the application_fee on creation.
+            invoice_reference = request.GET.get("invoice", "")
+            invoice_reference = application_fee.invoice_reference if not invoice_reference else invoice_reference
+            logger.info(f"Invoice reference: {invoice_reference} and uuid: {uuid}.",)
             if not Invoice.objects.filter(reference=invoice_reference).exists():
                 logger.info(f'Invoice with invoice_reference: {invoice_reference} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -768,7 +785,8 @@ class ApplicationFeeSuccessViewPreload(APIView):
             )
             # this end-point is called by an unmonitored get request in ledger so there is no point having a
             # a response body however we will return a status in case this is used on the ledger end in future
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            # return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_200_OK)
 
 
 class ApplicationFeeSuccessView(TemplateView):

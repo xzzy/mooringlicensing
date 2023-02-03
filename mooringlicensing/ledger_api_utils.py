@@ -1,6 +1,7 @@
 from ledger_api_client import utils
 from ledger_api_client.ledger_models import EmailUserRO
 
+from mooringlicensing import settings
 from mooringlicensing.components.main.decorators import basic_exception_handler
 
 
@@ -13,3 +14,7 @@ def get_invoice_payment_status(invoice_id):
     inv_props = utils.get_invoice_properties(invoice_id)
     invoice_payment_status = inv_props['data']['invoice']['payment_status']
     return invoice_payment_status
+
+
+def get_invoice_url(invoice_reference):
+    return f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'

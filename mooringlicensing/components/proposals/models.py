@@ -1645,15 +1645,55 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # Following two lines are for future invoicing.
                             # However because we need to segregate 'ledger' from this system, we cannot use these two functions.
                             # TODO: Review and rewrite to create an invoice with ledger_client_api.
-                            basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
-                            order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
-                                basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
-                            invoice = Invoice.objects.get(order_number=order.number)
+                            # basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
+                            # order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
+                            # invoice = Invoice.objects.get(order_number=order.number)
+
+                            ### Future Invoice ###
+                            invoice_text = 'Payment Invoice'
+                            basket_params = {
+                                'products': line_items,
+                                'vouchers': [],
+                                'system': settings.PS_PAYMENT_SYSTEM_ID,
+                                'custom_basket': True,
+                                # 'booking_reference': 'PB-' + str(booking_id),
+                                # 'booking_reference_link': str(old_booking_id),
+                                'no_payment': True,
+                                # 'organisation': 7,
+                            }
+                            # basket_user_id = customer_id
+                            # basket_hash = utils_ledger_api_client.create_basket_session(
+                            from ledger_api_client.utils import create_basket_session, process_create_future_invoice
+                            basket_hash = create_basket_session(request, request.user.id, basket_params)
+
+                            #checkouthash =  hashlib.sha256('TEST'.encode('utf-8')).hexdigest()
+                            #checkouthash = request.session.get('checkouthash','')
+                            #basket, basket_hash = use_existing_basket_from_invoice('00193349270')
+                            # notification url for when payment is received.
+                            # return_preload_url = settings.PARKSTAY_EXTERNAL_URL + '/api/complete_booking/9819873279821398732198737981298/' + str(booking_id) + '/'
+
                             application_fee = ApplicationFee.objects.create(
                                 proposal=self,
-                                invoice_reference=invoice.reference,
+                                # invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                             )
+                            return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+
+                            basket_hash_split = basket_hash.split("|")
+                            pcfi = process_create_future_invoice(
+                                basket_hash_split[0], invoice_text, return_preload_url
+                                )
+
+                            application_fee.invoice_reference = pcfi['data']['invoice']
+                            application_fee.save()
+                            ### END: Future Invoice ###
+
+
+                            # application_fee = ApplicationFee.objects.create(
+                            #     proposal=self,
+                            #     invoice_reference=invoice.reference,
+                            #     payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
+                            # )
                             logger.info('ApplicationFee.id: {} has been created for the Proposal: {}'.format(application_fee.id, self))
 
                             # Link between ApplicationFee and FeeItem(s)

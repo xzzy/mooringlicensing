@@ -303,9 +303,9 @@ export default {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
                         for (let invoice of full.invoices){
-                            console.log(invoice.payment_status.toLowerCase())
+                            console.log({invoice})
                             if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){
-                                links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
+                                links +=  `<a href='/application_fee_existing/${invoice.reference}'>Pay</a>`
                             }
                         }
                         if (full.document_upload_url){

@@ -1,6 +1,7 @@
 import logging
 import mimetypes
 import pytz
+import requests
 # from ledger.accounts.models import EmailUser
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
@@ -22,7 +23,7 @@ from datetime import datetime
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url, \
     make_url_for_external, make_http_https
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
@@ -1115,9 +1116,15 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
     attachments = []
     if attach_invoice and proposal.invoice:
         # Attach invoice
-        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
-        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_bytes, 'application/pdf')
-        attachments.append(attachment)
+        # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
+        url = get_invoice_url(proposal.invoice.reference)
+        invoice_pdf = requests.get(url=url)
+        if invoice_pdf.status_code == 200:
+            attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_pdf.content, 'application/pdf')
+            attachments.append(attachment)
+        else:
+            logger.error(f'Status code: {invoice_pdf.status_code}. Could not retrieve invoice_pdf for the invoice reference: {proposal.invoice.reference}')
+
     if attach_licence_doc and proposal.approval and proposal.approval.licence_document:
         # Attach licence document
         licence_document = proposal.approval.licence_document._file

@@ -96,8 +96,8 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
             target_datetime_str,
         ),
         'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
-        'price_incl_tax': fee_amount_adjusted,
-        'price_excl_tax': calculate_excl_gst(fee_amount_adjusted) if fee_constructor.incur_gst else fee_amount_adjusted,
+        'price_incl_tax': float(fee_amount_adjusted),
+        'price_excl_tax': float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted),
         'quantity': 1,
     }
 
