@@ -1021,10 +1021,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     #Check if the user is member of assessor group for the Proposal
     def is_assessor(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.child_obj.is_assessor(user)
 
     #Check if the user is member of assessor group for the Proposal
     def is_approver(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.child_obj.is_approver(user)
 
     def can_assess(self, user):
@@ -2288,16 +2292,20 @@ class WaitingListApplication(Proposal):
         return []
 
     def is_assessor(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         # return user in self.assessor_group.user_set.all()
-        return user.id in self.assessor_group.get_system_group_member_ids()
+        return user in self.assessor_group.get_system_group_member_ids()
 
     #def is_approver(self, user):
      #   return False
 
     def is_approver(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         #return user in self.approver_group.user_set.all()
         # return user in self.assessor_group.user_set.all()
-        return user.id in self.assessor_group.get_system_group_member_ids()
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(WaitingListApplication, self).save(*args, **kwargs)
@@ -2482,15 +2490,19 @@ class AnnualAdmissionApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        # return user in self.assessor_group.user_set.all()
-        return user.id in self.assessor_group.get_system_group_member_ids()
+        # return user in dself.assessor_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     #def is_approver(self, user):
      #   return False
 
     def is_approver(self, user):
         # return user in self.assessor_group.user_set.all()
-        return user.id in self.assessor_group.get_system_group_member_ids()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
@@ -2694,10 +2706,13 @@ class AuthorisedUserApplication(Proposal):
 
     def is_assessor(self, user):
         # return user in self.assessor_group.user_set.all()
-        return user.id in self.assessor_group.get_system_group_member_ids()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
-        # return user in self.approver_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return user in self.approver_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
@@ -3105,11 +3120,15 @@ class MooringLicenceApplication(Proposal):
 
     def is_assessor(self, user):
         # return user in self.assessor_group.user_set.all()
-        return user.id in self.assessor_group.get_system_group_member_ids()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
         # return user in self.approver_group.user_set.all()
-        return user.id in self.approver_group.get_system_group_member_ids()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.approver_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(MooringLicenceApplication, self).save(*args, **kwargs)

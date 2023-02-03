@@ -21,7 +21,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice
 from mooringlicensing.settings import TIME_ZONE
 # from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, EmailUserRO
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.emails.utils import get_public_url
@@ -585,9 +585,13 @@ class Approval(RevisionedMixin):
         return self.current_proposal.allowed_assessors_user(request)
 
     def is_assessor(self,user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.current_proposal.is_assessor(user)
 
     def is_approver(self,user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.current_proposal.is_approver(user)
 
     @property
