@@ -25,7 +25,7 @@ class UserSystemSettings(models.Model):
 # @python_2_unicode_compatible
 class UserAction(models.Model):
     # who = models.ForeignKey(EmailUser, null=False, blank=False)
-    who = models.IntegerField(null=False, blank=False)  # EmailUserRO
+    who = models.IntegerField(null=True, blank=True)  # EmailUserRO
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
 
