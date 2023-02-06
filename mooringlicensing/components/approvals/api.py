@@ -234,7 +234,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         ml_list = MooringLicence.objects.all()
         aup_list = AuthorisedUserPermit.objects.all()
-        aap_list = AnnualAdmissionPermit.objects.all()
+        aap_list = AnnualAdmissionPermit.objects.all() #.exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
         wla_list = WaitingListAllocation.objects.all()
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')

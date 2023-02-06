@@ -26,10 +26,10 @@ class AnnualAdmissionMigration(object):
         AnnualAdmissionMigration(test=False)
     '''
 
-    def __init__(self, filename='mooringlicensing/utils/tests/AA/annual_admissions_booking_report_20210928.csv', test=False):
+    def __init__(self, filename='mooringlicensing/utils/csv/annual_admissions_booking_report_20230125084027.csv', test=False):
         """
         NOTE:
-            filename='mooringlicensing/utils/tests/AA/annual_admissions_booking_report_20210928.csv' comes from Moorings RIA system (??)
+            filename='mooringlicensing/utils/csv/annual_admissions_booking_report_20230125084027.csv' comes from Moorings RIA system (??)
             (https://mooring-ria-internal.dbca.wa.gov.au/dashboard/bookings/annual-admissions/)
         """
         self.filename = filename
