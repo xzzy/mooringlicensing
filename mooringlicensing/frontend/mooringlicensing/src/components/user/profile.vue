@@ -35,14 +35,23 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Given name(s)</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
+                                <input :readonly="firstNameReadOnly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Surname</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
+                                <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                             </div>
+                          </div>
+                          <div class="row form-group">
+                              <label for="" class="col-sm-3 control-label">Date of Birth</label>
+                              <div class="col-sm-3 input-group date" ref="dobDatePicker">
+                                  <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
+                                  <span class="input-group-addon">
+                                      <span class="glyphicon glyphicon-calendar ml-1"></span>
+                                  </span>
+                              </div>
                           </div>
                           <div class="form-group">
                             <div v-if="!readonly" class="col-sm-12">
@@ -98,7 +107,8 @@
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
                                 <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="profile.residential_address.country">
-                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                    <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
+                                    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                 </select>
                             </div>
                           </div>
@@ -110,8 +120,8 @@
                             <div class="col-sm-3">
                             </div>
                             <div class="col-sm-6">
-                              <input :readonly="readonly" type="checkbox" id="same_as_residential" v-model="profile.postal_address.same_as_residential"/>
-                              <label for="same_as_residential" class="control-label">Same as residential address</label>
+                              <input :readonly="readonly" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential" @change="togglePostal"/>
+                              <label for="postal_same_as_residential" class="control-label">Same as residential address</label>
                             </div>
                           </div>
                           <div class="form-group">
@@ -140,7 +150,9 @@
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
                                 <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="profile.postal_address.country">
-                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                    <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
+                                    <option value=""></option>
+                                    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                 </select>
                             </div>
                           </div>
@@ -148,7 +160,7 @@
 
                           <div class="form-group">
                             <div v-if="!readonly" class="col-sm-12">
-                                <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddress()">Update</button>
+                                <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddressWrapper()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
                           </div>
@@ -193,7 +205,7 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Email</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
+                                <input :readonly="emailReadOnly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
                             </div>
                           </div>
                           <div class="form-group">
@@ -251,10 +263,19 @@ import $ from 'jquery'
 import { api_endpoints, helpers } from '@/utils/hooks'
 import FormSection from '@/components/forms/section_toggle.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
+import 'eonasdan-bootstrap-datetimepicker';
+import alert from '@vue-utils/alert.vue'
+//require("moment");
+require('eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css');
+require('eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js');
+
 export default {
     name: 'Profile',
     props:{
         proposalId: {
+            type: Number,
+        },
+        submitterId: {
             type: Number,
         },
         isApplication:{
@@ -327,6 +348,7 @@ export default {
     components: {
         FormSection,
         FileField,
+        alert
     },
     watch: {
         managesOrg: function() {
@@ -353,8 +375,36 @@ export default {
         },
     },
     computed: {
+        dobReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.readonly_dob) {
+                readonly = true;
+            }
+            return readonly
+        },
+        firstNameReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.readonly_first_name) {
+                readonly = true;
+            }
+            return readonly
+        },
+        lastNameReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.readonly_last_name) {
+                readonly = true;
+            }
+            return readonly
+        },
+        emailReadOnly: function() {
+            let readonly = false;
+            if (this.readonly || this.profile.readonly_email) {
+                readonly = true;
+            }
+            return readonly
+        },
         postalAddressReadonly: function() {
-            if (this.readonly || this.profile.postal_address.same_as_residential) {
+            if (this.readonly || this.profile.postal_same_as_residential) {
                 return true;
             }
         },
@@ -394,6 +444,40 @@ export default {
         },
     },
     methods: {
+        togglePostal: function() {
+            if (!this.profile.postal_same_as_residential) {
+                this.profile.postal_address = {};
+            }
+        },
+        addEventListeners: function () {
+            let vm = this;
+            let elDob = $(vm.$refs.dobDatePicker);
+            //const now = Date.now()
+
+            let options = {
+                format: "DD/MM/YYYY",
+                showClear: true ,
+                useCurrent: false,
+                maxDate: moment(),
+            };
+
+            elDob.datetimepicker(options);
+
+            elDob.on("dp.change", function(e) {
+                let selected_date = null;
+                if (e.date){
+                    // Date selected
+                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    vm.profile.dob = selected_date;
+                    //elDob.data('DateTimePicker').maxDate(true);
+                } else {
+                    // Date not selected
+                    vm.profile.dob = selected_date;
+                    //elDob.data('DateTimePicker').maxDate(false);
+                }
+            });
+        },
+
         uploadProofElectoralRoll: function() {
             console.log("proof");
         },
@@ -472,6 +556,7 @@ export default {
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
             }, (error) => {
                 console.log(error);
                 vm.updatingPersonal = false;
@@ -556,11 +641,17 @@ export default {
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
             }, (error) => {
                 console.log(error);
                 vm.updatingContact = false;
             });
           }
+        },
+        updateAddressWrapper: function() {
+            this.$nextTick(() => {
+                this.updateAddress();
+            });
         },
         updateAddress: async function() {
             let vm = this;
@@ -588,8 +679,9 @@ export default {
             vm.updatingAddress = true;
             let payload = {}
             payload.residential_address = Object.assign({}, vm.profile.residential_address);
-            if (!vm.profile.postal_address.same_as_residential) {
-                payload.postal_address = Object.assign({}, vm.profile.postal_address);
+            payload.postal_address = Object.assign({}, vm.profile.postal_address);
+            if (vm.profile.postal_same_as_residential) {
+                payload.postal_same_as_residential = true;
             }
             try {
                 const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
@@ -597,6 +689,7 @@ export default {
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
                 if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
             } catch (error) {
                 swal({
                     title: "Please fix these errors before saving",
@@ -859,13 +952,19 @@ export default {
             }); 
         },
         fetchProfile: async function(){
-          const response = await Vue.http.get(api_endpoints.profile)
-          this.profile = response.body
-          if (this.profile.residential_address == null){ this.profile.residential_address = {}; }
-          if (this.profile.postal_address == null){ this.profile.postal_address = {}; }
-          //if (this.profile.mooringlicensing_organisations && this.profile.mooringlicensing_organisations.length > 0 ) { this.managesOrg = 'Yes' }
-          this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
-          this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
+            let response = null;
+            //let submitter_id = 666;
+            if (this.submitterId) {
+                response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
+            } else {
+                response = await Vue.http.get(api_endpoints.profile);
+            }
+            this.profile = Object.assign(response.body);
+            if (this.profile.residential_address == null){ this.profile.residential_address = Object.assign({country:'AU'}); }
+            if (this.profile.postal_address == null){ this.profile.postal_address = Object.assign({}); }
+            if (this.profile.dob) { this.profile.dob = moment(this.profile.dob).format('DD/MM/YYYY'); }
+            this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
+            this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
 
         },
     },
@@ -876,10 +975,9 @@ export default {
             }
             else{
                 next(vm => {
-                    vm.profile = response.body
-                    if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-                    if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
-                    //if ( vm.profile.mooringlicensing_organisations && vm.profile.mooringlicensing_organisations.length > 0 ) { vm.managesOrg = 'Yes' }
+                    vm.profile = Object.assign(response.body);
+                    if (vm.profile.residential_address == null){ vm.profile.residential_address = Object.assign({country: 'AU'}); }
+                    if (vm.profile.postal_address == null){ vm.profile.postal_address = Object.assign({}); }
                 });
             }
         },(error) => {
@@ -893,6 +991,7 @@ export default {
         await this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
         await this.$nextTick(() => {
             this.$emit('profile-fetched', this.profile);
+            this.addEventListeners();
         });
         this.personal_form = document.forms.personal_form;
         $('.panelClicker[data-toggle="collapse"]').on('click', function () {
@@ -931,6 +1030,9 @@ export default {
 }
 .mb-3 {
     margin-bottom: 1em !important;
+}
+.ml-1 {
+    margin-left: 1em !important;
 }
 .electoral-label {
     margin-bottom: 25px !important;

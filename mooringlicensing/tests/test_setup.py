@@ -24,7 +24,7 @@ from requests.auth import HTTPBasicAuth
 from mooringlicensing.components.proposals.models import (
         ProposalType,
         ApplicationType,
-        ProposalAssessorGroup,
+        #ProposalAssessorGroup,
         ProposalStandardRequirement,
         MooringBay,
         )
@@ -249,7 +249,7 @@ class APITestSetup(APITestCase):
                 'action': ['save'], 
                 'input_name': ['vessel-registration-documents'], 
                 'filename': ['25. External - New Authorised User Application - Applicant.png'], 
-                'csrfmiddlewaretoken': ['stgaXJXyvxINxyC3QreA3D5W9BcwRBkNkmumoFngYpd9guP4DlHtCNdITFqJVdyL'], 
+                'csrfmiddlewaretoken': [settings.CSRF_MIDDLEWARE_TOKEN], 
                 '_file': [test_doc]
             }
 
@@ -257,7 +257,7 @@ class APITestSetup(APITestCase):
                 'action': ['save'], 
                 'input_name': ['electoral-roll-documents'], 
                 'filename': ['25. External - New Authorised User Application - Applicant.png'], 
-                'csrfmiddlewaretoken': ['stgaXJXyvxINxyC3QreA3D5W9BcwRBkNkmumoFngYpd9guP4DlHtCNdITFqJVdyL'], 
+                'csrfmiddlewaretoken': [settings.CSRF_MIDDLEWARE_TOKEN], 
                 '_file': [test_doc]
             }
 

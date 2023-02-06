@@ -1,6 +1,7 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content %}
-    The licence requirement to submit {{ compliance.reference}} has been completed.    
-
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Your compliance with requirement {{ compliance.lodgement_number }} for licence/permit {{ compliance.approval.lodgement_number }} has been approved.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {%  endblock %}

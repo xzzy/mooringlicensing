@@ -17,8 +17,8 @@
                 <datatable 
                     ref="compliances_datatable" 
                     :id="datatable_id" 
-                    :dtOptions="compliances_options" 
-                    :dtHeaders="compliances_headers"
+                    :dtOptions="compliancesOptions" 
+                    :dtHeaders="compliancesHeaders"
                 />
             </div>
         </div>
@@ -40,6 +40,11 @@ export default {
                 return options.indexOf(val) != -1 ? true: false;
             }
         },
+        target_email_user_id: {
+            type: Number,
+            required: false,
+            default: 0,
+        },
     },
     data() {
         let vm = this;
@@ -51,6 +56,7 @@ export default {
             compliance_statuses: [],
 
             // Datatable settings
+            /*
             compliances_headers: ['Id', 'Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'],
             compliances_options: {
                 searching: false,
@@ -108,7 +114,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            return full.approval_number
                         }
                     },
                     {
@@ -118,7 +124,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            let requirement = '';
+                            if (full.requirement) {
+                                requirement = full.requirement.requirement;
+                            }
+                            return requirement;
                         }
                     },
                     {
@@ -128,7 +138,11 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return 'not implemented'
+                            let dueDate = '';
+                            if (full.requirement) {
+                                dueDate = full.requirement.read_due_date;
+                            }
+                            return dueDate;
                         }
                     },
                     {
@@ -158,6 +172,7 @@ export default {
                 },
 
             },
+            */
         }
     },
     components:{
@@ -172,18 +187,272 @@ export default {
         is_external: function() {
             return this.level == 'external'
         },
+        is_internal: function() {
+            return this.level == 'internal'
+        },
+        compliancesHeaders: function() {
+            let headers = ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'];
+            if (this.level === 'internal') {
+                headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
+            }
+            return headers;
+        },
+        approvalSubmitterColumn: function() {
+            return {
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.approval_submitter;
+                        }
+                    }
+        },
+        approvalTypeColumn: function() {
+            return {
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.approval_type;
+                        },
+                    }
+        },
+        lodgementNumberColumn: function() {
+            return {
+                        // 2. Lodgement Number
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.lodgement_number
+                        },
+                        name: "lodgement_number"
+                    }
+        },
+        licenceNumberColumn: function() {
+            return {
+                        // 3. Licence/Permit
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.approval_number
+                        },
+                        name: "approval__lodgement_number",
+                    }
+        },
+        conditionColumn: function() {
+            return {
+                        // 4. Condition
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: true,
+                        'render': function(row, type, full){
+                            let requirement = '';
+                            if (full.requirement) {
+                                requirement = full.requirement.requirement;
+                            }
+                            return requirement;
+                        }
+                    }
+        },
+        dueDateColumn: function() {
+            return {
+                        // 5. Due Date
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            console.log(full)
+                            let dueDate = '';
+                            if (full.due_date_display) {
+                                //dueDate = full.requirement.read_due_date;
+                                dueDate = full.due_date_display;
+                            }
+                            return dueDate;
+                        },
+                        name: "due_date"
+                    }
+        },
+        statusColumn: function() {
+            return {
+                        // 6. Status
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.status
+                        },
+                        name: "processing_status"
+                    }
+        },
+        actionColumn: function() {
+            let vm = this;
+            return {
+                        // 7. Action
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: true,
+                        'render': function(row, type, full){
+                            //return 'not implemented'
+                            let links = '';
+                            if (!vm.is_external){
+                                //if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
+                                if (full.can_process && full.status !== 'Approved') {
+                                    links +=  `<a href='/internal/compliance/${full.id}'>Process</a><br/>`;
+
+                                }
+                                else {
+                                    links +=  `<a href='/internal/compliance/${full.id}'>View</a><br/>`;
+                                }
+                            }
+                            else{
+                                if (full.can_user_view) {
+                                    links +=  `<a href='/external/compliance/${full.id}'>View</a><br/>`;
+
+                                }
+                                else {
+                                    links +=  `<a href='/external/compliance/${full.id}'>Submit</a><br/>`;
+                                }
+                            }
+                            return links;
+
+                        }
+                    }
+        },
+        assignedToNameColumn: function() {
+            return {
+                        // 7. Action
+                        data: "id",
+                        orderable: true,
+                        searchable: true,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return full.assigned_to_name;
+                        },
+                        name: 'assigned_to__first_name, assigned_to__last_name',
+                    }
+        },
+
+        applicableColumns: function() {
+            let columns = [
+                this.lodgementNumberColumn,
+                this.licenceNumberColumn,
+                this.conditionColumn,
+                this.dueDateColumn,
+                this.statusColumn,
+                this.actionColumn,
+                ]
+            if (this.level === 'internal') {
+                columns = [
+                    this.lodgementNumberColumn,
+                    this.approvalTypeColumn,
+                    this.licenceNumberColumn,
+                    this.approvalSubmitterColumn,
+                    //this.conditionColumn,
+                    this.statusColumn,
+                    this.dueDateColumn,
+                    this.assignedToNameColumn,
+                    this.actionColumn,
+                    ]
+            }
+            return columns;
+        },
+        compliancesOptions: function() {
+            let vm = this;
+            let buttons = []
+            if (this.level === 'internal'){
+                buttons = [
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            //columns: ':visible'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            //columns: ':visible'
+                        }
+                    },
+                ]
+            }
+
+            return {
+                searching: false,
+                autoWidth: false,
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                searching: true,
+                order: [
+                    [0, 'desc']
+                    ],
+
+                ajax: {
+                    "url": api_endpoints.compliances_paginated_external + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
+                    "dataSrc": 'data',
+
+                    // adding extra GET params for Custom filtering
+                    "data": function ( d ) {
+                        // Add filters selected
+                        d.filter_compliance_status = vm.filterComplianceStatus;
+                        d.level = vm.level;
+                    }
+                },
+                dom: 'lBfrtip',
+                buttons: buttons,
+                /*
+
+                buttons:[
+                    //{
+                    //    extend: 'csv',
+                    //    exportOptions: {
+                    //        columns: ':visible'
+                    //    }
+                    //},
+                ],
+                */
+                columns: vm.applicableColumns,
+                processing: true,
+                initComplete: function() {
+                    console.log('in initComplete')
+                },
+            }
+        },
 
     },
     methods: {
         fetchFilterLists: function(){
             let vm = this;
-
+            // Compliance Statuses
+            vm.$http.get(api_endpoints.compliance_statuses_dict).then((response) => {
+                if (vm.is_internal){
+                    vm.compliance_statuses = response.body.internal_statuses
+                } else {
+                    vm.compliance_statuses = response.body.external_statuses
+                }
+            },(error) => {
+            })
+            /*
             // Statuses
             vm.$http.get(api_endpoints.compliance_statuses_dict).then((response) => {
                 vm.compliance_statuses = response.body
             },(error) => {
                 console.log(error);
             })
+            */
         },
     },
     created: function(){

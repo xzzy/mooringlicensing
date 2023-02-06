@@ -83,6 +83,9 @@ module.exports = {
 </script>
 
 <style lang="css">
+    div.dataTables_processing div {
+      display: none;
+    }
     table { table-layout: auto; }
     td { 
         word-wrap: break-word;

@@ -7,6 +7,11 @@ node_modules/
 #cronjobs
 .ropeproject/
 mooring/cache/*
+lotus_notes*
+tmp/*
+csv*
+#mooringlicensing/utils/lotus_notes/*
+mooringlicensing/utils/tests
 .ropeproject/
 
 # Byte-compiled / optimized / DLL files
@@ -40,7 +45,7 @@ var/
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-
+#
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -53,7 +58,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-*,cover
+#*,cover
 .hypothesis/
 
 # Translations
@@ -85,6 +90,9 @@ target/
 # media
 media/
 
+# export
+export/
+
 # Database/fixture dumps
 *.pgdump
 *.dump
@@ -108,3 +116,12 @@ mooringlicensing/static/mooringlicensing_vue/js/app.js
 mooringlicensing/static/mooringlicensing_vue/js/manifest.js
 mooringlicensing/static/mooringlicensing_vue/js/vendor.js
 mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
+
+git_history_recent
+
+# Reversion utility
+reversion_utility_output.txt
+
+# data files
+*.csv
+*.xls*

@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email.txt' %}
 
-{%  block content %}
+{% block content %}
     A user has requested to be linked to the following organisation:
 
     Organisation: {{ request.name }}
@@ -9,6 +9,6 @@
 
     Link: {{url}}
 
-    Note: If you haven't logged into the Commercial Operator Licensing System recently you may need to login first before using the provided link.
+    Note: If you haven't logged into the Licensing System recently you may need to login first before using the provided link.
 
 {%  endblock %}
