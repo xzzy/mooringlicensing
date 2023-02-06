@@ -151,28 +151,6 @@ class VesselMigration(object):
         date_invited = None #date_invited,
         migrated = False
 
-# Licencees___Mooring_No.json --> self.mooring_no
-#{'_8': '1', '_7': 'Stark Bay', 'MooringNo': 'SB008', 'UserName': 'Bain Kevin', 'PersNo': '000477', '_9': 'L Au', 'NoVessel': '4', '_1': 'P O Box 168, NORTH FREMANTLE, WA, 6159', 'StickerLNo1': 'None'    , '_4': 'DW106 - REALITY', 'StickerLNo2': 'None', '_11': 'DK819 - NO NAME', 'StickerLNo3': 'None', '_12': 'None', 'StickerLNo4': 'None', '_13': 'EF824 - NO NAME', 'StickerLNo5': 'None', '_15': 'None'    }
-
-# Vessel___Multiple_Vessels.json --> self.vessel_multiple
-#{'_4': '1', '_3': 'Auth User', 'PersNo': '202384', '_11': 'L Au', 'NoVessel': '2', 'UserName': 'Pearce Jeremy', '_6': '5000 - LACIOTAT', '_7': 'EN480 - NO NAME', '_8': 'None', '_9': 'None', '_10': 'None'}
-
-# Vessel___Multiple_Vessels.csv
-#{'_4': '1', '_3': 'Auth User', 'PersNo': '000477', '_11': 'L Au', 'NoVessel': '4', 'UserName': 'Bain Kevin', '_6': 'DW106 - REALITY', '_7': 'DK819 - NO NAME', '_8': 'EZ315 - NO NAME', '_9': 'EF824 -     NO NAME', '_10': 'None'}
-
-# PeopleNo.json --> self.people_no
-#{'PersNo': '000036', 'UserName': 'Timms Kyle', '_8': 'L Au', 'NoVessel': '1', '_1': '47 Robertson Road, KARDINYA, WA, 6163', 'PhoneHome': '9337 6632', 'PhoneMobile': '0413 437 901', 'PhoneWork': 'None'}
-
-#UserRego.csv:666: self.user_rego
-#{'VesRego': '77144', 'MooringNo': 'CB002', '_1': 'Timms Kyle', '_5': '000036', '_6': 'RIA', 'VesLen': '12.25', 'VesDraft': '1.20', 'VesName': 'ARENA'}
-
-#UserMooring.csv:78: self.user_mooring
-#{'_4': '1', 'MooringNo': 'CB012', '_1': 'Pearce Gary', 'VesRego': 'EI520', 'VesName': 'CEE CEE', '_6': 'Lic', 'VesLen': '6.40', 'VesDraft': '0.20', 'FirstNameL': 'Gary', 'LastNameL': 'Pearce'}
-
-
-#People___eMail.csv:78: self.people_email
-#{'LastName': 'Abbott', '_7': 'William', 'PersNo': '207907', '_8': 'W', 'NoVessel': '1', '_9': '1', 'EMail': 'wabbinator@gmail.com', 'LicContactEmail': 'None'}
-
         self.num_vessels = []
         self.vessels_found = []
         self.vessels_not_found = []
@@ -226,41 +204,7 @@ class VesselMigration(object):
 #                    else:
 #                        continue
 
-#PersNo': '073604'
-#                    if no_vessel > 0:
-#                        #print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel}')          
-#                        record_ves_details = self.search('PersNo', pers_no, self.vessel_multiple)
-#                        if not record_ves_details:
-#                            # import ipdb; ipdb.set_trace()
-#                            record_user_mooring = self.search('MooringNo', mooring_no, self.user_mooring)
-#                            # 'VesRego': 'EI520', 'VesName': 'CEE CEE', '_6': 'Lic', 'VesLen': '6.40', 'VesDraft': '0.20'
-#                            if record_user_mooring:
-#                                vessels = [(
-#                                    record_user_mooring['VesRego'], 
-#                                    record_user_mooring['VesName'], 
-#                                    record_user_mooring['VesLen'],
-#                                    record_user_mooring['VesDraft']
-#                                )]
-#                            else:
-#                                #record_mooring_details = self.search('MooringNo', mooring_no, self.mooring_details)
-#                                #vessels = [(record_mooring_details['VesLength'], record_user_mooring['Draft'], record_user_mooring['VesLen'], record_user_mooring['VesDraft'])]
-#                                items = record['_4'].split('-')
-#                                rego = items[0].strip()
-#                                vessel_name = items[1].strip()
-#                                vessels = [(rego, vessel_name, 0.0, 0.0)] #rego/name/length/draft
-#
-#                        else:
-#                            import ipdb; ipdb.set_trace()
-#
-#                            vessels = self.get_vessels(no_vessel, record_ves_details)
-#                        print(f'{idx} Vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')          
-#                
-#                    else:
-#                        #print(f'{idx} No vessel details found: {username} {pers_no} {mooring_no} {no_vessel}')          
-#                        vessels = self.get_vessels(no_vessel, record_ves_details)
-#                        self.vessels_not_found.append(f'{idx} No vessel details found: {username} {pers_no} {mooring_no} {no_vessel} {vessels}')
-#                        #import ipdb; ipdb.set_trace()
-#                        record_people_no = self.search('PersNo', pers_no, self.people_no)
+
 
                     # assume first vessel is licenced to Mooring
                     record_ves_details = self.search('PersNo', pers_no, self.vessel_multiple)
@@ -323,9 +267,7 @@ class VesselMigration(object):
                                 "mooring_id": mooring.id,
                                 "ria_mooring_name": mooring.name,
                                 "mooring_bay_id": mooring.mooring_bay.id,
-    #                            "vessel_ownership": [{
-    #                                    "dot_name": vessel_mooring[0], # vessel_mooring[0] --> rego_no #vessel_dot
-    #                                }],
+    
                                 "vessel_ownership": [dict(dot_name=i[0]) for i in vessels],
                                 "mooring_on_approval": []
                             },
