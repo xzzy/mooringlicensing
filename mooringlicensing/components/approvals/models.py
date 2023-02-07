@@ -1594,8 +1594,8 @@ class MooringLicence(Approval):
 
     def get_context_for_licence_permit(self):
         try:
-            logger.info("self.issue_date: {}".format(self.issue_date))
-            logger.info("self.expiry_date: {}".format(self.expiry_date))
+            #logger.info("self.issue_date: {}".format(self.issue_date))
+            #logger.info("self.expiry_date: {}".format(self.expiry_date))
             # Return context for the licence/permit document
             licenced_vessel = None
             additional_vessels = []
