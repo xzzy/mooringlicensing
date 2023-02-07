@@ -1214,13 +1214,13 @@ class AuthorisedUserPermit(Approval):
                 m = {}
                 # calculate phone number(s)
                 numbers = []
-                if mooring.mooring_licence.submitter.mobile_number:
-                    numbers.append(mooring.mooring_licence.submitter.mobile_number)
-                elif mooring.mooring_licence.submitter.phone_number:
-                    numbers.append(mooring.mooring_licence.submitter.phone_number)
+                if mooring.mooring_licence.submitter_obj.mobile_number:
+                    numbers.append(mooring.mooring_licence.submitter_obj.mobile_number)
+                elif mooring.mooring_licence.submitter_obj.phone_number:
+                    numbers.append(mooring.mooring_licence.submitter_obj.phone_number)
                 m['name'] = mooring.name
                 m['licensee_full_name'] = mooring.mooring_licence.submitter_obj.get_full_name()
-                m['licensee_email'] = mooring.mooring_licence.submitter.email
+                m['licensee_email'] = mooring.mooring_licence.submitter_obj.email
                 m['licensee_phone'] = ', '.join(numbers)
                 moorings.append(m)
 
@@ -1600,8 +1600,8 @@ class MooringLicence(Approval):
                 }
                 authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
                 authorised_person['authorised_by'] = authorised_by
-                authorised_person['mobile_number'] = aup.submitter.mobile_number
-                authorised_person['email_address'] = aup.submitter.email
+                authorised_person['mobile_number'] = aup.submitter_obj.mobile_number
+                authorised_person['email_address'] = aup.submitter_obj.email
                 authorised_persons.append(authorised_person)
 
         today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()

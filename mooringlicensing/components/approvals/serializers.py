@@ -641,8 +641,8 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
 
 class ListApprovalSerializer(serializers.ModelSerializer):
-    licence_document = serializers.CharField(source='licence_document._file.url')
-    # licence_document = serializers.SerializerMethodField()
+    # licence_document = serializers.CharField(source='licence_document._file.url')
+    licence_document = serializers.SerializerMethodField()
     # authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
     authorised_user_summary_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
@@ -754,6 +754,11 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
             'vessel_regos',
         )
+
+    def get_licence_document(self, obj):
+        if obj.licence_document and obj.licence_document._file:
+            return obj.licence_document._file.url
+        return 'no-licence-document-found'
 
     def get_authorised_user_summary_document(self, obj):
         if obj.authorised_user_summary_document:
@@ -967,10 +972,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             items.append(obj.submitter_obj.get_full_name())
             # if obj.submitter.mobile_number:
             if obj.submitter_obj.mobile_number:
-                items.append('<span class="glyphicon glyphicon-phone"></span> ' + submitter.mobile_number)
+                items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.submitter_obj.mobile_number)
             # if obj.submitter.phone_number:
             if obj.submitter_obj.phone_number:
-                items.append('<span class="glyphicon glyphicon-earphone"></span> ' + submitter.phone_number)
+                items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.submitter_obj.phone_number)
             # items.append(obj.submitter.email)
             items.append(obj.submitter_obj.email)
 
@@ -1040,7 +1045,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_submitter_phone_number(self, obj):
-        return obj.submitter.mobile_number if obj.submitter.mobile_number else obj.submitter.phone_number
+        return obj.submitter_obj.mobile_number if obj.submitter_obj.mobile_number else obj.submitter_obj.phone_number
 
     def get_vessel_data(self, obj):
         vessel_data = []

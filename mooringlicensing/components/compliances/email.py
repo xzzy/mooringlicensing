@@ -83,7 +83,7 @@ def send_amendment_email_notification(amendment_request, request, compliance, is
         'public_url': get_public_url(request),
     }
 
-    submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter_obj.email
+    submitter = compliance.submitter_obj.email if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj.email
     all_ccs = []
     if compliance.proposal.org_applicant and compliance.proposal.org_applicant.email:
         cc_list = compliance.proposal.org_applicant.email
@@ -116,7 +116,7 @@ def send_reminder_email_notification(compliance, is_test=False):
         'public_url': get_public_url(),
     }
 
-    submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter_obj.email
+    submitter = compliance.submitter_obj.email if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj.email
     all_ccs = []
     if compliance.proposal.org_applicant and compliance.proposal.org_applicant.email:
         cc_list = compliance.proposal.org_applicant.email
@@ -172,7 +172,7 @@ def send_due_email_notification(compliance, is_test=False):
     url = settings.SITE_URL
     url += reverse('external-compliance-detail', kwargs={'compliance_pk': compliance.id})
 
-    submitter = compliance.submitter if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter_obj
+    submitter = compliance.submitter_obj if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj
 
     context = {
         'recipient': submitter,
@@ -236,7 +236,7 @@ def send_internal_due_email_notification(compliance, is_test=False):
 def send_compliance_accept_email_notification(compliance,request, is_test=False):
     email = ComplianceAcceptNotificationEmail()
 
-    submitter = compliance.submitter if compliance.submitter else compliance.proposal.submitter_obj
+    submitter = compliance.submitter_obj if compliance.submitter_obj else compliance.proposal.submitter_obj
     context = {
         'compliance': compliance,
         'public_url': get_public_url(request),
@@ -263,7 +263,7 @@ def send_external_submit_email_notification(request, compliance, is_test=False):
     email = ComplianceExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = ''.join(url.split('-internal'))
-    submitter = compliance.submitter if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter_obj
+    submitter = compliance.submitter_obj if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj
 
     context = {
         'compliance': compliance,
@@ -337,7 +337,7 @@ def _log_compliance_email(email_message, compliance, sender=None):
     else:
         text = smart_text(email_message)
         subject = ''
-        to = compliance.submitter.email
+        to = compliance.submitter_obj.email
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 

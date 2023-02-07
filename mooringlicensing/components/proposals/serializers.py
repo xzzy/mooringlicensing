@@ -870,7 +870,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 # check that the site_licensee_email matches the Mooring Licence holder
                 if mooring_id and Mooring.objects.get(id=mooring_id):
                     mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                    if mooring_licence.submitter.email.lower().strip() != site_licensee_email.lower().strip():
+                    if mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
                         custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)

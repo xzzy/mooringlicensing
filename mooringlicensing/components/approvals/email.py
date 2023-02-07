@@ -304,7 +304,7 @@ def _log_approval_email(email_message, approval, sender=None, attachments=[]):
     else:
         text = smart_text(email_message)
         subject = ''
-        to = approval.current_proposal.submitter.email
+        to = approval.current_proposal.submitter_obj.email
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 
@@ -524,7 +524,7 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     mime = mimetypes.guess_type(dcv_permit_doc.filename)[0]
     attachments.append((filename, content, mime))
 
-    to = dcv_permit.submitter.email
+    to = dcv_permit.submitter_obj.email
     cc = []
     bcc = []
 
@@ -582,7 +582,7 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
             mime = mimetypes.guess_type(dcv_admission_doc.filename)[0]
             attachments.append((filename, content, mime))
 
-    to = dcv_admission.submitter.email
+    to = dcv_admission.submitter_obj.email
     cc = []
     bcc = []
 
