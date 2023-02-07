@@ -8,7 +8,7 @@ import json
 
 from rest_framework.views import APIView
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *
@@ -829,12 +829,14 @@ class ApplicationFeeSuccessView(TemplateView):
             #     return redirect('home')  # Should be 'raise' rather than redirect?
             wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            invoice_url = get_invoice_url(invoice.reference)
             context = {
                 'proposal': proposal,
                 'submitter': submitter,
                 'fee_invoice': application_fee,
                 'is_wla_or_aaa': wla_or_aaa,
                 'invoice': invoice,
+                'invoice_url': invoice_url,
             }
             return render(request, self.template_name, context)
 
