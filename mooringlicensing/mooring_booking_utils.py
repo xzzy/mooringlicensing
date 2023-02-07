@@ -25,7 +25,8 @@ from ledger.checkout.utils import create_basket_session, create_checkout_session
 #from mooring.serialisers import BookingRegoSerializer, MooringsiteRateSerializer, MarinaEntryRateSerializer, RateSerializer, MooringsiteRateReadonlySerializer, AdmissionsRateSerializer
 #from mooring.emails import send_booking_invoice,send_booking_confirmation
 #from mooring import emails
-from oscar.apps.order.models import Order
+#from oscar.apps.order.models import Order
+from ledger.order.models import Order
 from ledger.payments.invoice import utils
 #from mooring import models
 from mooringlicensing.components.proposals.models import Proposal

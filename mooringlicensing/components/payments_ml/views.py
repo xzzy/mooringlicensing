@@ -22,7 +22,8 @@ from django.views.generic import TemplateView
 from ledger.basket.models import Basket
 from ledger.payments.invoice.models import Invoice
 from ledger.payments.utils import update_payments
-from oscar.apps.order.models import Order
+#from oscar.apps.order.models import Order
+from ledger.order.models import Order
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
