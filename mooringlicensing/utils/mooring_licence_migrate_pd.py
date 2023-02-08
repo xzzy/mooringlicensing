@@ -2002,19 +2002,48 @@ class MooringLicenceReader():
 
         return approval
 
-    def create_licence_pdf(self):
-        approvals_migrated = Approval.objects.filter(migrated=True)
-        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
-        for idx, a in enumerate(approvals_migrated):
-            a.generate_doc()
-            print('{}, Created PDF for Approval {}'.format(idx, a))
+#    def create_licence_pdf(self):
+#        approvals_migrated = Approval.objects.filter(migrated=True)
+#        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
+#        for idx, a in enumerate(approvals_migrated):
+#            a.generate_doc()
+#            print('{}, Created PDF for Approval {}'.format(idx, a))
+#
+#    def create_dcv_licence_pdf(self):
+#        approvals_migrated = DcvPermit.objects.filter(migrated=True)
+#        print('Total DCV Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
+#        for idx, a in enumerate(approvals_migrated):
+#            a.generate_dcv_permit_doc()
+#            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
 
-    def create_dcv_licence_pdf(self):
-        approvals_migrated = DcvPermit.objects.filter(migrated=True)
-        print('Total DCV Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
+    def create_ml_pdf(self):
+        self._create_licence_pdf(MooringLicence.objects.filter(migrated=True))
+
+    @classmethod
+    def create_aup_pdf(self):
+        self._create_licence_pdf(AuthorisedUserPermit.objects.filter(migrated=True))
+
+    @classmethod
+    def create_wl_pdf(self):
+        self._create_licence_pdf(WaitingListAllocation.objects.filter(migrated=True))
+
+    @classmethod
+    def create_aa_pdf(self):
+        self._create_licence_pdf(AnnualAdmissionPermit.objects.filter(migrated=True))
+
+    @classmethod
+    def create_dcv_pdf(self):
+        self._create_licence_pdf(DcvPermit.objects.filter(migrated=True))
+
+    @staticmethod
+    def _create_licence_pdf(approvals_migrated):
+        #approvals_migrated = MooringLicence.objects.filter(migrated=True)
+        permit_name = approvals_migrated[0].__class__.__name__
+        print(f'Total {permit_name}: {approvals_migrated.count()} - {approvals_migrated}')
         for idx, a in enumerate(approvals_migrated):
-            a.generate_dcv_permit_doc()
-            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
+            a.generate_dcv_permit_doc() if isinstance(a, DcvPermit) else a.generate_doc()
+            print(f'{idx}, Created PDF for {permit_name}: {a}')
+
 
 def create_invoice(proposal, payment_method='other'):
         """
