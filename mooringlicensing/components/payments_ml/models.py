@@ -187,6 +187,7 @@ class StickerActionFee(Payment):
     # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
     created_by = models.IntegerField(blank=True, null=True,)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         stickers = []
