@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+import requests
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives, EmailMessage
@@ -18,6 +19,7 @@ from mooringlicensing.components.organisations.models import OrganisationLogEntr
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
+from mooringlicensing.ledger_api_utils import get_invoice_url
 
 logger = logging.getLogger(__name__)
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
@@ -570,8 +572,13 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
 
     # attach invoice
     if invoice:
-        contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
-        attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+        # contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
+        # attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+        url = get_invoice_url(invoice.reference)
+        invoice_pdf = requests.get(url=url)
+        if invoice_pdf.status_code == 200:
+            attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
+            attachments.append(attachment)
 
     # attach DcvPermit
     if dcv_admission.admissions:

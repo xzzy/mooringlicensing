@@ -71,17 +71,20 @@ class DcvAdmissionFeeView(TemplateView):
             with transaction.atomic():
                 set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
 
-                lines, db_processes_after_success = dcv_admission.create_fee_lines()
+                lines, db_processes = dcv_admission.create_fee_lines()
 
-                request.session['db_processes'] = db_processes_after_success
+                # request.session['db_processes'] = db_processes_after_success
+                new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
                 checkout_response = checkout(
                     request,
                     dcv_admission.submitter_obj,
                     lines,
                     # return_url_ns='dcv_admission_fee_success',
                     # return_preload_url_ns='dcv_admission_fee_success',
-                    request.build_absolute_uri(reverse('dcv_admission_fee_success')),
-                    request.build_absolute_uri(reverse('dcv_admission_fee_success')),
+                    # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
+                    # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
+                    return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
+                    return_preload_url=request.build_absolute_uri(reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid})),
                     invoice_text='DCV Admission Fee',
                 )
 
@@ -424,51 +427,170 @@ class DcvAdmissionFeeSuccessView(TemplateView):
     template_name = 'mooringlicensing/payments_ml/success_dcv_admission_fee.html'
     LAST_DCV_ADMISSION_FEE_ID = 'mooringlicensing_last_dcv_admission_invoice'
 
-    def get(self, request, *args, **kwargs):
-        proposal = None
-        submitter = None
-        invoice = None
+    def get(self, request, uuid, *args, **kwargs):
+        logger.info(f'{DcvAdmissionFeeSuccessView.__name__} get method is called.')
 
-        try:
-            dcv_admission_fee = get_session_dcv_admission_invoice(request.session)  # This raises an exception when accessed 2nd time?
-
-            # Retrieve db processes stored when calculating the fee, and delete the session
-            db_operations = request.session['db_processes']
-            del request.session['db_processes']
-
-            dcv_admission = dcv_admission_fee.dcv_admission
-            # recipient = dcv_permit.applicant_email
-            submitter = dcv_admission.submitter
-
-            if self.request.user.is_authenticated():
-                basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+        if uuid:
+            if not DcvAdmissionFee.objects.filter(uuid=uuid).exists():
+                logger.info(f'DcvAdmissionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
+                return redirect(reverse('external'))
             else:
-                basket = Basket.objects.filter(status='Submitted', owner=dcv_admission.submitter).order_by('-id')[:1]
+                logger.info(f'DcvAdmissionFee with uuid: {uuid} exists.')
+            dcv_admission_fee = DcvAdmissionFee.objects.get(uuid=uuid)
+            dcv_admission = dcv_admission_fee.dcv_admission
 
-            order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=order.number)
-            invoice_ref = invoice.reference
+            # invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
+            context = {
+                'dcv_admission': dcv_admission,
+                'submitter': dcv_admission.submitter_obj,
+                'fee_invoice': dcv_admission_fee,
+                # 'invoice': invoice,
+                'invoice_url': get_invoice_url(dcv_admission_fee.invoice_reference),
+                'admission_urls': dcv_admission.get_admission_urls(),
+            }
+            return render(request, self.template_name, context)
+    # def get(self, request, *args, **kwargs):
+    # proposal = None
+        # submitter = None
+        # invoice = None
+        #
+        # try:
+        #     dcv_admission_fee = get_session_dcv_admission_invoice(request.session)  # This raises an exception when accessed 2nd time?
+        #
+        #     # Retrieve db processes stored when calculating the fee, and delete the session
+        #     db_operations = request.session['db_processes']
+        #     del request.session['db_processes']
+        #
+        #     dcv_admission = dcv_admission_fee.dcv_admission
+        #     # recipient = dcv_permit.applicant_email
+        #     submitter = dcv_admission.submitter
+        #
+        #     if self.request.user.is_authenticated():
+        #         basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
+        #     else:
+        #         basket = Basket.objects.filter(status='Submitted', owner=dcv_admission.submitter).order_by('-id')[:1]
+        #
+        #     order = Order.objects.get(basket=basket[0])
+        #     invoice = Invoice.objects.get(order_number=order.number)
+        #     invoice_ref = invoice.reference
+        #
+        #     # Update the application_fee object
+        #     dcv_admission_fee.invoice_reference = invoice_ref
+        #     dcv_admission_fee.save()
+        #
+        #     if dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
+        #         try:
+        #             inv = Invoice.objects.get(reference=invoice_ref)
+        #             order = Order.objects.get(number=inv.order_number)
+        #             order.user = submitter
+        #             order.save()
+        #         except Invoice.DoesNotExist:
+        #             logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user'))
+        #             return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
+        #         if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
+        #             logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
+        #             return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
+        #
+        #         dcv_admission_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
+        #         dcv_admission_fee.expiry_time = None
+        #         # update_payments(invoice_ref)
+        #
+        #         # if dcv_admission and invoice.payment_status in ('paid', 'over_paid',):
+        #         if dcv_admission and get_invoice_payment_status(invoice.id) in ('paid', 'over_paid',):
+        #             self.adjust_db_operations(dcv_admission, db_operations)
+        #             dcv_admission.generate_dcv_admission_doc()
+        #         else:
+        #             logger.error('Invoice payment status is {}'.format(get_invoice_payment_status(invoice.id)))
+        #             raise
+        #
+        #         dcv_admission_fee.save()
+        #         request.session[self.LAST_DCV_ADMISSION_FEE_ID] = dcv_admission_fee.id
+        #         delete_session_dcv_admission_invoice(request.session)
+        #
+        #         email_data = send_dcv_admission_mail(dcv_admission, invoice, request)
+        #         context = {
+        #             'dcv_admission': dcv_admission,
+        #             'submitter': submitter,
+        #             'fee_invoice': dcv_admission_fee,
+        #             'invoice': invoice,
+        #             'admission_urls': dcv_admission.get_admission_urls(),
+        #         }
+        #         return render(request, self.template_name, context)
+        #
+        # except Exception as e:
+        #     if (self.LAST_DCV_ADMISSION_FEE_ID in request.session) and DcvAdmissionFee.objects.filter(id=request.session[self.LAST_DCV_ADMISSION_FEE_ID]).exists():
+        #         dcv_admission_fee = DcvAdmissionFee.objects.get(id=request.session[self.LAST_DCV_ADMISSION_FEE_ID])
+        #         dcv_admission = dcv_admission_fee.dcv_admission
+        #         submitter = dcv_admission.submitter
+        #
+        #     else:
+        #         return redirect('home')
+        #
+        # invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
+        # context = {
+        #     'dcv_admission': dcv_admission,
+        #     'submitter': submitter,
+        #     'fee_invoice': dcv_admission_fee,
+        #     'invoice': invoice,
+        #     'admission_urls': dcv_admission.get_admission_urls(),
+        # }
+        # return render(request, self.template_name, context)
 
-            # Update the application_fee object
-            dcv_admission_fee.invoice_reference = invoice_ref
-            dcv_admission_fee.save()
+    # @staticmethod
+    # def adjust_db_operations(dcv_admission, db_operations):
+    #     dcv_admission.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
+    #     dcv_admission.save()
+
+
+class DcvAdmissionFeeSuccessViewPreload(APIView):
+
+    @staticmethod
+    def adjust_db_operations(dcv_admission, db_operations):
+        dcv_admission.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
+        dcv_admission.save()
+
+    def get(self, request, uuid, format=None):
+        logger.info(f'{DcvAdmissionFeeSuccessViewPreload.__name__} get method is called.')
+
+        if uuid:  # and invoice_reference:
+            if not DcvAdmissionFee.objects.filter(uuid=uuid).exists():
+                logger.info(f'DcvAdmissionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
+                return redirect(reverse('external'))
+            else:
+                logger.info(f'DcvAdmissionFee with uuid: {uuid} exists.')
+            dcv_admission_fee = DcvAdmissionFee.objects.get(uuid=uuid)
+            dcv_admission = dcv_admission_fee.dcv_admission
+
+            invoice_reference = request.GET.get("invoice", "")
+            logger.info(f"Invoice reference: {invoice_reference} and uuid: {uuid}.",)
+            if not Invoice.objects.filter(reference=invoice_reference).exists():
+                logger.info(f'Invoice with invoice_reference: {invoice_reference} does not exist.  Redirecting user to dashboard page.')
+                return redirect(reverse('external'))
+            else:
+                logger.info(f'Invoice with invoice_reference: {invoice_reference} exist.')
+            invoice = Invoice.objects.get(reference=invoice_reference)
+
+            if not FeeCalculation.objects.filter(uuid=uuid).exists():
+                logger.info(f'FeeCalculation with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
+                return redirect(reverse('external'))
+            else:
+                logger.info(f'FeeCalculation with uuid: {uuid} exist.')
+            fee_calculation = FeeCalculation.objects.get(uuid=uuid)
+            db_operations = fee_calculation.data
 
             if dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
-                try:
-                    inv = Invoice.objects.get(reference=invoice_ref)
-                    order = Order.objects.get(number=inv.order_number)
-                    order.user = submitter
-                    order.save()
-                except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an dcv_admission fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user'))
-                    return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
-                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
+                if invoice.system not in [PAYMENT_SYSTEM_PREFIX,]:
                     logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
 
                 dcv_admission_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 dcv_admission_fee.expiry_time = None
                 # update_payments(invoice_ref)
+
+                if 'fee_item_ids' in db_operations:
+                    for item_id in db_operations['fee_item_ids']:
+                        fee_item = FeeItem.objects.get(id=item_id)
+                        dcv_admission_fee.fee_items.add(fee_item)
 
                 # if dcv_admission and invoice.payment_status in ('paid', 'over_paid',):
                 if dcv_admission and get_invoice_payment_status(invoice.id) in ('paid', 'over_paid',):
@@ -478,48 +600,17 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                     logger.error('Invoice payment status is {}'.format(get_invoice_payment_status(invoice.id)))
                     raise
 
+                dcv_admission_fee.invoice_reference = invoice_reference
                 dcv_admission_fee.save()
-                request.session[self.LAST_DCV_ADMISSION_FEE_ID] = dcv_admission_fee.id
-                delete_session_dcv_admission_invoice(request.session)
 
-                email_data = send_dcv_admission_mail(dcv_admission, invoice, request)
-                context = {
-                    'dcv_admission': dcv_admission,
-                    'submitter': submitter,
-                    'fee_invoice': dcv_admission_fee,
-                    'invoice': invoice,
-                    'admission_urls': dcv_admission.get_admission_urls(),
-                }
-                return render(request, self.template_name, context)
-
-        except Exception as e:
-            if (self.LAST_DCV_ADMISSION_FEE_ID in request.session) and DcvAdmissionFee.objects.filter(id=request.session[self.LAST_DCV_ADMISSION_FEE_ID]).exists():
-                dcv_admission_fee = DcvAdmissionFee.objects.get(id=request.session[self.LAST_DCV_ADMISSION_FEE_ID])
-                dcv_admission = dcv_admission_fee.dcv_admission
-                submitter = dcv_admission.submitter
-
-            else:
-                return redirect('home')
-
-        invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
-        context = {
-            'dcv_admission': dcv_admission,
-            'submitter': submitter,
-            'fee_invoice': dcv_admission_fee,
-            'invoice': invoice,
-            'admission_urls': dcv_admission.get_admission_urls(),
-        }
-        return render(request, self.template_name, context)
-
-    @staticmethod
-    def adjust_db_operations(dcv_admission, db_operations):
-        dcv_admission.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
-        dcv_admission.save()
-
-
-class DcvAdmissionFeeSuccessViewPreload(APIView):
-    # TODO implement
-    pass
+                email = send_dcv_admission_mail(dcv_admission, invoice, request)
+            logger.info(
+                "Returning status.HTTP_200_OK. Order created successfully.",
+            )
+            # this end-point is called by an unmonitored get request in ledger so there is no point having a
+            # a response body however we will return a status in case this is used on the ledger end in future
+            # return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_200_OK)
 
 
 class DcvPermitFeeSuccessView(TemplateView):
@@ -527,104 +618,6 @@ class DcvPermitFeeSuccessView(TemplateView):
     LAST_DCV_PERMIT_FEE_ID = 'mooringlicensing_last_dcv_permit_invoice'
 
     def get(self, request, uuid, *args, **kwargs):
-    #     proposal = None
-    #     submitter = None
-    #     invoice = None
-    #
-    #     try:
-    #         dcv_permit_fee = get_session_dcv_permit_invoice(request.session)  # This raises an exception when accessed 2nd time?
-    #
-    #         # Retrieve db processes stored when calculating the fee, and delete the session
-    #         db_operations = request.session['db_processes']
-    #         del request.session['db_processes']
-    #
-    #         dcv_permit = dcv_permit_fee.dcv_permit
-    #         submitter = dcv_permit.submitter
-    #
-    #         if self.request.user.is_authenticated():
-    #             basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
-    #         else:
-    #             basket = Basket.objects.filter(status='Submitted', owner=dcv_permit.submitter).order_by('-id')[:1]
-    #
-    #         order = Order.objects.get(basket=basket[0])
-    #         invoice = Invoice.objects.get(order_number=order.number)
-    #         invoice_ref = invoice.reference
-    #
-    #         fee_item = FeeItem.objects.get(id=db_operations['fee_item_id'])
-    #         try:
-    #             fee_item_additional = FeeItem.objects.get(id=db_operations['fee_item_additional_id'])
-    #         except:
-    #             fee_item_additional = None
-    #
-    #         # Update the application_fee object
-    #         dcv_permit_fee.invoice_reference = invoice_ref
-    #         dcv_permit_fee.save()
-    #         dcv_permit_fee.fee_items.add(fee_item)
-    #         if fee_item_additional:
-    #             dcv_permit_fee.fee_items.add(fee_item_additional)
-    #
-    #         if dcv_permit_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
-    #             try:
-    #                 inv = Invoice.objects.get(reference=invoice_ref)
-    #                 order = Order.objects.get(number=inv.order_number)
-    #                 order.user = request.user
-    #                 order.save()
-    #             except Invoice.DoesNotExist:
-    #                 logger.error('{} tried paying an dcv_permit fee with an incorrect invoice'.format('User {} with id {}'.format(dcv_permit.submitter_obj.get_full_name(), dcv_permit.submitter_obj.id) if dcv_permit.submitter else 'An anonymous user'))
-    #                 return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
-    #             if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
-    #                 logger.error('{} tried paying an dcv_permit fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_permit.submitter_obj.get_full_name(), dcv_permit.submitter_obj.id) if dcv_permit.submitter else 'An anonymous user',inv.reference))
-    #                 return redirect('external-dcv_permit-detail', args=(dcv_permit.id,))
-    #
-    #             dcv_permit_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
-    #             dcv_permit_fee.expiry_time = None
-    #             update_payments(invoice_ref)
-    #
-    #             if dcv_permit and invoice.payment_status in ('paid', 'over_paid',):
-    #                 self.adjust_db_operations(dcv_permit, db_operations)
-    #                 dcv_permit.generate_dcv_permit_doc()
-    #             else:
-    #                 # logger.error('Invoice payment status is {}'.format(invoice.payment_status))
-    #                 logger.error('Invoice payment status is {}'.format(get_invoice_payment_status(invoice.id)))
-    #                 raise
-    #
-    #             dcv_permit_fee.save()
-    #             request.session[self.LAST_DCV_PERMIT_FEE_ID] = dcv_permit_fee.id
-    #             delete_session_dcv_permit_invoice(request.session)
-    #
-    #             send_dcv_permit_mail(dcv_permit, invoice, request)
-    #
-    #             context = {
-    #                 'dcv_permit': dcv_permit,
-    #                 'submitter': submitter,
-    #                 'fee_invoice': dcv_permit_fee,
-    #             }
-    #             return render(request, self.template_name, context)
-    #
-    #     except Exception as e:
-    #         print('in DcvPermitFeeSuccessView.get() Exception')
-    #         print(e)
-    #         if (self.LAST_DCV_PERMIT_FEE_ID in request.session) and DcvPermitFee.objects.filter(id=request.session[self.LAST_DCV_PERMIT_FEE_ID]).exists():
-    #             dcv_permit_fee = DcvPermitFee.objects.get(id=request.session[self.LAST_DCV_PERMIT_FEE_ID])
-    #             dcv_permit = dcv_permit_fee.dcv_permit
-    #             submitter = dcv_permit.submitter
-    #
-    #         else:
-    #             return redirect('home')
-    #
-    #     context = {
-    #         'dcv_permit': dcv_permit,
-    #         'submitter': submitter,
-    #         'fee_invoice': dcv_permit_fee,
-    #     }
-    #     return render(request, self.template_name, context)
-    #
-    # @staticmethod
-    # def adjust_db_operations(dcv_permit, db_operations):
-    #     dcv_permit.start_date = datetime.datetime.strptime(db_operations['season_start_date'], '%Y-%m-%d').date()
-    #     dcv_permit.end_date = datetime.datetime.strptime(db_operations['season_end_date'], '%Y-%m-%d').date()
-    #     dcv_permit.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
-    #     dcv_permit.save()
         logger.info(f'{DcvPermitFeeSuccessView.__name__} get method is called.')
 
         if uuid:

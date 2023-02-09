@@ -2091,13 +2091,15 @@ class DcvAdmission(RevisionedMixin):
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-        vessel_length = 1  # any number greater than 0
+        # vessel_length = 1  # any number greater than 0
+        vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
         proposal_type = None
         oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)
 
         line_items = []
         for dcv_admission_arrival in self.dcv_admission_arrivals.all():
             fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
+            db_processes_after_success['fee_constructor_id'] = fee_constructor.id
 
             if not fee_constructor:
                 raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, dcv_admission_arrival.arrival_date))
@@ -2114,6 +2116,8 @@ class DcvAdmission(RevisionedMixin):
                     fee_items.append(fee_item)
                     number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
                     total_amount += fee_item.get_absolute_amount() * number_of_people.number
+
+            db_processes_after_success['fee_item_ids'] = [item.id for item in fee_items]
 
             line_item = {
                 'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
