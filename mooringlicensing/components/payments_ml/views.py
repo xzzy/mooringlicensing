@@ -15,7 +15,7 @@ from decimal import *
 # from ledger.payments.bpoint.models import BpointTransaction
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
+# from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 from rest_framework.response import Response
 
 import dateutil.parser
@@ -1011,17 +1011,18 @@ class DcvPermitPDFView(View):
 
 class InvoicePDFView(View):
     def get(self, request, *args, **kwargs):
-        try:
-            invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
-
-            response = HttpResponse(content_type='application/pdf')
-            response.write(create_invoice_pdf_bytes('invoice.pdf', invoice,))
-            return response
-        except Invoice.DoesNotExist:
-            raise
-        except Exception as e:
-            logger.error('Error accessing the Invoice :{}'.format(e))
-            raise
+        raise Exception('Use ledger_api_utils.get_invoice_url() instead.')
+        # try:
+        #     invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        #
+        #     response = HttpResponse(content_type='application/pdf')
+        #     response.write(create_invoice_pdf_bytes('invoice.pdf', invoice,))
+        #     return response
+        # except Invoice.DoesNotExist:
+        #     raise
+        # except Exception as e:
+        #     logger.error('Error accessing the Invoice :{}'.format(e))
+        #     raise
 
     def get_object(self):
         return get_object_or_404(Invoice, reference=self.kwargs['reference'])

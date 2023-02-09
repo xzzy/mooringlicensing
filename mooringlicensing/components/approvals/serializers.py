@@ -33,6 +33,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
+from mooringlicensing.ledger_api_utils import get_invoice_url
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -1288,7 +1289,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def get_fee_invoice_url(self, obj):
-        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        url = get_invoice_url(obj.invoice.reference)
         return url
 
     def get_dcv_organisation_name(self, obj):
@@ -1357,7 +1359,8 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def get_fee_invoice_url(self, obj):
-        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        url = get_invoice_url(obj.invoice.reference)
         return url
 
     def get_lodgement_date(self, obj):

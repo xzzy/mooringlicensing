@@ -516,8 +516,13 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     attachments = []
 
     # attach invoice
-    contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
-    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+    # contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
+    # attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
+    url = get_invoice_url(invoice.reference)
+    invoice_pdf = requests.get(url=url)
+    if invoice_pdf.status_code == 200:
+        attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
+        attachments.append(attachment)
 
     # attach DcvPermit
     dcv_permit_doc = dcv_permit.permits.first()
@@ -976,9 +981,14 @@ def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice):
 
     # Attach invoice
     attachments = []
-    invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', invoice, )
-    attachment = ('invoice#{}.pdf'.format(invoice.reference), invoice_bytes, 'application/pdf')
-    attachments.append(attachment)
+    # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', invoice, )
+    # attachment = ('invoice#{}.pdf'.format(invoice.reference), invoice_bytes, 'application/pdf')
+    # attachments.append(attachment)
+    url = get_invoice_url(invoice.reference)
+    invoice_pdf = requests.get(url=url)
+    if invoice_pdf.status_code == 200:
+        attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
+        attachments.append(attachment)
 
     context = {
         'public_url': get_public_url(request),

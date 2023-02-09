@@ -35,7 +35,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication,
 )
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, AuthorisedUserPermit, \
     AnnualAdmissionPermit
@@ -620,8 +620,9 @@ class ListProposalSerializer(BaseProposalSerializer):
         for invoice in proposal.invoices_display():
             # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
             #     invoice.reference, invoice.reference)
-            api_key = settings.LEDGER_API_KEY
-            url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + invoice.reference
+            # api_key = settings.LEDGER_API_KEY
+            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
+            url = get_invoice_url(invoice.reference)
             links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
         if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
             # paid invoices url
@@ -1197,7 +1198,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return obj.assessor_data
 
     def get_fee_invoice_url(self,obj):
-        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        url = get_invoice_url(obj.invoice.reference)
         return url
 
 

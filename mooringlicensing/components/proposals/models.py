@@ -9,13 +9,13 @@ import traceback
 import pytz
 import uuid
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
-from ledger_api_client.pdf import create_invoice_pdf_bytes
+# from ledger_api_client.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
@@ -2319,8 +2319,9 @@ class WaitingListApplication(Proposal):
         attachments = []
         if self.invoice:
             # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            api_key = settings.LEDGER_API_KEY
-            url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
+            # api_key = settings.LEDGER_API_KEY
+            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
+            url = get_invoice_url(self.invoice.reference)
             invoice_pdf = requests.get(url=url)
             if invoice_pdf.status_code == 200:
                 attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
@@ -2516,9 +2517,14 @@ class AnnualAdmissionApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         attachments = []
         if self.invoice:
-            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
-            attachments.append(attachment)
+        #     invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+        #     attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+        #     attachments.append(attachment)
+            url = get_invoice_url(self.invoice.reference)
+            invoice_pdf = requests.get(url=url)
+            if invoice_pdf.status_code == 200:
+                attachment = (f'invoice#{self.invoice.reference}', invoice_pdf.content, 'application/pdf')
+                attachments.append(attachment)
         ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
         if not self.auto_approve:
             send_notification_email_upon_submit_to_assessor(request, self, attachments)
