@@ -109,9 +109,22 @@ class DcvAdmissionFee(Payment):
     created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_admission_fees')
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
+
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving DcvAdmissionFee: {self}.")
+        if not self.uuid:
+            logger.info("DcvAdmissionFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"DcvAdmissionFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving DcvAdmissionFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("DcvAdmissionFee Saved.")
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -136,9 +149,22 @@ class DcvPermitFee(Payment):
     created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_permit_fees')
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         return 'DcvPermit {} : Invoice {}'.format(self.dcv_permit, self.invoice_reference)
+
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving DcvPermitFee: {self}.")
+        if not self.uuid:
+            logger.info("DcvPermitFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"DcvPermitFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving DcvPermitFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("DcvPermitFee Saved.")
 
     class Meta:
         app_label = 'mooringlicensing'

@@ -717,7 +717,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
         data = request.data
         dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
 
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             # Logged in user
             # 1. DcvPermit exists
             # 2. DcvPermit doesn't exist

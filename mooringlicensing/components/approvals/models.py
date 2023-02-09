@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
+
+import ledger_api_client.utils
 from django.core.files.base import ContentFile
 
 import datetime
 import logging
 import re
+import uuid
 
 import pytz
 from django.db import models,transaction
@@ -42,6 +45,7 @@ from mooringlicensing.components.approvals.email import (
 )
 from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
+from ledger_api_client.utils import calculate_excl_gst
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -2008,6 +2012,7 @@ class DcvAdmission(RevisionedMixin):
     skipper = models.CharField(max_length=50, blank=True, null=True)
     contact_number = models.CharField(max_length=50, blank=True, null=True)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
+    # uuid = models.CharField(max_length=36, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2076,10 +2081,10 @@ class DcvAdmission(RevisionedMixin):
             urls.append(admission._file.url)
         return urls
 
-    def create_fee_lines(self, invoice_text=None, vouchers=[], internal=False):
+    def create_fee_lines(self):
         db_processes_after_success = {}
 
-        target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+        target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
@@ -2252,6 +2257,7 @@ class DcvPermit(RevisionedMixin):
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
+    # uuid = models.CharField(max_length=36, blank=True, null=True)
 
     @property
     def submitter_obj(self):
@@ -2272,10 +2278,11 @@ class DcvPermit(RevisionedMixin):
         #     vessel_length = 1  # any number greater than 0
         #     proposal_type = None
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-        vessel_length = 1  # any number greater than 0
+        # vessel_length = 1  # any number greater than 0
+        vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
         proposal_type = None
 
-        target_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+        target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
@@ -2323,7 +2330,7 @@ class DcvPermit(RevisionedMixin):
                 # 'oracle_code': application_type.oracle_code,
                 'oracle_code': ApplicationType.get_current_oracle_code_by_application(application_type.code),
                 'price_incl_tax': fee_item.amount,
-                'price_excl_tax': calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+                'price_excl_tax': ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
                 'quantity': 1,
             },
         ]
@@ -2336,70 +2343,70 @@ class DcvPermit(RevisionedMixin):
     def postal_address_line1(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line1
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.line1
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line1
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.line1
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line1
+                ret_value = self.submitter_obj.residential_address.line1
         return ret_value
 
     @property
     def postal_address_line2(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line2
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.line2
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line2
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.line2
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line2
+                ret_value = self.submitter_obj.residential_address.line2
         return ret_value
 
     @property
     def postal_address_state(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.state
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.state
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.state
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.state
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.state
+                ret_value = self.submitter_obj.residential_address.state
         return ret_value
 
     @property
     def postal_address_suburb(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.locality
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.locality
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.locality
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.locality
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.locality
+                ret_value = self.submitter_obj.residential_address.locality
         return ret_value
 
     @property
     def postal_address_postcode(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.postcode
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.postcode
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.postcode
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.postcode
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.postcode
+                ret_value = self.submitter_obj.residential_address.postcode
         return ret_value
 
     def get_context_for_licence_permit(self):
@@ -2482,9 +2489,13 @@ class DcvPermit(RevisionedMixin):
             return None
 
     def save(self, **kwargs):
+        logger.info(f"Saving DcvPermit: {self}.")
         if self.lodgement_number in ['', None]:
+            logger.info(f'DcvPermit has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
+
         super(DcvPermit, self).save(**kwargs)
+        logger.info("DcvPermit Saved.")
 
     def generate_dcv_permit_doc(self):
         permit_document = create_dcv_permit_document(self)
