@@ -1,6 +1,6 @@
 from django.conf import settings
 # from ledger.accounts.models import EmailUser,Address, Profile,EmailIdentity, EmailUserAction, EmailUserLogEntry, CommunicationsLogEntry
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client.ledger_models import EmailUserRO, Address
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.organisations.models import (
                                     Organisation,
@@ -58,15 +58,15 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         )
 
     def get_is_admin(self, obj):
-        user = EmailUser.objects.get(id=self.context.get('user_id'))
+        user = EmailUserRO.objects.get(id=self.context.get('user_id'))
         return can_admin_org(obj, user)
 
     def get_is_consultant(self, obj):
-        user = EmailUser.objects.get(id=self.context.get('user_id'))
+        user = EmailUserRO.objects.get(id=self.context.get('user_id'))
         return is_consultant(obj, user)
 
     def get_email(self, obj):
-        email = EmailUser.objects.get(id=self.context.get('user_id')).email
+        email = EmailUseRO.objects.get(id=self.context.get('user_id')).email
         return email
 
 
@@ -74,7 +74,7 @@ class UserFilterSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
 
     class Meta:
-        model = EmailUser
+        model = EmailUserRO
         fields = (
             'id',
             'last_name',
@@ -105,7 +105,7 @@ class UserSerializer(serializers.ModelSerializer):
     readonly_dob = serializers.SerializerMethodField()
 
     class Meta:
-        model = EmailUser
+        model = EmailUserRO
         fields = (
             'id',
             'last_name',
@@ -202,7 +202,7 @@ class UserSerializer(serializers.ModelSerializer):
 class PersonalSerializer(serializers.ModelSerializer):
     dob = serializers.DateField(format="%d/%m/%Y",input_formats=['%d/%m/%Y'],required=False,allow_null=True)
     class Meta:
-        model = EmailUser
+        model = EmailUserRO
         fields = (
             'id',
             'last_name',
@@ -212,7 +212,7 @@ class PersonalSerializer(serializers.ModelSerializer):
 
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
-        model = EmailUser
+        model = EmailUserRO
         fields = (
             'id',
             'email',

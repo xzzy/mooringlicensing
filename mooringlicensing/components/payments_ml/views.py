@@ -244,7 +244,7 @@ class StickerReplacementFeeView(TemplateView):
         # raise forms.ValidationError('Validation error')
 
         # 2. Store detais in the session
-        sticker_action_fee = StickerActionFee.objects.create(created_by=request.user, payment_type=StickerActionFee.PAYMENT_TYPE_TEMPORARY)
+        sticker_action_fee = StickerActionFee.objects.create(created_by=request.user.id, payment_type=StickerActionFee.PAYMENT_TYPE_TEMPORARY)
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
 
         try:
@@ -252,7 +252,7 @@ class StickerReplacementFeeView(TemplateView):
                 sticker_action_details = StickerActionDetail.objects.filter(id__in=ids)
                 sticker_action_details.update(sticker_action_fee=sticker_action_fee)
 
-                set_session_sticker_action_invoice(request.session, sticker_action_fee)
+                # set_session_sticker_action_invoice(request.session, sticker_action_fee)
 
                 target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
                 application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_REPLACEMENT_STICKER['code'])
@@ -273,8 +273,10 @@ class StickerReplacementFeeView(TemplateView):
                     request,
                     request.user,
                     lines,
-                    request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
-                    request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
+                    # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
+                    # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
+                    return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
+                    return_preload_url=request.build_absolute_uri(reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid})),
                     invoice_text='{}'.format(application_type.description),
                 )
 
@@ -287,6 +289,56 @@ class StickerReplacementFeeView(TemplateView):
                 sticker_action_fee.delete()
             raise
 
+class StickerReplacementFeeSuccessViewPreload(APIView):
+
+    def get(self, request, uuid, format=None):
+        logger.info(f'{StickerReplacementFeeSuccessViewPreload.__name__} get method is called.')
+
+        if uuid:  # and invoice_reference:
+            if not StickerActionFee.objects.filter(uuid=uuid).exists():
+                logger.info(f'StickerActionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
+                return redirect(reverse('external'))
+            else:
+                logger.info(f'StickerActionFee with uuid: {uuid} exists.')
+            sticker_action_fee = StickerActionFee.objects.get(uuid=uuid)
+            sticker_action_details = sticker_action_fee.sticker_action_details
+
+            invoice_reference = request.GET.get("invoice", "")
+            logger.info(f"Invoice reference: {invoice_reference} and uuid: {uuid}.",)
+            if not Invoice.objects.filter(reference=invoice_reference).exists():
+                logger.info(f'Invoice with invoice_reference: {invoice_reference} does not exist.  Redirecting user to dashboard page.')
+                return redirect(reverse('external'))
+            else:
+                logger.info(f'Invoice with invoice_reference: {invoice_reference} exist.')
+            invoice = Invoice.objects.get(reference=invoice_reference)
+
+            sticker_action_fee.invoice_reference = invoice.reference
+            sticker_action_fee.save()
+
+            if sticker_action_fee.payment_type == StickerActionFee.PAYMENT_TYPE_TEMPORARY:
+                # if fee_inv:
+                sticker_action_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
+                sticker_action_fee.expiry_time = None
+                sticker_action_fee.save()
+
+                # for sticker_action_detail in sticker_action_details.all():
+                #     old_sticker = sticker_action_detail.sticker
+                #     new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+                sticker_action_detail = sticker_action_details.first()
+                old_sticker = sticker_action_detail.sticker
+                new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+
+                # Send email with the invoice
+                send_sticker_replacement_email(request, old_sticker, new_sticker, invoice)
+
+            logger.info(
+                "Returning status.HTTP_200_OK. Order created successfully.",
+            )
+            # this end-point is called by an unmonitored get request in ledger so there is no point having a
+            # a response body however we will return a status in case this is used on the ledger end in future
+            # return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_200_OK)
+
 
 class StickerReplacementFeeSuccessView(TemplateView):
     template_name = 'mooringlicensing/payments_ml/success_sticker_action_fee.html'
@@ -298,7 +350,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
             sticker_action_fee = get_session_sticker_action_invoice(request.session)  # This raises an exception when accessed 2nd time?
             sticker_action_details = sticker_action_fee.sticker_action_details
 
-            if self.request.user.is_authenticated():
+            if self.request.user.is_authenticated:
                 owner = request.user
             else:
                 owner = sticker_action_details.first().sticker.approval.submitter_obj

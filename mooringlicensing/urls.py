@@ -13,7 +13,8 @@ from mooringlicensing.components.payments_ml.views import ApplicationFeeView, Ap
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
     StickerReplacementFeeSuccessView, RefundProposalHistoryView, ProposalPaymentHistoryView, ApplicationFeeAlreadyPaid, \
-    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload
+    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload, \
+    StickerReplacementFeeSuccessViewPreload
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 from mooringlicensing.components.payments_ml import api as payments_api
@@ -146,18 +147,19 @@ urlpatterns = [
     url(r'^application_fee_existing/(?P<invoice_reference>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
     url(r'^application_fee_already_paid/(?P<proposal_pk>\d+)/$', ApplicationFeeAlreadyPaid.as_view(), name='application_fee_already_paid'),
     # url(r'^application_fee_already_paid/$', ApplicationFeeAlreadyPaid.as_view(), name='application_fee_already_paid'),
-    url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
-    url(r'^sticker_replacement_fee_success/fee/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
-    url(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),
-    url(r'^dcv_admission_fee/(?P<dcv_admission_pk>\d+)/$', DcvAdmissionFeeView.as_view(), name='dcv_admission_fee'),
     url(r'^success/fee/(?P<uuid>.+)/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
     # url(r'^success2/fee/$', ApplicationFeeSuccessViewPreload.as_view(), name='fee_success_preload'),
     url(r"ledger-api-success-callback/(?P<uuid>.+)/", ApplicationFeeSuccessViewPreload.as_view(), name="ledger-api-success-callback",),
+    url(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),
     url(r'^dcv_permit_success/(?P<uuid>.+)/$', DcvPermitFeeSuccessView.as_view(), name='dcv_permit_fee_success'),
     url(r'^dcv_permit_success_preload/(?P<uuid>.+)/$', DcvPermitFeeSuccessViewPreload.as_view(), name='dcv_permit_fee_success_preload'),
+    url(r'^dcv_admission_fee/(?P<dcv_admission_pk>\d+)/$', DcvAdmissionFeeView.as_view(), name='dcv_admission_fee'),
     url(r'^dcv_admission_success/(?P<uuid>.+)/$', DcvAdmissionFeeSuccessView.as_view(), name='dcv_admission_fee_success'),
     url(r'^dcv_admission_success_preload/(?P<uuid>.+)/$', DcvAdmissionFeeSuccessViewPreload.as_view(), name='dcv_admission_fee_success_preload'),
+    url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
+    url(r'^sticker_replacement_fee_success/(?P<uuid>.+)/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
+    url(r'^sticker_replacement_fee_success_preload/(?P<uuid>.+)/$', StickerReplacementFeeSuccessViewPreload.as_view(), name='sticker_replacement_fee_success_preload'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),

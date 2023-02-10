@@ -33,7 +33,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
-from mooringlicensing.ledger_api_utils import get_invoice_url
+from mooringlicensing.ledger_api_utils import get_invoice_url, retrieve_email_userro
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -302,7 +302,8 @@ class WaitingListAllocationSerializer(serializers.ModelSerializer):
 
 
 class ApprovalSerializer(serializers.ModelSerializer):
-    submitter = UserSerializer()
+    # submitter = UserSerializer()
+    submitter = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
@@ -383,6 +384,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'licence_document',
             'is_approver',
         )
+
+    def get_submitter(self, obj):
+        serializer = UserSerializer(obj.submitter_obj)
+        return serializer.data
 
     def get_mooring_licence_mooring(self, obj):
         if type(obj.child_obj) == MooringLicence:
@@ -1087,7 +1092,8 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_of_returned_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     date_created = serializers.DateTimeField(read_only=True)
     date_updated = serializers.DateTimeField(read_only=True)
-    user_detail = EmailUserSerializer(source='user', read_only=True)
+    # user_detail = EmailUserSerializer(source='user', read_only=True)
+    user_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = StickerActionDetail
@@ -1103,6 +1109,10 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'user',  # For saving the user data
             'user_detail',  # For reading the user data
         )
+
+    def get_user_detail(self, obj):
+        serializer = EmailUserSerializer(retrieve_email_userro(obj.user))
+        return serializer.data
 
 
 class StickerForDcvSaveSerializer(serializers.ModelSerializer):
