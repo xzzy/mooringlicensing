@@ -9,7 +9,7 @@ from mooringlicensing.components.main.models import (
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from ledger_api_client import utils
 
-from mooringlicensing.ledger_api_utils import get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status, get_invoice_url
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -78,6 +78,7 @@ class OracleSerializer(serializers.Serializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
+    invoice_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -87,7 +88,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'reference',
             'payment_status',
             'settlement_date',
+            'invoice_url',
         )
+
+    def get_invoice_url(self, obj):
+        return get_invoice_url(obj.reference)
 
     def get_payment_status(self, invoice):
         invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
