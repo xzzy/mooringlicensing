@@ -20,7 +20,7 @@ from mooringlicensing.components.compliances.email import _log_compliance_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
 
-from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting, EmailUserLogEntry
 from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url, \
     make_url_for_external, make_http_https
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
@@ -178,7 +178,8 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
     kwargs = {
         'subject': subject,
         'text': text,
-        'emailuser': target_email_user if target_email_user else customer,
+        # 'emailuser': target_email_user if target_email_user else customer,
+        'email_user_id': target_email_user if target_email_user else customer,
         'customer': customer,
         'staff': staff,
         'to': to,
@@ -186,13 +187,13 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
         'cc': all_ccs
     }
 
-    # email_entry = EmailUserLogEntry.objects.create(**kwargs)
+    email_entry = EmailUserLogEntry.objects.create(**kwargs)
 
     for attachment in attachments:
         # path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
         path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user, attachment[0])
         path = default_storage.save(path_to_file, ContentFile(attachment[1]))
-        # email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
+        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
     # return email_entry
     return None

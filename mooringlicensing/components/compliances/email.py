@@ -13,6 +13,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.emails.utils import get_public_url, make_http_https
+from mooringlicensing.components.main.models import EmailUserLogEntry
 
 logger = logging.getLogger(__name__)
 
@@ -445,7 +446,8 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
     kwargs = {
         'subject': subject,
         'text': text,
-        'emailuser': target_email_user if target_email_user else customer,
+        # 'emailuser': target_email_user if target_email_user else customer,
+        'email_user_id': target_email_user if target_email_user else customer,
         'customer': customer,
         'staff': staff,
         'to': to,
