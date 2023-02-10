@@ -419,6 +419,21 @@ class NumberOfDaysSetting(RevisionedMixin):
         return setting
 
 
+class EmailUserLogEntry(CommunicationsLogEntry):
+    # emailuser = models.ForeignKey(EmailUser, related_name='comms_logs')
+    email_user_id = models.IntegerField(null=True, blank=True)
+
+    def save(self, **kwargs):
+        # save the request id if the reference not provided
+        if not self.reference:
+            # self.reference = self.emailuser.id
+            self.reference = self.email_user_id
+        super(EmailUserLogEntry, self).save(**kwargs)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 import reversion
 reversion.register(UserSystemSettings, follow=[])
 reversion.register(CommunicationsLogEntry, follow=[])
