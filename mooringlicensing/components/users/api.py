@@ -40,6 +40,7 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 #                                     Organisation,
 #                                 )
 from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
+from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.components.users.serializers import (
     UserSerializer,
     UserFilterSerializer,
@@ -340,7 +341,9 @@ class UserViewSet(viewsets.ModelViewSet):
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            qs = instance.comms_logs.all()
+            # qs = instance.comms_logs.all()
+            qs = EmailUserLogEntry.objects.filter(email_user_id=instance.id)
+            # qs = EmailUserLogEntry.objects.filter(email_user_id=132848)
             serializer = EmailUserCommsSerializer(qs, many=True)
             return Response(serializer.data)
         except serializers.ValidationError:

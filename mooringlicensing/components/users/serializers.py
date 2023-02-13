@@ -9,6 +9,8 @@ from mooringlicensing.components.main.models import UserSystemSettings, Document
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
+
+from mooringlicensing.components.users.models import EmailUserLogEntry
 # from ledger.accounts.utils import in_dbca_domain
 from mooringlicensing.helpers import is_mooringlicensing_admin, in_dbca_domain
 # from ledger.payments.helpers import is_payment_admin
@@ -247,31 +249,31 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
     # TODO: implement
-    pass
-    # documents = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
     # type = serializers.CharField(source='log_type')
     #
-    # class Meta:
-    #     model = EmailUserLogEntry
+    class Meta:
+        model = EmailUserLogEntry
     #     # fields = '__all__'
-    #     fields = (
-    #         'id',
-    #         'customer',
-    #         'to',
-    #         'fromm',
-    #         'cc',
-    #         'type',
-    #         'reference',
-    #         'subject',
-    #         'text',
-    #         'created',
-    #         'staff',
-    #         'emailuser',
-    #         'documents',
-    #     )
-    #     read_only_fields = (
-    #         'customer',
-    #     )
+        fields = (
+            'id',
+            'customer',
+            'to',
+            'fromm',
+            'cc',
+            'type',
+            'reference',
+            'subject',
+            'text',
+            'created',
+            'staff',
+            # 'emailuser',
+            'email_user_id',
+            'documents',
+        )
+        read_only_fields = (
+            'customer',
+        )
 
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
