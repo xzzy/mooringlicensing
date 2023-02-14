@@ -33,7 +33,7 @@ from mooringlicensing.components.proposals.serializers import ProposalSerializer
 
 import logging
 
-from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX, SYSTEM_NAME
+from mooringlicensing.settings import LEDGER_SYSTEM_ID, SYSTEM_NAME
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -85,7 +85,7 @@ class BookingSettlementReportView(views.APIView):
 
 
 def oracle_integration(date, override):
-    system = PAYMENT_SYSTEM_PREFIX
+    system = LEDGER_SYSTEM_ID
 
     # TODO: implement oracle_parser_on_invoice
     # oracle_codes = oracle_parser_on_invoice(date, system, SYSTEM_NAME, override=override)

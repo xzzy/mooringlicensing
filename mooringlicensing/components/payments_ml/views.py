@@ -51,7 +51,7 @@ from mooringlicensing.components.payments_ml.utils import checkout, set_session_
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication, \
     VesselDetails
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_PREFIX
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, LEDGER_SYSTEM_ID
 from rest_framework import status
 from ledger_api_client import utils
 
@@ -373,7 +373,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
                         'User {} with id {}'.format(owner.get_full_name(), owner.id)
                     ))
                     return redirect('external')
-                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
+                if inv.system not in [LEDGER_SYSTEM_ID, ]:
                     logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format(
                         'User {} with id {}'.format(owner.get_full_name(), owner.id),
                         inv.reference
@@ -631,7 +631,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
             db_operations = fee_calculation.data
 
             if dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
-                if invoice.system not in [PAYMENT_SYSTEM_PREFIX,]:
+                if invoice.system not in [LEDGER_SYSTEM_ID, ]:
                     logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
 
@@ -900,7 +900,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.submitter_obj.get_full_name(), proposal.submitter_obj.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
-                if inv.system not in [PAYMENT_SYSTEM_PREFIX,]:
+                if inv.system not in [LEDGER_SYSTEM_ID, ]:
                     logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.submitter_obj.get_full_name(), proposal.submitter_obj.id) if proposal.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-proposal-detail', args=(proposal.id,))
 
