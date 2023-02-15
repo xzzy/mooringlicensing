@@ -1199,7 +1199,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
     def get_fee_invoice_url(self,obj):
         # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
-        url = get_invoice_url(obj.invoice.reference)
+        url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
         return url
 
 
