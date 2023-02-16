@@ -15,6 +15,7 @@ from mooringlicensing.ledger_api_utils import get_invoice_payment_status, get_in
 class EmailUserSerializer(serializers.ModelSerializer):
     fullname = serializers.SerializerMethodField()
     # text = serializers.SerializerMethodField()
+    # email = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUserRO
@@ -28,6 +29,8 @@ class EmailUserSerializer(serializers.ModelSerializer):
             "fullname",
             # "text",
         )
+    # def get_email(self, obj):
+    #     return ''
 
     def get_fullname(self, obj):
         return "{} {}".format(obj.first_name, obj.last_name)

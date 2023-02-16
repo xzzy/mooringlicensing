@@ -1796,7 +1796,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):
         search_text = request.GET.get('search[value]', '')
-        owner_qs = Owner.objects.filter(emailuser=request.user)
+        owner_qs = Owner.objects.filter(emailuser=request.user.id)
         if owner_qs:
             owner = owner_qs[0]
             vessel_ownership_list = owner.vesselownership_set.all()

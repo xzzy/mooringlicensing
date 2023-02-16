@@ -1422,7 +1422,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def get_emailuser(self, obj):
-        serializer = EmailUserSerializer(obj.owner.emailuser)
+        serializer = EmailUserSerializer(obj.owner.emailuser_obj)
         return serializer.data
 
     def get_vessel_details(self, obj):

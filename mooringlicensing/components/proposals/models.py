@@ -3824,6 +3824,10 @@ class Owner(RevisionedMixin):
         verbose_name_plural = "Owners"
         app_label = 'mooringlicensing'
 
+    @property
+    def emailuser_obj(self):
+        return retrieve_email_userro(self.emailuser)
+
     def __str__(self):
         if self.emailuser:
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
