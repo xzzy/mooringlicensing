@@ -574,10 +574,10 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                #first_name = user_row.first_name.lower().capitalize().replace(' ','')
-                #last_name = user_row.last_name.lower().capitalize().replace(' ','')
-                first_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.first_name.split(' ')])
-                last_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.last_name.split(' ')])
+                first_name = user_row.first_name.lower().title().strip()
+                last_name = user_row.last_name.lower().title().strip()
+                #first_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.first_name.split(' ')])
+                #last_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.last_name.split(' ')])
 
                 users = EmailUser.objects.filter(email=email)
                 if users.count() == 0:
@@ -664,10 +664,13 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                #first_name = user_row.first_name.lower().capitalize().replace(' ','')
-                #last_name = user_row.last_name.lower().capitalize().replace(' ','')
-                first_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.first_name.split(' ')])
-                last_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.last_name.split(' ')])
+                #if email == 'rod@wmpg.com.au':
+                #    import ipdb; ipdb.set_trace()
+
+                first_name = user_row.first_name.lower().title().strip()
+                last_name = user_row.last_name.lower().title().strip()
+                #first_name = ' '.join([i.lower().capitialize().replace(' ','') for i in user_row.first_name.split(' ')])
+                #last_name = ' '.join([i.lower().capitalize().replace(' ','') for i in user_row.last_name.split(' ')])
 
                 users = EmailUser.objects.filter(email=email)
                 if users.count() == 0:
