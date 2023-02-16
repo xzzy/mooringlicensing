@@ -1463,10 +1463,15 @@ class MooringLicenceReader():
                 mooring_bay = MooringBay.objects.get(code=row['bay'])
 
                 email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
+                first_name = row.first_name.lower().title().strip()
+                last_name = row.last_name.lower().title().strip()
                 try:
                     user = EmailUser.objects.get(email=email.lower())
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.save()
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=row['first_name'].lower().capitalize(), last_name=row['last_name'].lower().capitalize()) 
+                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
 
                 rego_no = row['vessel_rego']
                 try:
@@ -1590,10 +1595,15 @@ class MooringLicenceReader():
                 org_name = row['company']
 
                 #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
+                first_name = row.first_name.lower().title().strip()
+                last_name = row.last_name.lower().title().strip()
                 try:
                     user = EmailUser.objects.get(email=email.lower())
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.save()
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=row['first_name'].lower().capitalize(), last_name=row['last_name'].lower().capitalize()) 
+                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
 
                 try:
                     dcv_organisation = DcvOrganisation.objects.get(name=org_name)
@@ -1751,10 +1761,15 @@ class MooringLicenceReader():
                 vessel_length = row['vessel_length']
 
                 #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
+                first_name = row.first_name.lower().title().strip()
+                last_name = row.last_name.lower().title().strip()
                 try:
                     user = EmailUser.objects.get(email=email.lower().strip())
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.save()
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=row['first_name'].strip().lower().capitalize(), last_name=row['last_name'].strip().lower().capitalize()) 
+                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
 
 #['id', 'date_created', 'first_name', 'last_name', 'address', 'suburb',
 #       'state', 'postcode', 'sticker_no', 'rego_no', 'email', 'mobile_number',
@@ -1782,8 +1797,20 @@ class MooringLicenceReader():
                         owner = Owner.objects.get(emailuser=user)
                         vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel__rego_no=rego_no)
                     except Exception as e:
-                        vessel_details_not_found.append((user.email, rego_no))
-                        continue
+                        vessel, vessel_details, vessel_ownership = self._create_single_vessel(
+                            user, 
+                            rego_no, 
+                            ves_name=vessel_name, # use vessel_name from AA Moorings Spreasheet
+                            ves_type=vessel_type,
+                            length=vessel_length, # use vessel_length from AA Moorings Spreasheet
+                            draft=Decimal(0.0), 
+                            beam=Decimal(0.0), 
+                            weight=Decimal(0.0), 
+                            pct_interest=100, 
+                        )
+
+                        #vessel_details_not_found.append((user.email, rego_no))
+                        #continue
 
                 #if user.email == 'kdeluca@iinet.net.au':
                 #    import ipdb; ipdb.set_trace()
