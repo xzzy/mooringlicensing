@@ -590,10 +590,7 @@ class MooringLicenceReader():
 
                     country = Country.objects.get(printable_name='Australia')
                     address, address_created = Address.objects.get_or_create(line1=user_row.address, locality=user_row.suburb, postcode=user_row.postcode, state=user_row.state, country=country, user=user)
-                    user.residential_address = address
-                    user.postal_address = address
-                    user.save()
-                    print(f'{email}: {user.postal_address}')
+
  
                     self.user_created.append(email)
                 else:
@@ -610,12 +607,22 @@ class MooringLicenceReader():
                     except MultipleObjectsReturned as e:
                         address = Address.objects.filter(user=user)[0]
 
-                    user.residential_address = address
-                    user.postal_address = address
-                    user.save()
-
                     self.user_existing.append(email)
-                
+
+                # update existing address
+                address.locality=user_row.suburb
+                address.postcode=user_row.postcode
+                address.state=user_row.state
+                address.country=country
+                address.save()
+
+                user.residential_address = address
+                user.postal_address = address
+                user.save()
+                #print(f'{email}: {user.postal_address}')
+
+
+               
                 self.pers_ids.append((user.id, row.name))
 
 
@@ -671,10 +678,6 @@ class MooringLicenceReader():
 
                     country = Country.objects.get(printable_name='Australia')
                     address, address_created = Address.objects.get_or_create(line1=user_row.address, locality=user_row.suburb, postcode=user_row.postcode, state=user_row.state, country=country, user=user)
-                    user.residential_address = address
-                    user.postal_address = address
-                    user.save()
-                    print(f'{email}: {user.postal_address}')
  
                     self.user_created.append(email)
                 else:
@@ -691,12 +694,20 @@ class MooringLicenceReader():
                     except MultipleObjectsReturned as e:
                         address = Address.objects.filter(user=user)[0]
 
-                    user.residential_address = address
-                    user.postal_address = address
-                    user.save()
-
                     self.user_existing.append(email)
-                
+
+                # update existing address
+                address.locality=user_row.suburb
+                address.postcode=user_row.postcode
+                address.state=user_row.state
+                address.country=country
+                address.save()
+
+                user.residential_address = address
+                user.postal_address = address
+                user.save()
+                #print(f'{email}: {user.postal_address}')
+               
                 self.pers_ids.append((user.id, row.name))
 
 
@@ -1050,14 +1061,14 @@ class MooringLicenceReader():
                     continue
 
 
-                mla=MooringLicenceApplication.objects.filter(
-                    vessel_details=vessel_details,
-                    vessel_ownership=vessel_ownership,
-                    rego_no=rego_no,
-                )
-                if mla.count()>0:
-                    # already exists
-                    continue
+#                mla=MooringLicenceApplication.objects.filter(
+#                    vessel_details=vessel_details,
+#                    vessel_ownership=vessel_ownership,
+#                    rego_no=rego_no,
+#                ).exclude(current_proposal=Proposal.PROCESSING_STATUS_DECLINED)
+#                if mla.count()>0:
+#                    # already exists
+#                    continue
 
                 proposal=MooringLicenceApplication.objects.create(
                     proposal_type_id=1, # new application
@@ -1729,6 +1740,8 @@ class MooringLicenceReader():
                 email = row['email']
                 sticker_no = row['sticker_no']
                 date_created = row['date_created']
+                vessel_name = row['vessel_name']
+                vessel_length = row['vessel_length']
 
                 #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
@@ -1746,9 +1759,9 @@ class MooringLicenceReader():
                     vessel, vessel_details, vessel_ownership = self._create_single_vessel(
                         user, 
                         rego_no, 
-                        ves_name=row.vessel_name, 
+                        ves_name=vessel_name, # use vessel_name from AA Moorings Spreasheet
                         ves_type=vessel_type,
-                        length=row.vessel_length, 
+                        length=vessel_length, # use vessel_length from AA Moorings Spreasheet
                         draft=Decimal(0.0), 
                         beam=Decimal(0.0), 
                         weight=Decimal(0.0), 
@@ -1764,6 +1777,14 @@ class MooringLicenceReader():
                     except Exception as e:
                         vessel_details_not_found.append((user.email, rego_no))
                         continue
+
+                #if user.email == 'kdeluca@iinet.net.au':
+                #    import ipdb; ipdb.set_trace()
+
+                # update length from AA Spreadsheet file
+                vessel_details.vessel_name=vessel_name
+                vessel_details.vessel_length=Decimal(vessel_length) if vessel_length else Decimal(0)
+                vessel_details.save()
 
                 total_aa_created.append(rego_no)
 
@@ -2016,31 +2037,49 @@ class MooringLicenceReader():
 #            a.generate_dcv_permit_doc()
 #            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
 
-    def create_ml_pdf(self):
-        self._create_licence_pdf(MooringLicence.objects.filter(migrated=True))
+    @classmethod
+    def create_pdf_ml(self):
+        """ MooringLicenceReader.create_pdf_ml()
+        """
+        self._create_pdf_licence(MooringLicence.objects.filter(migrated=True))
 
     @classmethod
-    def create_aup_pdf(self):
-        self._create_licence_pdf(AuthorisedUserPermit.objects.filter(migrated=True))
+    def create_pdf_aup(self):
+        """ MooringLicenceReader.create_pdf_aup()
+        """
+        self._create_pdf_licence(AuthorisedUserPermit.objects.filter(migrated=True))
 
     @classmethod
-    def create_wl_pdf(self):
-        self._create_licence_pdf(WaitingListAllocation.objects.filter(migrated=True))
+    def create_pdf_wl(self):
+        """ MooringLicenceReader.create_pdf_wl()
+        """
+        self._create_pdf_licence(WaitingListAllocation.objects.filter(migrated=True))
 
     @classmethod
-    def create_aa_pdf(self):
-        self._create_licence_pdf(AnnualAdmissionPermit.objects.filter(migrated=True))
+    def create_pdf_aa(self):
+        """ MooringLicenceReader.create_pdf_aa()
+        """
+        self._create_pdf_licence(AnnualAdmissionPermit.objects.filter(migrated=True))
 
     @classmethod
-    def create_dcv_pdf(self):
-        self._create_licence_pdf(DcvPermit.objects.filter(migrated=True))
+    def create_pdf_dcv(self):
+        """ MooringLicenceReader.create_pdf_dcv()
+        """
+        self._create_pdf_licence(DcvPermit.objects.filter(migrated=True))
 
     @staticmethod
-    def _create_licence_pdf(approvals_migrated):
+    def _create_pdf_licence(approvals_migrated):
+        """ MooringLicenceReader._create_pdf_licence(MooringLicence.objects.filter(migrated=True), current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+        """
         #approvals_migrated = MooringLicence.objects.filter(migrated=True)
         permit_name = approvals_migrated[0].__class__.__name__
         print(f'Total {permit_name}: {approvals_migrated.count()} - {approvals_migrated}')
-        for idx, a in enumerate(approvals_migrated):
+        if isinstance(approvals_migrated[0], DcvPermit):
+            approvals = approvals_migrated.filter(migrated=True)
+        else:
+            approvals = approvals_migrated.filter(migrated=True, current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+
+        for idx, a in enumerate(approvals):
             a.generate_dcv_permit_doc() if isinstance(a, DcvPermit) else a.generate_doc()
             print(f'{idx}, Created PDF for {permit_name}: {a}')
 
