@@ -38,25 +38,6 @@ from mooringlicensing.ledger_api_utils import get_invoice_url, retrieve_email_us
 logger = logging.getLogger('mooringlicensing')
 
 
-# class EmailUserSerializer(serializers.ModelSerializer):
-#     full_name = serializers.SerializerMethodField()
-#
-#     class Meta:
-#         model = EmailUser
-#         fields = (
-#                 'id',
-#                 'email',
-#                 'first_name',
-#                 'last_name',
-#                 'title',
-#                 'organisation',
-#                 'full_name',
-#                 )
-#
-#     def get_full_name(self, obj):
-#         return obj.get_full_name()
-
-
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
     org_applicant = serializers.SerializerMethodField(read_only=True)
     bpay_allowed = serializers.SerializerMethodField(read_only=True)

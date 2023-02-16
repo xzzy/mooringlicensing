@@ -51,16 +51,6 @@ from mooringlicensing.helpers import is_internal
 logger = logging.getLogger('mooringlicensing')
 
 
-# class EmailUserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = EmailUser
-#         fields = ('id',
-#                   'email',
-#                   'first_name',
-#                   'last_name',
-#                   'title',
-#                   'organisation')
-
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
 
@@ -1213,7 +1203,7 @@ class ProposalUserActionSerializer(serializers.ModelSerializer):
     def get_who(self, obj):
         ret_name = 'System'
         if obj.who:
-            name = obj.who.get_full_name()
+            name = retrieve_email_userro(obj.who).get_full_name()
             name = name.strip()
             if name:
                 ret_name = name

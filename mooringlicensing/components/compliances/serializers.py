@@ -8,11 +8,8 @@ from mooringlicensing.components.main.serializers import EmailUserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
 from rest_framework import serializers
 
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
-# class EmailUserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = EmailUser
-#         fields = ('id','email','first_name','last_name','title','organisation')
 
 class ComplianceSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='proposal.title')
@@ -173,10 +170,15 @@ class SaveComplianceSerializer(serializers.ModelSerializer):
         )
 
 class ComplianceActionSerializer(serializers.ModelSerializer):
-    who = serializers.CharField(source='who.get_full_name')
+    # who = serializers.CharField(source='who.get_full_name')
+    who = serializers.SerializerMethodField()
     class Meta:
         model = ComplianceUserAction
         fields = '__all__'
+
+    def get_who(self, obj):
+        who_obj = retrieve_email_userro(obj.who)
+        return who_obj.get_full_name()
 
 class ComplianceCommsSerializer(serializers.ModelSerializer):
     documents = serializers.SerializerMethodField()

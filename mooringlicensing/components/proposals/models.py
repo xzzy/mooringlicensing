@@ -948,7 +948,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def compliance_assessors(self):
         group = self.__assessor_group()
-        return group.user_set.all() if group else []
+        # return group.user_set.all() if group else []
+        ids = group.get_system_group_member_ids() if group else []
+        users = EmailUserRO.objects.filter(id__in=ids)
+        return users
 
     def allowed_assessors_user(self, request):
         if self.processing_status == 'with_approver':
