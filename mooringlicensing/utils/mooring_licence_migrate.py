@@ -304,7 +304,7 @@ class MooringLicenceMigration(object):
 
                     ua=ProposalUserAction.objects.create(
                         proposal=proposal,
-                        who=user,
+                        who=user.id,
                         what='Mooring Licence - Migrated Application',
                     )
 

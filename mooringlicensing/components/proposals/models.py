@@ -1248,7 +1248,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
                     defaults={
-                        'officer': request.user,
+                        'officer': request.user.id,
                         'reason': reason,
                         'cc_email': details.get('cc_email', None)
                     }
@@ -1284,7 +1284,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
                     defaults={
-                        'officer': request.user,
+                        'officer': request.user.id,
                         'reason': details.get('reason', ''),
                         'cc_email': details.get('cc_email',None)
                     }
@@ -1883,7 +1883,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-                proposal.submitter = request.user
+                proposal.submitter = request.user.id
                 proposal.previous_application = self
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
@@ -3517,7 +3517,7 @@ class MooringUserAction(UserAction):
     def log_action(cls, mooring, action, user):
         return cls.objects.create(
             mooring=mooring,
-            who=user,
+            who=user.id,
             what=str(action)
         )
 
@@ -4109,7 +4109,7 @@ class ProposalUserAction(UserAction):
     def log_action(cls, proposal, action, user=None):
         return cls.objects.create(
             proposal=proposal,
-            who=user,
+            who=user.id if isinstance(user, EmailUserRO) else user,
             what=str(action)
         )
 

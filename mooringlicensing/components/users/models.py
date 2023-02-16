@@ -37,7 +37,7 @@ def update_emailuser_comms_log_filename(instance, filename):
 
 class EmailUserLogDocument(Document):
     log_entry = models.ForeignKey('EmailUserLogEntry',related_name='documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_emailuser_comms_log_filename)
+    _file = models.FileField(upload_to=update_emailuser_comms_log_filename, max_length=512)
 
     class Meta:
         app_label = 'mooringlicensing'

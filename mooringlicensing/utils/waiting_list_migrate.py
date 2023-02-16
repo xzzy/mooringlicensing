@@ -218,7 +218,7 @@ class WaitingListMigration(object):
 
                     ua=ProposalUserAction.objects.create(
                         proposal=proposal,
-                        who=user,
+                        who=user.id,
                         what='Waiting List - Migrated Application',
                     )
 

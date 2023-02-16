@@ -75,7 +75,7 @@ class WaitingListOfferDocument(Document):
 
 class RenewalDocument(Document):
     approval = models.ForeignKey('Approval',related_name='renewal_documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename)
+    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
     def delete(self):
@@ -1968,7 +1968,7 @@ class ApprovalUserAction(UserAction):
     def log_action(cls, approval, action, user=None):
         return cls.objects.create(
             approval=approval,
-            who=user,
+            who=user.id,
             what=str(action)
         )
 

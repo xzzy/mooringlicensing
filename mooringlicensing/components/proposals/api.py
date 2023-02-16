@@ -684,7 +684,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
-    @basic_exception_handler
+    # @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         instance = self.get_object()
 

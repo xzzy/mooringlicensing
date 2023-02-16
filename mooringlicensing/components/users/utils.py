@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -53,7 +55,6 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
     email_entry = EmailUserLogEntry.objects.create(**kwargs)
 
     for attachment in attachments:
-        # path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
         path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user, attachment[0])
         path = default_storage.save(path_to_file, ContentFile(attachment[1]))
         email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
