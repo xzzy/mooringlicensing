@@ -2,7 +2,8 @@ import re
 from decimal import Decimal
 
 from django.db import transaction
-from ledger.accounts.models import EmailUser
+# from ledger.accounts.models import EmailUser
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
 from mooringlicensing import settings
 import json
@@ -49,6 +50,8 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     AuthorisedUserPermit, Approval
 )
+from mooringlicensing.components.users.serializers import UserSerializer
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 import traceback
 import os
@@ -349,6 +352,12 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
+    # Save request.user details in a JSONField not to overwrite the details of it.
+    serializer = UserSerializer(request.user, context={'request':request})
+    if instance:
+        instance.personal_details = serializer.data
+        instance.save()
+
 
 def save_proponent_data_aaa(instance, request, viewset):
     print(request.data)
@@ -373,7 +382,8 @@ def save_proponent_data_aaa(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     instance = serializer.save()
     if viewset.action == 'submit':
-        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
@@ -403,7 +413,8 @@ def save_proponent_data_wla(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     instance = serializer.save()
     if viewset.action == 'submit':
-        if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
+        if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
@@ -821,7 +832,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     else:
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
-    owner, created = Owner.objects.get_or_create(emailuser=request.user)
+    owner, created = Owner.objects.get_or_create(emailuser=request.user.id)
 
     vessel_ownership_data['owner'] = owner.id
     vessel_ownership, created = VesselOwnership.objects.get_or_create(

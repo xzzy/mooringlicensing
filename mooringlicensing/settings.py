@@ -9,7 +9,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
 os.environ.setdefault("BASE_DIR", BASE_DIR)
 
-from ledger.settings_base import *
+# from ledger.settings_base import *
+from ledger_api_client.settings_base import *
 
 ROOT_URLCONF = 'mooringlicensing.urls'
 SITE_ID = 1
@@ -42,7 +43,9 @@ STATIC_URL = '/static/'
 
 
 INSTALLED_APPS += [
+    'webtemplate_dbca',
     'smart_selects',
+    'reversion',
     'reversion_compare',
     'bootstrap3',
     'mooringlicensing',
@@ -54,12 +57,13 @@ INSTALLED_APPS += [
     'mooringlicensing.components.approvals',
     'mooringlicensing.components.compliances',
     'mooringlicensing.components.payments_ml',
-    'taggit',
+    # 'taggit',
     'rest_framework',
     'rest_framework_datatables',
     'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
+    'ledger_api_client',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -73,11 +77,13 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE_CLASSES += [
-    'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
+    # 'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
-    'mooringlicensing.middleware.CacheControlMiddleware',
+    # 'mooringlicensing.middleware.CacheControlMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
+MIDDLEWARE = MIDDLEWARE_CLASSES
+WSGI_APPLICATION = "mooringlicensing.wsgi.application"
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('mooringlicensing.context_processors.mooringlicensing_processor')
@@ -152,11 +158,11 @@ if CONSOLE_EMAIL_BACKEND:
 
 #PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S651')
 ## do not read from env
-PAYMENT_SYSTEM_ID = 'S651'
-OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
-PS_PAYMENT_SYSTEM_ID = PAYMENT_SYSTEM_ID
-PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0'))
 
+OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
+# PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0'))
+LEDGER_SYSTEM_ID = env('PAYMENT_INTERFACE_SYSTEM_PROJECT_CODE', 'PAYMENT_INTERFACE_SYSTEM_PROJECT_CODE not configured')
+PAYMENT_SYSTEM_ID = LEDGER_SYSTEM_ID.replace('0', 'S')
 MOORING_BOOKINGS_API_KEY=env('MOORING_BOOKINGS_API_KEY')
 MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
 
@@ -253,6 +259,7 @@ LOGGING['loggers']['cron_email'] = {
 
 # Logging all to mooringlicensing.log file
 LOGGING['loggers']['']['handlers'].append('file_mooringlicensing')
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
 GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
@@ -440,4 +447,6 @@ GIT_COMMIT_DATE = ''
 #    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
-
+LEDGER_TEMPLATE = 'bootstrap5'
+SESSION_COOKIE_NAME = "pp_sessionid"
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"

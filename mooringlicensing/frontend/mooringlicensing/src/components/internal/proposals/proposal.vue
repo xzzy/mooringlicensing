@@ -323,12 +323,33 @@ export default {
             //return true  // TODO: implement this.  This is just temporary solution
 
             if (this.proposal.processing_status == 'With Approver'){
-                return this.proposal && (this.proposal.processing_status == 'With Approver' || this.proposal.processing_status == 'With Assessor' || this.proposal.processing_status == 'With Assessor (Requirements)') && !this.isFinalised && !this.proposal.can_user_edit && (this.proposal.current_assessor.id == this.proposal.assigned_approver || this.proposal.assigned_approver == null ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+                return this.proposal && 
+                (
+                    this.proposal.processing_status == 'With Approver' || 
+                    this.proposal.processing_status == 'With Assessor' || 
+                    this.proposal.processing_status == 'With Assessor (Requirements)') && 
+                    !this.isFinalised && 
+                    !this.proposal.can_user_edit && 
+                    (this.proposal.current_assessor.id == this.proposal.assigned_approver || 
+                    this.proposal.assigned_approver == null
+                )
+                && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
             else{
-                return this.proposal && (this.proposal.processing_status == 'With Approver' || this.proposal.processing_status == 'With Assessor' || this.proposal.processing_status == 'With Assessor (Requirements)') && !this.isFinalised && !this.proposal.can_user_edit && (this.proposal.current_assessor.id == this.proposal.assigned_officer || this.proposal.assigned_officer == null ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+                return this.proposal && 
+                (
+                    this.proposal.processing_status == 'With Approver' || 
+                    this.proposal.processing_status == 'With Assessor' || 
+                    this.proposal.processing_status == 'With Assessor (Requirements)') && 
+                    !this.isFinalised && !this.proposal.can_user_edit && 
+                    (
+                        this.proposal.current_assessor.id == this.proposal.assigned_officer || 
+                        this.proposal.assigned_officer == null
+                    ) && 
+                    this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
+        
         canLimitedAction: function(){
 
             //return false  // TODO: implement this.  This is just temporary solution
@@ -368,7 +389,7 @@ export default {
             return this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null ? true : false;
         },
         applicant_email:function(){
-            return this.proposal && this.proposal.applicant.email ? this.proposal.applicant.email : '';
+            return this.proposal && this.proposal.applicant && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
     },
     methods: {

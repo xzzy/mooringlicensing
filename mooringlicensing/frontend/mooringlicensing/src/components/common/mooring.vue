@@ -66,6 +66,7 @@ from '@/utils/hooks'
             },
             fetchMooringBays: async function(){
                 const response = await this.$http.get(api_endpoints.mooring_bays);
+                console.log(response.body)
                 for (let bay of response.body) {
                     this.mooringBays.push(bay)
                 }

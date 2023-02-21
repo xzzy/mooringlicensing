@@ -3,7 +3,7 @@ from mooringlicensing.tests.test_setup import APITestSetup
 from mooringlicensing.components.proposals.models import MooringBay, Proposal
 from datetime import datetime
 import pytz
-from ledger.settings_base import TIME_ZONE
+# from ledger.settings_base import TIME_ZONE
 
 
 class ManageVesselTests(APITestSetup):

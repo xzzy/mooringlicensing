@@ -1,7 +1,8 @@
 import os
 
 from io import BytesIO
-from oscar.templatetags.currency_filters import currency
+# from oscar.templatetags.currency_filters import currency
+from ledger_api_client.utils import currency
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Flowable, FrameBreak
@@ -10,9 +11,11 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from django.conf import settings
-from ledger.checkout.utils import calculate_excl_gst
+# from ledger.checkout.utils import calculate_excl_gst
+from ledger_api_client.utils import calculate_excl_gst
 from mooringlicensing.components.main.utils import to_local_tz
 from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeItemStickerReplacement
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 DPAW_HEADER_LOGO_SM = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo_small.png')
@@ -321,7 +324,8 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
@@ -339,15 +343,15 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     return invoice_buffer
 
 # proposal needs to be nullable for Annual site fees
-def create_invoice_pdf_bytes(filename, invoice, proposal=None):
-    invoice_buffer = BytesIO()
-    _create_invoice(invoice_buffer, invoice, proposal)
-
-#     Get the value of the BytesIO buffer
-    value = invoice_buffer.getvalue()
-    invoice_buffer.close()
-
-    return value
+# def create_invoice_pdf_bytes(filename, invoice, proposal=None):
+#     invoice_buffer = BytesIO()
+#     _create_invoice(invoice_buffer, invoice, proposal)
+#
+# #     Get the value of the BytesIO buffer
+#     value = invoice_buffer.getvalue()
+#     invoice_buffer.close()
+#
+#     return value
 
 
 def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
@@ -420,7 +424,8 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))

@@ -1,15 +1,16 @@
 import csv
 import pytz
-from six.moves import StringIO
+# from six.moves import StringIO
 from django.utils import timezone
 from django.db.models.query_utils import Q
-from ledger.payments.models import CashTransaction, BpointTransaction, BpayTransaction,Invoice
-from ledger.settings_base import TIME_ZONE
+# from ledger.payments.models import CashTransaction, BpointTransaction, BpayTransaction,Invoice
+# from ledger.settings_base import TIME_ZONE
+from ledger_api_client.settings_base import TIME_ZONE
 
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvAdmissionFee, DcvPermitFee
 from mooringlicensing.components.compliances.models import Compliance
-from mooringlicensing.settings import PAYMENT_SYSTEM_PREFIX
+from mooringlicensing.settings import LEDGER_SYSTEM_ID
 
 
 def booking_bpoint_settlement_report(_date):
@@ -32,7 +33,7 @@ def booking_bpoint_settlement_report(_date):
         bpoint.extend([x for x in BpointTransaction.objects.filter(
             Q(created__date=_date),
             Q(response_code=0),
-            Q(crn1__startswith=PAYMENT_SYSTEM_PREFIX),
+            Q(crn1__startswith=LEDGER_SYSTEM_ID),
         ).exclude(crn1__endswith='_test')])
 
         for b in bpoint:
@@ -94,7 +95,7 @@ def booking_bpoint_settlement_report(_date):
                                      invoice.amount,
                                      invoice.reference])
                 elif compliance:
-                    submitter = compliance.approval.submitter if compliance.approval else compliance.proposal.submitter
+                    submitter = compliance.approval.submitter_obj if compliance.approval else compliance.proposal.submitter_obj
                     b_name = u'{}'.format(submitter)
                     created = timezone.localtime(b.created, pytz.timezone('Australia/Perth'))
                     settlement_date = b.settlement_date.strftime('%d/%m/%Y') if b.settlement_date else ''
