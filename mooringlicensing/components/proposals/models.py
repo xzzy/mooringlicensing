@@ -152,6 +152,16 @@ class ProposalType(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
+# class ProposalApplicantDetails(models.Model):
+#     '''
+#     This model is for storing the historical applicant details
+#     '''
+#     details = models.JSONField(blank=True, null=True)
+#
+#     class Meta:
+#         app_label = 'mooringlicensing'
+
+
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
     APPLICANT_TYPE_PROXY = 'PRX'
@@ -325,6 +335,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To prevent that, fee_season is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
+
+    proposal_applicant_details = models.JSONField(null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -727,7 +739,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         kwargs.pop('version_comment', None)
         kwargs['no_revision'] = True
         self.update_customer_status()
-        super(Proposal, self).save(*args,**kwargs)
+        super(Proposal, self).save(*args, **kwargs)
         if type(self) == Proposal:
             self.child_obj.refresh_from_db()
 
@@ -2073,7 +2085,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
         return vessel_exists
-
 
 
 def update_sticker_doc_filename(instance, filename):
