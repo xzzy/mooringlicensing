@@ -38,7 +38,7 @@ from ledger_api_client.order import Order
 # ||||||| 741adce2
 # from ledger.basket.models import Basket
 # from ledger.payments.invoice.models import Invoice
-from ledger.payments.utils import update_payments
+# from ledger.payments.utils import update_payments
 # from oscar.apps.order.models import Order
 # =======
 # from ledger.basket.models import Basket
