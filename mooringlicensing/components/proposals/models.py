@@ -124,11 +124,27 @@ class RequirementDocument(Document):
 
 
 VESSEL_TYPES = (
-        ('yacht', 'Yacht'),
-        ('cabin_cruiser', 'Cabin Cruiser'),
+        ('catamaran', 'Catamaran'),
+        ('bow_rider', 'Bow Rider'),
+        ('cabin_ruiser', 'Cabin Cruiser'),
+        ('centre_console', 'Centre Console'),
+        ('ferry', 'Ferry'),
+        ('rigid_inflatable', 'Rigid Inflatable'),
+        ('half_cabin', 'Half Cabin'),
+        ('inflatable', 'Inflatable'),
+        ('launch', 'Launch'),
+        ('motor_sailer', 'Motor Sailer'),
+        ('multihull', 'Multihull'),
+        ('open_boat', 'Open Boat'),
+        ('power_boat', 'Power Boat'),
+        ('pwc', 'PWC'),
+        ('Runabout', 'Runabout'),
+        ('fishing_boat', 'Fishing Boat'),
         ('tender', 'Tender'),
+        ('walkaround', 'Walkaround'),
         ('other', 'Other'),
-        )
+    )
+
 INSURANCE_CHOICES = (
     ("five_million", "$5 million Third Party Liability insurance cover - required for vessels of length less than 6.4 metres"),
     ("ten_million", "$10 million Third Party Liability insurance cover - required for vessels of length 6.4 metres or greater"),
@@ -3396,6 +3412,7 @@ class ProposalLogEntry(CommunicationsLogEntry):
 # not for admin - data comes from Mooring Bookings
 class MooringBay(RevisionedMixin):
     name = models.CharField(max_length=100)
+    code = models.CharField(max_length=3, blank=True, null=True)
     mooring_bookings_id = models.IntegerField()
     active = models.BooleanField(default=True)
 

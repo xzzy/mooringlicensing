@@ -86,9 +86,18 @@
                                     <label>Draft:</label>
                                 </div>
                                 <div class="col-sm-6">
+                                    {{ vessel.vessel_details.vessel_draft }}
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <div class="col-sm-3">
+                                    <label>Type:</label>
+                                </div>
+                                <div class="col-sm-6">
                                     {{ vessel.vessel_details.vessel_type_display }}
                                 </div>
                             </div>
+
                         </FormSection>
                     </div>
                     <div class="tab-pane fade" id="pills-owners" role="tabpanel" aria-labelledby="pills-owners-tab">
