@@ -336,7 +336,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
 
-    proposal_applicant_details = models.JSONField(null=True, blank=True)
+    personal_details = models.JSONField(null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
