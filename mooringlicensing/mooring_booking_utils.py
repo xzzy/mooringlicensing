@@ -8,7 +8,8 @@ import geojson
 import requests
 import io
 from django.conf import settings
-from django.core.urlresolvers import reverse, reverse_lazy
+# from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
@@ -17,16 +18,18 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from dateutil.tz.tz import tzoffset
 from pytz import timezone as pytimezone
-from ledger.payments.models import Invoice,OracleInterface,CashTransaction
-from ledger.payments.utils import oracle_parser_on_invoice, update_payments
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
+# from ledger.payments.models import Invoice,OracleInterface,CashTransaction
+# from ledger.payments.utils import oracle_parser_on_invoice, update_payments
+# from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
+from ledger_api_client.utils import create_basket_session, create_checkout_session, place_order_submission, update_payments
 #from mooring.models import (MooringArea, Mooringsite, MooringsiteRate, MooringsiteBooking, Booking, BookingInvoice, MooringsiteBookingRange, Rate, MooringAreaBookingRange,MooringAreaStayHistory, MooringsiteRate, MarinaEntryRate, BookingVehicleRego, AdmissionsBooking, AdmissionsOracleCode, AdmissionsRate, AdmissionsLine, ChangePricePeriod, CancelPricePeriod, GlobalSettings, MooringAreaGroup, AdmissionsLocation, ChangeGroup, CancelGroup, BookingPeriod, BookingPeriodOption, AdmissionsBookingInvoice, BookingAnnualAdmission)
 #from mooring import models
 #from mooring.serialisers import BookingRegoSerializer, MooringsiteRateSerializer, MarinaEntryRateSerializer, RateSerializer, MooringsiteRateReadonlySerializer, AdmissionsRateSerializer
 #from mooring.emails import send_booking_invoice,send_booking_confirmation
 #from mooring import emails
-from oscar.apps.order.models import Order
-from ledger.payments.invoice import utils
+# from oscar.apps.order.models import Order
+from ledger_api_client.order import Order
+# from ledger.payments.invoice import utils
 #from mooring import models
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.payments_ml.models import ApplicationFee

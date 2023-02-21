@@ -6,8 +6,8 @@ import datetime
 from decimal import Decimal
 from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
-from oscar.apps.address.models import Country
-from ledger.accounts.models import EmailUser, Address
+# from oscar.apps.address.models import Country
+# from ledger.accounts.models import EmailUser, Address
 from mooringlicensing.components.proposals.models import (
     Proposal,
     Vessel,
@@ -348,7 +348,7 @@ class AuthUserPermitMigration(object):
 
                     ua=ProposalUserAction.objects.create(
                         proposal=proposal,
-                        who=user,
+                        who=user.id,
                         what='Authorised User Permit - Migrated Application',
                     )
 

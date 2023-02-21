@@ -30,7 +30,8 @@
                     {% if request.user.is_authenticated %}
                     <div class="row" style="margin-top:2em;">
                         <div class="col-sm-6">
-                            <div><strong>Invoice: </strong><a href="{% url 'invoice-pdf' fee_invoice.invoice_reference %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
+<!--                            <div><strong>Invoice: </strong><a href="{% url 'invoice-pdf' fee_invoice.invoice_reference %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>-->
+                            <div><strong>Invoice</strong>: <a href="{{ invoice_url }}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
                             <div><strong>DCV Permit: </strong><a href="{% url 'dcv-permit-pdf' dcv_permit.id %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ dcv_permit.lodgement_number }}<a></div>
                         </div>
                     </div>

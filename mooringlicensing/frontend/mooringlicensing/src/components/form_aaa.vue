@@ -37,7 +37,7 @@
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
-                    <Profile
+                    <!-- <Profile
                     :isApplication="true"
                     v-if="applicantType == 'SUB'"
                     ref="profile"
@@ -45,7 +45,7 @@
                     :showElectoralRoll="showElectoralRoll"
                     :readonly="readonly"
                     :submitterId="submitterId"
-                    />
+                    /> -->
                   </div>
                   <div v-else>
                     <Applicant

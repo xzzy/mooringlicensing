@@ -20,6 +20,7 @@ from mooringlicensing.components.proposals.models import (
         Proposal, 
         StickerPrintingContact
         )
+import ledger_api_client
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,8 @@ class DefaultDataManager(object):
                             obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=True)
                         obj.save()
                     else:
-                        obj.value = item[1]
+                        # obj.value = item[1]
+                        obj.value = GlobalSettings.default_values[item[0]]
                         obj.save()
                     logger.info("Created {}: {}".format(item[0], item[1]))
             except Exception as e:
@@ -105,21 +107,33 @@ class DefaultDataManager(object):
             except Exception as e:
                 logger.error('{}, AdmissionType: {}'.format(e, item[1]))
 
-        # Groups
+        # # Groups
+        # for group_name in settings.CUSTOM_GROUPS:
+        #     try:
+        #         group, created = Group.objects.get_or_create(name=group_name)
+        #         if created:
+        #             logger.info("Created group: {}".format(group_name))
+        #     except Exception as e:
+        #         logger.error('{}, Group name: {}'.format(e, group_name))
+
+        # SystemGroup  # For the segregated system, use the SystemGroup.
         for group_name in settings.CUSTOM_GROUPS:
             try:
-                group, created = Group.objects.get_or_create(name=group_name)
+                group, created = ledger_api_client.managed_models.SystemGroup.objects.get_or_create(name=group_name)
                 if created:
-                    logger.info("Created group: {}".format(group_name))
+                    logger.info("Created SystemGroup: {}".format(group_name))
             except Exception as e:
-                logger.error('{}, Group name: {}'.format(e, group_name))
+                logger.error('{}, SystemGroup name: {}'.format(e, group_name))
 
         # Types of configurable number of days
         for item in settings.TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS:
             try:
                 types_to_be_deleted = NumberOfDaysType.objects.filter(code__isnull=True)
                 types_to_be_deleted.delete()  # Delete left overs
+            except Exception as e:
+                logger.error('{}'.format(e))
 
+            try:
                 myType, created = NumberOfDaysType.objects.get_or_create(code=item['code'])
                 if created:
                     # Save description
@@ -139,7 +153,8 @@ class DefaultDataManager(object):
                     )
 
             except Exception as e:
-                logger.error('{}, Number of days type: {}'.format(e, myType.name))
+                # logger.error('{}, Number of days type: {}'.format(e, myType.name))
+                logger.error('{}'.format(e))
 
         # Oracle account codes
         today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()

@@ -1,5 +1,6 @@
 import datetime
 import logging
+import uuid
 from decimal import Decimal
 from math import ceil
 
@@ -8,9 +9,11 @@ from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Min
-from ledger.accounts.models import RevisionedMixin, EmailUser
-from ledger.payments.invoice.models import Invoice
-from ledger.settings_base import TIME_ZONE
+# from ledger.accounts.models import RevisionedMixin, EmailUser
+# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+# from ledger.settings_base import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
@@ -102,12 +105,26 @@ class DcvAdmissionFee(Payment):
     dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
+    # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
+    created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_admission_fees')
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         return 'DcvAdmission {} : Invoice {}'.format(self.dcv_admission, self.invoice_reference)
+
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving DcvAdmissionFee: {self}.")
+        if not self.uuid:
+            logger.info("DcvAdmissionFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"DcvAdmissionFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving DcvAdmissionFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("DcvAdmissionFee Saved.")
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -128,12 +145,26 @@ class DcvPermitFee(Payment):
     dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
+    created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='dcv_permit_fees')
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         return 'DcvPermit {} : Invoice {}'.format(self.dcv_permit, self.invoice_reference)
+
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving DcvPermitFee: {self}.")
+        if not self.uuid:
+            logger.info("DcvPermitFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"DcvPermitFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving DcvPermitFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("DcvPermitFee Saved.")
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -153,8 +184,10 @@ class StickerActionFee(Payment):
 
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,)
+    created_by = models.IntegerField(blank=True, null=True,)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         stickers = []
@@ -165,16 +198,31 @@ class StickerActionFee(Payment):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving StickerActionFee: {self}.")
+        if not self.uuid:
+            logger.info("StickerActionFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"StickerActionFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving StickerActionFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("StickerActionFee Saved.")
+
 
 class FeeItemApplicationFee(models.Model):
-    fee_item = models.ForeignKey('FeeItem',)
-    application_fee = models.ForeignKey('ApplicationFee',)
-    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True)
+    fee_item = models.ForeignKey('FeeItem', on_delete=models.CASCADE)
+    application_fee = models.ForeignKey('ApplicationFee', on_delete=models.CASCADE)
+    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True, on_delete=models.SET_NULL)
     amount_to_be_paid = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
     amount_paid = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return f'FeeItem: {self.fee_item}, ApplicationFee: {self.application_fee}, amount_to_be_paid: {self.amount_to_be_paid}, amount_paid: {self.amount_paid}'
 
     @property
     def application_type(self):
@@ -196,10 +244,12 @@ class ApplicationFee(Payment):
     proposal = models.ForeignKey('Proposal', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
+    # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
+    created_by = models.IntegerField(blank=True, null=True)
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_items = models.ManyToManyField('FeeItem', related_name='application_fees', through='FeeItemApplicationFee')
     system_invoice = models.BooleanField(default=False)
+    uuid = models.CharField(max_length=36, blank=True, null=True)
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)
@@ -214,9 +264,21 @@ class ApplicationFee(Payment):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving ApplicationFee: {self}.")
+        if not self.uuid:
+            logger.info("ApplicationFee has no uuid")
+            self.uuid = uuid.uuid4()
+            logger.info(
+                f"ApplicationFee assigned uuid: {self.uuid}",
+            )
+        logger.info(f"Saving ApplicationFee: {self}.")
+        super().save(*args, **kwargs)
+        logger.info("ApplicationFee Saved.")
+
 
 class FeeSeason(models.Model):
-    application_type = models.ForeignKey(ApplicationType, null=True, blank=True, limit_choices_to={'fee_by_fee_constructor': True})
+    application_type = models.ForeignKey(ApplicationType, null=True, blank=True, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.SET_NULL)
     name = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self):
@@ -257,7 +319,7 @@ class FeeSeason(models.Model):
 
 
 class FeePeriod(models.Model):
-    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True, related_name='fee_periods')
+    fee_season = models.ForeignKey(FeeSeason, null=True, blank=True, related_name='fee_periods', on_delete=models.SET_NULL)
     name = models.CharField(max_length=50, null=True, blank=True, default='')
     start_date = models.DateField(null=True, blank=True)
 
@@ -276,7 +338,7 @@ class FeePeriod(models.Model):
 
 
 class FeeConstructor(models.Model):
-    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True})
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.PROTECT)
     fee_season = ChainedForeignKey(FeeSeason,
                                    chained_field='application_type',
                                    chained_model_field='application_type',
@@ -286,7 +348,7 @@ class FeeConstructor(models.Model):
                                    null=True,
                                    blank=True,
                                    related_name='fee_constructors')
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors')
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.PROTECT)
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
 
@@ -528,15 +590,15 @@ class FeeItemStickerReplacement(models.Model):
 
 
 class FeeItem(models.Model):
-    fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True)
-    fee_period = models.ForeignKey(FeePeriod, null=True, blank=True)
-    vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True)
-    proposal_type = models.ForeignKey('ProposalType', null=True, blank=True)
+    fee_constructor = models.ForeignKey(FeeConstructor, null=True, blank=True, on_delete=models.SET_NULL)
+    fee_period = models.ForeignKey(FeePeriod, null=True, blank=True, on_delete=models.SET_NULL)
+    vessel_size_category = models.ForeignKey(VesselSizeCategory, null=True, blank=True, on_delete=models.SET_NULL)
+    proposal_type = models.ForeignKey('ProposalType', null=True, blank=True, on_delete=models.SET_NULL)
     amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text='$')
     incremental_amount = models.BooleanField(default=False, help_text='When ticked, The amount will be the increase in the rate per meter')  # When False, the 'amount' value is the price for this item.  When True, the 'amount' is the price per meter.
     # For DcvAdmission
-    age_group = models.ForeignKey('AgeGroup', null=True, blank=True)
-    admission_type = models.ForeignKey('AdmissionType', null=True, blank=True)
+    age_group = models.ForeignKey('AgeGroup', null=True, blank=True, on_delete=models.SET_NULL)
+    admission_type = models.ForeignKey('AdmissionType', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return '${}: {}, {}, {}, {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category, self.proposal_type)
@@ -595,9 +657,20 @@ class FeeItem(models.Model):
 
 
 class OracleCodeItem(models.Model):
-    application_type = models.ForeignKey(ApplicationType, blank=True, null=True, related_name='oracle_code_items')
+    application_type = models.ForeignKey(ApplicationType, blank=True, null=True, related_name='oracle_code_items', on_delete=models.SET_NULL)
     value = models.CharField(max_length=50, null=True, blank=True, default='T1 EXEMPT')
     date_of_enforcement = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class FeeCalculation(models.Model):
+    '''
+    This model is used to store the details of fee calculation.  No relations to other tables, but has a uuid field to link to another table.
+    '''
+    uuid = models.CharField(max_length=36, blank=True, null=True)
+    data = models.JSONField(blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
