@@ -8,7 +8,8 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mooringlicensing', '0296_auto_20220531_1555'),
+        # ('mooringlicensing', '0296_auto_20220531_1555'),
+        ('mooringlicensing', '0016_rename_proposal_applicant_details_proposal_personal_details'),
     ]
 
     operations = [
