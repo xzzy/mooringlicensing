@@ -27,6 +27,7 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
 from django.views.generic import TemplateView
+# <<<<<<< HEAD
 # from ledger.basket.models import Basket
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import Invoice, Basket
@@ -34,6 +35,18 @@ from ledger_api_client.ledger_models import Invoice, Basket
 from ledger_api_client.utils import update_payments, calculate_excl_gst
 # from oscar.apps.order.models import Order
 from ledger_api_client.order import Order
+# ||||||| 741adce2
+# from ledger.basket.models import Basket
+# from ledger.payments.invoice.models import Invoice
+from ledger.payments.utils import update_payments
+# from oscar.apps.order.models import Order
+# =======
+# from ledger.basket.models import Basket
+# from ledger.payments.invoice.models import Invoice
+# from ledger.payments.utils import update_payments
+#from oscar.apps.order.models import Order
+# from ledger.order.models import Order
+# >>>>>>> main
 
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
