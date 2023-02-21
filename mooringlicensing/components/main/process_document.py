@@ -2,7 +2,6 @@ from django.core.files.storage import default_storage
 import os
 from django.core.files.base import ContentFile
 import traceback
-#from mooringlicensing.components.main.models import TemporaryDocument
 from django.conf import settings
 
 from mooringlicensing.components.proposals.models import (
@@ -49,6 +48,16 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                 documents_qs = instance.insurance_certificate_documents
             elif document_type == 'hull_identification_number_document':
                 documents_qs = instance.hull_identification_number_documents
+            elif document_type == 'mooring_report_document':
+                documents_qs = instance.mooring_report_documents
+            elif document_type == 'written_proof_document':
+                documents_qs = instance.written_proof_documents
+            elif document_type == 'signed_licence_agreement_document':
+                documents_qs = instance.signed_licence_agreement_documents
+            elif document_type == 'proof_of_identity_document':
+                documents_qs = instance.proof_of_identity_documents
+            elif document_type == 'waiting_list_offer_document':
+                documents_qs = instance.waiting_list_offer_documents
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
             return { 'filedata': returned_file_data }
         else:
@@ -75,15 +84,24 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         elif document_type == 'hull_identification_number_document':
             document_id = request.data.get('document_id')
             document = instance.hull_identification_number_documents.get(id=document_id)
-        #if document_type == DeedPollDocument.DOC_TYPE_NAME:
-        #    document_id = request.data.get('document_id')
-        #    document = instance.deed_poll_documents.get(id=document_id)
-        #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-        #    document_id = request.data.get('document_id')
-        #    document = instance.public_liability_insurance_documents.get(id=document_id)
-        #elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
-        #    document_id = request.data.get('document_id')
-        #    document = instance.supporting_application_documents.get(id=document_id)
+        elif document_type == 'mooring_report_document':
+            document_id = request.data.get('document_id')
+            document = instance.mooring_report_documents.get(id=document_id)
+        elif document_type == 'written_proof_document':
+            document_id = request.data.get('document_id')
+            document = instance.written_proof_documents.get(id=document_id)
+        elif document_type == 'signed_licence_agreement_document':
+            document_id = request.data.get('document_id')
+            document = instance.signed_licence_agreement_documents.get(id=document_id)
+        elif document_type == 'proof_of_identity_document':
+            document_id = request.data.get('document_id')
+            document = instance.proof_of_identity_documents.get(id=document_id)
+        elif document_type == 'waiting_list_offer_document':
+            document_id = request.data.get('document_id')
+            document = instance.waiting_list_offer_documents.get(id=document_id)
+        elif document_type == 'temp_document':
+            document_id = request.data.get('document_id')
+            document = instance.documents.get(id=document_id)
 
     # comms_log doc store delete
     elif comms_instance and 'document_id' in request.data:
@@ -109,14 +127,13 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                 'vessel_registration_document',
                 'insurance_certificate_document',
                 'hull_identification_number_document',
+                'mooring_report_document',
+                'written_proof_document',
+                'signed_licence_agreement_document',
+                'proof_of_identity_document',
+                'waiting_list_offer_document',
                 ]:
             document_id = request.data.get('document_id')
-        #if document_type == DeedPollDocument.DOC_TYPE_NAME:
-        #    document_list = instance.deed_poll_documents.all()
-        #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-        #    document_list = instance.public_liability_insurance_documents.all()
-        #elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
-        #    document_list = instance.supporting_application_documents.all()
         if comms_instance:
             document_list = comms_instance.documents.all()
         else:
@@ -132,11 +149,6 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
 
 
 def save_document(request, instance, comms_instance, document_type, input_name=None):
-    #import ipdb; ipdb.set_trace()
-    # Match model related_name to instance or comms_instance, eg.
-    # sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='documents')..
-    # this document can be accessed or created by 'instance.documents'
-
     # example document_type
     if 'filename' in request.data and input_name:
         filename = request.data.get('filename')
@@ -154,15 +166,21 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'hull_identification_number_document':
             document = instance.hull_identification_number_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/hull_identification_number_documents/{}'
-        #if document_type == DeedPollDocument.DOC_TYPE_NAME:
-        #    document = instance.deed_poll_documents.get_or_create(input_name=input_name, name=filename)[0]
-        #    path_format_string = '{}/proposals/{}/deed_poll_documents/{}'
-        #elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-        #    document = instance.public_liability_insurance_documents.get_or_create(input_name=input_name, name=filename)[0]
-        #    path_format_string = '{}/proposals/{}/public_liability_insurance_documents/{}'
-        #elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
-        #    document = instance.supporting_application_documents.get_or_create(input_name=input_name, name=filename)[0]
-        #    path_format_string = '{}/proposals/{}/supporting_application_documents/{}'
+        if document_type == 'mooring_report_document':
+            document = instance.mooring_report_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/mooring_report_documents/{}'
+        if document_type == 'written_proof_document':
+            document = instance.written_proof_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/written_proof_documents/{}'
+        if document_type == 'signed_licence_agreement_document':
+            document = instance.signed_licence_agreement_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/signed_licence_agreement_documents/{}'
+        if document_type == 'proof_of_identity_document':
+            document = instance.proof_of_identity_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/proposals/{}/proof_of_identity_documents/{}'
+        if document_type == 'waiting_list_offer_document':
+            document = instance.waiting_list_offer_documents.get_or_create(input_name=input_name, name=filename)[0]
+            path_format_string = '{}/approvals/{}/waiting_list_offer_documents/{}'
         path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, filename), ContentFile(_file.read()))
         document._file = path
         document.save()
@@ -196,4 +214,36 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
         document._file = path
         document.save()
+
+# For transferring files from temp doc objs to default doc objs
+def save_default_document_obj(instance, temp_document):
+    document = instance.documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        '{}/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
+def save_vessel_registration_document_obj(instance, temp_document):
+    document = instance.vessel_registration_documents.get_or_create(
+            input_name="vessel_registration_document",
+            name=temp_document.name)[0]
+    path = default_storage.save(
+        '{}/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name,
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
 

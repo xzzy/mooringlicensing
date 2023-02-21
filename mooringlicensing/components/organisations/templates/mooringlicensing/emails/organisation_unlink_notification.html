@@ -1,6 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content %}
+{% block content_body %}
     {% if unlinked_by.email != user.email %}
         <p>Your have been unlinked from:</p>
         <p><strong>Organisation : {{ organisation.name }}</strong></p>

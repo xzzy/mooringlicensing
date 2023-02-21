@@ -1,0 +1,11 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Your authorised user permit application {{ proposal.lodgement_number }} has been conditionally approved pending payment of your fees. Please see attached invoice for more details.
+The sticker(s) for your vessel will be mailed to you once payment has been made. Please access {{ payment_url }} to pay the fees for your authorised user permit.
+Vessel stickers remain the property of RIA and must be returned or surrendered upon request, or prior to the sale or disposal of your vessel. Penalties apply.
+Entry to the Reserve, access to the Shared Mooring System (SMS), and authorised use of mooring sites, is NOT approved until your current sticker is clearly displayed on the port side of your vessel. Penalties apply.
+{% if details %}Details: {{ details }}{% endif %}
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}

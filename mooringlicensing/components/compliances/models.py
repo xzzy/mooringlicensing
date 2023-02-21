@@ -20,12 +20,11 @@ from ledger.licence.models import  Licence
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
-        CommunicationsLogEntry, #Region, 
-        UserAction, 
-        Document
-        )
+    CommunicationsLogEntry,  # Region,
+    UserAction,
+    Document, NumberOfDaysSetting, NumberOfDaysType
+)
 from mooringlicensing.components.proposals.models import ProposalRequirement, AmendmentReason
-#from mooringlicensing.components.approvals.models import DistrictApproval
 from mooringlicensing.components.compliances.email import (
                         send_compliance_accept_email_notification,
                         send_amendment_email_notification,
@@ -39,16 +38,21 @@ from mooringlicensing.components.compliances.email import (
 from ledger.payments.invoice.models import Invoice
 
 import logging
+
+from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_COMPLIANCE
+
 logger = logging.getLogger(__name__)
 
 
 class Compliance(RevisionedMixin):
     PROCESSING_STATUS_DUE = 'due'
+    PROCESSING_STATUS_OVERDUE = 'overdue'
     PROCESSING_STATUS_FUTURE = 'future'
     PROCESSING_STATUS_WITH_ASSESSOR = 'with_assessor'
     PROCESSING_STATUS_APPROVED = 'approved'
     PROCESSING_STATUS_DISCARDED = 'discarded'
     PROCESSING_STATUS_CHOICES = ((PROCESSING_STATUS_DUE, 'Due'),
+                                 (PROCESSING_STATUS_OVERDUE, 'Overdue'),
                                  (PROCESSING_STATUS_FUTURE, 'Future'),
                                  (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
                                  (PROCESSING_STATUS_APPROVED, 'Approved'),
@@ -56,11 +60,13 @@ class Compliance(RevisionedMixin):
                                  )
 
     CUSTOMER_STATUS_DUE = 'due'
+    CUSTOMER_STATUS_OVERDUE = 'overdue'
     CUSTOMER_STATUS_FUTURE = 'future'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
     CUSTOMER_STATUS_APPROVED = 'approved'
     CUSTOMER_STATUS_DISCARDED = 'discarded'
     CUSTOMER_STATUS_CHOICES = ((CUSTOMER_STATUS_DUE, 'Due'),
+                               (CUSTOMER_STATUS_OVERDUE, 'Overdue'),
                                (CUSTOMER_STATUS_FUTURE, 'Future'),
                                (CUSTOMER_STATUS_WITH_ASSESSOR, 'Under Review'),
                                (CUSTOMER_STATUS_APPROVED, 'Approved'),
@@ -72,22 +78,16 @@ class Compliance(RevisionedMixin):
     approval = models.ForeignKey('mooringlicensing.Approval',related_name='compliances')
     due_date = models.DateField()
     text = models.TextField(blank=True)
-    #meta = JSONField(null=True, blank=True)
     num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
     processing_status = models.CharField(choices=PROCESSING_STATUS_CHOICES,max_length=20)
-    customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20, default=CUSTOMER_STATUS_CHOICES[1][0])
+    customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20)
     assigned_to = models.ForeignKey(EmailUser,related_name='mooringlicensing_compliance_assignments',null=True,blank=True)
-    #requirement = models.TextField(null=True,blank=True)
     requirement = models.ForeignKey(ProposalRequirement, blank=True, null=True, related_name='compliance_requirement', on_delete=models.SET_NULL)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-    # TODO: does submitter need to be here?
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_compliances')
     reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
     fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
-    #district_proposal = models.ForeignKey(DistrictProposal,related_name='district_compliance', null=True, blank=True)
-    #district_approval = models.ForeignKey(DistrictApproval,related_name='district_compliance', null=True, blank=True)
-
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -110,7 +110,6 @@ class Compliance(RevisionedMixin):
 
     @property
     def reference(self):
-        #return 'C{0:06d}'.format(self.id)
         return self.lodgement_number
 
     @property
@@ -180,7 +179,6 @@ class Compliance(RevisionedMixin):
                                 q.status = 'amended'
                                 q.save()
 
-                #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
                 self.lodgement_date = timezone.now()
                 self.save(version_comment='Compliance Submitted: {}'.format(self.id))
                 self.proposal.save(version_comment='Compliance Submitted: {}'.format(self.id))
@@ -222,28 +220,28 @@ class Compliance(RevisionedMixin):
             self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
             send_compliance_accept_email_notification(self,request)
 
-
-    def send_reminder(self,user):
+    def send_reminder(self, user):
         with transaction.atomic():
-            today = timezone.localtime(timezone.now()).date()
+            # today = timezone.localtime(timezone.now()).date()
+            # days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
+            # days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
             try:
-                if self.processing_status =='due':
-                    if self.due_date < today and self.lodgement_date==None and self.post_reminder_sent==False:
-                        send_reminder_email_notification(self)
-                        send_internal_reminder_email_notification(self)
-                        self.post_reminder_sent=True
-                        self.reminder_sent=True
-                        self.save()
-                        ComplianceUserAction.log_action(self,ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id),user)
-                        logger.info('Post due date reminder sent for Compliance {} '.format(self.lodgement_number))
-                    elif self.due_date >= today and today >= self.due_date - datetime.timedelta(days=14) and self.reminder_sent==False:
-                        # second part: if today is with 14 days of due_date, and email reminder is not sent (deals with Compliances created with the reminder period)
-                        send_due_email_notification(self)
-                        send_internal_due_email_notification(self)
-                        self.reminder_sent=True
-                        self.save()
-                        ComplianceUserAction.log_action(self,ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id),user)
-                        logger.info('Pre due date reminder sent for Compliance {} '.format(self.lodgement_number))
+                if self.processing_status == Compliance.PROCESSING_STATUS_DUE and self.reminder_sent is False:
+                    send_due_email_notification(self)
+                    send_internal_due_email_notification(self)
+                    self.reminder_sent = True
+                    self.save()
+                    ComplianceUserAction.log_action(self, ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id), user)
+                    logger.info('Pre due date reminder sent for Compliance {} '.format(self.lodgement_number))
+
+                if self.processing_status == Compliance.PROCESSING_STATUS_OVERDUE and self.post_reminder_sent is False:
+                    send_reminder_email_notification(self)
+                    send_internal_reminder_email_notification(self)
+                    self.post_reminder_sent = True
+                    self.reminder_sent = True
+                    self.save()
+                    ComplianceUserAction.log_action(self, ComplianceUserAction.ACTION_REMINDER_SENT.format(self.id), user)
+                    logger.info('Post due date reminder sent for Compliance {} '.format(self.lodgement_number))
 
             except Exception as e:
                 logger.info('Error sending Reminder Compliance {}\n{}'.format(self.lodgement_number, e))
@@ -282,7 +280,6 @@ class ComplianceUserAction(UserAction):
     ACTION_REMINDER_SENT = "Reminder sent for compliance {}"
     ACTION_STATUS_CHANGE = "Change status to Due for compliance {}"
     # Assessors
-
 
 
     ACTION_CONCLUDE_REQUEST = "Conclude request {}"
@@ -344,20 +341,8 @@ class ComplianceAmendmentReason(models.Model):
 
 class ComplianceAmendmentRequest(CompRequest):
     STATUS_CHOICES = (('requested', 'Requested'), ('amended', 'Amended'))
-    # try:
-    #     # model requires some choices if AmendmentReason does not yet exist or is empty
-    #     REASON_CHOICES = list(AmendmentReason.objects.values_list('id', 'reason'))
-    #     if not REASON_CHOICES:
-    #         REASON_CHOICES = ((0, 'The information provided was insufficient'),
-    #                           (1, 'There was missing information'),
-    #                           (2, 'Other'))
-    # except:
-    #     REASON_CHOICES = ((0, 'The information provided was insufficient'),
-    #                       (1, 'There was missing information'),
-    #                       (2, 'Other'))
 
     status = models.CharField('Status', max_length=30, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    # reason = models.CharField('Reason', max_length=30, choices=REASON_CHOICES, default=REASON_CHOICES[0][0])
     reason = models.ForeignKey(ComplianceAmendmentReason, blank=True, null=True)
 
     class Meta:
@@ -380,14 +365,11 @@ class ComplianceAmendmentRequest(CompRequest):
 
 
 import reversion
-# reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set', 'compliance_fees'])
-reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set',])
-reversion.register(ComplianceDocument)
-reversion.register(ComplianceUserAction)
+reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set'])
+reversion.register(ComplianceDocument, follow=[])
+reversion.register(ComplianceUserAction, follow=[])
 reversion.register(ComplianceLogEntry, follow=['documents'])
-reversion.register(ComplianceLogDocument)
-reversion.register(CompRequest)
+reversion.register(ComplianceLogDocument, follow=[])
+reversion.register(CompRequest, follow=[])
 reversion.register(ComplianceAmendmentReason, follow=['complianceamendmentrequest_set'])
-reversion.register(ComplianceAmendmentRequest)
-
-
+reversion.register(ComplianceAmendmentRequest, follow=[])
