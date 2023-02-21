@@ -50,6 +50,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     AuthorisedUserPermit, Approval
 )
+from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
 import traceback
@@ -350,6 +351,12 @@ def save_proponent_data(instance, request, viewset):
         save_proponent_data_aua(instance, request, viewset)
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
+
+    # Save request.user details in a JSONField not to overwrite the details of it.
+    serializer = UserSerializer(request.user, context={'request':request})
+    if instance:
+        instance.personal_details = serializer.data
+        instance.save()
 
 
 def save_proponent_data_aaa(instance, request, viewset):
