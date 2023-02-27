@@ -846,7 +846,8 @@ def admissionsCheckout(request, admissionsBooking, lines, invoice_text=None, vou
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'AD-'+str(admissionsBooking.id)
+        'booking_reference': 'AD-'+str(admissionsBooking.id),
+        'tax_override': True,
     }
     
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -890,7 +891,8 @@ def annual_admission_checkout(request, booking, lines, invoice_text=None, vouche
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'AA-'+str(booking.id)
+        'booking_reference': 'AA-'+str(booking.id),
+        'tax_override': True,
     }
     basket, basket_hash = create_basket_session(request, basket_params)
     checkout_params = {
@@ -946,7 +948,8 @@ def checkout(request, booking, lines, invoice_text=None, vouchers=[], internal=F
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'PS-'+str(booking.id)
+        'booking_reference': 'PS-'+str(booking.id),
+        'tax_override': True,
     }
  
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -1020,7 +1023,8 @@ def allocate_failedrefund_to_unallocated(request, booking, lines, invoice_text=N
             'vouchers': [],
             'system': settings.PS_PAYMENT_SYSTEM_ID,
             'custom_basket': True,
-            'booking_reference': booking_reference
+            'booking_reference': booking_reference,
+            'tax_override': True,
         }
 
         basket, basket_hash = create_basket_session(request, basket_params)
@@ -1058,7 +1062,8 @@ def allocate_refund_to_invoice(request, booking, lines, invoice_text=None, inter
             'vouchers': [],
             'system': settings.PS_PAYMENT_SYSTEM_ID,
             'custom_basket': True,
-            'booking_reference': booking_reference
+            'booking_reference': booking_reference,
+            'tax_override': True,
         }
 
         basket, basket_hash = create_basket_session(request, basket_params)

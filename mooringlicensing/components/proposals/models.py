@@ -1695,6 +1695,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
                                 # 'organisation': 7,
+                                'tax_override': True,
                             }
                             # basket_user_id = customer_id
                             # basket_hash = utils_ledger_api_client.create_basket_session(

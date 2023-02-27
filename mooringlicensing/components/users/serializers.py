@@ -68,7 +68,7 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         return is_consultant(obj, user)
 
     def get_email(self, obj):
-        email = EmailUseRO.objects.get(id=self.context.get('user_id')).email
+        email = EmailUserRO.objects.get(id=self.context.get('user_id')).email
         return email
 
 

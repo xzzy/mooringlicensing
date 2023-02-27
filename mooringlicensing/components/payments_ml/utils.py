@@ -24,6 +24,7 @@ def checkout(request, email_user, lines, return_url, return_preload_url, invoice
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
+        'tax_override': True,
     }
 
     # basket, basket_hash = create_basket_session(request, basket_params)
