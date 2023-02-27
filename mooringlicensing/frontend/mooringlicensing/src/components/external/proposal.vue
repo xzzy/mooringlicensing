@@ -326,9 +326,9 @@ export default {
     save_applicant_data:function(){
       if(this.proposal.applicant_type == 'SUB')
       {
-        this.proposal_refs().$refs.profile.updatePersonal();
-        this.proposal_refs().$refs.profile.updateAddress();
-        this.proposal_refs().$refs.profile.updateContact();
+        // this.proposal_refs().$refs.profile.updatePersonal();
+        // this.proposal_refs().$refs.profile.updateAddress();
+        // this.proposal_refs().$refs.profile.updateContact();
       }
     },
 

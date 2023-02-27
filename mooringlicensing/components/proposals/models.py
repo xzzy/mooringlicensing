@@ -8,35 +8,46 @@ import traceback
 
 import pytz
 import uuid
-from ledger.settings_base import TIME_ZONE
-from ledger.payments.pdf import create_invoice_pdf_bytes
+
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
+# from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
+# from mooringlicensing.components.main.utils import retrieve_email_user
+# from ledger.settings_base import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE
+# from ledger.payments.pdf import create_invoice_pdf_bytes
+# from ledger_api_client.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
-from django.utils.encoding import python_2_unicode_compatible
+# from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, ImproperlyConfigured
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from ledger.accounts.models import EmailUser, RevisionedMixin
+# from django.core.urlresolvers import reverse
+from django.urls import reverse
+# from ledger.accounts.models import EmailUser, RevisionedMixin
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
+# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import Invoice
 from mooringlicensing import exceptions
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting,
+    Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin,
 )
+import requests
+import ledger_api_client
 from mooringlicensing.components.main.decorators import (
         basic_exception_handler, 
         timeit, 
         query_debugger
         )
-from ledger.checkout.utils import createCustomBasket
-from ledger.payments.invoice.models import Invoice
-from ledger.payments.invoice.utils import CreateInvoiceBasket
+# from ledger.checkout.utils import createCustomBasket
+# from ledger.payments.invoice.utils import CreateInvoiceBasket
 
 from mooringlicensing.components.proposals.email import (
     send_application_approved_or_declined_email,
@@ -59,7 +70,7 @@ from rest_framework import serializers
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PAYMENT_SYSTEM_ID, \
-    PAYMENT_SYSTEM_PREFIX, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
+    LEDGER_SYSTEM_ID, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
 logger_for_payment = logging.getLogger('mooringlicensing')
@@ -113,11 +124,27 @@ class RequirementDocument(Document):
 
 
 VESSEL_TYPES = (
-        ('yacht', 'Yacht'),
-        ('cabin_cruiser', 'Cabin Cruiser'),
+        ('catamaran', 'Catamaran'),
+        ('bow_rider', 'Bow Rider'),
+        ('cabin_ruiser', 'Cabin Cruiser'),
+        ('centre_console', 'Centre Console'),
+        ('ferry', 'Ferry'),
+        ('rigid_inflatable', 'Rigid Inflatable'),
+        ('half_cabin', 'Half Cabin'),
+        ('inflatable', 'Inflatable'),
+        ('launch', 'Launch'),
+        ('motor_sailer', 'Motor Sailer'),
+        ('multihull', 'Multihull'),
+        ('open_boat', 'Open Boat'),
+        ('power_boat', 'Power Boat'),
+        ('pwc', 'PWC'),
+        ('Runabout', 'Runabout'),
+        ('fishing_boat', 'Fishing Boat'),
         ('tender', 'Tender'),
+        ('walkaround', 'Walkaround'),
         ('other', 'Other'),
-        )
+    )
+
 INSURANCE_CHOICES = (
     ("five_million", "$5 million Third Party Liability insurance cover - required for vessels of length less than 6.4 metres"),
     ("ten_million", "$10 million Third Party Liability insurance cover - required for vessels of length 6.4 metres or greater"),
@@ -139,6 +166,16 @@ class ProposalType(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+
+# class ProposalApplicantDetails(models.Model):
+#     '''
+#     This model is for storing the historical applicant details
+#     '''
+#     details = models.JSONField(blank=True, null=True)
+#
+#     class Meta:
+#         app_label = 'mooringlicensing'
 
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
@@ -240,11 +277,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     lodgement_date = models.DateTimeField(blank=True, null=True)
 
-    proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy', on_delete=models.SET_NULL) # not currently used by ML
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals', on_delete=models.SET_NULL)
+    # proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy', on_delete=models.SET_NULL) # not currently used by ML
+    proxy_applicant = models.IntegerField(blank=True, null=True) # not currently used by ML
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
 
-    assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
-    assigned_approver = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_approvals', on_delete=models.SET_NULL)
+    # assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
+    assigned_officer = models.IntegerField(blank=True, null=True)
+    # assigned_approver = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_approvals', on_delete=models.SET_NULL)
+    assigned_approver = models.IntegerField(blank=True, null=True)
     processing_status = models.CharField('Processing Status', max_length=40, choices=PROCESSING_STATUS_CHOICES,
                                          default=PROCESSING_STATUS_CHOICES[0][0])
     prev_processing_status = models.CharField(max_length=40, blank=True, null=True)
@@ -306,10 +347,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     listed_vessels = models.ManyToManyField('VesselOwnership', 'listed_on_proposals')
     keep_existing_vessel = models.BooleanField(default=True)
 
-    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)  # In some case, proposal doesn't have any fee related objects.  Which results in the impossibility to retrieve season, start_date, end_date, etc.
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, on_delete=models.SET_NULL)  # In some case, proposal doesn't have any fee related objects.  Which results in the impossibility to retrieve season, start_date, end_date, etc.
                                                                         # To prevent that, fee_season is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
+
+    personal_details = models.JSONField(null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -318,6 +361,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def __str__(self):
         return str(self.lodgement_number)
+
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
 
     def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length, max_amount_paid):
         """
@@ -708,7 +755,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         kwargs.pop('version_comment', None)
         kwargs['no_revision'] = True
         self.update_customer_status()
-        super(Proposal, self).save(*args,**kwargs)
+        super(Proposal, self).save(*args, **kwargs)
         if type(self) == Proposal:
             self.child_obj.refresh_from_db()
 
@@ -765,7 +812,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+        # if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+        if (self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False
 
@@ -782,51 +830,70 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant(self):
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
+
         if self.org_applicant:
             return self.org_applicant.organisation.name
         elif self.proxy_applicant:
+            applicant = retrieve_email_userro(self.proxy_applicant)
             return "{} {}".format(
-                self.proxy_applicant.first_name,
-                self.proxy_applicant.last_name)
+                applicant.first_name,
+                applicant.last_name)
         else:
+            applicant = retrieve_email_userro(self.submitter)
             return "{} {}".format(
-                self.submitter.first_name,
-                self.submitter.last_name)
+                applicant.first_name,
+                applicant.last_name)
 
     @property
     def applicant_email(self):
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
+
         if self.org_applicant and hasattr(self.org_applicant.organisation, 'email') and self.org_applicant.organisation.email:
             return self.org_applicant.organisation.email
         elif self.proxy_applicant:
-            return self.proxy_applicant.email
+            applicant = retrieve_email_userro(self.proxy_applicant)
+            return applicant.email
         else:
-            return self.submitter.email
+            # return self.submitter.email
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
+            return retrieve_email_userro(self.submitter).email
 
     @property
     def applicant_details(self):
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
+
         if self.org_applicant:
             return '{} \n{}'.format(
                 self.org_applicant.organisation.name,
                 self.org_applicant.address)
         elif self.proxy_applicant:
+            applicant = retrieve_email_userro(self.proxy_applicant)
             return "{} {}\n{}".format(
-                self.proxy_applicant.first_name,
-                self.proxy_applicant.last_name,
-                self.proxy_applicant.addresses.all().first())
+                applicant.first_name,
+                applicant.last_name,
+                applicant.addresses.all().first())
         else:
+            applicant = retrieve_email_userro(self.submitter)
+            test = applicant.addresses.all()
             return "{} {}\n{}".format(
-                self.submitter.first_name,
-                self.submitter.last_name,
-                self.submitter.addresses.all().first())
+                applicant.first_name,
+                applicant.last_name,
+                # applicant.addresses.all().first())
+                applicant.residential_address)
 
     @property
     def applicant_address(self):
+        from mooringlicensing.ledger_api_utils import retrieve_email_userro
+
         if self.org_applicant:
             return self.org_applicant.address
         elif self.proxy_applicant:
-            return self.proxy_applicant.residential_address
+            applicant = retrieve_email_userro(self.proxy_applicant)
+            return applicant.residential_address
         else:
-            return self.submitter.residential_address
+            applicant = retrieve_email_userro(self.submitter)
+            return applicant.residential_address
 
     @property
     def applicant_id(self):
@@ -901,19 +968,26 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        return group.user_set.all() if group else []
+        # return group.user_set.all() if group else []
+        ids = group.get_system_group_member_ids() if group else []
+        users = EmailUserRO.objects.filter(id__in=ids)
+        return users
 
     @property
     def compliance_assessors(self):
         group = self.__assessor_group()
-        return group.user_set.all() if group else []
+        # return group.user_set.all() if group else []
+        ids = group.get_system_group_member_ids() if group else []
+        users = EmailUserRO.objects.filter(id__in=ids)
+        return users
 
     def allowed_assessors_user(self, request):
         if self.processing_status == 'with_approver':
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        return True if group and group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
+        # return True if group and group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
+        return True if group and request.user.id in group.get_system_group_member_ids() else False
 
     @property
     def can_officer_process(self):
@@ -978,10 +1052,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     #Check if the user is member of assessor group for the Proposal
     def is_assessor(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.child_obj.is_assessor(user)
 
     #Check if the user is member of assessor group for the Proposal
     def is_approver(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.child_obj.is_approver(user)
 
     def can_assess(self, user):
@@ -1007,7 +1085,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def log_user_action(self, action, request=None):
         if request:
-            return ProposalUserAction.log_action(self, action, request.user)
+            return ProposalUserAction.log_action(self, action, request.user.id)
         else:
             return ProposalUserAction.log_action(self, action)
 
@@ -1040,7 +1118,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                 else:
                     if officer != self.assigned_officer:
                         self.assigned_officer = officer
@@ -1049,7 +1127,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
             except:
                 raise
 
@@ -1075,7 +1153,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 # Create a log entry for the organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 return self
             except:
                 raise
@@ -1093,7 +1171,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                 else:
                     if self.assigned_officer:
                         self.assigned_officer = None
@@ -1102,7 +1180,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
                         # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
-                        applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
+                        # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
             except:
                 raise
 
@@ -1198,7 +1276,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
                     defaults={
-                        'officer': request.user,
+                        'officer': request.user.id,
                         'reason': reason,
                         'cc_email': details.get('cc_email', None)
                     }
@@ -1210,7 +1288,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
                 send_approver_approve_decline_email_notification(request, self)
             except:
@@ -1234,7 +1312,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
                     defaults={
-                        'officer': request.user,
+                        'officer': request.user.id,
                         'reason': details.get('reason', ''),
                         'cc_email': details.get('cc_email',None)
                     }
@@ -1246,7 +1324,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
                 ## ML
                 if type(self.child_obj) == MooringLicenceApplication and self.waiting_list_allocation:
@@ -1274,7 +1352,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
             except:
                 raise
 
@@ -1293,7 +1371,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
                 # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
             except:
                 raise
 
@@ -1331,7 +1409,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
 
                 send_approver_approve_decline_email_notification(request, self)
                 return self
@@ -1463,11 +1541,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if details:
                     # When not auto-approve
                     self.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
+                    # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
                 else:
                     # When auto approve
                     self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
+                    # applicant_field.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
 
                 # set proposal status to approved - can change later after manage_stickers
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -1570,7 +1648,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.save()
                 else:
                     ## prepare invoice
-                    from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
+                    # from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
 
                     # create fee lines tells us whether a payment is required
@@ -1599,15 +1677,59 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         try:
                             logger.info('Creating invoice for the application: {}'.format(self))
 
-                            basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
-                            order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(
-                                basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
-                            invoice = Invoice.objects.get(order_number=order.number)
+                            # Following two lines are for future invoicing.
+                            # However because we need to segregate 'ledger' from this system, we cannot use these two functions.
+                            # TODO: Review and rewrite to create an invoice with ledger_client_api.
+                            # basket = createCustomBasket(line_items, self.submitter, PAYMENT_SYSTEM_ID)
+                            # order = CreateInvoiceBasket(payment_method='other', system=PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=self.submitter, invoice_text='Payment Invoice')
+                            # invoice = Invoice.objects.get(order_number=order.number)
+
+                            ### Future Invoice ###
+                            invoice_text = 'Payment Invoice'
+                            basket_params = {
+                                'products': line_items,
+                                'vouchers': [],
+                                'system': settings.PS_PAYMENT_SYSTEM_ID,
+                                'custom_basket': True,
+                                # 'booking_reference': 'PB-' + str(booking_id),
+                                # 'booking_reference_link': str(old_booking_id),
+                                'no_payment': True,
+                                # 'organisation': 7,
+                                'tax_override': True,
+                            }
+                            # basket_user_id = customer_id
+                            # basket_hash = utils_ledger_api_client.create_basket_session(
+                            from ledger_api_client.utils import create_basket_session, process_create_future_invoice
+                            basket_hash = create_basket_session(request, request.user.id, basket_params)
+
+                            #checkouthash =  hashlib.sha256('TEST'.encode('utf-8')).hexdigest()
+                            #checkouthash = request.session.get('checkouthash','')
+                            #basket, basket_hash = use_existing_basket_from_invoice('00193349270')
+                            # notification url for when payment is received.
+                            # return_preload_url = settings.PARKSTAY_EXTERNAL_URL + '/api/complete_booking/9819873279821398732198737981298/' + str(booking_id) + '/'
+
                             application_fee = ApplicationFee.objects.create(
                                 proposal=self,
-                                invoice_reference=invoice.reference,
+                                # invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                             )
+                            return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+
+                            basket_hash_split = basket_hash.split("|")
+                            pcfi = process_create_future_invoice(
+                                basket_hash_split[0], invoice_text, return_preload_url
+                                )
+
+                            application_fee.invoice_reference = pcfi['data']['invoice']
+                            application_fee.save()
+                            ### END: Future Invoice ###
+
+
+                            # application_fee = ApplicationFee.objects.create(
+                            #     proposal=self,
+                            #     invoice_reference=invoice.reference,
+                            #     payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
+                            # )
                             logger.info('ApplicationFee.id: {} has been created for the Proposal: {}'.format(application_fee.id, self))
 
                             # Link between ApplicationFee and FeeItem(s)
@@ -1790,7 +1912,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 proposal = clone_proposal_with_status_reset(self)
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-                proposal.submitter = request.user
+                proposal.submitter = request.user.id
                 proposal.previous_application = self
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
@@ -1806,7 +1928,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 # Create a log entry for the organisation
                 applicant_field=getattr(self, self.applicant_field)
-                applicant_field.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+                # applicant_field.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
                 #Log entry for approval
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
@@ -1980,7 +2102,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
         return vessel_exists
-
 
 
 def update_sticker_doc_filename(instance, filename):
@@ -2187,7 +2308,7 @@ class WaitingListApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Waiting List")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Waiting List")
 
     @property
     def approver_group(self):
@@ -2195,21 +2316,27 @@ class WaitingListApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        return [retrieve_email_userro(id).email for id in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
         return []
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        # return user in self.assessor_group.user_set.all()
+        return user in self.assessor_group.get_system_group_member_ids()
 
     #def is_approver(self, user):
      #   return False
 
     def is_approver(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         #return user in self.approver_group.user_set.all()
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(WaitingListApplication, self).save(*args, **kwargs)
@@ -2222,9 +2349,14 @@ class WaitingListApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         attachments = []
         if self.invoice:
-            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
-            attachments.append(attachment)
+            # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+            # api_key = settings.LEDGER_API_KEY
+            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
+            url = get_invoice_url(self.invoice.reference)
+            invoice_pdf = requests.get(url=url)
+            if invoice_pdf.status_code == 200:
+                attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
+                attachments.append(attachment)
         ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
         if not self.auto_approve:
             send_notification_email_upon_submit_to_assessor(request, self, attachments)
@@ -2373,7 +2505,8 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
+        # return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
 
     @property
     def approver_group(self):
@@ -2381,21 +2514,27 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        # return [i.email for i in self.assessor_group.user_set.all()]
+        return [retrieve_email_userro(id).email for id in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
         return []
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in dself.assessor_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     #def is_approver(self, user):
      #   return False
 
     def is_approver(self, user):
-        #return user in self.approver_group.user_set.all()
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         #application_type_acronym = self.application_type.acronym if self.application_type else None
@@ -2409,9 +2548,14 @@ class AnnualAdmissionApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         attachments = []
         if self.invoice:
-            invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
-            attachments.append(attachment)
+        #     invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
+        #     attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
+        #     attachments.append(attachment)
+            url = get_invoice_url(self.invoice.reference)
+            invoice_pdf = requests.get(url=url)
+            if invoice_pdf.status_code == 200:
+                attachment = (f'invoice#{self.invoice.reference}', invoice_pdf.content, 'application/pdf')
+                attachments.append(attachment)
         ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
         if not self.auto_approve:
             send_notification_email_upon_submit_to_assessor(request, self, attachments)
@@ -2579,25 +2723,34 @@ class AuthorisedUserApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Authorised User")
+        # return Group.objects.get(name="Mooring Licensing - Assessors: Authorised User")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Authorised User")
 
     @property
     def approver_group(self):
-        return Group.objects.get(name="Mooring Licensing - Approvers: Authorised User")
+        # return Group.objects.get(name="Mooring Licensing - Approvers: Authorised User")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Approvers: Authorised User")
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        # return [i.email for i in self.assessor_group.user_set.all()]
+        return [retrieve_email_userro(i).email for i in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
-        return [i.email for i in self.approver_group.user_set.all()]
+        # return [i.email for i in self.approver_group.user_set.all()]
+        return [retrieve_email_userro(i).email for i in self.approver_group.get_system_group_member_ids()]
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
-        return user in self.approver_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.approver_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(AuthorisedUserApplication, self).save(*args, **kwargs)
@@ -2978,25 +3131,41 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def assessor_group(self):
-        return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
+        # return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
 
     @property
     def approver_group(self):
-        return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
+        # return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
 
     @property
     def assessor_recipients(self):
-        return [i.email for i in self.assessor_group.user_set.all()]
+        # return [i.email for i in self.assessor_group.user_set.all()]
+        emails = []
+        for id in self.assessor_group.get_system_group_member_ids():
+            emails.append(retrieve_email_userro(id).email)
+        return emails
 
     @property
     def approver_recipients(self):
-        return [i.email for i in self.approver_group.user_set.all()]
+        # return [i.email for i in self.approver_group.user_set.all()]
+        emails = []
+        for id in self.approver_group.get_system_group_member_ids():
+            emails.append(retrieve_email_userro(id).email)
+        return emails
 
     def is_assessor(self, user):
-        return user in self.assessor_group.user_set.all()
+        # return user in self.assessor_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
-        return user in self.approver_group.user_set.all()
+        # return user in self.approver_group.user_set.all()
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.approver_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
         super(MooringLicenceApplication, self).save(*args, **kwargs)
@@ -3214,8 +3383,18 @@ class ProposalLogDocument(Document):
         app_label = 'mooringlicensing'
 
 
+class ProposalLogEntryManager(models.Manager):
+    def create(self, *args, **kwargs):
+        if 'customer' in kwargs and isinstance(kwargs['customer'], EmailUserRO):
+            kwargs['customer'] = kwargs['customer'].id
+        if 'staff' in kwargs and isinstance(kwargs['staff'], EmailUserRO):
+            kwargs['staff'] = kwargs['staff'].id
+        return super(ProposalLogEntryManager, self).create(*args, **kwargs)
+
+
 class ProposalLogEntry(CommunicationsLogEntry):
     proposal = models.ForeignKey(Proposal, related_name='comms_logs', on_delete=models.CASCADE)
+    objects = ProposalLogEntryManager()
 
     def __str__(self):
         return '{} - {}'.format(self.reference, self.subject)
@@ -3234,6 +3413,7 @@ class ProposalLogEntry(CommunicationsLogEntry):
 # not for admin - data comes from Mooring Bookings
 class MooringBay(RevisionedMixin):
     name = models.CharField(max_length=100)
+    code = models.CharField(max_length=3, blank=True, null=True)
     mooring_bookings_id = models.IntegerField()
     active = models.BooleanField(default=True)
 
@@ -3311,7 +3491,7 @@ class Mooring(RevisionedMixin):
         return self.get_mooring_bookings_mooring_specification_display()
 
     def log_user_action(self, action, request):
-        return MooringUserAction.log_action(self, action, request.user)
+        return MooringUserAction.log_action(self, action, request.user.id)
 
     @property
     def status(self):
@@ -3366,7 +3546,7 @@ class MooringUserAction(UserAction):
     def log_action(cls, mooring, action, user):
         return cls.objects.create(
             mooring=mooring,
-            who=user,
+            who=user.id,
             what=str(action)
         )
 
@@ -3664,7 +3844,8 @@ class VesselRegistrationDocument(Document):
 
 
 class Owner(RevisionedMixin):
-    emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)
+    # emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)
+    emailuser = models.IntegerField(unique=True)  # unique=True keeps the OneToOne relation
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
 
@@ -3672,8 +3853,17 @@ class Owner(RevisionedMixin):
         verbose_name_plural = "Owners"
         app_label = 'mooringlicensing'
 
+    @property
+    def emailuser_obj(self):
+        return retrieve_email_userro(self.emailuser)
+
     def __str__(self):
-        return self.emailuser.get_full_name()
+        if self.emailuser:
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
+            return retrieve_email_userro(self.emailuser).get_full_name()
+        else:
+            return ''
+        # return self.emailuser.get_full_name()
 
 
 class Company(RevisionedMixin):
@@ -3785,7 +3975,8 @@ class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set', on_delete=models.CASCADE)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
-    officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    officer = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.subject, self.text)
@@ -3838,7 +4029,7 @@ class AmendmentRequest(ProposalRequest):
                     proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
                     applicant_field = getattr(proposal, proposal.applicant_field)
-                    applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
+                    # applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 
                     # send email
 
@@ -3851,7 +4042,8 @@ class AmendmentRequest(ProposalRequest):
 
 class ProposalDeclinedDetails(models.Model):
     proposal = models.OneToOneField(Proposal, null=True, on_delete=models.SET_NULL)
-    officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
+    officer = models.IntegerField(null=True, blank=True)
     reason = models.TextField(blank=True)
     cc_email = models.TextField(null=True)
 
@@ -3859,7 +4051,7 @@ class ProposalDeclinedDetails(models.Model):
         app_label = 'mooringlicensing'
 
 
-@python_2_unicode_compatible
+# @python_2_unicode_compatible
 class ProposalStandardRequirement(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
@@ -3950,11 +4142,12 @@ class ProposalUserAction(UserAction):
     def log_action(cls, proposal, action, user=None):
         return cls.objects.create(
             proposal=proposal,
-            who=user,
+            who=user.id if isinstance(user, EmailUserRO) else user,
             what=str(action)
         )
 
-    who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
     proposal = models.ForeignKey(Proposal, related_name='action_logs', on_delete=models.CASCADE)

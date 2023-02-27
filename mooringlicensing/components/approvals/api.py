@@ -9,11 +9,16 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from rest_framework import viewsets, serializers, generics, views, status
-from rest_framework.decorators import detail_route, list_route, renderer_classes
+# from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework.decorators import action as detail_route
+from rest_framework.decorators import action as list_route
+from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from ledger.accounts.models import EmailUser
-from ledger.settings_base import TIME_ZONE
+# from ledger.accounts.models import EmailUser
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+# from ledger.settings_base import TIME_ZONE
+from ledger_api_client.settings_base import TIME_ZONE
 from datetime import datetime
 from collections import OrderedDict
 
@@ -166,10 +171,10 @@ class GetWlaAllowed(views.APIView):
         from mooringlicensing.components.proposals.models import WaitingListApplication
         wla_allowed = True
         # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
-        if (WaitingListApplication.objects.filter(submitter=request.user).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-            WaitingListAllocation.objects.filter(submitter=request.user).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
-            MooringLicenceApplication.objects.filter(submitter=request.user).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-            MooringLicence.objects.filter(submitter=request.user).filter(status__in=['current', 'suspended'])):
+        if (WaitingListApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+            WaitingListAllocation.objects.filter(submitter=request.user.id).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
+            MooringLicenceApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+            MooringLicence.objects.filter(submitter=request.user.id).filter(status__in=['current', 'suspended'])):
             wla_allowed = False
         return Response({"wla_allowed": wla_allowed})
 
@@ -198,7 +203,7 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
         approval_qs =  approval_qs.exclude(replaced_by__isnull=False) # get lastest licence, ignore the amended
         return approval_qs
 
-    @list_route(methods=['GET',])
+    @list_route(methods=['GET',], detail=False)
     def _list(self, request, *args, **kwargs):
         data =  []
         for approval in self.get_queryset():
@@ -232,10 +237,10 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         if max_vessel_draft:
             filter_query &= Q(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
 
-        ml_list = MooringLicence.objects.all()
-        aup_list = AuthorisedUserPermit.objects.all()
-        aap_list = AnnualAdmissionPermit.objects.all()
-        wla_list = WaitingListAllocation.objects.all()
+        ml_list = MooringLicence.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+        aup_list = AuthorisedUserPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+        aap_list = AnnualAdmissionPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+        wla_list = WaitingListAllocation.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
         if filter_approval_type and not filter_approval_type.lower() == 'all':
@@ -269,9 +274,11 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 filter_query &= Q(id__in=wla_list)
 
         queryset = queryset.filter(filter_query)
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
@@ -314,7 +321,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
                 all = all.filter(Q(submitter=target_user))
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(submitter=request_user))
+            qs = all.filter(Q(submitter=request_user.id))
             return qs
         return Approval.objects.none()
 
@@ -339,8 +346,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Approval.objects.all()
         elif is_customer(self.request):
-            user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
-            queryset =  Approval.objects.filter(Q(org_applicant_id__in = user_orgs) | Q(submitter = self.request.user))
+            # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
+            # queryset =  Approval.objects.filter(Q(org_applicant_id__in = user_orgs) | Q(submitter = self.request.user))
+            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            queryset =  Approval.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter = self.request.user.id))
             return queryset
         return Approval.objects.none()
 
@@ -362,12 +371,12 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             ('data',serializer.data)
         ]),status=status.HTTP_200_OK)
 
-    @list_route(methods=['GET',])
+    @list_route(methods=['GET',], detail=False)
     @basic_exception_handler
     def existing_licences(self, request, *args, **kwargs):
         existing_licences = []
         l_list = Approval.objects.filter(
-                submitter=request.user,
+                submitter=request.user.id,
                 #status__in=['current', 'fulfilled'],
                 status__in=['current'],
                 )
@@ -397,7 +406,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         })
         return Response(existing_licences)
 
-    @list_route(methods=['GET'])
+    @list_route(methods=['GET'], detail=False)
     def holder_list(self, request, *args, **kwargs):
         holder_list = self.get_queryset().values_list('submitter__id', flat=True)
         print(holder_list)
@@ -406,7 +415,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = EmailUserSerializer(EmailUser.objects.filter(id__in=distinct_holder_list), many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET'])
+    @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def get_moorings(self, request, *args, **kwargs):
@@ -425,7 +434,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 })
         return Response(moorings)
 
-    @detail_route(methods=['POST'])
+    @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
@@ -458,7 +467,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
         return Response({'sticker_action_detail_ids': sticker_action_details})
 
-    @detail_route(methods=['GET'])
+    @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def stickers(self, request, *args, **kwargs):
@@ -467,7 +476,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = StickerSerializer(stickers, many=True)
         return Response({'stickers': serializer.data})
 
-    @detail_route(methods=['GET'])
+    @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def approval_history(self, request, *args, **kwargs):
@@ -475,7 +484,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET'])
+    @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def lookup_approval(self, request, *args, **kwargs):
@@ -486,7 +495,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 }
         return Response(approval_details)
 
-    @detail_route(methods=['POST'])
+    @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_waiting_list_offer_document(self, request, *args, **kwargs):
@@ -497,7 +506,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         else:
             return Response()
 
-    @detail_route(methods=['POST'])
+    @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     def process_document(self, request, *args, **kwargs):
             instance = self.get_object()
@@ -530,7 +539,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
             return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete) for d in instance.qaofficer_documents.filter(input_name=section, visible=True) if d._file] )
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     def approval_cancellation(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -551,7 +560,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     def approval_suspension(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -573,7 +582,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     def approval_reinstate(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -592,7 +601,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     def approval_surrender(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -613,7 +622,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def action_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -630,7 +639,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -647,7 +656,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, *args, **kwargs):
         try:
@@ -708,7 +717,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
         data = request.data
         dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
 
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             # Logged in user
             # 1. DcvPermit exists
             # 2. DcvPermit doesn't exist
@@ -844,7 +853,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_vessel
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def create_new_sticker(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -931,9 +940,11 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
                         common_search_criteria
                         )
 
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
@@ -974,7 +985,7 @@ class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    @list_route(methods=['GET',])
+    @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
@@ -992,7 +1003,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
     queryset = DcvVessel.objects.all().order_by('id')
     serializer_class = DcvVesselSerializer
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def lookup_dcv_vessel(self, request, *args, **kwargs):
         dcv_vessel = self.get_object()
@@ -1005,7 +1016,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
 
         return Response(dcv_vessel_data)
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_admissions(self, request, *args, **kwargs):
         vessel = self.get_object()
@@ -1017,7 +1028,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         serializer = LookupDcvAdmissionSerializer(admissions, many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_permits(self, request, *args, **kwargs):
         vessel = self.get_object()
@@ -1052,9 +1063,11 @@ class DcvAdmissionFilterBackend(DatatablesFilterBackend):
             queries &= Q(dcv_admission_arrivals__arrival_date__lte=filter_date_to)
         queryset = queryset.filter(queries)
 
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
@@ -1110,9 +1123,11 @@ class StickerFilterBackend(DatatablesFilterBackend):
         if filter_sticker_status_id and not filter_sticker_status_id.lower() == 'all':
             queryset = queryset.filter(status=filter_sticker_status_id)
 
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
@@ -1135,7 +1150,7 @@ class StickerViewSet(viewsets.ModelViewSet):
             qs = Sticker.objects.all()
         return qs
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def record_returned(self, request, *args, **kwargs):
         sticker = self.get_object()
@@ -1154,7 +1169,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         serializer = StickerSerializer(sticker)
         return Response({'sticker': serializer.data})
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def record_lost(self, request, *args, **kwargs):
         sticker = self.get_object()
@@ -1177,7 +1192,7 @@ class StickerViewSet(viewsets.ModelViewSet):
 
         return Response({'sticker': serializer.data})
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def request_replacement(self, request, *args, **kwargs):
         # internal
@@ -1238,7 +1253,7 @@ class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    @list_route(methods=['GET',])
+    @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
@@ -1256,7 +1271,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
     queryset = WaitingListAllocation.objects.all().order_by('id')
     serializer_class = WaitingListAllocationSerializer
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def create_mooring_licence_application(self, request, *args, **kwargs):
         with transaction.atomic():

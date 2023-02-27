@@ -6,8 +6,8 @@ import datetime
 from decimal import Decimal
 from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from oscar.apps.address.models import Country
-from ledger.accounts.models import EmailUser, Address
+# from oscar.apps.address.models import Country
+# from ledger.accounts.models import EmailUser, Address
 from mooringlicensing.components.proposals.models import (
     Proposal,
     Vessel,
@@ -26,10 +26,10 @@ class AnnualAdmissionMigration(object):
         AnnualAdmissionMigration(test=False)
     '''
 
-    def __init__(self, filename='mooringlicensing/utils/tests/AA/annual_admissions_booking_report_20210928.csv', test=False):
+    def __init__(self, filename='mooringlicensing/utils/csv/annual_admissions_booking_report_20230125084027.csv', test=False):
         """
         NOTE:
-            filename='mooringlicensing/utils/tests/AA/annual_admissions_booking_report_20210928.csv' comes from Moorings RIA system (??)
+            filename='mooringlicensing/utils/csv/annual_admissions_booking_report_20230125084027.csv' comes from Moorings RIA system (??)
             (https://mooring-ria-internal.dbca.wa.gov.au/dashboard/bookings/annual-admissions/)
         """
         self.filename = filename
@@ -160,7 +160,7 @@ class AnnualAdmissionMigration(object):
                             proposal=AnnualAdmissionApplication.objects.create(
                                 proposal_type_id=1, # new application
                                 submitter=user,
-                                lodgement_date=datetime.now(),
+                                lodgement_date=datetime.datetime.now(datetime.timezone.utc),
                                 migrated=True,
                                 vessel_details=vessel_details,
                                 vessel_ownership=vessel_ownership,
@@ -185,7 +185,7 @@ class AnnualAdmissionMigration(object):
 
                             ua=ProposalUserAction.objects.create(
                                 proposal=proposal,
-                                who=user,
+                                who=user.id,
                                 what='Annual Admission - Migrated Application',
                             )
 

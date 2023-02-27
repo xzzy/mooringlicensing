@@ -1,15 +1,18 @@
 import logging
-from ledger.settings_base import TIME_ZONE
+# from ledger.settings_base import TIME_ZONE
+from ledger_api_client.settings_base import TIME_ZONE
 import pytz
 from datetime import datetime
 from decimal import Decimal
 from math import ceil
 
 from django.conf import settings
-from ledger.accounts.models import EmailUser,Address
-from ledger.payments.invoice.models import Invoice
+# from ledger.accounts.models import EmailUser,Address
+# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, Address
 
 from mooringlicensing.components.main.models import ApplicationType
+# from mooringlicensing.components.main.utils import retrieve_email_user
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.proposals.models import (
     Proposal,
@@ -32,10 +35,12 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication,
 )
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, AuthorisedUserPermit, \
     AnnualAdmissionPermit
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
+    EmailUserSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from rest_framework import serializers
@@ -45,11 +50,6 @@ from mooringlicensing.helpers import is_internal
 
 logger = logging.getLogger('mooringlicensing')
 
-
-class EmailUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
@@ -134,9 +134,9 @@ class MooringSimpleSerializer(serializers.ModelSerializer):
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
-    submitter = EmailUserSerializer()
-
+    # allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
+    # submitter = EmailUserSerializer()
     get_history = serializers.ReadOnlyField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
@@ -242,6 +242,10 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'null_vessel_on_create',
                 )
         read_only_fields=('documents',)
+
+    def get_allowed_assessors(self, obj):
+        serializer = EmailUserSerializer(obj.allowed_assessors, many=True)
+        return serializer.data
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
@@ -524,7 +528,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
 
 class ListProposalSerializer(BaseProposalSerializer):
-    submitter = EmailUserSerializer()
+    # submitter = EmailUserSerializer()
+    submitter = serializers.SerializerMethodField(read_only=True)
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField()
     customer_status = serializers.SerializerMethodField()
@@ -591,17 +596,30 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'invoice_links',
                 )
 
+    def get_submitter(self, obj):
+        if obj.submitter:
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
+            email_user = retrieve_email_userro(obj.submitter)
+            return EmailUserSerializer(email_user).data
+        else:
+            return ""
+
     def get_invoice_links(self, proposal):
         links = ""
         # pdf
         for invoice in proposal.invoices_display():
-            links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
-                    invoice.reference, invoice.reference)
+            # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
+            #     invoice.reference, invoice.reference)
+            # api_key = settings.LEDGER_API_KEY
+            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
+            url = get_invoice_url(invoice.reference)
+            links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
         if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
             # paid invoices url
             invoices_str=''
             for inv in proposal.invoices_display():
-                if inv.payment_status == 'paid':
+                payment_status = get_invoice_payment_status(inv.id)
+                if payment_status == 'paid':
                     invoices_str += 'invoice={}&'.format(inv.reference)
             if invoices_str:
                 invoices_str = invoices_str[:-1]
@@ -843,7 +861,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 # check that the site_licensee_email matches the Mooring Licence holder
                 if mooring_id and Mooring.objects.get(id=mooring_id):
                     mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                    if mooring_licence.submitter.email.lower().strip() != site_licensee_email.lower().strip():
+                    if mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
                         custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -885,7 +903,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    submitter = UserSerializer()
+    # submitter = UserSerializer()
+    submitter = serializers.SerializerMethodField()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
@@ -1009,6 +1028,16 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'documents',
             'requirements',
         )
+
+    def get_submitter(self, obj):
+        if obj.submitter:
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
+            email_user = retrieve_email_userro(obj.submitter)
+            # return EmailUserSerializer(email_user).data
+            return UserSerializer(email_user).data
+        else:
+            return ""
+
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
@@ -1159,7 +1188,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return obj.assessor_data
 
     def get_fee_invoice_url(self,obj):
-        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
         return url
 
 
@@ -1173,7 +1203,7 @@ class ProposalUserActionSerializer(serializers.ModelSerializer):
     def get_who(self, obj):
         ret_name = 'System'
         if obj.who:
-            name = obj.who.get_full_name()
+            name = retrieve_email_userro(obj.who).get_full_name()
             name = name.strip()
             if name:
                 ret_name = name
@@ -1392,7 +1422,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def get_emailuser(self, obj):
-        serializer = EmailUserSerializer(obj.owner.emailuser)
+        serializer = EmailUserSerializer(obj.owner.emailuser_obj)
         return serializer.data
 
     def get_vessel_details(self, obj):
@@ -1506,10 +1536,13 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def get_action_link(self, obj):
-        return '/internal/person/{}'.format(obj.owner.emailuser.id)
+        # return '/internal/person/{}'.format(obj.owner.emailuser.id)
+        return '/internal/person/{}'.format(obj.owner.emailuser)
 
     def get_owner_full_name(self, obj):
-        return obj.owner.emailuser.get_full_name()
+        # return obj.owner.emailuser.get_full_name()
+        owner = retrieve_email_userro(obj.owner.emailuser)
+        return owner.get_full_name()
 
     def get_applicable_percentage(self, obj):
         if obj.company_ownership:
@@ -1530,7 +1563,9 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
         return end_date_str
 
     def get_owner_phone_number(self, obj):
-        return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
+        # return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
+        owner = retrieve_email_userro(obj.owner.emailuser)
+        return owner.phone_number if owner.phone_number else owner.mobile_number
 
     def get_individual_owner(self, obj):
         individual_owner = True

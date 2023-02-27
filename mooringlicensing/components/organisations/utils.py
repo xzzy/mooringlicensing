@@ -4,7 +4,7 @@ import random
 
 def can_manage_org(organisation,user):
     from mooringlicensing.components.organisations.models import Organisation, OrganisationAccessGroup,UserDelegation
-    from ledger.accounts.models import EmailUser
+    # from ledger.accounts.models import EmailUser
     try:
         UserDelegation.objects.get(organisation=organisation,user=user)
         return can_admin_org(organisation, user)
@@ -40,7 +40,7 @@ def is_last_admin(organisation, user):
 
 def can_admin_org(organisation,user):
     from mooringlicensing.components.organisations.models import Organisation, OrganisationAccessGroup,UserDelegation,OrganisationContact
-    from ledger.accounts.models import EmailUser
+    # from ledger.accounts.models import EmailUser
     try:
         org_contact=OrganisationContact.objects.get(organisation_id=organisation,email=user.email)
         # if org_contact.can_edit
@@ -79,7 +79,7 @@ def can_approve(organisation, user):
 
 def is_consultant(organisation,user):
     from mooringlicensing.components.organisations.models import Organisation, OrganisationAccessGroup,UserDelegation,OrganisationContact
-    from ledger.accounts.models import EmailUser
+    # from ledger.accounts.models import EmailUser
     try:
         org_contact=OrganisationContact.objects.get(organisation_id=organisation,email=user.email)
         # if org_contact.can_edit

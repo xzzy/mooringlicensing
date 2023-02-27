@@ -280,6 +280,7 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log({full})
                     let links = '';
                     if (vm.is_internal){
                         if (vm.debug){
@@ -302,9 +303,9 @@ export default {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
                         for (let invoice of full.invoices){
-                            console.log(invoice.payment_status.toLowerCase())
+                            console.log({invoice})
                             if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){
-                                links +=  `<a href='/application_fee_existing/${full.id}'>Pay</a>`
+                                links +=  `<a href='/application_fee_existing/${invoice.reference}'>Pay</a>`
                             }
                         }
                         if (full.document_upload_url){
@@ -503,10 +504,11 @@ export default {
 
             // Applicant
             if (vm.is_internal){
-                vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                    vm.applicants = response.body
-                },(error) => {
-                })
+                // TODO: Get applicants
+                // vm.$http.get(api_endpoints.applicants_dict).then((response) => {
+                //     vm.applicants = response.body
+                // },(error) => {
+                // })
             }
         },
         addEventListeners: function(){

@@ -8,7 +8,8 @@ import geojson
 import requests
 import io
 from django.conf import settings
-from django.core.urlresolvers import reverse, reverse_lazy
+# from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
@@ -17,16 +18,27 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from dateutil.tz.tz import tzoffset
 from pytz import timezone as pytimezone
-from ledger.payments.models import Invoice,OracleInterface,CashTransaction
-from ledger.payments.utils import oracle_parser_on_invoice, update_payments
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
+# from ledger.payments.models import Invoice,OracleInterface,CashTransaction
+# from ledger.payments.utils import oracle_parser_on_invoice, update_payments
+# from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
+from ledger_api_client.utils import create_basket_session, create_checkout_session, place_order_submission, update_payments
 #from mooring.models import (MooringArea, Mooringsite, MooringsiteRate, MooringsiteBooking, Booking, BookingInvoice, MooringsiteBookingRange, Rate, MooringAreaBookingRange,MooringAreaStayHistory, MooringsiteRate, MarinaEntryRate, BookingVehicleRego, AdmissionsBooking, AdmissionsOracleCode, AdmissionsRate, AdmissionsLine, ChangePricePeriod, CancelPricePeriod, GlobalSettings, MooringAreaGroup, AdmissionsLocation, ChangeGroup, CancelGroup, BookingPeriod, BookingPeriodOption, AdmissionsBookingInvoice, BookingAnnualAdmission)
 #from mooring import models
 #from mooring.serialisers import BookingRegoSerializer, MooringsiteRateSerializer, MarinaEntryRateSerializer, RateSerializer, MooringsiteRateReadonlySerializer, AdmissionsRateSerializer
 #from mooring.emails import send_booking_invoice,send_booking_confirmation
 #from mooring import emails
-from oscar.apps.order.models import Order
-from ledger.payments.invoice import utils
+# <<<<<<< HEAD
+# from oscar.apps.order.models import Order
+from ledger_api_client.order import Order
+# from ledger.payments.invoice import utils
+# ||||||| 741adce2
+# from oscar.apps.order.models import Order
+# from ledger.payments.invoice import utils
+# =======
+#from oscar.apps.order.models import Order
+# from ledger.order.models import Order
+# from ledger.payments.invoice import utils
+# >>>>>>> main
 #from mooring import models
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.payments_ml.models import ApplicationFee
@@ -834,7 +846,8 @@ def admissionsCheckout(request, admissionsBooking, lines, invoice_text=None, vou
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'AD-'+str(admissionsBooking.id)
+        'booking_reference': 'AD-'+str(admissionsBooking.id),
+        'tax_override': True,
     }
     
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -878,7 +891,8 @@ def annual_admission_checkout(request, booking, lines, invoice_text=None, vouche
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'AA-'+str(booking.id)
+        'booking_reference': 'AA-'+str(booking.id),
+        'tax_override': True,
     }
     basket, basket_hash = create_basket_session(request, basket_params)
     checkout_params = {
@@ -934,7 +948,8 @@ def checkout(request, booking, lines, invoice_text=None, vouchers=[], internal=F
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'PS-'+str(booking.id)
+        'booking_reference': 'PS-'+str(booking.id),
+        'tax_override': True,
     }
  
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -1008,7 +1023,8 @@ def allocate_failedrefund_to_unallocated(request, booking, lines, invoice_text=N
             'vouchers': [],
             'system': settings.PS_PAYMENT_SYSTEM_ID,
             'custom_basket': True,
-            'booking_reference': booking_reference
+            'booking_reference': booking_reference,
+            'tax_override': True,
         }
 
         basket, basket_hash = create_basket_session(request, basket_params)
@@ -1046,7 +1062,8 @@ def allocate_refund_to_invoice(request, booking, lines, invoice_text=None, inter
             'vouchers': [],
             'system': settings.PS_PAYMENT_SYSTEM_ID,
             'custom_basket': True,
-            'booking_reference': booking_reference
+            'booking_reference': booking_reference,
+            'tax_override': True,
         }
 
         basket, basket_hash = create_basket_session(request, basket_params)

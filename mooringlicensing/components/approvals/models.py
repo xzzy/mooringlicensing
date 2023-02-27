@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
+
+import ledger_api_client.utils
 from django.core.files.base import ContentFile
 
 import datetime
 import logging
 import re
+import uuid
 
 import pytz
 from django.db import models,transaction
@@ -15,18 +18,22 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
-from ledger.settings_base import TIME_ZONE
-from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger.payments.invoice.models import Invoice
+
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+# from ledger.settings_base import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE
+# from ledger.accounts.models import EmailUser, RevisionedMixin
+# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, EmailUserRO
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.emails.utils import get_public_url
 from mooringlicensing.components.organisations.models import Organisation
-from mooringlicensing.components.payments_ml.models import StickerActionFee
+from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeConstructor
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
     StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
 from mooringlicensing.components.main.models import CommunicationsLogEntry, UserAction, Document, \
-    GlobalSettings  # , ApplicationType
+    GlobalSettings, RevisionedMixin, ApplicationType  # , ApplicationType
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
     send_approval_cancel_email_notification,
@@ -38,6 +45,7 @@ from mooringlicensing.components.approvals.email import (
 )
 from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
+from ledger_api_client.utils import calculate_excl_gst
 
 logger = logging.getLogger('mooringlicensing')
 
@@ -53,7 +61,7 @@ def update_approval_comms_log_filename(instance, filename):
 
 
 class WaitingListOfferDocument(Document):
-    approval = models.ForeignKey('Approval',related_name='waiting_list_offer_documents')
+    approval = models.ForeignKey('Approval',related_name='waiting_list_offer_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -66,8 +74,8 @@ class WaitingListOfferDocument(Document):
 
 
 class RenewalDocument(Document):
-    approval = models.ForeignKey('Approval',related_name='renewal_documents')
-    _file = models.FileField(upload_to=update_approval_doc_filename)
+    approval = models.ForeignKey('Approval',related_name='renewal_documents', on_delete=models.CASCADE)
+    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
     def delete(self):
@@ -80,7 +88,7 @@ class RenewalDocument(Document):
 
 
 class AuthorisedUserSummaryDocument(Document):
-    approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents')
+    approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents', on_delete=models.CASCADE)
     _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
 
     class Meta:
@@ -88,7 +96,7 @@ class AuthorisedUserSummaryDocument(Document):
 
 
 class ApprovalDocument(Document):
-    approval = models.ForeignKey('Approval',related_name='documents')
+    approval = models.ForeignKey('Approval',related_name='documents', on_delete=models.CASCADE)
     _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
@@ -102,9 +110,9 @@ class ApprovalDocument(Document):
 
 
 class MooringOnApproval(RevisionedMixin):
-    approval = models.ForeignKey('Approval')
-    mooring = models.ForeignKey(Mooring)
-    sticker = models.ForeignKey('Sticker', blank=True, null=True)
+    approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
+    mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
+    sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
     site_licensee = models.BooleanField()
     end_date = models.DateField(blank=True, null=True)
 
@@ -130,8 +138,8 @@ class MooringOnApproval(RevisionedMixin):
 
 
 class VesselOwnershipOnApproval(RevisionedMixin):
-    approval = models.ForeignKey('Approval')
-    vessel_ownership = models.ForeignKey(VesselOwnership)
+    approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
+    vessel_ownership = models.ForeignKey(VesselOwnership, on_delete=models.CASCADE)
     end_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
@@ -162,14 +170,14 @@ class ApprovalHistory(RevisionedMixin):
     #reason = models.CharField(max_length=40, choices=REASON_CHOICES, blank=True, null=True)
     reason = models.CharField(max_length=100, blank=True, null=True)
                                        #default=REASON_CHOICES[0][0])
-    approval = models.ForeignKey('Approval')
+    approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
     # can be null due to requirement to allow null vessels on renewal/amendment applications
-    vessel_ownership = models.ForeignKey(VesselOwnership, blank=True, null=True)
-    proposal = models.ForeignKey(Proposal,related_name='approval_history_records')
+    vessel_ownership = models.ForeignKey(VesselOwnership, blank=True, null=True, on_delete=models.SET_NULL)
+    proposal = models.ForeignKey(Proposal, related_name='approval_history_records', on_delete=models.CASCADE)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(blank=True, null=True)
     stickers = models.ManyToManyField('Sticker')
-    approval_letter = models.ForeignKey(ApprovalDocument, blank=True, null=True)
+    approval_letter = models.ForeignKey(ApprovalDocument, blank=True, null=True, on_delete=models.SET_NULL)
     # derive from proposal
 
     class Meta:
@@ -209,12 +217,12 @@ class Approval(RevisionedMixin):
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
     internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
-    licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document')
-    authorised_user_summary_document = models.ForeignKey(AuthorisedUserSummaryDocument, blank=True, null=True, related_name='approvals')
-    cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document')
-    replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace')
-    current_proposal = models.ForeignKey(Proposal,related_name='approvals', null=True)
-    renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='renewal_document')
+    licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document', on_delete=models.SET_NULL)
+    authorised_user_summary_document = models.ForeignKey(AuthorisedUserSummaryDocument, blank=True, null=True, related_name='approvals', on_delete=models.SET_NULL)
+    cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document', on_delete=models.SET_NULL)
+    replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace', on_delete=models.SET_NULL)
+    current_proposal = models.ForeignKey(Proposal,related_name='approvals', null=True, on_delete=models.SET_NULL)
+    renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='renewal_document', on_delete=models.SET_NULL)
     renewal_sent = models.BooleanField(default=False)
     issue_date = models.DateTimeField()
     wla_queue_date = models.DateTimeField(blank=True, null=True)
@@ -223,9 +231,11 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField(blank=True, null=True)
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
-    submitter = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='mooringlicensing_approvals')
-    org_applicant = models.ForeignKey(Organisation,on_delete=models.PROTECT, blank=True, null=True, related_name='org_approvals')
-    proxy_applicant = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True, related_name='proxy_approvals')
+    # submitter = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='mooringlicensing_approvals')
+    submitter = models.IntegerField(blank=True, null=True)
+    org_applicant = models.ForeignKey(Organisation, on_delete=models.PROTECT, blank=True, null=True, related_name='org_approvals')
+    # proxy_applicant = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='proxy_approvals')
+    proxy_applicant = models.IntegerField(blank=True, null=True)
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
     extend_details = models.TextField(blank=True)
@@ -251,6 +261,10 @@ class Approval(RevisionedMixin):
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
 
     def get_max_fee_item(self, fee_season, vessel_details=None):
         max_fee_item = None
@@ -278,70 +292,75 @@ class Approval(RevisionedMixin):
     def postal_address_line1(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line1
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.line1
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line1
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.line1
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line1
+                ret_value = submitter.residential_address.line1
         return ret_value
 
     @property
     def postal_address_line2(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line2
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.line2
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line2
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.line2
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line2
+                ret_value = submitter.residential_address.line2
         return ret_value
 
     @property
     def postal_address_state(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.state
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.state
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.state
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.state
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.state
+                ret_value = submitter.residential_address.state
         return ret_value
 
     @property
     def postal_address_suburb(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.locality
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.locality
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.locality
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.locality
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.locality
+                ret_value = submitter.residential_address.locality
         return ret_value
 
     @property
     def postal_address_postcode(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.postcode
+            submitter = retrieve_email_userro(self.submitter)
+            if submitter.postal_same_as_residential:
+                ret_value = submitter.residential_address.postcode
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.postcode
+                if submitter.postal_address:
+                    ret_value = submitter.postal_address.postcode
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.postcode
+                ret_value = submitter.residential_address.postcode
         return ret_value
 
     @property
@@ -481,14 +500,16 @@ class Approval(RevisionedMixin):
         if self.org_applicant:
             return self.org_applicant.organisation.name
         elif self.proxy_applicant:
+            applicant = retrieve_email_userro(self.proxy_applicant)
             return "{} {}".format(
-                self.proxy_applicant.first_name,
-                self.proxy_applicant.last_name)
+                applicant.first_name,
+                applicant.last_name)
         else:
             try:
+                submitter = retrieve_email_userro(self.submitter)
                 return "{} {}".format(
-                    self.submitter.first_name,
-                    self.submitter.last_name)
+                    submitter.first_name,
+                    submitter.last_name)
             except:
                 return "Applicant Not Set"
 
@@ -516,9 +537,11 @@ class Approval(RevisionedMixin):
         if self.org_applicant:
             return self.org_applicant.id
         elif self.proxy_applicant:
-            return self.proxy_applicant.id
+            # return self.proxy_applicant.id
+            return self.proxy_applicant
         else:
-            return self.submitter.id
+            # return self.submitter.id
+            return self.submitter
 
     @property
     def title(self):
@@ -566,9 +589,13 @@ class Approval(RevisionedMixin):
         return self.current_proposal.allowed_assessors_user(request)
 
     def is_assessor(self,user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.current_proposal.is_assessor(user)
 
     def is_approver(self,user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return self.current_proposal.is_approver(user)
 
     @property
@@ -926,7 +953,7 @@ class Approval(RevisionedMixin):
 
 
 class WaitingListAllocation(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
     code = 'wla'
     prefix = 'WLA'
     description = 'Waiting List Allocation'
@@ -956,12 +983,16 @@ class WaitingListAllocation(Approval):
                 vessel_draft = ''
 
             # Return context for the licence/permit document
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
+            # submitter = retrieve_email_userro(self.submitter)
             context = {
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
-                'applicant_full_name': self.submitter.get_full_name(),
+                # 'applicant_name': self.submitter.get_full_name(),
+                # 'applicant_full_name': self.submitter.get_full_name(),
+                'applicant_name': self.submitter_obj.get_full_name(),
+                'applicant_full_name': self.submitter_obj.get_full_name(),
                 'bay_name': self.current_proposal.preferred_bay.name,
                 'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y'),
                 'position_number': self.wla_order,
@@ -1008,7 +1039,7 @@ class WaitingListAllocation(Approval):
 
 
 class AnnualAdmissionPermit(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
     code = 'aap'
     prefix = 'AAP'
     description = 'Annual Admission Permit'
@@ -1040,7 +1071,7 @@ class AnnualAdmissionPermit(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
+                'applicant_name': retrieve_email_userro(self.submitter).get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1161,7 +1192,7 @@ class AnnualAdmissionPermit(Approval):
 
 
 class AuthorisedUserPermit(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
@@ -1187,13 +1218,13 @@ class AuthorisedUserPermit(Approval):
                 m = {}
                 # calculate phone number(s)
                 numbers = []
-                if mooring.mooring_licence.submitter.mobile_number:
-                    numbers.append(mooring.mooring_licence.submitter.mobile_number)
-                elif mooring.mooring_licence.submitter.phone_number:
-                    numbers.append(mooring.mooring_licence.submitter.phone_number)
+                if mooring.mooring_licence.submitter_obj.mobile_number:
+                    numbers.append(mooring.mooring_licence.submitter_obj.mobile_number)
+                elif mooring.mooring_licence.submitter_obj.phone_number:
+                    numbers.append(mooring.mooring_licence.submitter_obj.phone_number)
                 m['name'] = mooring.name
-                m['licensee_full_name'] = mooring.mooring_licence.submitter.get_full_name()
-                m['licensee_email'] = mooring.mooring_licence.submitter.email
+                m['licensee_full_name'] = mooring.mooring_licence.submitter_obj.get_full_name()
+                m['licensee_email'] = mooring.mooring_licence.submitter_obj.email
                 m['licensee_phone'] = ', '.join(numbers)
                 moorings.append(m)
 
@@ -1214,7 +1245,7 @@ class AuthorisedUserPermit(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
+                'applicant_name': self.submitter_obj.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1532,7 +1563,7 @@ class AuthorisedUserPermit(Approval):
 
 
 class MooringLicence(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
     code = 'ml'
     prefix = 'MOL'
     description = 'Mooring Licence'
@@ -1564,7 +1595,7 @@ class MooringLicence(Approval):
                 authorised_by = aup.get_authorised_by()
                 authorised_by = authorised_by.upper().replace('_', ' ')
 
-                authorised_person['full_name'] = aup.submitter.get_full_name()
+                authorised_person['full_name'] = aup.submitter_obj.get_full_name()
                 authorised_person['vessel'] = {
                     'rego_no': aup.current_proposal.vessel_details.vessel.rego_no if aup.current_proposal.vessel_details else '',
                     'vessel_name': aup.current_proposal.vessel_details.vessel_name if aup.current_proposal.vessel_details else '',
@@ -1573,8 +1604,8 @@ class MooringLicence(Approval):
                 }
                 authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
                 authorised_person['authorised_by'] = authorised_by
-                authorised_person['mobile_number'] = aup.submitter.mobile_number
-                authorised_person['email_address'] = aup.submitter.email
+                authorised_person['mobile_number'] = aup.submitter_obj.mobile_number
+                authorised_person['email_address'] = aup.submitter_obj.email
                 authorised_persons.append(authorised_person)
 
         today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
@@ -1594,8 +1625,8 @@ class MooringLicence(Approval):
 
     def get_context_for_licence_permit(self):
         try:
-            logger.info("self.issue_date: {}".format(self.issue_date))
-            logger.info("self.expiry_date: {}".format(self.expiry_date))
+            #logger.info("self.issue_date: {}".format(self.issue_date))
+            #logger.info("self.expiry_date: {}".format(self.expiry_date))
             # Return context for the licence/permit document
             licenced_vessel = None
             additional_vessels = []
@@ -1624,7 +1655,7 @@ class MooringLicence(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter.get_full_name(),
+                'applicant_name': self.submitter_obj.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1896,7 +1927,7 @@ class PreviewTempApproval(Approval):
 
 
 class ApprovalLogEntry(CommunicationsLogEntry):
-    approval = models.ForeignKey(Approval, related_name='comms_logs')
+    approval = models.ForeignKey(Approval, related_name='comms_logs', on_delete=models.CASCADE)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1908,7 +1939,7 @@ class ApprovalLogEntry(CommunicationsLogEntry):
         super(ApprovalLogEntry, self).save(**kwargs)
 
 class ApprovalLogDocument(Document):
-    log_entry = models.ForeignKey('ApprovalLogEntry',related_name='documents', null=True,)
+    log_entry = models.ForeignKey('ApprovalLogEntry',related_name='documents', null=True, on_delete=models.CASCADE)
     _file = models.FileField(upload_to=update_approval_comms_log_filename, null=True, max_length=512)
 
     class Meta:
@@ -1937,14 +1968,15 @@ class ApprovalUserAction(UserAction):
     def log_action(cls, approval, action, user=None):
         return cls.objects.create(
             approval=approval,
-            who=user,
+            who=user.id,
             what=str(action)
         )
 
-    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.PROTECT)
+    who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
-    approval= models.ForeignKey(Approval, related_name='action_logs')
+    approval= models.ForeignKey(Approval, related_name='action_logs', on_delete=models.PROTECT)
 
 
 class DcvOrganisation(RevisionedMixin):
@@ -1961,7 +1993,7 @@ class DcvOrganisation(RevisionedMixin):
 class DcvVessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
-    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
+    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.rego_no
@@ -1973,22 +2005,29 @@ class DcvVessel(RevisionedMixin):
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions')
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     skipper = models.CharField(max_length=50, blank=True, null=True)
     contact_number = models.CharField(max_length=50, blank=True, null=True)
-    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions')
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
+    # uuid = models.CharField(max_length=36, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
 
     def __str__(self):
         return self.lodgement_number
 
     @property
     def fee_paid(self):
-        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        # if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
             return True
         return False
 
@@ -2042,13 +2081,69 @@ class DcvAdmission(RevisionedMixin):
             urls.append(admission._file.url)
         return urls
 
+    def create_fee_lines(self):
+        db_processes_after_success = {}
+
+        target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        target_date = target_datetime.date()
+        target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+        db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+        application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
+        # vessel_length = 1  # any number greater than 0
+        vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
+        proposal_type = None
+        oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)
+
+        line_items = []
+        for dcv_admission_arrival in self.dcv_admission_arrivals.all():
+            fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, dcv_admission_arrival.arrival_date)
+            db_processes_after_success['fee_constructor_id'] = fee_constructor.id
+
+            if not fee_constructor:
+                raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, dcv_admission_arrival.arrival_date))
+
+            fee_items = []
+            number_of_people_str = []
+            total_amount = 0
+
+            for number_of_people in dcv_admission_arrival.numberofpeople_set.all():
+                if number_of_people.number:
+                    # When more than 1 people,
+                    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, dcv_admission_arrival.arrival_date, number_of_people.age_group, number_of_people.admission_type)
+                    fee_item.number_of_people = number_of_people.number
+                    fee_items.append(fee_item)
+                    number_of_people_str.append('[{}-{}: {}]'.format(number_of_people.age_group, number_of_people.admission_type, number_of_people.number))
+                    total_amount += fee_item.get_absolute_amount() * number_of_people.number
+
+            db_processes_after_success['fee_item_ids'] = [item.id for item in fee_items]
+
+            line_item = {
+                'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
+                    fee_constructor.application_type.description,
+                    self.lodgement_number,
+                    dcv_admission_arrival.arrival_date,
+                    dcv_admission_arrival.private_visit,
+                    ', '.join(number_of_people_str),
+                ),
+                'oracle_code': oracle_code,
+                'price_incl_tax': total_amount,
+                'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
+                'quantity': 1,
+            }
+            line_items.append(line_item)
+
+        logger.info('{}'.format(line_items))
+
+        return line_items, db_processes_after_success
 
 class DcvAdmissionArrival(RevisionedMixin):
-    dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals')
+    dcv_admission = models.ForeignKey(DcvAdmission, null=True, blank=True, related_name='dcv_admission_arrivals', on_delete=models.SET_NULL)
     arrival_date = models.DateField(null=True, blank=True)
     departure_date = models.DateField(null=True, blank=True)
     private_visit = models.BooleanField(default=False)
-    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True)
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, on_delete=models.SET_NULL)
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
     fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_arrivals')
@@ -2133,9 +2228,9 @@ class AdmissionType(models.Model):
 
 class NumberOfPeople(RevisionedMixin):
     number = models.PositiveSmallIntegerField(null=True, blank=True, default=0)
-    dcv_admission_arrival = models.ForeignKey(DcvAdmissionArrival, null=True, blank=True)
-    age_group = models.ForeignKey(AgeGroup, null=True, blank=True)
-    admission_type = models.ForeignKey(AdmissionType, null=True, blank=True)
+    dcv_admission_arrival = models.ForeignKey(DcvAdmissionArrival, null=True, blank=True, on_delete=models.SET_NULL)
+    age_group = models.ForeignKey(AgeGroup, null=True, blank=True, on_delete=models.SET_NULL)
+    admission_type = models.ForeignKey(AdmissionType, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2155,85 +2250,167 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits')
+    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
+    submitter = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
-    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits')
+    fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
-    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits')
-    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True)
+    dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
+    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
+    # uuid = models.CharField(max_length=36, blank=True, null=True)
+
+    @property
+    def submitter_obj(self):
+        return retrieve_email_userro(self.submitter) if self.submitter else None
+
+    def create_fee_lines(self):
+        """ Create the ledger lines - line item for application fee sent to payment system """
+
+        # Any changes to the DB should be made after the success of payment process
+        db_processes_after_success = {}
+
+        # if isinstance(instance, Proposal):
+        #     application_type = instance.application_type
+        #     vessel_length = instance.vessel_details.vessel_applicable_length
+        #     proposal_type = instance.proposal_type
+        # elif isinstance(instance, DcvPermit):
+        #     application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
+        #     vessel_length = 1  # any number greater than 0
+        #     proposal_type = None
+        application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
+        # vessel_length = 1  # any number greater than 0
+        vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
+        proposal_type = None
+
+        target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+        target_date = target_datetime.date()
+        target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+
+        # Retrieve FeeItem object from FeeConstructor object
+        # if isinstance(instance, Proposal):
+        #     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
+        #     if not fee_constructor:
+        #         # Fees have not been configured for this application type and date
+        #         raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
+        # elif isinstance(instance, DcvPermit):
+        #     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
+        #     if not fee_constructor:
+        #         # Fees have not been configured for this application type and date
+        #         raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
+        # else:
+        #     raise Exception('Something went wrong when calculating the fee')
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(
+            application_type, self.fee_season
+        )
+        if not fee_constructor:
+            # Fees have not been configured for this application type and date
+            raise Exception(
+                'FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(
+                    application_type, self.fee_season
+                )
+            )
+
+        fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+
+        db_processes_after_success['fee_item_id'] = fee_item.id
+        db_processes_after_success['fee_constructor_id'] = fee_constructor.id
+        db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
+        db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
+        db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
+
+        line_items = [
+            {
+                'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                    fee_constructor.application_type.description,
+                    self.lodgement_number,
+                    fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                    fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                    target_datetime_str,
+                ),
+                # 'oracle_code': application_type.oracle_code,
+                'oracle_code': ApplicationType.get_current_oracle_code_by_application(application_type.code),
+                'price_incl_tax': fee_item.amount,
+                'price_excl_tax': ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+                'quantity': 1,
+            },
+        ]
+
+        logger.info('{}'.format(line_items))
+
+        return line_items, db_processes_after_success
 
     @property
     def postal_address_line1(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line1
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.line1
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line1
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.line1
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line1
+                ret_value = self.submitter_obj.residential_address.line1
         return ret_value
 
     @property
     def postal_address_line2(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.line2
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.line2
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.line2
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.line2
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.line2
+                ret_value = self.submitter_obj.residential_address.line2
         return ret_value
 
     @property
     def postal_address_state(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.state
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.state
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.state
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.state
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.state
+                ret_value = self.submitter_obj.residential_address.state
         return ret_value
 
     @property
     def postal_address_suburb(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.locality
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.locality
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.locality
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.locality
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.locality
+                ret_value = self.submitter_obj.residential_address.locality
         return ret_value
 
     @property
     def postal_address_postcode(self):
         ret_value = ''
         if self.submitter:
-            if self.submitter.postal_same_as_residential:
-                ret_value = self.submitter.residential_address.postcode
+            if self.submitter_obj.postal_same_as_residential:
+                ret_value = self.submitter_obj.residential_address.postcode
             else:
-                if self.submitter.postal_address:
-                    ret_value = self.submitter.postal_address.postcode
+                if self.submitter_obj.postal_address:
+                    ret_value = self.submitter_obj.postal_address.postcode
             if not ret_value:
                 # Shouldn't reach here, but if so, just return residential address
-                ret_value = self.submitter.residential_address.postcode
+                ret_value = self.submitter_obj.residential_address.postcode
         return ret_value
 
     def get_context_for_licence_permit(self):
@@ -2272,7 +2449,8 @@ class DcvPermit(RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        # if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
+        if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
             return True
         return False
 
@@ -2315,9 +2493,13 @@ class DcvPermit(RevisionedMixin):
             return None
 
     def save(self, **kwargs):
+        logger.info(f"Saving DcvPermit: {self}.")
         if self.lodgement_number in ['', None]:
+            logger.info(f'DcvPermit has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
+
         super(DcvPermit, self).save(**kwargs)
+        logger.info("DcvPermit Saved.")
 
     def generate_dcv_permit_doc(self):
         permit_document = create_dcv_permit_document(self)
@@ -2342,7 +2524,7 @@ def update_dcv_permit_doc_filename(instance, filename):
 
 
 class DcvAdmissionDocument(Document):
-    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions')
+    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions', on_delete=models.PROTECT)
     _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
@@ -2356,7 +2538,7 @@ class DcvAdmissionDocument(Document):
 
 
 class DcvPermitDocument(Document):
-    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits')
+    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits', on_delete=models.PROTECT)
     _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
@@ -2419,17 +2601,17 @@ class Sticker(models.Model):
     ]
     number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True)  # When None, most probably 'awaiting_
-    sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True)
-    approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers')  # Sticker links to either approval or dcv_permit, never to both.
-    dcv_permit = models.ForeignKey(DcvPermit, blank=True, null=True, related_name='stickers')
+    sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True, on_delete=models.SET_NULL)  # When None, most probably 'awaiting_
+    sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True, on_delete=models.SET_NULL)
+    approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers', on_delete=models.SET_NULL)  # Sticker links to either approval or dcv_permit, never to both.
+    dcv_permit = models.ForeignKey(DcvPermit, blank=True, null=True, related_name='stickers', on_delete=models.SET_NULL)
     printing_date = models.DateField(blank=True, null=True)  # The day this sticker printed
     mailing_date = models.DateField(blank=True, null=True)  # The day this sticker sent
-    fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True)
-    fee_season = models.ForeignKey('FeeSeason', blank=True, null=True)
-    vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True)
-    proposal_initiated = models.ForeignKey('Proposal', blank=True, null=True)  # This propposal created this sticker object.  Can be None when sticker created by RequestNewSticker action or so.
-    sticker_to_replace = models.ForeignKey('self', null=True, blank=True)  # This sticker object replaces the sticker_to_replace for renewal
+    fee_constructor = models.ForeignKey('FeeConstructor', blank=True, null=True, on_delete=models.SET_NULL)
+    fee_season = models.ForeignKey('FeeSeason', blank=True, null=True, on_delete=models.SET_NULL)
+    vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True, on_delete=models.SET_NULL)
+    proposal_initiated = models.ForeignKey('Proposal', blank=True, null=True, on_delete=models.SET_NULL)  # This propposal created this sticker object.  Can be None when sticker created by RequestNewSticker action or so.
+    sticker_to_replace = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)  # This sticker object replaces the sticker_to_replace for renewal
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2590,37 +2772,37 @@ class Sticker(models.Model):
     @property
     def first_name(self):
         if self.approval and self.approval.submitter:
-            return self.approval.submitter.first_name
+            return self.approval.submitter_obj.first_name
         return '---'
 
     @property
     def last_name(self):
         if self.approval and self.approval.submitter:
-            return self.approval.submitter.last_name
+            return self.approval.submitter_obj.last_name
         return '---'
 
     @property
     def postal_address_line1(self):
-        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
-            return self.approval.submitter.postal_address.line1
+        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+            return self.approval.submitter_obj.postal_address.line1
         return '---'
 
     @property
     def postal_address_line2(self):
-        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
-            return self.approval.submitter.postal_address.line2
+        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+            return self.approval.submitter_obj.postal_address.line2
         return '---'
 
     @property
     def postal_address_state(self):
-        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
-            return self.approval.submitter.postal_address.state
+        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+            return self.approval.submitter_obj.postal_address.state
         return '---'
 
     @property
     def postal_address_suburb(self):
-        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
-            return self.approval.submitter.postal_address.locality
+        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+            return self.approval.submitter_obj.postal_address.locality
         return '---'
 
     @property
@@ -2637,21 +2819,22 @@ class Sticker(models.Model):
 
     @property
     def postal_address_postcode(self):
-        if self.approval and self.approval.submitter and self.approval.submitter.postal_address:
-            return self.approval.submitter.postal_address.postcode
+        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+            return self.approval.submitter_obj.postal_address.postcode
         return '---'
 
 
 class StickerActionDetail(models.Model):
-    sticker = models.ForeignKey(Sticker, blank=True, null=True, related_name='sticker_action_details')
+    sticker = models.ForeignKey(Sticker, blank=True, null=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
     reason = models.TextField(blank=True)
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
     date_of_lost_sticker = models.DateField(blank=True, null=True)
     date_of_returned_sticker = models.DateField(blank=True, null=True)
     action = models.CharField(max_length=50, null=True, blank=True)
-    user = models.ForeignKey(EmailUser, null=True, blank=True)
-    sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details')
+    # user = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
+    user = models.IntegerField(null=True, blank=True)
+    sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'mooringlicensing'

@@ -6,8 +6,8 @@ import datetime
 from decimal import Decimal
 from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
-from oscar.apps.address.models import Country
-from ledger.accounts.models import EmailUser, Address
+# from oscar.apps.address.models import Country
+# from ledger.accounts.models import EmailUser, Address
 from mooringlicensing.components.proposals.models import (
     Proposal,
     Vessel,
@@ -97,6 +97,9 @@ class AuthUserPermitMigration(object):
         user_action_list = []
         approval_list = []
         approval_history_list = []
+
+        aup_data = []
+        aup_data.append(['PersNo', 'Email', 'DoB', 'Rego No', 'MooringNo', 'Mooring Authorisation (RIA/LIC)'])
 
         added = []
         errors = []
@@ -348,7 +351,7 @@ class AuthUserPermitMigration(object):
 
                     ua=ProposalUserAction.objects.create(
                         proposal=proposal,
-                        who=user,
+                        who=user.id,
                         what='Authorised User Permit - Migrated Application',
                     )
 
@@ -410,6 +413,9 @@ class AuthUserPermitMigration(object):
                     user_action_list.append(ua.id)
                     approval_list.append(approval.id)
                     approval_history_list.append(approval_history.id)
+
+                    #date_invited = ''
+                    aup_data.append([pers_no, email, user.dob, rego_no, mooring.name, 'LIC'])
 
                 except Exception as e:
                     #errors.append(str(e))

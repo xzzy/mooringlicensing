@@ -1,5 +1,6 @@
 from io import BytesIO
-from ledger.settings_base import TIME_ZONE
+
+from ledger_api_client.settings_base import TIME_ZONE
 from django.utils import timezone
 from confy import env
 
@@ -11,33 +12,36 @@ from django.conf import settings
 from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
-    MooringLicence, Approval, ApprovalHistory
+    MooringLicence, Approval
 from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
-    StickerPrintingBatch, ProposalType
+    StickerPrintingBatch
 )
-from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger
+from mooringlicensing.components.main.decorators import query_debugger
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
+
 logger = logging.getLogger('mooringlicensing')
 
-def belongs_to(user, group_name):
-    """
-    Check if the user belongs to the given group.
-    :param user:
-    :param group_name:
-    :return:
-    """
-    return user.groups.filter(name=group_name).exists()
+# def belongs_to(user, group_name):
+#     """
+#     Check if the user belongs to the given group.
+#     :param user:
+#     :param group_name:
+#     :return:
+#     """
+#     return user.groups.filter(name=group_name).exists()
 
 
 def is_payment_officer(user):
-    return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+    # return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+    from mooringlicensing.helpers import belongs_to
+    return user.is_authenticated and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
 
 
 def to_local_tz(_date):
@@ -150,6 +154,9 @@ def retrieve_mooring_areas():
             for mooring_obj in Mooring.objects.all():
                 if mooring_obj.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_obj.active = False
+                    mooring_obj.save()
+                elif mooring_obj.mooring_bookings_id in [x.get("id") for x in data]:
+                    mooring_obj.active = True
                     mooring_obj.save()
             return [], records_updated
 
@@ -483,4 +490,5 @@ def calculate_max_length(fee_constructor, max_amount_paid, proposal_type):
     fee_items_interested = fee_constructor.feeitem_set.filter(proposal_type=proposal_type).order_by('vessel_size_category__start_size')
     max_length = calculate_minimum_max_length(fee_items_interested, max_amount_paid)
     return max_length
+
 
