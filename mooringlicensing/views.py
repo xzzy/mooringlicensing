@@ -4,8 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.conf import settings
+# from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+
+from mooringlicensing import settings
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.forms import *
 from mooringlicensing.components.proposals.models import (
@@ -146,6 +148,15 @@ class HelpView(LoginRequiredMixin, TemplateView):
                 qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_EXTERNAL).order_by('-version')
                 context['help'] = qs.first()
         return context
+
+
+class LoginSuccess(TemplateView):
+    template_name = 'mooringlicensing/login_success.html';
+
+    def get(self, request, *args, **kwargs):
+        context = {'LEDGER_UI_URL' : settings.LEDGER_UI_URL}
+        response = render(request, self.template_name, context)
+        return response
 
 
 class ManagementCommandsView(LoginRequiredMixin, TemplateView):
