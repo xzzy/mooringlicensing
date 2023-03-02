@@ -98,6 +98,7 @@ class DcvAdmissionFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
                     return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
                     return_preload_url=request.build_absolute_uri(reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid})),
+                    booking_reference=str(dcv_admission_fee.uuid),
                     invoice_text='DCV Admission Fee',
                 )
 
@@ -139,6 +140,7 @@ class DcvPermitFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('dcv_permit_fee_success')),  # return preload url
                     return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
                     return_preload_url=request.build_absolute_uri(reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid})),
+                    booking_reference=str(dcv_permit_fee.uuid),
                     invoice_text='DCV Permit Fee',
                 )
 
@@ -290,6 +292,7 @@ class StickerReplacementFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
                     return_preload_url=request.build_absolute_uri(reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid})),
+                    booking_reference=str(sticker_action_fee.uuid),
                     invoice_text='{}'.format(application_type.description),
                 )
 
@@ -472,6 +475,7 @@ class ApplicationFeeView(TemplateView):
                     lines,
                     return_url,
                     return_preload_url,
+                    booking_reference=str(application_fee.uuid),
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 

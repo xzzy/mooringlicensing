@@ -18,13 +18,14 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPe
 logger = logging.getLogger('mooringlicensing')
 
 
-def checkout(request, email_user, lines, return_url, return_preload_url, invoice_text=None, vouchers=[], proxy=False,):
+def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):
     basket_params = {
         'products': make_serializable(lines),
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
         'tax_override': True,
+        'booking_reference': booking_reference,
     }
 
     # basket, basket_hash = create_basket_session(request, basket_params)
