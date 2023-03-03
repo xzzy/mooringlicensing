@@ -1969,7 +1969,7 @@ class ApprovalUserAction(UserAction):
     def log_action(cls, approval, action, user=None):
         return cls.objects.create(
             approval=approval,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 

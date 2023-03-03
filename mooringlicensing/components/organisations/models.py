@@ -566,7 +566,7 @@ class OrganisationAction(UserAction):
     def log_action(cls, organisation, action, user):
         return cls.objects.create(
             organisation=organisation,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 
@@ -753,7 +753,7 @@ class OrganisationRequestUserAction(UserAction):
     def log_action(cls, request, action, user):
         return cls.objects.create(
             request=request,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 

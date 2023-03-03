@@ -1690,7 +1690,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             basket_params = {
                                 'products': line_items,
                                 'vouchers': [],
-                                'system': settings.PS_PAYMENT_SYSTEM_ID,
+                                'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
                                 # 'booking_reference': 'PB-' + str(booking_id),
                                 # 'booking_reference_link': str(old_booking_id),
@@ -3547,7 +3547,7 @@ class MooringUserAction(UserAction):
     def log_action(cls, mooring, action, user):
         return cls.objects.create(
             mooring=mooring,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 
