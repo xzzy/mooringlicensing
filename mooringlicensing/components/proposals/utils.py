@@ -63,7 +63,8 @@ from rest_framework import serializers
 import logging
 
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
@@ -448,6 +449,7 @@ def save_proponent_data_mla(instance, request, viewset):
 
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
+        instance.refresh_from_db()
 
 
 def save_proponent_data_aua(instance, request, viewset):
@@ -475,6 +477,7 @@ def save_proponent_data_aua(instance, request, viewset):
     serializer.save()
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
+        instance.refresh_from_db()
 
 
 # draft and submit

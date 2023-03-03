@@ -26,7 +26,8 @@ from openpyxl import Workbook
 from copy import deepcopy
 import logging
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 # def belongs_to(user, group_name):
 #     """

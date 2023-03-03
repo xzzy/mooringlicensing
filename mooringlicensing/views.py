@@ -18,8 +18,7 @@ from mooringlicensing.components.compliances.models import Compliance
 from django.core.management import call_command
 
 
-logger = logging.getLogger('mooringlicensing')
-
+logger = logging.getLogger(__name__)
 
 class InternalView(UserPassesTestMixin, TemplateView):
     template_name = 'mooringlicensing/dash/index.html'

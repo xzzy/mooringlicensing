@@ -23,7 +23,8 @@ from ledger_api_client.utils import update_payments
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing import mooring_booking_utils as utils
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class GetSeasonsForDcvPermitDict(views.APIView):

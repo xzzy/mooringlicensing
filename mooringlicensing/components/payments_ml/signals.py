@@ -6,7 +6,8 @@ from mooringlicensing.components.payments_ml.models import FeeConstructor, Appli
 
 from mooringlicensing.components.proposals.models import Proposal
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class FeeConstructorListener(object):

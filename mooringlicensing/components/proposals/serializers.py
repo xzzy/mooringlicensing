@@ -48,7 +48,8 @@ from django.db.models import Q
 from reversion.models import Version
 from mooringlicensing.helpers import is_internal
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):

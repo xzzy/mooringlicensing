@@ -68,7 +68,8 @@ from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_REN
 from rest_framework import status
 from ledger_api_client import utils
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class DcvAdmissionFeeView(TemplateView):

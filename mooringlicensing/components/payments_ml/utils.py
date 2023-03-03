@@ -15,7 +15,8 @@ from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPe
 
 #test
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):

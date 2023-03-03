@@ -5,7 +5,8 @@ from django.db.models import Q
 from mooringlicensing.components.approvals.models import Sticker, ApprovalHistory
 from mooringlicensing.components.proposals.models import Proposal
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class StickerListener(object):

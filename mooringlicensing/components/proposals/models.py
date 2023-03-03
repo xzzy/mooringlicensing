@@ -73,7 +73,8 @@ from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_REN
     LEDGER_SYSTEM_ID, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
-logger_for_payment = logging.getLogger('mooringlicensing')
+# logger_for_payment = logging.getLogger('mooringlicensing')
+logger_for_payment = logging.getLogger(__name__)
 
 
 def update_proposal_doc_filename(instance, filename):

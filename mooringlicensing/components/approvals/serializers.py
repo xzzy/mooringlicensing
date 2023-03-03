@@ -35,7 +35,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from mooringlicensing.ledger_api_utils import get_invoice_url, retrieve_email_userro
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):

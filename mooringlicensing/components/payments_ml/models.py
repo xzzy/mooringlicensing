@@ -21,7 +21,8 @@ from mooringlicensing.components.proposals.models import ProposalType, AnnualAdm
     AuthorisedUserApplication, VesselDetails, WaitingListApplication
 from smart_selects.db_fields import ChainedForeignKey
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class Payment(models.Model):
@@ -422,7 +423,8 @@ class FeeConstructor(models.Model):
 
     @classmethod
     def get_current_and_future_fee_constructors_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        logger = logging.getLogger('mooringlicensing')
+        # logger = logging.getLogger('mooringlicensing')
+        logger = logging.getLogger(__name__)
 
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
@@ -449,7 +451,8 @@ class FeeConstructor(models.Model):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_season(cls, application_type, fee_season):
-        logger = logging.getLogger('mooringlicensing')
+        # logger = logging.getLogger('mooringlicensing')
+        logger = logging.getLogger(__name__)
 
         try:
             fee_constructor_qs = cls.objects.filter(application_type=application_type, fee_season=fee_season, enabled=True)
@@ -470,7 +473,8 @@ class FeeConstructor(models.Model):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        logger = logging.getLogger('mooringlicensing')
+        # logger = logging.getLogger('mooringlicensing')
+        logger = logging.getLogger(__name__)
 
         # Select a fee_constructor object which has been started most recently for the application_type
         try:
