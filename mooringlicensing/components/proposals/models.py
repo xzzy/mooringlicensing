@@ -25,14 +25,14 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from django.conf import settings
+# from django.conf import settings
 # from django.core.urlresolvers import reverse
 from django.urls import reverse
 # from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import Invoice
-from mooringlicensing import exceptions
+from mooringlicensing import exceptions, settings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
@@ -1714,7 +1714,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 # invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                             )
-                            return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+                            # return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+                            return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
+
 
                             basket_hash_split = basket_hash.split("|")
                             pcfi = process_create_future_invoice(

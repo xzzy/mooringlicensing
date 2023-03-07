@@ -458,3 +458,4 @@ LEDGER_UI_ACCOUNTS_MANAGEMENT = [
            {'phone_number' : {'options' : {'view': True, 'edit': True}}},
            {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
 ]
+MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
