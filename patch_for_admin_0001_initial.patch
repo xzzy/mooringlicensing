@@ -23,7 +23,7 @@
 +                #     on_delete=models.CASCADE,
 +                #     verbose_name='user',
 +                # )),
-+                ('user', models.IntegerField(verbose_name='user',)),
++                ('user_id', models.IntegerField(verbose_name='user',)),
              ],
              options={
                  'ordering': ['-action_time'],

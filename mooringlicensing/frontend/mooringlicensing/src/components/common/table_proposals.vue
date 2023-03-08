@@ -280,6 +280,7 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log('in column_action')
                     console.log({full})
                     let links = '';
                     if (vm.is_internal){

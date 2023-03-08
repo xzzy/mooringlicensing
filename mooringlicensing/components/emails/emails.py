@@ -15,7 +15,8 @@ from ledger_api_client.ledger_models import Document
 
 from mooringlicensing.settings import SYSTEM_NAME
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 def _render(template, context):

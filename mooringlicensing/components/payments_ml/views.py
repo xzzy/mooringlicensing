@@ -68,7 +68,8 @@ from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_REN
 from rest_framework import status
 from ledger_api_client import utils
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class DcvAdmissionFeeView(TemplateView):
@@ -98,6 +99,7 @@ class DcvAdmissionFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
                     return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
                     return_preload_url=request.build_absolute_uri(reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid})),
+                    booking_reference=str(dcv_admission_fee.uuid),
                     invoice_text='DCV Admission Fee',
                 )
 
@@ -139,6 +141,7 @@ class DcvPermitFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('dcv_permit_fee_success')),  # return preload url
                     return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
                     return_preload_url=request.build_absolute_uri(reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid})),
+                    booking_reference=str(dcv_permit_fee.uuid),
                     invoice_text='DCV Permit Fee',
                 )
 
@@ -290,6 +293,7 @@ class StickerReplacementFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
                     return_preload_url=request.build_absolute_uri(reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid})),
+                    booking_reference=str(sticker_action_fee.uuid),
                     invoice_text='{}'.format(application_type.description),
                 )
 
@@ -472,6 +476,7 @@ class ApplicationFeeView(TemplateView):
                     lines,
                     return_url,
                     return_preload_url,
+                    booking_reference=str(application_fee.uuid),
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
 
@@ -510,7 +515,7 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 'submitter': dcv_admission.submitter_obj,
                 'fee_invoice': dcv_admission_fee,
                 # 'invoice': invoice,
-                'invoice_url': get_invoice_url(dcv_admission_fee.invoice_reference),
+                'invoice_url': get_invoice_url(dcv_admission_fee.invoice_reference, request),
                 'admission_urls': dcv_admission.get_admission_urls(),
             }
             return render(request, self.template_name, context)
@@ -694,7 +699,7 @@ class DcvPermitFeeSuccessView(TemplateView):
             dcv_permit_fee = DcvPermitFee.objects.get(uuid=uuid)
 
             dcv_permit = dcv_permit_fee.dcv_permit
-            invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference)
+            invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference, request)
 
             context = {
                 'dcv_permit': dcv_permit,
@@ -1014,7 +1019,7 @@ class ApplicationFeeSuccessView(TemplateView):
             #     return redirect('home')  # Should be 'raise' rather than redirect?
             wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            invoice_url = get_invoice_url(invoice.reference)
+            invoice_url = get_invoice_url(invoice.reference, request)
             context = {
                 'proposal': proposal,
                 'submitter': submitter,

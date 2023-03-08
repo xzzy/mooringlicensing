@@ -9,7 +9,7 @@ from mooringlicensing.components.main.models import (
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from ledger_api_client import utils
 
-from mooringlicensing.ledger_api_utils import get_invoice_payment_status, get_invoice_url
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -94,9 +94,6 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'invoice_url',
         )
 
-    def get_invoice_url(self, obj):
-        return get_invoice_url(obj.reference)
-
     def get_payment_status(self, invoice):
         invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
 
@@ -108,6 +105,10 @@ class InvoiceSerializer(serializers.ModelSerializer):
             return 'Paid'
         else:
             return 'Over Paid'
+
+    def get_invoice_url(self, invoice):
+        return f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+
 
 class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):
     class Meta:

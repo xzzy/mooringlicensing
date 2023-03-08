@@ -33,9 +33,10 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
-from mooringlicensing.ledger_api_utils import get_invoice_url, retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
@@ -1281,7 +1282,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
 
     def get_fee_invoice_url(self, obj):
         # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
-        url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
         return url
 
     def get_dcv_organisation_name(self, obj):
@@ -1351,7 +1353,8 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
     def get_fee_invoice_url(self, obj):
         # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
-        url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
         return url
 
     def get_lodgement_date(self, obj):

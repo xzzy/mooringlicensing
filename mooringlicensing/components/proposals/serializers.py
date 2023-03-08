@@ -33,22 +33,19 @@ from mooringlicensing.components.proposals.models import (
     ProposalType,
     Company,
     CompanyOwnership,
-    Mooring, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication,
+    Mooring, MooringLicenceApplication, AuthorisedUserApplication
 )
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
-from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, AuthorisedUserPermit, \
-    AnnualAdmissionPermit
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
     EmailUserSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
-from mooringlicensing.components.users.serializers import UserAddressSerializer, DocumentSerializer
+from mooringlicensing.components.users.serializers import UserAddressSerializer
 from rest_framework import serializers
-from django.db.models import Q
-from reversion.models import Version
 from mooringlicensing.helpers import is_internal
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
@@ -612,7 +609,8 @@ class ListProposalSerializer(BaseProposalSerializer):
             #     invoice.reference, invoice.reference)
             # api_key = settings.LEDGER_API_KEY
             # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
-            url = get_invoice_url(invoice.reference)
+            # url = get_invoice_url(invoice.reference)
+            url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
             links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
         if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
             # paid invoices url
@@ -1189,7 +1187,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
 
     def get_fee_invoice_url(self,obj):
         # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
-        url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
         return url
 
 

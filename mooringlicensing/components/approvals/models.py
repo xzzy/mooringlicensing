@@ -47,7 +47,8 @@ from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
 from ledger_api_client.utils import calculate_excl_gst
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 def update_waiting_list_offer_doc_filename(instance, filename):
@@ -1968,7 +1969,7 @@ class ApprovalUserAction(UserAction):
     def log_action(cls, approval, action, user=None):
         return cls.objects.create(
             approval=approval,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 
