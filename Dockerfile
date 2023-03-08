@@ -1,5 +1,5 @@
 # Prepare the base environment.
-FROM ubuntu:20.04 as builder_base_oim_licensing
+FROM ubuntu:20.04 as builder_base_mooringlicensing
 MAINTAINER asi@dbca.wa.gov.au
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -16,12 +16,12 @@ ENV SITE_PREFIX='mls-dev'
 ENV SITE_DOMAIN='dbca.wa.gov.au'
 ENV OSCAR_SHOP_NAME='Parks & Wildlife'
 ENV BPAY_ALLOWED=False
-ARG BRANCH_ARG
-ARG REPO_ARG
-ARG REPO_NO_DASH_ARG
-ENV BRANCH=$BRANCH_ARG
-ENV REPO=$REPO_ARG
-ENV REPO_NO_DASH=$REPO_NO_DASH_ARG
+#ARG BRANCH_ARG
+#ARG REPO_ARG
+#ARG REPO_NO_DASH_ARG
+#ENV BRANCH=$BRANCH_ARG
+#ENV REPO=$REPO_ARG
+#ENV REPO_NO_DASH=$REPO_NO_DASH_ARG
 
 RUN apt-get clean
 RUN apt-get update
@@ -31,48 +31,56 @@ RUN apt-get install --no-install-recommends -y libpq-dev patch libreoffice
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim nodejs npm
 RUN ln -s /usr/bin/python3 /usr/bin/python 
 
+# Install Python libs from requirements.txt.
+FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
-RUN git clone -v -b $BRANCH https://github.com/dbca-wa/$REPO.git .
+COPY requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt \
-  # Update the Django <1.11 bug in django/contrib/gis/geos/libgeos.py
-  # Reference: https://stackoverflow.com/questions/18643998/geodjango-geosexception-error
-  #&& sed -i -e "s/ver = geos_version().decode()/ver = geos_version().decode().split(' ')[0]/" /usr/local/lib/python3.6/dist-packages/django/contrib/gis/geos/libgeos.py \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
-RUN patch /usr/local/lib/python3.8/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
-
-WORKDIR $REPO_NO_DASH/frontend/$REPO_NO_DASH/
-#RUN npm install --production
-RUN npm install --omit=dev
-RUN npm run build
-WORKDIR /app
-RUN touch /app/.env
-RUN python manage_ml.py collectstatic --no-input
-RUN rm -rf node_modules/
-RUN git log --pretty=medium -30 > ./git_history_recent
+#COPY libgeos.py.patch /app/
+#RUN patch /usr/local/lib/python3.8/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
+#RUN rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
-COPY ./timezone /etc/timezone
+FROM python_libs_ml
+COPY gunicorn.ini manage_ml.py ./
+#COPY timezone /etc/timezone
+RUN echo "Australia/Perth" > /etc/timezone
+ENV TZ=Australia/Perth
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN touch /app/.env
+COPY .git ./.git
+COPY mooringlicensing ./mooringlicensing
+COPY patch_for_admin_0001_initial.patch ./patch_for_admin_0001_initial.patch
+COPY patch_for_admin_0001_initial.patch_revert ./patch_for_admin_0001_initial.patch_revert
+COPY patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
+COPY patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
+RUN python manage_ml.py collectstatic --noinput
 
-RUN touch /app/rand_hash
-COPY ./cron /etc/cron.d/dockercron
+RUN mkdir /app/tmp/
+RUN chmod 777 /app/tmp/
+
+COPY cron /etc/cron.d/dockercron
+COPY startup.sh /
+# Cron start
 RUN service rsyslog start
 RUN chmod 0644 /etc/cron.d/dockercron
 RUN crontab /etc/cron.d/dockercron
 RUN touch /var/log/cron.log
 RUN service cron start
-COPY ./startup.sh /
 RUN chmod 755 /startup.sh
-#RUN chmod 755 startup.sh
+# cron end
 
 # IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
 # 1. will create dir, if it does not already exist
 # 2. will create profile, if it does not already exist
 RUN mkdir /app/logs/.ipython
 RUN export IPYTHONDIR=/app/logs/.ipython/
+#RUN python profile create 
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
 CMD ["/startup.sh"]
+

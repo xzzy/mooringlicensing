@@ -25,14 +25,14 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from django.conf import settings
+# from django.conf import settings
 # from django.core.urlresolvers import reverse
 from django.urls import reverse
 # from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import Invoice
-from mooringlicensing import exceptions
+from mooringlicensing import exceptions, settings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
@@ -73,7 +73,8 @@ from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_REN
     LEDGER_SYSTEM_ID, PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
 
 logger = logging.getLogger(__name__)
-logger_for_payment = logging.getLogger('mooringlicensing')
+# logger_for_payment = logging.getLogger('mooringlicensing')
+logger_for_payment = logging.getLogger(__name__)
 
 
 def update_proposal_doc_filename(instance, filename):
@@ -124,11 +125,27 @@ class RequirementDocument(Document):
 
 
 VESSEL_TYPES = (
-        ('yacht', 'Yacht'),
-        ('cabin_cruiser', 'Cabin Cruiser'),
+        ('catamaran', 'Catamaran'),
+        ('bow_rider', 'Bow Rider'),
+        ('cabin_ruiser', 'Cabin Cruiser'),
+        ('centre_console', 'Centre Console'),
+        ('ferry', 'Ferry'),
+        ('rigid_inflatable', 'Rigid Inflatable'),
+        ('half_cabin', 'Half Cabin'),
+        ('inflatable', 'Inflatable'),
+        ('launch', 'Launch'),
+        ('motor_sailer', 'Motor Sailer'),
+        ('multihull', 'Multihull'),
+        ('open_boat', 'Open Boat'),
+        ('power_boat', 'Power Boat'),
+        ('pwc', 'PWC'),
+        ('Runabout', 'Runabout'),
+        ('fishing_boat', 'Fishing Boat'),
         ('tender', 'Tender'),
+        ('walkaround', 'Walkaround'),
         ('other', 'Other'),
-        )
+    )
+
 INSURANCE_CHOICES = (
     ("five_million", "$5 million Third Party Liability insurance cover - required for vessels of length less than 6.4 metres"),
     ("ten_million", "$10 million Third Party Liability insurance cover - required for vessels of length 6.4 metres or greater"),
@@ -1673,17 +1690,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             basket_params = {
                                 'products': line_items,
                                 'vouchers': [],
-                                'system': settings.PS_PAYMENT_SYSTEM_ID,
+                                'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
                                 # 'booking_reference': 'PB-' + str(booking_id),
                                 # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
                                 # 'organisation': 7,
+                                'tax_override': True,
                             }
                             # basket_user_id = customer_id
                             # basket_hash = utils_ledger_api_client.create_basket_session(
                             from ledger_api_client.utils import create_basket_session, process_create_future_invoice
-                            basket_hash = create_basket_session(request, request.user.id, basket_params)
+                            # basket_hash = create_basket_session(request, request.user.id, basket_params)
+                            basket_hash = create_basket_session(request, self.submitter, basket_params)
 
                             #checkouthash =  hashlib.sha256('TEST'.encode('utf-8')).hexdigest()
                             #checkouthash = request.session.get('checkouthash','')
@@ -1696,7 +1715,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 # invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                             )
-                            return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+                            # return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+                            return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
+
 
                             basket_hash_split = basket_hash.split("|")
                             pcfi = process_create_future_invoice(
@@ -2335,7 +2356,7 @@ class WaitingListApplication(Proposal):
             # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             # api_key = settings.LEDGER_API_KEY
             # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
-            url = get_invoice_url(self.invoice.reference)
+            url = get_invoice_url(self.invoice.reference, request)
             invoice_pdf = requests.get(url=url)
             if invoice_pdf.status_code == 200:
                 attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
@@ -2534,7 +2555,7 @@ class AnnualAdmissionApplication(Proposal):
         #     invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
         #     attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
         #     attachments.append(attachment)
-            url = get_invoice_url(self.invoice.reference)
+            url = get_invoice_url(self.invoice.reference, request)
             invoice_pdf = requests.get(url=url)
             if invoice_pdf.status_code == 200:
                 attachment = (f'invoice#{self.invoice.reference}', invoice_pdf.content, 'application/pdf')
@@ -3396,6 +3417,7 @@ class ProposalLogEntry(CommunicationsLogEntry):
 # not for admin - data comes from Mooring Bookings
 class MooringBay(RevisionedMixin):
     name = models.CharField(max_length=100)
+    code = models.CharField(max_length=3, blank=True, null=True)
     mooring_bookings_id = models.IntegerField()
     active = models.BooleanField(default=True)
 
@@ -3528,7 +3550,7 @@ class MooringUserAction(UserAction):
     def log_action(cls, mooring, action, user):
         return cls.objects.create(
             mooring=mooring,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 

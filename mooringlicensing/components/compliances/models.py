@@ -282,7 +282,7 @@ class ComplianceUserAction(UserAction):
     def log_action(cls, compliance, action, user):
         return cls.objects.create(
             compliance=compliance,
-            who=user.id,
+            who=user.id if user else None,
             what=str(action)
         )
 

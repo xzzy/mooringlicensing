@@ -237,10 +237,10 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         if max_vessel_draft:
             filter_query &= Q(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
 
-        ml_list = MooringLicence.objects.all()
-        aup_list = AuthorisedUserPermit.objects.all()
-        aap_list = AnnualAdmissionPermit.objects.all()
-        wla_list = WaitingListAllocation.objects.all()
+        ml_list = MooringLicence.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+        aup_list = AuthorisedUserPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+        aap_list = AnnualAdmissionPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+        wla_list = WaitingListAllocation.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
         if filter_approval_type and not filter_approval_type.lower() == 'all':

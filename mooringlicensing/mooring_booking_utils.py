@@ -27,9 +27,18 @@ from ledger_api_client.utils import create_basket_session, create_checkout_sessi
 #from mooring.serialisers import BookingRegoSerializer, MooringsiteRateSerializer, MarinaEntryRateSerializer, RateSerializer, MooringsiteRateReadonlySerializer, AdmissionsRateSerializer
 #from mooring.emails import send_booking_invoice,send_booking_confirmation
 #from mooring import emails
+# <<<<<<< HEAD
 # from oscar.apps.order.models import Order
 from ledger_api_client.order import Order
 # from ledger.payments.invoice import utils
+# ||||||| 741adce2
+# from oscar.apps.order.models import Order
+# from ledger.payments.invoice import utils
+# =======
+#from oscar.apps.order.models import Order
+# from ledger.order.models import Order
+# from ledger.payments.invoice import utils
+# >>>>>>> main
 #from mooring import models
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.payments_ml.models import ApplicationFee
@@ -837,7 +846,8 @@ def admissionsCheckout(request, admissionsBooking, lines, invoice_text=None, vou
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'AD-'+str(admissionsBooking.id)
+        'booking_reference': 'AD-'+str(admissionsBooking.id),
+        'tax_override': True,
     }
     
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -881,7 +891,8 @@ def annual_admission_checkout(request, booking, lines, invoice_text=None, vouche
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'AA-'+str(booking.id)
+        'booking_reference': 'AA-'+str(booking.id),
+        'tax_override': True,
     }
     basket, basket_hash = create_basket_session(request, basket_params)
     checkout_params = {
@@ -937,7 +948,8 @@ def checkout(request, booking, lines, invoice_text=None, vouchers=[], internal=F
         'vouchers': vouchers,
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'custom_basket': True,
-        'booking_reference': 'PS-'+str(booking.id)
+        'booking_reference': 'PS-'+str(booking.id),
+        'tax_override': True,
     }
  
     basket, basket_hash = create_basket_session(request, basket_params)
@@ -1011,7 +1023,8 @@ def allocate_failedrefund_to_unallocated(request, booking, lines, invoice_text=N
             'vouchers': [],
             'system': settings.PS_PAYMENT_SYSTEM_ID,
             'custom_basket': True,
-            'booking_reference': booking_reference
+            'booking_reference': booking_reference,
+            'tax_override': True,
         }
 
         basket, basket_hash = create_basket_session(request, basket_params)
@@ -1049,7 +1062,8 @@ def allocate_refund_to_invoice(request, booking, lines, invoice_text=None, inter
             'vouchers': [],
             'system': settings.PS_PAYMENT_SYSTEM_ID,
             'custom_basket': True,
-            'booking_reference': booking_reference
+            'booking_reference': booking_reference,
+            'tax_override': True,
         }
 
         basket, basket_hash = create_basket_session(request, basket_params)

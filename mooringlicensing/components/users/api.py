@@ -61,7 +61,8 @@ from mooringlicensing.components.main.models import UserSystemSettings
 #         )
 
 import logging
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class GetCountries(views.APIView):

@@ -26,7 +26,8 @@ from openpyxl import Workbook
 from copy import deepcopy
 import logging
 
-logger = logging.getLogger('mooringlicensing')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 # def belongs_to(user, group_name):
 #     """
@@ -154,6 +155,9 @@ def retrieve_mooring_areas():
             for mooring_obj in Mooring.objects.all():
                 if mooring_obj.mooring_bookings_id not in [x.get("id") for x in data]:
                     mooring_obj.active = False
+                    mooring_obj.save()
+                elif mooring_obj.mooring_bookings_id in [x.get("id") for x in data]:
+                    mooring_obj.active = True
                     mooring_obj.save()
             return [], records_updated
 
