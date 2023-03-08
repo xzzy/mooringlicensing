@@ -1065,7 +1065,8 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
     if attach_invoice and proposal.invoice:
         # Attach invoice
         # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
-        url = get_invoice_url(proposal.invoice.reference)
+        # url = get_invoice_url(proposal.invoice.reference)
+        url = f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{proposal.invoice.reference}'
         invoice_pdf = requests.get(url=url)
         if invoice_pdf.status_code == 200:
             attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_pdf.content, 'application/pdf')

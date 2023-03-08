@@ -515,7 +515,7 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 'submitter': dcv_admission.submitter_obj,
                 'fee_invoice': dcv_admission_fee,
                 # 'invoice': invoice,
-                'invoice_url': get_invoice_url(dcv_admission_fee.invoice_reference),
+                'invoice_url': get_invoice_url(dcv_admission_fee.invoice_reference, request),
                 'admission_urls': dcv_admission.get_admission_urls(),
             }
             return render(request, self.template_name, context)
@@ -699,7 +699,7 @@ class DcvPermitFeeSuccessView(TemplateView):
             dcv_permit_fee = DcvPermitFee.objects.get(uuid=uuid)
 
             dcv_permit = dcv_permit_fee.dcv_permit
-            invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference)
+            invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference, request)
 
             context = {
                 'dcv_permit': dcv_permit,
@@ -1019,7 +1019,7 @@ class ApplicationFeeSuccessView(TemplateView):
             #     return redirect('home')  # Should be 'raise' rather than redirect?
             wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            invoice_url = get_invoice_url(invoice.reference)
+            invoice_url = get_invoice_url(invoice.reference, request)
             context = {
                 'proposal': proposal,
                 'submitter': submitter,

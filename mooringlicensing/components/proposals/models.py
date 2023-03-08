@@ -1701,7 +1701,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # basket_user_id = customer_id
                             # basket_hash = utils_ledger_api_client.create_basket_session(
                             from ledger_api_client.utils import create_basket_session, process_create_future_invoice
-                            basket_hash = create_basket_session(request, request.user.id, basket_params)
+                            # basket_hash = create_basket_session(request, request.user.id, basket_params)
+                            basket_hash = create_basket_session(request, self.submitter, basket_params)
 
                             #checkouthash =  hashlib.sha256('TEST'.encode('utf-8')).hexdigest()
                             #checkouthash = request.session.get('checkouthash','')
@@ -2355,7 +2356,7 @@ class WaitingListApplication(Proposal):
             # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             # api_key = settings.LEDGER_API_KEY
             # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
-            url = get_invoice_url(self.invoice.reference)
+            url = get_invoice_url(self.invoice.reference, request)
             invoice_pdf = requests.get(url=url)
             if invoice_pdf.status_code == 200:
                 attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
@@ -2554,7 +2555,7 @@ class AnnualAdmissionApplication(Proposal):
         #     invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
         #     attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
         #     attachments.append(attachment)
-            url = get_invoice_url(self.invoice.reference)
+            url = get_invoice_url(self.invoice.reference, request)
             invoice_pdf = requests.get(url=url)
             if invoice_pdf.status_code == 200:
                 attachment = (f'invoice#{self.invoice.reference}', invoice_pdf.content, 'application/pdf')

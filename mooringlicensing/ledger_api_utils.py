@@ -16,5 +16,10 @@ def get_invoice_payment_status(invoice_id):
     return invoice_payment_status
 
 
-def get_invoice_url(invoice_reference):
-    return f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'
+def get_invoice_url(invoice_reference, request):
+    # return f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'
+    # return f'/ledger-toolkit-api/invoice-pdf/{invoice_reference}/'
+
+    # We shouldn't use the URL below for the front-end, because it includes the LEDGER_API_KEY, rather access it via ledger-toolkit-api/invoice-pdf
+    # f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'
+    return request.build_absolute_uri(f'/ledger-toolkit-api/invoice-pdf/{invoice_reference}/')
