@@ -30,13 +30,20 @@ class FirstTimeNagScreenMiddleware(object):
         response = self.get_response(request)
         return response
 
+
 class CacheControlMiddleware(object):
-    def process_response(self, request, response):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    # def process_response(self, request, response):
+    def __call__(self, request):
+        response = self.get_response(request)
         if request.path[:5] == '/api/' or request.path == '/':
             response['Cache-Control'] = 'private, no-store'
         elif request.path[:8] == '/static/':
             response['Cache-Control'] = 'public, max-age=86400'
         return response
+
 
 class RevisionOverrideMiddleware(RevisionMiddleware):
 
