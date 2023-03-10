@@ -2,7 +2,7 @@
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
-                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number</label>
+                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number *</label>
                 <div class="col-sm-9">
                     <select :disabled="regoReadonly" id="vessel_search"  ref="vessel_rego_nos" class="form-control" style="width: 40%">
                         <option></option>
@@ -10,24 +10,24 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel name</label>
+                <label for="" class="col-sm-3 control-label">Vessel name *</label>
                 <div class="col-sm-9">
                     <input :readonly="readonly" type="text" class="form-control" id="vessel_name" placeholder="" v-model="vessel.vessel_details.vessel_name" required/>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Registration vessel owner</label>
+                <label for="" class="col-sm-3 control-label">Registration vessel owner *</label>
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input 
-                            @change="clearOrgName" 
-                            :disabled="readonly" 
-                            type="radio" 
-                            id="registered_owner_current_user" 
-                            name="registered_owner" 
-                            :value="true" 
-                            v-model="vessel.vessel_ownership.individual_owner" 
+                            <input
+                            @change="clearOrgName"
+                            :disabled="readonly"
+                            type="radio"
+                            id="registered_owner_current_user"
+                            name="registered_owner"
+                            :value="true"
+                            v-model="vessel.vessel_ownership.individual_owner"
                             required
                             />
                             <label for="registered_owner_current_user" class="control-label">{{  profileFullName }}</label>
@@ -35,13 +35,13 @@
                     </div>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input 
-                            :disabled="readonly" 
-                            type="radio" 
-                            id="registered_owner_company" 
-                            name="registered_owner" 
-                            :value="false" 
-                            v-model="vessel.vessel_ownership.individual_owner" 
+                            <input
+                            :disabled="readonly"
+                            type="radio"
+                            id="registered_owner_company"
+                            name="registered_owner"
+                            :value="false"
+                            v-model="vessel.vessel_ownership.individual_owner"
                             required=""
                             />
                             <label for="registered_owner_company" class="control-label">Your company</label>
@@ -53,33 +53,33 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Ownership percentage</label>
+                <label for="" class="col-sm-3 control-label">Ownership percentage *</label>
                 <div v-if="individualOwner" class="col-sm-2">
-                    <input 
-                     :readonly="readonly" 
-                    type="number" 
+                    <input
+                     :readonly="readonly"
+                    type="number"
                     step="1"
-                    min="25" 
-                    max="100" 
-                    class="form-control" 
-                    id="ownership_percentage" 
-                    placeholder="" 
-                    v-model="vessel.vessel_ownership.percentage" 
+                    min="25"
+                    max="100"
+                    class="form-control"
+                    id="ownership_percentage"
+                    placeholder=""
+                    v-model="vessel.vessel_ownership.percentage"
                     required=""
                     />
                 </div>
                 <div v-else-if="companyOwner" class="col-sm-2">
-                    <input 
-                     :readonly="readonly" 
-                    type="number" 
+                    <input
+                     :readonly="readonly"
+                    type="number"
                     step="1"
-                    min="25" 
-                    max="100" 
-                    class="form-control" 
-                    id="ownership_percentage_company" 
-                    placeholder="" 
+                    min="25"
+                    max="100"
+                    class="form-control"
+                    id="ownership_percentage_company"
+                    placeholder=""
                     :key="companyOwnershipName"
-                    v-model="vessel.vessel_ownership.company_ownership.percentage" 
+                    v-model="vessel.vessel_ownership.company_ownership.percentage"
                     required=""
                     />
                 </div>
@@ -88,26 +88,27 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Name as shown on DoT registration papers</label>
                 <div class="col-sm-9">
-                    <input 
-                    :readonly="readonly" 
-                    type="text" 
-                    class="col-sm-9 form-control" 
-                    id="dot_name" 
-                    placeholder="" 
+                    <input
+                    :readonly="readonly"
+                    type="text"
+                    class="col-sm-9 form-control"
+                    id="dot_name"
+                    placeholder=""
                     v-model="vessel.vessel_ownership.dot_name" required=""/>
                 </div>
             </div>
 
-            <div class="row form-group">
+            <div v-show="false" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Permanent or usual place of berthing/mooring of vessel</label>
                 <div class="col-sm-9">
                     <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
+
             <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div v-if="!existingVesselOwnership" class="col-sm-9">
-                    <FileField 
+                    <FileField
                         :readonly="readonly"
                         ref="temp_document"
                         name="temp_document"
@@ -119,7 +120,7 @@
                     />
                 </div>
                 <div v-else class="col-sm-9">
-                    <FileField 
+                    <FileField
                         :readonly="readonly"
                         ref="vessel_registration_document"
                         name="vessel_registration_document"
@@ -133,7 +134,7 @@
             <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
                 <div class="col-sm-9">
-                    <FileField 
+                    <FileField
                         :readonly="hinReadonly"
                         ref="hull_identification_number_documents"
                         name="hull-identification-number-documents"
@@ -147,34 +148,34 @@
         </FormSection>
         <FormSection label="Vessel Details" Index="vessel_details">
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel length</label>
+                <label for="" class="col-sm-3 control-label">Vessel length *</label>
                 <div class="col-sm-2">
-                    <input 
-                    :readonly="readonly" 
-                    type="number" 
-                    min="1" 
-                    class="form-control" 
-                    id="vessel_length" 
-                    placeholder="" 
-                    v-model="vessel.vessel_details.vessel_length" 
+                    <input
+                    :readonly="readonly"
+                    type="number"
+                    min="1"
+                    class="form-control"
+                    id="vessel_length"
+                    placeholder=""
+                    v-model="vessel.vessel_details.vessel_length"
                     required=""
                     @change="emitVesselLength"/>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Displacement tonnage</label>
+                <label for="" class="col-sm-3 control-label">Displacement tonnage *</label>
                 <div class="col-sm-2">
                     <input :readonly="readonly" type="number" min="1" class="form-control" id="displacement_tonnage" placeholder="" v-model="vessel.vessel_details.vessel_weight" required=""/>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Draft</label>
+                <label for="" class="col-sm-3 control-label">Draft *</label>
                 <div class="col-sm-2">
                     <input :readonly="readonly" type="number" min="1" class="form-control" id="draft" placeholder="" v-model="vessel.vessel_details.vessel_draft" required=""/>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel Type</label>
+                <label for="" class="col-sm-3 control-label">Vessel Type *</label>
                 <div class="col-sm-4">
                     <select :disabled="readonly" class="form-control" style="width:40%" v-model="vessel.vessel_details.vessel_type">
                         <option v-for="vesselType in vesselTypes" :value="vesselType.code">
@@ -269,11 +270,11 @@ from '@/utils/hooks'
         computed: {
             regoReadonly: function() {
                 let readonly = false;
-                //if (this.proposal && this.proposal.approval_reissued && !this.proposal.approval_vessel_rego_no && 
+                //if (this.proposal && this.proposal.approval_reissued && !this.proposal.approval_vessel_rego_no &&
                 if (this.proposal && !this.proposal.approval_vessel_rego_no && !this.proposal.current_vessels_rego_list && !this.readonly) {
                     readonly = false;
-                } else if ((this.proposal && this.keep_current_vessel && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) || 
-                    this.readonly || 
+                } else if ((this.proposal && this.keep_current_vessel && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) ||
+                    this.readonly ||
                     (this.proposal.pending_amendment_request && ['wla','aaa'].includes(this.proposal.application_type_code))
                 ) {
                     readonly = true;
@@ -309,7 +310,7 @@ from '@/utils/hooks'
             mooringLicenceCurrentVesselDisplayText: function() {
                 let displayText = '';
                 if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                    displayText += `Your mooring licence ${this.proposal.approval_lodgement_number} 
+                    displayText += `Your mooring licence ${this.proposal.approval_lodgement_number}
                     currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}.`;
                 }
                 return displayText;
@@ -317,7 +318,7 @@ from '@/utils/hooks'
             currentVesselDisplayText: function() {
                 let displayText = '';
                 if (this.proposal && this.proposal.approval_vessel_rego_no) {
-                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number} 
+                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
                     lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}.`;
                 }
                 return displayText;
@@ -537,9 +538,9 @@ from '@/utils/hooks'
                     let vm = this;
                     if (vm.vessel.vessel_ownership.company_ownership && vm.vessel.vessel_ownership.company_ownership.company) {
                         var option = new Option(
-                            vm.vessel.vessel_ownership.company_ownership.company.name, 
-                            vm.vessel.vessel_ownership.company_ownership.company.name, 
-                            true, 
+                            vm.vessel.vessel_ownership.company_ownership.company.name,
+                            vm.vessel.vessel_ownership.company_ownership.company.name,
+                            true,
                             true
                         );
                         //console.log(option);
@@ -624,8 +625,8 @@ from '@/utils/hooks'
                     //console.log("select2:unselect")
                     var selected = $(e.currentTarget);
                     vm.vessel.rego_no = '';
-                    vm.vessel = Object.assign({}, 
-                        {   
+                    vm.vessel = Object.assign({},
+                        {
                             vessel_details: {
                             },
                             vessel_ownership: {
@@ -645,7 +646,7 @@ from '@/utils/hooks'
                             // space bar
                             e.preventDefault();
                             return false;
-                        } 
+                        }
                     });
                 });
                 // read vessel.rego_no if exists on vessel.vue open
@@ -827,7 +828,7 @@ from '@/utils/hooks'
                     // ensure an Amendment which has been sent back to draft with request amendment does not have the logic applied below
                     //console.log("amendment request")
                     // pass
-                } else if (this.proposal && this.proposal.processing_status === 'Draft' && 
+                } else if (this.proposal && this.proposal.processing_status === 'Draft' &&
                     !this.proposal.vessel_details_id && (this.proposal.proposal_type.code !=='new' || this.proposal.application_type_code === 'mla') &&
                     !this.vessel.rego_no
                 ) {
