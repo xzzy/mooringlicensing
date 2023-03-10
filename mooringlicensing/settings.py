@@ -77,7 +77,7 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE_CLASSES += [
-    # 'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
+    'mooringlicensing.middleware.FirstTimeNagScreenMiddleware',
     'mooringlicensing.middleware.RevisionOverrideMiddleware',
     # 'mooringlicensing.middleware.CacheControlMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',

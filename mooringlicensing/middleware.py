@@ -15,13 +15,20 @@ from reversion.views import _request_creates_revision
 CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 
 class FirstTimeNagScreenMiddleware(object):
-    def process_request(self, request):
-        if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
-            if (not request.user.first_name or not request.user.last_name):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    # def process_request(self, request):
+    def __call__(self, request):
+        if request.user.is_authenticated and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
+            if not request.user.first_name or not request.user.last_name:
                 path_ft = reverse('first_time')
                 path_logout = reverse('accounts:logout')
+                path_logout = reverse('account')
                 if request.path not in (path_ft, path_logout):
                     return redirect(reverse('first_time')+"?next="+urlquote_plus(request.get_full_path()))
+        response = self.get_response(request)
+        return response
 
 class CacheControlMiddleware(object):
     def process_response(self, request, response):
