@@ -12,21 +12,28 @@ from django.utils import timezone
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 
 class FirstTimeNagScreenMiddleware(object):
     def __init__(self, get_response):
         self.get_response = get_response
 
-    # def process_request(self, request):
     def __call__(self, request):
         if request.user.is_authenticated and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
-            if not request.user.first_name or not request.user.last_name:
-                path_ft = reverse('first_time')
-                path_logout = reverse('accounts:logout')
-                path_logout = reverse('account')
-                if request.path not in (path_ft, path_logout):
-                    return redirect(reverse('first_time')+"?next="+urlquote_plus(request.get_full_path()))
+            # if not request.user.first_name or not request.user.last_name:
+            if not request.user.first_name or not request.user.last_name or not request.user.residential_address_id or not request.user.postal_address_id:
+                path_first_time = reverse('account')
+                path_logout = reverse('logout')
+                if request.path not in (path_first_time, path_logout):
+                    logger.info('redirect')
+                    return redirect(path_first_time + "?next=" + urlquote_plus(request.get_full_path()))
+                else:
+                    # We don't want to redirect the suer when the user is accessing the firsttime page or logout page.
+                    pass
         response = self.get_response(request)
         return response
 
