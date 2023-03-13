@@ -2325,11 +2325,12 @@ class DcvPermit(RevisionedMixin):
 
         line_items = [
             {
-                'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                # 'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                'ledger_description': '{} Fee: {} @{}'.format(
                     fee_constructor.application_type.description,
                     self.lodgement_number,
-                    fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-                    fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                    # fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                    # fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
                     target_datetime_str,
                 ),
                 # 'oracle_code': application_type.oracle_code,
