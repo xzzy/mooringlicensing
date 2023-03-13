@@ -3716,7 +3716,7 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
     @property
     def vessel_applicable_length(self):
-        return self.vessel_length
+        return float(self.vessel_length)
 
 
 class CompanyOwnership(RevisionedMixin):
