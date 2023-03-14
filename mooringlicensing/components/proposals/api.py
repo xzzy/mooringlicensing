@@ -1378,10 +1378,10 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         data = request.data
         reason_id = request.data.get('reason_id')
         # proposal = request.data.get('proposal', None)
-        proposal_id = request.data.get('proposal_id')
+        proposal = request.data.get('proposal')
         data['reason'] = reason_id
-        # data['proposal'] = proposal['id']
-        data['proposal'] = proposal_id
+        data['proposal'] = proposal['id']
+        # data['proposal'] = proposal_id
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception = True)
         instance = serializer.save()
