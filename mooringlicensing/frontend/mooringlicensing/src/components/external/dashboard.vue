@@ -111,7 +111,7 @@ export default {
                 'ApplicationsTable': {
                     type: 'ApplicationsTable',
                     approvalTypeFilter: [],
-                    formCollapse: "false",
+                    formCollapse: true,
                     label: "Applications",
                     subtitle: "View existing applications and lodge new ones",
                     Index: "applications",
@@ -119,7 +119,7 @@ export default {
                 'WaitingListTable': {
                     type: 'WaitingListTable',
                     approvalTypeFilter: ['wla',],
-                    formCollapse: "false",
+                    formCollapse: true,
                     label: "Waiting List",
                     subtitle: "- View and amend your waiting list allocation",
                     Index: "waiting_list",
@@ -127,7 +127,7 @@ export default {
                 'LicencesAndPermitsTable': {
                     type: 'LicencesAndPermitsTable',
                     approvalTypeFilter: ['ml', 'aap', 'aup'],
-                    formCollapse: "false",
+                    formCollapse: true,
                     label: "Licences and Permits", 
                     subtitle: "- View existing licences / permits and renew them",
                     Index: "licences_and_permits",
@@ -135,7 +135,7 @@ export default {
                 'CompliancesTable': {
                     type: 'CompliancesTable',
                     approvalTypeFilter: [],
-                    formCollapse: "false",
+                    formCollapse: true,
                     label: "Compliances", 
                     subtitle: "- View submitted Compliances and submit new ones",
                     Index: "compliances",
@@ -143,7 +143,7 @@ export default {
                 'AuthorisedUserApplicationsTable': {
                     type: 'AuthorisedUserApplicationsTable',
                     approvalTypeFilter: [],
-                    formCollapse: "false",
+                    formCollapse: true,
                     label: "Authorised User Applications for my Endorsement",
                     subtitle: "", 
                     Index: "authorised_user_applications_for_my_endorsement",
