@@ -1,5 +1,6 @@
 <template>
     <div class="container" id="externalDash">
+<!-- 
         <FormSection 
             :formCollapse="false" 
             label="Applications" 
@@ -56,6 +57,22 @@
                 level="external"
             />
         </FormSection>
+ -->
+
+        <template v-for="component in components_ordered">
+            <FormSection 
+                :formCollapse="component.formCollapse"
+                :label="component.label"
+                :subtitle="component.subtitle"
+                :Index="component.Index"
+            >
+                <component 
+                    :is="component.type"
+                    level="external"
+                    :approvalTypeFilter="component.approvalTypeFilter"
+                ></component>
+            </FormSection>
+        </template>
     </div>
 </template>
 
@@ -88,15 +105,59 @@ export default {
             system_name: api_endpoints.system_name,
             allApprovalTypeFilter: ['ml', 'aap', 'aup'],
             wlaApprovalTypeFilter: ['wla',],
+
+            components_ordered: [],
+            components: {
+                'ApplicationsTable': {
+                    type: 'ApplicationsTable',
+                    approvalTypeFilter: [],
+                    formCollapse: "false",
+                    label: "Applications",
+                    subtitle: "View existing applications and lodge new ones",
+                    Index: "applications",
+                },
+                'WaitingListTable': {
+                    type: 'WaitingListTable',
+                    approvalTypeFilter: ['wla',],
+                    formCollapse: "false",
+                    label: "Waiting List",
+                    subtitle: "- View and amend your waiting list allocation",
+                    Index: "waiting_list",
+                },
+                'LicencesAndPermitsTable': {
+                    type: 'LicencesAndPermitsTable',
+                    approvalTypeFilter: ['ml', 'aap', 'aup'],
+                    formCollapse: "false",
+                    label: "Licences and Permits", 
+                    subtitle: "- View existing licences / permits and renew them",
+                    Index: "licences_and_permits",
+                },
+                'CompliancesTable': {
+                    type: 'CompliancesTable',
+                    approvalTypeFilter: [],
+                    formCollapse: "false",
+                    label: "Compliances", 
+                    subtitle: "- View submitted Compliances and submit new ones",
+                    Index: "compliances",
+                },
+                'AuthorisedUserApplicationsTable': {
+                    type: 'AuthorisedUserApplicationsTable',
+                    approvalTypeFilter: [],
+                    formCollapse: "false",
+                    label: "Authorised User Applications for my Endorsement",
+                    subtitle: "", 
+                    Index: "authorised_user_applications_for_my_endorsement",
+                },
+            }
         }
     },
     components:{
-        FormSection,
-        ApplicationsTable,
-        WaitingListTable,
-        LicencesAndPermitsTable,
-        CompliancesTable,
-        AuthorisedUserApplicationsTable,
+        'FormSection': FormSection,
+        'ApplicationsTable': ApplicationsTable,
+        'WaitingListTable': WaitingListTable,
+        'LicencesAndPermitsTable': LicencesAndPermitsTable,
+        'CompliancesTable': CompliancesTable,
+        'AuthorisedUserApplicationsTable': AuthorisedUserApplicationsTable,
     },
     watch: {
 
@@ -112,8 +173,14 @@ export default {
     mounted: function () {
 
     },
-    created: function() {
-
+    created: async function() {
+        const res = await this.$http.get('/api/external_dashboard_sections_list/')
+        console.log({res})
+        // let name_ordered = ['LicencesAndPermitsTable', 'ApplicationsTable', 'CompliancesTable', 'WaitingListTable', 'AuthorisedUserApplicationsTable', ]
+        let name_ordered = res.body
+        for (let name of name_ordered){
+            this.components_ordered.push(this.components[name])
+        }
     },
 }
 </script>

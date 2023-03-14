@@ -91,6 +91,18 @@ def oracle_integration(date, override):
     # TODO: implement oracle_parser_on_invoice
     # oracle_codes = oracle_parser_on_invoice(date, system, SYSTEM_NAME, override=override)
 
+class GetExternalDashboardSectionsList(views.APIView):
+    """
+    Return the section's name list for the external dashboard
+    """
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        # data = ['LicencesAndPermitsTable', 'ApplicationsTable', 'CompliancesTable', 'WaitingListTable', 'AuthorisedUserApplicationsTable',]
+        data = GlobalSettings.objects.get(key=GlobalSettings.KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST).value
+        data = [item.strip() for item in data.split(",")]
+        return Response(data)
+
 
 class OracleJob(views.APIView):
     renderer_classes = [JSONRenderer,]
