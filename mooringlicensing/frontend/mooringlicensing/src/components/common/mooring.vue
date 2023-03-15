@@ -54,6 +54,12 @@ from '@/utils/hooks'
             }
         },
         computed: {
+            // disable_mooring_selection: function(){
+            //     let disable = false
+            //     if (this.proposal.proposal_type.code != 'new'){
+            //         disable = true
+            //     }
+            // }
         },
         methods:{
             mooringPreferenceChanged: async function() {
@@ -105,4 +111,3 @@ from '@/utils/hooks'
     margin-right: 50%;
 }
 </style>
-

@@ -712,6 +712,9 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
+        if self.instance.proposal_type_id != 1:
+            if self.instance.previous_application.preferred_bay_id != data.get('preferred_bay_id'):
+                custom_errors["Preferred bay"] = "You can not change a preferred bay"
         if self.context.get("action") == 'submit':
             if not data.get("preferred_bay_id"):
                 custom_errors["Mooring Details"] = "You must choose a mooring bay"
