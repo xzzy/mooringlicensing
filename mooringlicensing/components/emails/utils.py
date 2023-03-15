@@ -24,6 +24,7 @@ def make_url_for_internal(url):
     # For seg-dev environment
     if '-ria-seg-dev' not in url:
         url = url.replace('-seg-dev', '-ria-seg-dev')
+        url = url.replace('-internal', '-internal-oim01')
 
     url = make_http_https(url)
     return url
@@ -41,6 +42,7 @@ def make_url_for_external(url):
     # For seg-dev environment
     if '-ria-seg-dev' in url:
         url = url.replace('-ria-seg-dev', '-seg-dev')
+        url = url.replace('-oim01', '')
 
     web_url = make_http_https(url)
 
