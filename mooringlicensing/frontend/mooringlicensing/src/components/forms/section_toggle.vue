@@ -1,7 +1,7 @@
 <template lang="html">
     <div class="panel panel-default" >
         <div v-if="!hideHeader" class="panel-heading">
-            <h3 class="panel-title">{{label}} <span class="subtitle">{{ subtitle }}</span>
+            <h3 class="panel-title">{{label}} <span :class=subtitle_class_name>{{ subtitle }}</span>
                 <a :href="'#'+section_id" class="panelClicker" :id="custom_id" data-toggle="collapse" expanded="true" :aria-controls="section_id">
                     <span v-if="!noChevron" :class="panel_chevron_class"></span>
                 </a>
@@ -23,6 +23,10 @@ export default {
         subtitle: {
             type: String,
             default: '',
+        },
+        subtitle_class_name: {
+            type: String,
+            default: 'subtitle',
         },
         Index: {}, 
         formCollapse: {}, 
@@ -103,5 +107,11 @@ export default {
     }
     .subtitle {
         font-size: 0.6em;
+    }
+    .subtitle-l {
+        font-size: 0.7em;
+    }
+    .subtitle-xl {
+        font-size: 0.8em;
     }
 </style>

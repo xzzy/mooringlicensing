@@ -435,6 +435,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             filter_query &= Q(site_licensee_email=request.user.email)
         else:
             filter_query &= ~Q(site_licensee_email=request.user.email)
+
         # don't show discarded applications
         if not level == 'internal':
             filter_query &= ~Q(customer_status='discarded')

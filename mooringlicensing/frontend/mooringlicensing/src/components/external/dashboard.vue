@@ -65,6 +65,7 @@
                 :label="component.label"
                 :subtitle="component.subtitle"
                 :Index="component.Index"
+                :subtitle_class_name="component.subtitle_class_name"
             >
                 <component 
                     :is="component.type"
@@ -113,8 +114,10 @@ export default {
                     approvalTypeFilter: [],
                     formCollapse: true,
                     label: "Applications",
-                    subtitle: "View existing applications and lodge new ones",
+                    // subtitle: "View existing applications and lodge new ones",
+                    subtitle: "View unapproved applications or lodge new ones",
                     Index: "applications",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'WaitingListTable': {
                     type: 'WaitingListTable',
