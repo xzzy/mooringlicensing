@@ -963,9 +963,11 @@ export default {
             let response = null;
             //let submitter_id = 666;
             if (this.submitterId) {
+                console.log('submitterId')
                 response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
             } else {
-                response = await Vue.http.get(api_endpoints.profile);
+                console.log(api_endpoints.profile)
+                response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
             }
             this.profile = Object.assign(response.body);
             if (this.profile.residential_address == null){ this.profile.residential_address = Object.assign({country:'AU'}); }

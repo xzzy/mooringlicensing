@@ -89,6 +89,17 @@ class UserFilterSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
 
+class ProposalApplicantSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = EmailUserRO
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+        )
+
+
 class UserSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
     postal_address = serializers.SerializerMethodField()

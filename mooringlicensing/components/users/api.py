@@ -50,7 +50,7 @@ from mooringlicensing.components.users.serializers import (
     # EmailUserActionSerializer,
     EmailUserCommsSerializer,
     EmailUserLogEntrySerializer,
-    UserSystemSettingsSerializer,
+    UserSystemSettingsSerializer, ProposalApplicantSerializer,
 )
 from mooringlicensing.components.organisations.serializers import (
     OrganisationRequestDTSerializer,
@@ -78,10 +78,22 @@ class GetCountries(views.APIView):
         return Response(data)
 
 
+class GetProposalApplicant(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, proposal_pk, format=None):
+        from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
+        proposal = Proposal.objects.get(id=proposal_pk)
+        proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+        serializer = ProposalApplicantSerializer(proposal_applicant, context={'request': request})
+        return Response(serializer.data)
+
+
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
+
     def get(self, request, format=None):
-        serializer  = UserSerializer(request.user, context={'request':request})
+        serializer = UserSerializer(request.user, context={'request':request})
         response = Response(serializer.data)
         return response
 
