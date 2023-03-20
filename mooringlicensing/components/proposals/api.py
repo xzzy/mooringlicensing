@@ -21,7 +21,7 @@ from mooringlicensing.components.proposals.utils import (
         save_proponent_data,
         )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalType
+    ProposalType, ProposalApplicant
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
@@ -628,6 +628,13 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
+
+        proposal_applicant = ProposalApplicant.objects.create(
+            first_name=request.user.first_name,
+            last_name=request.user.last_name,
+            proposal=obj
+        )
+
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
