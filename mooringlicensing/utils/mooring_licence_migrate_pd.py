@@ -257,6 +257,10 @@ class MooringLicenceReader():
         pm = df['permit_number'].value_counts().loc[lambda x: x>1][1:].astype('int')
         pm.to_excel('/tmp/permit_numbers.xlsx')
 
+    From RKS:
+
+    from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
+    mlr=MooringLicenceReader('PersonDets.txt','MooringDets.txt','VesselDets.txt','UserDets.txt','ApplicationDets.txt','annual_admissions_booking_report.csv',path='/app/shared/clean/clean_22Dec2022/')
 
     """
 
@@ -788,7 +792,7 @@ class MooringLicenceReader():
         postfix = ['Nominated Ves', 'Ad Ves 2', 'Ad Ves 3', 'Ad Ves 4', 'Ad Ves 5', 'Ad Ves 6', 'Ad Ves 7']
         for user_id, pers_no in tqdm(self.pers_ids):
             try:
-                #if pers_no=='200700':
+                #if pers_no=='202600':
                 #    import ipdb; ipdb.set_trace()
 
                 #import ipdb; ipdb.set_trace()
@@ -2086,6 +2090,14 @@ class MooringLicenceReader():
 #            a.generate_dcv_permit_doc()
 #            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
 
+
+    def create_licence_pdfs(self):
+        MooringLicenceReader.create_pdf_ml()
+        MooringLicenceReader.create_pdf_aup()
+        MooringLicenceReader.create_pdf_wl()
+        MooringLicenceReader.create_pdf_aa()
+        MooringLicenceReader.create_pdf_dcv()
+    
     @classmethod
     def create_pdf_ml(self):
         """ MooringLicenceReader.create_pdf_ml()
@@ -2129,7 +2141,10 @@ class MooringLicenceReader():
             approvals = approvals_migrated.filter(migrated=True, current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
 
         for idx, a in enumerate(approvals):
-            a.generate_dcv_permit_doc() if isinstance(a, DcvPermit) else a.generate_doc()
+            if isinstance(a, DcvPermit) and len(a.permits.all())==0:
+                a.generate_dcv_permit_doc()
+            elif not hasattr(a, 'licence_document') or a.licence_document is None: 
+                a.generate_doc()
             print(f'{idx}, Created PDF for {permit_name}: {a}')
 
 
