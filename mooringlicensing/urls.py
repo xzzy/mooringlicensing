@@ -5,13 +5,16 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from django_media_serv.urls import urlpatterns as media_serv_patterns
 
-import mooringlicensing.components.approvals.api
+import mooringlicensing
+# import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.components.approvals.views import DcvAdmissionFormView
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
-    StickerReplacementFeeSuccessView, RefundProposalHistoryView, ProposalPaymentHistoryView, ApplicationFeeAlreadyPaid
+    StickerReplacementFeeSuccessView, RefundProposalHistoryView, ProposalPaymentHistoryView, ApplicationFeeAlreadyPaid, \
+    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload, \
+    StickerReplacementFeeSuccessViewPreload
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.organisations import views as organisation_views
 from mooringlicensing.components.payments_ml import api as payments_api
@@ -23,11 +26,13 @@ from mooringlicensing.components.proposals.views import AuthorisedUserApplicatio
 from mooringlicensing.components.users import api as users_api
 from mooringlicensing.components.organisations import api as org_api
 from mooringlicensing.components.main import api as main_api
-from ledger.urls import urlpatterns as ledger_patterns
+# from ledger.urls import urlpatterns as ledger_patterns
+from ledger_api_client.urls import urlpatterns as ledger_patterns
 
 # API patterns
 from mooringlicensing.management.default_data_manager import DefaultDataManager
 from mooringlicensing.utils import are_migrations_running
+from django.urls import path
 
 router = routers.DefaultRouter()
 router.register(r'organisations', org_api.OrganisationViewSet)
@@ -79,7 +84,7 @@ api_patterns = [
     url(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
     url(r'^api/application_types$', proposal_api.GetApplicationTypeDescriptions.as_view(), name='get-application-type-descriptions'),
     url(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
-    url(r'^api/applicants_dict$', proposal_api.GetApplicantsDict.as_view(), name='get-applicants-dict'),
+    # url(r'^api/applicants_dict$', proposal_api.GetApplicantsDict.as_view(), name='get-applicants-dict'),
     url(r'^api/payment_system_id$', proposal_api.GetPaymentSystemId.as_view(), name='get-payment-system-id'),
     url(r'^api/fee_item_sticker_replacement$', proposal_api.GetStickerReplacementFeeItem.as_view(), name='get-sticker-replacement-fee-item'),
     url(r'^api/vessel_rego_nos$', proposal_api.GetVesselRegoNos.as_view(), name='get-vessel_rego-nos'),
@@ -113,14 +118,17 @@ api_patterns = [
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
     url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
+    url(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
 ]
 
 # URL Patterns
 urlpatterns = [
-    url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
+    # url(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
+    path(r"admin/", admin.site.urls),
     url(r'^chaining/', include('smart_selects.urls')),
     url(r'', include(api_patterns)),
-    url(r'^$', views.MooringLicensingRoutingView.as_view(), name='ds_home'),
+    # url(r'^$', views.MooringLicensingRoutingView.as_view(), name='ds_home'),
+    url(r'^$', views.MooringLicensingRoutingView.as_view(), name='home'),
     url(r'^contact/', views.MooringLicensingContactView.as_view(), name='ds_contact'),
     url(r'^further_info/', views.MooringLicensingFurtherInformationView.as_view(), name='ds_further_info'),
     url(r'^internal/', views.InternalView.as_view(), name='internal'),
@@ -130,6 +138,7 @@ urlpatterns = [
     url(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
     url(r'^help/(?P<application_type>[^/]+)/(?P<help_type>[^/]+)/$', views.HelpView.as_view(), name='help'),
     url(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
+    url(r'^login-success/$', views.LoginSuccess.as_view(), name='login-success'),
 
     #following url is used to include url path when sending Proposal amendment request to user.
     url(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
@@ -137,17 +146,22 @@ urlpatterns = [
 
     # payment related urls
     url(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
-    url(r'^application_fee_existing/(?P<proposal_pk>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
+    url(r'^application_fee_existing/(?P<invoice_reference>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
     url(r'^application_fee_already_paid/(?P<proposal_pk>\d+)/$', ApplicationFeeAlreadyPaid.as_view(), name='application_fee_already_paid'),
     # url(r'^application_fee_already_paid/$', ApplicationFeeAlreadyPaid.as_view(), name='application_fee_already_paid'),
-    url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
-    url(r'^sticker_replacement_fee_success/fee/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
+    url(r'^success/fee/(?P<uuid>.+)/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
+    # url(r'^success2/fee/$', ApplicationFeeSuccessViewPreload.as_view(), name='fee_success_preload'),
+    url(r"ledger-api-success-callback/(?P<uuid>.+)/", ApplicationFeeSuccessViewPreload.as_view(), name="ledger-api-success-callback",),
     url(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),
+    url(r'^dcv_permit_success/(?P<uuid>.+)/$', DcvPermitFeeSuccessView.as_view(), name='dcv_permit_fee_success'),
+    url(r'^dcv_permit_success_preload/(?P<uuid>.+)/$', DcvPermitFeeSuccessViewPreload.as_view(), name='dcv_permit_fee_success_preload'),
     url(r'^dcv_admission_fee/(?P<dcv_admission_pk>\d+)/$', DcvAdmissionFeeView.as_view(), name='dcv_admission_fee'),
-    url(r'^success/fee/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
-    url(r'^dcv_permit_success/fee/$', DcvPermitFeeSuccessView.as_view(), name='dcv_permit_fee_success'),
-    url(r'^dcv_admission_success/fee/$', DcvAdmissionFeeSuccessView.as_view(), name='dcv_admission_fee_success'),
+    url(r'^dcv_admission_success/(?P<uuid>.+)/$', DcvAdmissionFeeSuccessView.as_view(), name='dcv_admission_fee_success'),
+    url(r'^dcv_admission_success_preload/(?P<uuid>.+)/$', DcvAdmissionFeeSuccessViewPreload.as_view(), name='dcv_admission_fee_success_preload'),
+    url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
+    url(r'^sticker_replacement_fee_success/(?P<uuid>.+)/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
+    url(r'^sticker_replacement_fee_success_preload/(?P<uuid>.+)/$', StickerReplacementFeeSuccessViewPreload.as_view(), name='sticker_replacement_fee_success_preload'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),

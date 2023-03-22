@@ -26,7 +26,7 @@
                                         </div>
                                     </div>
                                     <div class="col-sm-9" v-else>
-                                        <textarea style="width: 70%;"class="form-control" name="free_requirement" v-model="requirement.free_requirement"></textarea>
+                                        <textarea style="width: 70%;" class="form-control" name="free_requirement" v-model="requirement.free_requirement"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -130,6 +130,10 @@ export default {
     },
     data:function () {
         let vm = this;
+
+        let tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+
         return {
             isModalOpen:false,
             form:null,
@@ -154,7 +158,8 @@ export default {
                 showClear:true,
                 useCurrent:false,
                 keepInvalid:true,
-                allowInputToggle:true
+                allowInputToggle:true,
+                minDate: tomorrow,
             },
             validDate: false
         }

@@ -3,7 +3,7 @@ from django.db.models.signals import post_delete, pre_save, post_save
 from django.conf import settings
 
 from mooringlicensing.components.organisations.models import Organisation,OrganisationContact
-from ledger.accounts.models import EmailUser
+# from ledger.accounts.models import EmailUser
 
 class OrganisationListener(object):
     """

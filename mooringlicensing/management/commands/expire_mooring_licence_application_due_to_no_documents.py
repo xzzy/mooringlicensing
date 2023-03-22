@@ -1,5 +1,5 @@
 from datetime import timedelta
-from ledger.accounts.models import EmailUser
+# from ledger.accounts.models import EmailUser
 from django.utils import timezone
 
 from django.core.management.base import BaseCommand

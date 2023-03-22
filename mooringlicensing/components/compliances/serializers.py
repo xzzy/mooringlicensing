@@ -1,16 +1,15 @@
-from django.utils import timezone
-from ledger.accounts.models import EmailUser,Address
+# from django.utils import timezone
+# from ledger.accounts.models import EmailUser,Address
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing.components.compliances.models import (
     Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
 )
+from mooringlicensing.components.main.serializers import EmailUserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
 from rest_framework import serializers
 
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
-class EmailUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailUser
-        fields = ('id','email','first_name','last_name','title','organisation')
 
 class ComplianceSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='proposal.title')
@@ -76,7 +75,7 @@ class ComplianceSerializer(serializers.ModelSerializer):
 
     def get_submitter(self,obj):
         if obj.submitter:
-            return obj.submitter.get_full_name()
+            return obj.submitter_obj.get_full_name()
         return None
 
     def get_application_type_code(self, obj):
@@ -150,7 +149,7 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
 
     def get_submitter(self,obj):
         if obj.submitter:
-            return obj.submitter.get_full_name()
+            return obj.submitter_obj.get_full_name()
         return None
 
     def get_processing_status(self, obj):
@@ -171,10 +170,15 @@ class SaveComplianceSerializer(serializers.ModelSerializer):
         )
 
 class ComplianceActionSerializer(serializers.ModelSerializer):
-    who = serializers.CharField(source='who.get_full_name')
+    # who = serializers.CharField(source='who.get_full_name')
+    who = serializers.SerializerMethodField()
     class Meta:
         model = ComplianceUserAction
         fields = '__all__'
+
+    def get_who(self, obj):
+        who_obj = retrieve_email_userro(obj.who)
+        return who_obj.get_full_name()
 
 class ComplianceCommsSerializer(serializers.ModelSerializer):
     documents = serializers.SerializerMethodField()
@@ -262,7 +266,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             return obj.approval.child_obj.description
 
     def get_approval_submitter(self, obj):
-        return obj.approval.submitter.get_full_name()
+        return obj.approval.submitter_obj.get_full_name()
 
     def get_assigned_to_name(self, obj):
         assigned_to = ''

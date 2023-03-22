@@ -1,8 +1,9 @@
 import logging
 
 from django.conf import settings
-from ledger.accounts.models import EmailUser
-from ledger.payments.models import Invoice
+# from ledger.accounts.models import EmailUser
+# from ledger.payments.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
 from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
@@ -24,34 +25,18 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.components.organisations.models import (
     Organisation
 )
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
+    EmailUserSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
     MooringSimpleSerializer  # EmailUserAppViewSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
-logger = logging.getLogger('mooringlicensing')
-
-
-class EmailUserSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = EmailUser
-        fields = (
-                'id',
-                'email',
-                'first_name',
-                'last_name',
-                'title',
-                'organisation',
-                'full_name',
-                )
-
-    def get_full_name(self, obj):
-        return obj.get_full_name()
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
@@ -299,7 +284,8 @@ class WaitingListAllocationSerializer(serializers.ModelSerializer):
 
 
 class ApprovalSerializer(serializers.ModelSerializer):
-    submitter = UserSerializer()
+    # submitter = UserSerializer()
+    submitter = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
@@ -381,6 +367,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
         )
 
+    def get_submitter(self, obj):
+        serializer = UserSerializer(obj.submitter_obj)
+        return serializer.data
+
     def get_mooring_licence_mooring(self, obj):
         if type(obj.child_obj) == MooringLicence:
             return obj.child_obj.mooring.name
@@ -443,9 +433,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
                         approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
                         if approval.current_proposal.vessel_details else ''
                         ),
-                    "holder": approval.submitter.get_full_name(),
-                    "mobile": approval.submitter.mobile_number,
-                    "email": approval.submitter.email,
+                    "holder": approval.submitter_obj.get_full_name(),
+                    "mobile": approval.submitter_obj.mobile_number,
+                    "email": approval.submitter_obj.email,
                     "status": approval.get_status_display(),
                     })
         return authorised_users
@@ -622,7 +612,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_holder(self, obj):
         submitter = ''
         if obj.submitter:
-            submitter = obj.submitter.get_full_name()
+            submitter = obj.submitter_obj.get_full_name()
         return submitter
 
     def get_issue_date_str(self, obj):
@@ -639,9 +629,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
 
 class ListApprovalSerializer(serializers.ModelSerializer):
-    licence_document = serializers.CharField(source='licence_document._file.url')
-    # licence_document = serializers.SerializerMethodField()
-    authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
+    # licence_document = serializers.CharField(source='licence_document._file.url')
+    licence_document = serializers.SerializerMethodField()
+    # authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
+    authorised_user_summary_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
     internal_status = serializers.SerializerMethodField()
@@ -751,6 +742,17 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
             'vessel_regos',
         )
+
+    def get_licence_document(self, obj):
+        if obj.licence_document and obj.licence_document._file:
+            return obj.licence_document._file.url
+        return 'no-licence-document-found'
+
+    def get_authorised_user_summary_document(self, obj):
+        if obj.authorised_user_summary_document:
+            return obj.authorised_user_summary_document._file.url
+        else:
+            return ''
 
     def get_allowed_assessors_user(self, obj):
         request = self.context.get('request')
@@ -951,11 +953,22 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_holder(self, obj):
         holder_str = ''
         if obj.submitter:
-            holder_str = '<span>{}</br>{}</br>{}</br></span>'.format(
-                    obj.submitter.get_full_name(),
-                    obj.submitter.mobile_number,
-                    obj.submitter.email
-                    )
+            items = []
+            from mooringlicensing.ledger_api_utils import retrieve_email_userro
+            # items.append(obj.submitter.get_full_name())
+            # submitter = retrieve_email_userro(obj.submitter)
+            items.append(obj.submitter_obj.get_full_name())
+            # if obj.submitter.mobile_number:
+            if obj.submitter_obj.mobile_number:
+                items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.submitter_obj.mobile_number)
+            # if obj.submitter.phone_number:
+            if obj.submitter_obj.phone_number:
+                items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.submitter_obj.phone_number)
+            # items.append(obj.submitter.email)
+            items.append(obj.submitter_obj.email)
+
+            items = '</br>'.join(items)
+            holder_str = '<span>' + items + '</span>'
         return holder_str
 
     def get_issue_date_str(self, obj):
@@ -1020,7 +1033,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_submitter_phone_number(self, obj):
-        return obj.submitter.mobile_number if obj.submitter.mobile_number else obj.submitter.phone_number
+        return obj.submitter_obj.mobile_number if obj.submitter_obj.mobile_number else obj.submitter_obj.phone_number
 
     def get_vessel_data(self, obj):
         vessel_data = []
@@ -1061,7 +1074,8 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_of_returned_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     date_created = serializers.DateTimeField(read_only=True)
     date_updated = serializers.DateTimeField(read_only=True)
-    user_detail = EmailUserSerializer(source='user', read_only=True)
+    # user_detail = EmailUserSerializer(source='user', read_only=True)
+    user_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = StickerActionDetail
@@ -1077,6 +1091,10 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'user',  # For saving the user data
             'user_detail',  # For reading the user data
         )
+
+    def get_user_detail(self, obj):
+        serializer = EmailUserSerializer(retrieve_email_userro(obj.user))
+        return serializer.data
 
 
 class StickerForDcvSaveSerializer(serializers.ModelSerializer):
@@ -1263,7 +1281,9 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def get_fee_invoice_url(self, obj):
-        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
         return url
 
     def get_dcv_organisation_name(self, obj):
@@ -1271,7 +1291,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             if obj.dcv_organisation:
                 return obj.dcv_organisation.name
             else:
-                return obj.submitter.get_full_name() + ' (P)'
+                return obj.submitter_obj.get_full_name() + ' (P)'
         except:
             return ''
 
@@ -1332,7 +1352,9 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def get_fee_invoice_url(self, obj):
-        url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
+        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
+        url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
         return url
 
     def get_lodgement_date(self, obj):
@@ -1384,7 +1406,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
         return obj.approval.get_status_display()
 
     def get_holder(self, obj):
-        return obj.approval.submitter.get_full_name()
+        return obj.approval.submitter_obj.get_full_name()
 
     def get_sticker_numbers(self, obj):
         numbers = ""

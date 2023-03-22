@@ -1,5 +1,6 @@
 from io import BytesIO
-from ledger.settings_base import TIME_ZONE
+
+from ledger_api_client.settings_base import TIME_ZONE
 from django.utils import timezone
 from confy import env
 
@@ -11,33 +12,37 @@ from django.conf import settings
 from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
-    MooringLicence, Approval, ApprovalHistory
+    MooringLicence, Approval
 from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
-    StickerPrintingBatch, ProposalType
+    StickerPrintingBatch
 )
-from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger
+from mooringlicensing.components.main.decorators import query_debugger
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
-logger = logging.getLogger('mooringlicensing')
 
-def belongs_to(user, group_name):
-    """
-    Check if the user belongs to the given group.
-    :param user:
-    :param group_name:
-    :return:
-    """
-    return user.groups.filter(name=group_name).exists()
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
+
+# def belongs_to(user, group_name):
+#     """
+#     Check if the user belongs to the given group.
+#     :param user:
+#     :param group_name:
+#     :return:
+#     """
+#     return user.groups.filter(name=group_name).exists()
 
 
 def is_payment_officer(user):
-    return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+    # return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
+    from mooringlicensing.helpers import belongs_to
+    return user.is_authenticated and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
 
 
 def to_local_tz(_date):
@@ -214,6 +219,10 @@ def handle_validation_error(e):
 
 
 def sticker_export():
+    """
+    This function exports sticker details data as a spreadsheet file,
+    and store it as a StickerPrintingBatch object.
+    """
     logger = logging.getLogger('cron_tasks')
     # TODO: Implement below
     # Note: if the user wants to apply for e.g. three new authorisations,
@@ -305,6 +314,9 @@ def sticker_export():
 
 
 def email_stickers_document():
+    """
+    Email the file generated at the sticker_export() function to the sticker company:
+    """
     logger = logging.getLogger('cron_tasks')
     updates, errors = [], []
 
@@ -312,7 +324,10 @@ def email_stickers_document():
         batches = StickerPrintingBatch.objects.filter(emailed_datetime__isnull=True)
         if batches.count():
             current_datetime = timezone.localtime(timezone.now())
+
+            # Send sticker details spreadsheet file to the printing company
             send_sticker_printing_batch_email(batches)
+
             for batch in batches:
                 batch.emailed_datetime = current_datetime
                 batch.save()
@@ -486,4 +501,5 @@ def calculate_max_length(fee_constructor, max_amount_paid, proposal_type):
     fee_items_interested = fee_constructor.feeitem_set.filter(proposal_type=proposal_type).order_by('vessel_size_category__start_size')
     max_length = calculate_minimum_max_length(fee_items_interested, max_amount_paid)
     return max_length
+
 

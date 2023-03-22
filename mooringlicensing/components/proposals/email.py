@@ -1,18 +1,21 @@
 import logging
 import mimetypes
 import pytz
-from ledger.accounts.models import EmailUser
-from ledger.payments.invoice.models import Invoice
+import requests
+# from ledger.accounts.models import EmailUser
+# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
-from django.core.urlresolvers import reverse
+# from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 
-from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email, _log_user_email
+from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email
 from mooringlicensing.components.compliances.email import _log_compliance_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
@@ -20,6 +23,9 @@ from datetime import datetime
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url, \
     make_url_for_external, make_http_https
+from mooringlicensing.components.users.utils import _log_user_email
+# from mooringlicensing.components.main.utils import _log_user_email
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
@@ -36,9 +42,9 @@ def log_proposal_email(msg, proposal, sender, attachments=[]):
 
     _log_proposal_email(msg, proposal, sender=sender_user, attachments=attachments)
     if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender_user)
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender_user)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender_user, attachments=attachments)
+        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender_user, attachments=attachments)
 
 
 def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, filename=None, attachments=[]):
@@ -64,13 +70,13 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
     else:
         text = smart_text(email_message)
         subject = ''
-        to = proposal.submitter.email
+        to = proposal.submitter_obj.email
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 
-    customer = proposal.submitter
+    customer = proposal.submitter_obj
 
-    staff = sender
+    staff = sender.id
 
     kwargs = {
         'subject': subject,
@@ -140,58 +146,6 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
     return email_entry
 
 
-def _log_user_email(email_message, target_email_user, customer, sender=None, attachments=[]):
-    from ledger.accounts.models import EmailUserLogEntry
-    if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
-        text = email_message.body
-        subject = email_message.subject
-        fromm = smart_text(sender) if sender else smart_text(email_message.from_email)
-        # the to email is normally a list
-        if isinstance(email_message.to, list):
-            to = ','.join(email_message.to)
-        else:
-            to = smart_text(email_message.to)
-        # we log the cc and bcc in the same cc field of the log entry as a ',' comma separated string
-        all_ccs = []
-        if email_message.cc:
-            all_ccs += list(email_message.cc)
-        if email_message.bcc:
-            all_ccs += list(email_message.bcc)
-        all_ccs = ','.join(all_ccs)
-
-    else:
-        text = smart_text(email_message)
-        subject = ''
-        to = customer
-        fromm = smart_text(sender) if sender else SYSTEM_NAME
-        all_ccs = ''
-
-    customer = customer
-
-    staff = sender
-
-    kwargs = {
-        'subject': subject,
-        'text': text,
-        'emailuser': target_email_user if target_email_user else customer,
-        'customer': customer,
-        'staff': staff,
-        'to': to,
-        'fromm': fromm,
-        'cc': all_ccs
-    }
-
-    email_entry = EmailUserLogEntry.objects.create(**kwargs)
-
-    for attachment in attachments:
-        path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
-        path = default_storage.save(path_to_file, ContentFile(attachment[1]))
-        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
-
-    return email_entry
-
-
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
     # 1
     email = TemplateEmailBase(
@@ -205,10 +159,10 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
         'public_url': get_public_url(request),
         'dashboard_external_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'payment_made': payment_made,
     }
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
     cc = []
     bcc = []
 
@@ -238,7 +192,7 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'proposal_internal_url': url,
     }
     to_address = proposal.assessor_recipients
@@ -294,14 +248,14 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'proposal': proposal,
         'reason': reason,
         'text': amendment_request.text,
         'proposal_external_url': make_url_for_external(url),
     }
 
-    to = proposal.submitter.email
+    to = proposal.submitter_obj.email
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
         cc_list = proposal.org_applicant.email
@@ -313,9 +267,9 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
@@ -360,7 +314,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
 
     bcc = request.data.get('cc_email')
     bcc_list = bcc.split(',')
-    msg = email.send(mooring_licence_application.submitter.email, bcc=bcc_list, attachments=attachments, context=context)
+    msg = email.send(retrieve_email_userro(mooring_licence_application.submitter).email, bcc=bcc_list, attachments=attachments, context=context)
     sender = settings.DEFAULT_FROM_EMAIL
     log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
     _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user, attachments=attachments)
@@ -385,12 +339,12 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'documents_upload_url': make_http_https(document_upload_url),
         'proposal_external_url': make_http_https(url),
         'num_of_days_to_submit_documents': days_setting.number_of_days,
     }
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
     cc = []
     bcc = []
 
@@ -400,9 +354,9 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     sender = get_user_as_email_user(msg.from_email)
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender)
+        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender)
 
     return msg
 
@@ -424,7 +378,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
         'recipient': compliance.submitter,
         'compliance_external_url': make_http_https(url),
     }
-    to_address = compliance.submitter.email
+    to_address = retrieve_email_userro(compliance.submitter).email
     cc = []
     bcc = []
 
@@ -436,7 +390,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
     return msg
 
 
@@ -457,7 +411,7 @@ def send_comliance_overdue_notification(request, approval, compliance,):
         'recipient': compliance.submitter,
         'compliance_external_url': make_http_https(url),
     }
-    to_address = compliance.submitter.email
+    to_address = retrieve_email_userro(compliance.submitter).email
     cc = []
     bcc = []
 
@@ -469,7 +423,7 @@ def send_comliance_overdue_notification(request, approval, compliance,):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
     return msg
 
 # 10
@@ -489,12 +443,12 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'proposal_external_url': make_http_https(url),
         'due_date': due_date,
         'number_of_days': number_of_days,
     }
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
     cc = []
     bcc = []
 
@@ -523,10 +477,10 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
     context = {
         'public_url': get_public_url(),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'dashboard_url': make_http_https(dashboard_url),
     }
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
     cc = []
     bcc = []
 
@@ -556,10 +510,10 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
     context = {
         'public_url': get_public_url(),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'dashboard_url': make_http_https(dashboard_url),
     }
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
     cc = []
     bcc = []
 
@@ -584,10 +538,10 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
 
     context = {
         'public_url': get_public_url(),
-        'applicant': proposal.submitter,
+        'applicant': proposal.submitter_obj,
         'due_date': due_date,
         'mooring_name': mooring_name,
-        'recipient': proposal.submitter
+        'recipient': proposal.submitter_obj
     }
 
     to_address = proposal.assessor_recipients
@@ -628,9 +582,9 @@ def send_endorser_reminder_email(proposal, request=None):
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'endorser': endorser,
-        'applicant': proposal.submitter,
+        'applicant': proposal.submitter_obj,
         'endorse_url': make_http_https(endorse_url),
         'decline_url': make_http_https(decline_url),
         'proposal_url': make_http_https(proposal_url),
@@ -669,7 +623,7 @@ def send_approval_renewal_email_notification(approval):
         'approval': approval,
         #'vessel_rego_no': '(todo)',  # TODO
         'vessel_rego_no': proposal.vessel_details.vessel.rego_no,  # TODO
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'expiry_date': approval.expiry_date,
         'dashboard_external_url': make_http_https(url),
     }
@@ -686,15 +640,15 @@ def send_approval_renewal_email_notification(approval):
     if attachment:
         attachments.append(attachment)
 
-    msg = email.send(proposal.submitter.email, cc=[], attachments=attachments, context=context)
+    msg = email.send(proposal.submitter_obj.email, cc=[], attachments=attachments, context=context)
 
     from mooringlicensing.components.approvals.models import Approval
     if isinstance(approval, Approval):
         _log_approval_email(msg, approval, sender=sender_user)
         if approval.org_applicant:
-            _log_org_email(msg, approval.org_applicant, proposal.submitter, sender=sender_user)
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
         else:
-            _log_user_email(msg, approval.submitter, proposal.submitter, sender=sender_user, attachments=attachments)
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user, attachments=attachments)
     else:
         # TODO: log for DcvPermit???
         pass
@@ -720,7 +674,8 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             if proposal.application_fees.count():
                 application_fee = proposal.get_main_application_fee()
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-                if invoice.payment_status not in ('paid', 'over_paid'):
+                # if invoice.payment_status not in ('paid', 'over_paid'):
+                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                     payment_required = True
             if payment_required:
                 # 22 (22a, 22b, 22c)
@@ -739,7 +694,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             if proposal.application_fees.count():
                 application_fee = proposal.get_main_application_fee()
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-                if invoice.payment_status not in ('paid', 'over_paid'):
+                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                     payment_required = True
             if payment_required:
                 # 25
@@ -790,7 +745,7 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
@@ -802,7 +757,7 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
         txt_template=txt_template,
     )
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -859,7 +814,7 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO???: if existing sticker needs to be replaced, assign sticker object here
@@ -871,7 +826,7 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
         txt_template=txt_template,
     )
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
 
@@ -909,7 +864,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -943,14 +898,14 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
         'payment_url': payment_url,
     }
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1002,13 +957,13 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
     }
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1048,7 +1003,7 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -1082,14 +1037,14 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
         'payment_url': make_http_https(payment_url),
     }
 
-    to_address = proposal.submitter.email
+    to_address = retrieve_email_userro(proposal.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1100,7 +1055,7 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
 
 
 def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summary_doc=False):
-    from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
+    # from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 
     # proposal.refresh_from_db()
     # if proposal.approval:  # For AU/ML new application, approval is not created yet before payments
@@ -1109,9 +1064,16 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
     attachments = []
     if attach_invoice and proposal.invoice:
         # Attach invoice
-        invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
-        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_bytes, 'application/pdf')
-        attachments.append(attachment)
+        # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
+        # url = get_invoice_url(proposal.invoice.reference)
+        url = f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{proposal.invoice.reference}'
+        invoice_pdf = requests.get(url=url)
+        if invoice_pdf.status_code == 200:
+            attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_pdf.content, 'application/pdf')
+            attachments.append(attachment)
+        else:
+            logger.error(f'Status code: {invoice_pdf.status_code}. Could not retrieve invoice_pdf for the invoice reference: {proposal.invoice.reference}')
+
     if attach_licence_doc and proposal.approval and proposal.approval.licence_document:
         # Attach licence document
         licence_document = proposal.approval.licence_document._file
@@ -1165,7 +1127,7 @@ def send_au_summary_to_ml_holder(mooring_licence, request, au_proposal):
         'url_for_au_dashboard_page': get_public_url(request),  # Do we have AU dashboard page for external???
     }
 
-    to_address = mooring_licence.submitter.email
+    to_address = retrieve_email_userro(mooring_licence.submitter).email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=[], bcc=[],)
@@ -1206,7 +1168,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -1242,14 +1204,14 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
         'payment_url': make_http_https(payment_url),
     }
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1305,13 +1267,13 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
     }
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1350,7 +1312,7 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         if proposal.application_fees.count():
             application_fee = proposal.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
     elif decision == 'approved_paid':
@@ -1387,14 +1349,14 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         'public_url': get_public_url(request),
         'proposal': proposal,
         'approval': proposal.approval,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,  # TODO: if existing sticker needs to be replaced, assign sticker object here.
         'payment_url': make_http_https(payment_url),
     }
 
-    to_address = proposal.submitter.email
+    to_address = proposal.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
@@ -1437,9 +1399,9 @@ def send_other_documents_submitted_notification_email(request, proposal):
     sender = get_user_as_email_user(msg.from_email)
     log_proposal_email(msg, proposal, sender, attachments=attachments)
     if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter, sender=sender)
+        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
     else:
-        _log_user_email(msg, proposal.submitter, proposal.submitter, sender=sender, attachments=attachments)
+        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender, attachments=attachments)
 
     return msg
 
@@ -1516,9 +1478,9 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'endorser': endorser,
-        'applicant': proposal.submitter,
+        'applicant': proposal.submitter_obj,
         'endorse_url': make_http_https(endorse_url),
         'decline_url': make_http_https(decline_url),
         'proposal_url': make_http_https(proposal_url),
@@ -1556,7 +1518,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.submitter,
+        'recipient': proposal.submitter_obj,
         'url': url,
         'approver_comment': approver_comment
     }
