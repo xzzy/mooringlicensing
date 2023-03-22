@@ -556,7 +556,8 @@ export default {
             {
               vm.showPersonalError = false;
             vm.updatingPersonal = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')),JSON.stringify(vm.profile),{
+            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')) + '?proposal_id=' + vm.proposalId, JSON.stringify(vm.profile),{
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_personal')), JSON.stringify(vm.profile),{
                 emulateJSON:true
             }).then((response) => {
                 //console.log(response);

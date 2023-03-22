@@ -96,6 +96,7 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
+from mooringlicensing.components.users.serializers import ProposalApplicantSerializer
 from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -1241,6 +1242,75 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance.waiting_list_allocation.save()
             instance.waiting_list_allocation.set_wla_order()
         return Response()
+
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def update_personal(self, request, *args, **kwargs):
+        proposal = self.get_object()
+        proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+        serializer = ProposalApplicantSerializer(proposal_applicant, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def update_contact(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ContactSerializer(instance,data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        serializer = UserSerializer(instance)
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def update_address(self, request, *args, **kwargs):
+        with transaction.atomic():
+            print(request.data)
+            instance = self.get_object()
+            # residential address
+            residential_serializer = UserAddressSerializer(data=request.data.get('residential_address'))
+            residential_serializer.is_valid(raise_exception=True)
+            residential_address, created = Address.objects.get_or_create(
+                line1 = residential_serializer.validated_data['line1'],
+                locality = residential_serializer.validated_data['locality'],
+                state = residential_serializer.validated_data['state'],
+                country = residential_serializer.validated_data['country'],
+                postcode = residential_serializer.validated_data['postcode'],
+                user = instance
+            )
+            instance.residential_address = residential_address
+            # postal address
+            postal_address_data = request.data.get('postal_address')
+            postal_address = None
+            if request.data.get('postal_same_as_residential'):
+                instance.postal_same_as_residential = True
+                instance.postal_address = residential_address
+            elif postal_address_data and postal_address_data.get('line1'):
+                postal_serializer = UserAddressSerializer(data=postal_address_data)
+                postal_serializer.is_valid(raise_exception=True)
+                postal_address, created = Address.objects.get_or_create(
+                    line1 = postal_serializer.validated_data['line1'],
+                    locality = postal_serializer.validated_data['locality'],
+                    state = postal_serializer.validated_data['state'],
+                    country = postal_serializer.validated_data['country'],
+                    postcode = postal_serializer.validated_data['postcode'],
+                    user = instance
+                )
+                instance.postal_address = postal_address
+                instance.postal_same_as_residential = False
+            else:
+                instance.postal_same_as_residential = False
+            instance.save()
+
+            # Postal address form must be completed or checkbox ticked
+            if not postal_address and not instance.postal_same_as_residential:
+                raise serializers.ValidationError("Postal address not provided")
+
+            serializer = UserSerializer(instance)
+            return Response(serializer.data)
+
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):

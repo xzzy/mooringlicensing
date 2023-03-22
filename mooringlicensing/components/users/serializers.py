@@ -6,7 +6,7 @@ from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
 from mooringlicensing.components.main.models import UserSystemSettings, Document#, ApplicationType
-from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
 from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
 
@@ -92,7 +92,7 @@ class UserFilterSerializer(serializers.ModelSerializer):
 class ProposalApplicantSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = EmailUserRO
+        model = ProposalApplicant
         fields = (
             'id',
             'last_name',
