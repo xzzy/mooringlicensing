@@ -633,6 +633,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         proposal_applicant = ProposalApplicant.objects.create(
             first_name=request.user.first_name,
             last_name=request.user.last_name,
+            residential_line1=request.user.residential_address.line1,
             proposal=obj
         )
 

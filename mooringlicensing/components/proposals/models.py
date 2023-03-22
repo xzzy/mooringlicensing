@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from django_countries.fields import CountryField
 from dateutil.relativedelta import relativedelta
 
 import json
@@ -2111,17 +2112,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 
 class ProposalApplicant(RevisionedMixin):
-    first_name = models.CharField(max_length=128, blank=False, verbose_name='Given name(s)')
-    last_name = models.CharField(max_length=128, blank=False)
     proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
 
-    # line1 = models.CharField('Line 1', max_length=255)
-    # line2 = models.CharField('Line 2', max_length=255, blank=True)
-    # line3 = models.CharField('Line 3', max_length=255, blank=True)
-    # locality = models.CharField('Suburb / Town', max_length=255)
-    # state = models.CharField(max_length=255, default='WA', blank=True)
-    # country = django_countries.fields.CountryField(default='AU')
-    # postcode = models.CharField(max_length=10)
+    # Name
+    first_name = models.CharField(max_length=128, blank=False, verbose_name='Given name(s)')
+    last_name = models.CharField(max_length=128, blank=False)
+
+    # Residential address
+    residential_line1 = models.CharField('Line 1', max_length=255, blank=True)
+    residential_line2 = models.CharField('Line 2', max_length=255, blank=True)
+    residential_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    residential_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
+    residential_state = models.CharField(max_length=255, default='WA', blank=True)
+    residential_country = CountryField(default='AU', blank=True)
+    residential_postcode = models.CharField(max_length=10, blank=True)
+
+    # Postal address
+
+    # Contact
 
     class Meta:
         app_label = 'mooringlicensing'

@@ -642,7 +642,8 @@ export default {
             else{
               vm.showContactError = false;
             vm.updatingContact = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_contact')),JSON.stringify(vm.profile),{
+            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_contact')),JSON.stringify(vm.profile),{
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.profile.id+'/update_contact')), JSON.stringify(vm.profile),{
                 emulateJSON:true
             }).then((response) => {
                 //console.log(response);
@@ -693,7 +694,8 @@ export default {
                 payload.postal_same_as_residential = true;
             }
             try {
-                const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
+                // const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
+                const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(vm.profile.id+'/update_address')), payload);
                 vm.updatingAddress = false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
