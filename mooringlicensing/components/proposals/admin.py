@@ -39,6 +39,7 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
             #'participant_number_required',
             #'default'
             ]
+    list_filter = ('application_type', 'obsolete',)
 
     def get_form(self, request, obj=None, **kwargs):
         self.exclude = ("participant_number_required", "default",)

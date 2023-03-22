@@ -2,15 +2,21 @@ import logging
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
-from django.core.urlresolvers import reverse
+# from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.conf import settings
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-from ledger.accounts.models import EmailUser
+# from ledger.accounts.models import EmailUser
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.emails.utils import get_public_url, make_http_https
+from mooringlicensing.components.users.utils import _log_user_email
+
+# from mooringlicensing.components.main.models import EmailUserLogEntry
+# from mooringlicensing.components.main.utils import _log_user_email
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +87,7 @@ def send_amendment_email_notification(amendment_request, request, compliance, is
         'public_url': get_public_url(request),
     }
 
-    submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter.email
+    submitter = compliance.submitter_obj.email if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj.email
     all_ccs = []
     if compliance.proposal.org_applicant and compliance.proposal.org_applicant.email:
         cc_list = compliance.proposal.org_applicant.email
@@ -96,7 +102,7 @@ def send_amendment_email_notification(amendment_request, request, compliance, is
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 #send reminder emails if Compliance has not been lodged by due date. Used in Cron job so cannot use 'request' parameter
@@ -114,7 +120,7 @@ def send_reminder_email_notification(compliance, is_test=False):
         'public_url': get_public_url(),
     }
 
-    submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter.email
+    submitter = compliance.submitter_obj.email if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj.email
     all_ccs = []
     if compliance.proposal.org_applicant and compliance.proposal.org_applicant.email:
         cc_list = compliance.proposal.org_applicant.email
@@ -133,7 +139,7 @@ def send_reminder_email_notification(compliance, is_test=False):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def send_internal_reminder_email_notification(compliance, is_test=False):
@@ -162,7 +168,7 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def send_due_email_notification(compliance, is_test=False):
@@ -170,7 +176,7 @@ def send_due_email_notification(compliance, is_test=False):
     url = settings.SITE_URL
     url += reverse('external-compliance-detail', kwargs={'compliance_pk': compliance.id})
 
-    submitter = compliance.submitter if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter
+    submitter = compliance.submitter_obj if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj
 
     context = {
         'recipient': submitter,
@@ -198,7 +204,7 @@ def send_due_email_notification(compliance, is_test=False):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def send_internal_due_email_notification(compliance, is_test=False):
@@ -228,13 +234,13 @@ def send_internal_due_email_notification(compliance, is_test=False):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def send_compliance_accept_email_notification(compliance,request, is_test=False):
     email = ComplianceAcceptNotificationEmail()
 
-    submitter = compliance.submitter if compliance.submitter else compliance.proposal.submitter
+    submitter = compliance.submitter_obj if compliance.submitter_obj else compliance.proposal.submitter_obj
     context = {
         'compliance': compliance,
         'public_url': get_public_url(request),
@@ -254,14 +260,14 @@ def send_compliance_accept_email_notification(compliance,request, is_test=False)
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def send_external_submit_email_notification(request, compliance, is_test=False):
     email = ComplianceExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = ''.join(url.split('-internal'))
-    submitter = compliance.submitter if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter
+    submitter = compliance.submitter_obj if compliance.submitter_obj and compliance.submitter_obj.email else compliance.proposal.submitter_obj
 
     context = {
         'compliance': compliance,
@@ -284,7 +290,7 @@ def send_external_submit_email_notification(request, compliance, is_test=False):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def send_submit_email_notification(request, compliance, is_test=False):
@@ -309,7 +315,7 @@ def send_submit_email_notification(request, compliance, is_test=False):
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
     else:
-        _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
 
 
 def _log_compliance_email(email_message, compliance, sender=None):
@@ -335,7 +341,7 @@ def _log_compliance_email(email_message, compliance, sender=None):
     else:
         text = smart_text(email_message)
         subject = ''
-        to = compliance.submitter.email
+        to = compliance.submitter_obj.email
         fromm = smart_text(sender) if sender else SYSTEM_NAME
         all_ccs = ''
 
@@ -405,57 +411,5 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
     }
 
     email_entry = OrganisationLogEntry.objects.create(**kwargs)
-
-    return email_entry
-
-
-def _log_user_email(email_message, target_email_user, customer, sender=None, attachments=[]):
-    from ledger.accounts.models import EmailUserLogEntry
-    if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
-        text = email_message.body
-        subject = email_message.subject
-        fromm = smart_text(sender) if sender else smart_text(email_message.from_email)
-        # the to email is normally a list
-        if isinstance(email_message.to, list):
-            to = ','.join(email_message.to)
-        else:
-            to = smart_text(email_message.to)
-        # we log the cc and bcc in the same cc field of the log entry as a ',' comma separated string
-        all_ccs = []
-        if email_message.cc:
-            all_ccs += list(email_message.cc)
-        if email_message.bcc:
-            all_ccs += list(email_message.bcc)
-        all_ccs = ','.join(all_ccs)
-
-    else:
-        text = smart_text(email_message)
-        subject = ''
-        to = customer
-        fromm = smart_text(sender) if sender else SYSTEM_NAME
-        all_ccs = ''
-
-    customer = customer
-
-    staff = sender
-
-    kwargs = {
-        'subject': subject,
-        'text': text,
-        'emailuser': target_email_user if target_email_user else customer,
-        'customer': customer,
-        'staff': staff,
-        'to': to,
-        'fromm': fromm,
-        'cc': all_ccs
-    }
-
-    email_entry = EmailUserLogEntry.objects.create(**kwargs)
-
-    for attachment in attachments:
-        path_to_file = '{}/emailuser/{}/communications/{}'.format(settings.MEDIA_APP_DIR, target_email_user.id, attachment[0])
-        path = default_storage.save(path_to_file, ContentFile(attachment[1]))
-        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
     return email_entry

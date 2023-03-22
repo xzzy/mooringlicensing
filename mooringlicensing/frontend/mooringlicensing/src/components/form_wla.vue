@@ -90,7 +90,7 @@
                   :proposal="proposal" 
                   id="mooring" 
                   ref="mooring"
-                  :readonly="readonly"
+                  :readonly="mooring_readonly"
                   @mooringPreferenceChanged="toggleMooringPreference"
                   />
               </div>
@@ -188,6 +188,13 @@
             Profile,
         },
         computed:{
+            mooring_readonly: function(){
+                let readonly = true
+                if (this.proposal.proposal_type.code == 'new'){
+                    readonly = false
+                }
+                return readonly
+            },
             profileVar: function() {
                 if (this.is_external) {
                     return this.profile;

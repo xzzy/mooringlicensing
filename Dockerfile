@@ -39,9 +39,9 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
-COPY libgeos.py.patch /app/
-RUN patch /usr/local/lib/python3.8/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
-RUN rm /app/libgeos.py.patch
+#COPY libgeos.py.patch /app/
+#RUN patch /usr/local/lib/python3.8/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
+#RUN rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_ml
@@ -53,6 +53,10 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
 COPY .git ./.git
 COPY mooringlicensing ./mooringlicensing
+COPY patch_for_admin_0001_initial.patch ./patch_for_admin_0001_initial.patch
+COPY patch_for_admin_0001_initial.patch_revert ./patch_for_admin_0001_initial.patch_revert
+COPY patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
+COPY patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
 RUN python manage_ml.py collectstatic --noinput
 
 RUN mkdir /app/tmp/

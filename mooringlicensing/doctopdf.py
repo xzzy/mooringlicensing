@@ -4,7 +4,6 @@ from io import BytesIO
 from django.conf import settings
 from docxtpl import DocxTemplate
 from mooringlicensing.components.main.models import GlobalSettings
-from mooringlicensing.components.proposals.models import Proposal
 
 
 def create_dcv_permit_pdf_tytes(dcv_permit):

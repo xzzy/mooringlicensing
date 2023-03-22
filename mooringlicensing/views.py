@@ -4,8 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-from django.conf import settings
+# from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+
+from mooringlicensing import settings
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.forms import *
 from mooringlicensing.components.proposals.models import (
@@ -16,8 +18,7 @@ from mooringlicensing.components.compliances.models import Compliance
 from django.core.management import call_command
 
 
-logger = logging.getLogger('mooringlicensing')
-
+logger = logging.getLogger(__name__)
 
 class InternalView(UserPassesTestMixin, TemplateView):
     template_name = 'mooringlicensing/dash/index.html'
@@ -63,7 +64,8 @@ class MooringLicensingRoutingView(TemplateView):
     template_name = 'mooringlicensing/index.html'
 
     def get(self, *args, **kwargs):
-        if self.request.user.is_authenticated():
+        # if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             if is_internal(self.request):
                 return redirect('internal')
             return redirect('external')
@@ -100,7 +102,8 @@ class InternalProposalView(DetailView):
         return super(MooringLicensingRoutingDetailView, self).get(*args, **kwargs)
 
 
-@login_required(login_url='ds_home')
+# @login_required(login_url='ds_home')
+@login_required(login_url='home')
 def first_time(request):
     context = {}
     if request.method == 'POST':
@@ -146,6 +149,15 @@ class HelpView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class LoginSuccess(TemplateView):
+    template_name = 'mooringlicensing/login_success.html';
+
+    def get(self, request, *args, **kwargs):
+        context = {'LEDGER_UI_URL' : settings.LEDGER_UI_URL}
+        response = render(request, self.template_name, context)
+        return response
+
+
 class ManagementCommandsView(LoginRequiredMixin, TemplateView):
     template_name = 'mooringlicensing/mgt-commands.html'
 
@@ -166,7 +178,8 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
 
         if command_script:
             print('running {}'.format(command_script))
-            call_command(command_script, params=request.POST)
+            # call_command(command_script, params=request.POST)
+            call_command(command_script,)
             data.update({command_script: 'true'})
 
         return render(request, self.template_name, data)
