@@ -2115,8 +2115,8 @@ class ProposalApplicant(RevisionedMixin):
     proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
 
     # Name
-    first_name = models.CharField(max_length=128, blank=False, verbose_name='Given name(s)')
-    last_name = models.CharField(max_length=128, blank=False)
+    first_name = models.CharField(max_length=128, blank=True, verbose_name='Given name(s)')
+    last_name = models.CharField(max_length=128, blank=True)
 
     # Residential address
     residential_line1 = models.CharField('Line 1', max_length=255, blank=True)
@@ -2128,6 +2128,14 @@ class ProposalApplicant(RevisionedMixin):
     residential_postcode = models.CharField(max_length=10, blank=True)
 
     # Postal address
+    postal_same_as_residential = models.NullBooleanField(default=False)
+    postal_line1 = models.CharField('Line 1', max_length=255, blank=True)
+    postal_line2 = models.CharField('Line 2', max_length=255, blank=True)
+    postal_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    postal_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
+    postal_state = models.CharField(max_length=255, default='WA', blank=True)
+    postal_country = CountryField(default='AU', blank=True)
+    postal_postcode = models.CharField(max_length=10, blank=True)
 
     # Contact
 

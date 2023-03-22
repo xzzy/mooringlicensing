@@ -695,7 +695,7 @@ export default {
             }
             try {
                 // const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
-                const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(vm.profile.id+'/update_address')), payload);
+                const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_address')), payload);
                 vm.updatingAddress = false;
                 vm.profile = response.body;
                 if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }

@@ -97,6 +97,21 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
             'id',
             'last_name',
             'first_name',
+            'residential_line1',
+            'residential_line2',
+            'residential_line3',
+            'residential_locality',
+            'residential_state',
+            'residential_country',
+            'residential_postcode',
+            'postal_same_as_residential',
+            'postal_line1',
+            'postal_line2',
+            'postal_line3',
+            'postal_locality',
+            'postal_state',
+            'postal_country',
+            'postal_postcode',
         )
 
 
