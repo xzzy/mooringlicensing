@@ -54,6 +54,12 @@ from '@/utils/hooks'
             }
         },
         computed: {
+            // disable_mooring_selection: function(){
+            //     let disable = false
+            //     if (this.proposal.proposal_type.code != 'new'){
+            //         disable = true
+            //     }
+            // }
         },
         methods:{
             mooringPreferenceChanged: async function() {
@@ -66,6 +72,7 @@ from '@/utils/hooks'
             },
             fetchMooringBays: async function(){
                 const response = await this.$http.get(api_endpoints.mooring_bays);
+                console.log(response.body)
                 for (let bay of response.body) {
                     this.mooringBays.push(bay)
                 }
@@ -104,4 +111,3 @@ from '@/utils/hooks'
     margin-right: 50%;
 }
 </style>
-

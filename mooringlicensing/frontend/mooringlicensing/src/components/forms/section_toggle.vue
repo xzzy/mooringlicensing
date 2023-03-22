@@ -1,7 +1,7 @@
 <template lang="html">
     <div class="panel panel-default" >
         <div v-if="!hideHeader" class="panel-heading">
-            <h3 class="panel-title">{{label}} <span class="subtitle">{{ subtitle }}</span>
+            <h3 class="panel-title">{{label}} <span :class=subtitle_class_name>{{ subtitle }}</span>
                 <a :href="'#'+section_id" class="panelClicker" :id="custom_id" data-toggle="collapse" expanded="true" :aria-controls="section_id">
                     <span v-if="!noChevron" :class="panel_chevron_class"></span>
                 </a>
@@ -24,6 +24,10 @@ export default {
             type: String,
             default: '',
         },
+        subtitle_class_name: {
+            type: String,
+            default: 'subtitle',
+        },
         Index: {}, 
         formCollapse: {}, 
         hideHeader: {},
@@ -45,9 +49,12 @@ export default {
         },
         panel_collapse_class: function() {
             if (this.formCollapse) {
+                console.log('3')
+                console.log(this.formCollapse)
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
                 return "panel-body collapse";
             } else {
+                console.log('4')
                 if (this.treeHeight) {
                     this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
                     return "panel-body collapse in flex-container";
@@ -60,9 +67,12 @@ export default {
     },
     methods: {
         switchPanelChevronClass: function() {
-            if (this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right") {
+            console.log(this.panel_chevron_class)
+            if (this.panel_chevron_class == "glyphicon glyphicon-chevron-down pull-right") {
+                console.log('1')
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
             } else {
+                console.log('2')
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
             }
         },
@@ -97,5 +107,11 @@ export default {
     }
     .subtitle {
         font-size: 0.6em;
+    }
+    .subtitle-l {
+        font-size: 0.7em;
+    }
+    .subtitle-xl {
+        font-size: 0.8em;
     }
 </style>

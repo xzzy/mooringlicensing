@@ -1,16 +1,46 @@
-from ledger.payments.invoice.models import Invoice
 from rest_framework import serializers
 from django.db.models import Sum, Max
 from mooringlicensing.components.main.models import (
         CommunicationsLogEntry,
         GlobalSettings, TemporaryDocumentCollection,
         )
-from ledger.accounts.models import EmailUser
-from datetime import datetime, date
+# from ledger.payments.invoice.models import Invoice
+# from ledger.accounts.models import EmailUser
+from ledger_api_client.ledger_models import EmailUserRO, Invoice
+from ledger_api_client import utils
+
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
+
+
+class EmailUserSerializer(serializers.ModelSerializer):
+    fullname = serializers.SerializerMethodField()
+    # text = serializers.SerializerMethodField()
+    # email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EmailUserRO
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "title",
+            "organisation",
+            "fullname",
+            # "text",
+        )
+    # def get_email(self, obj):
+    #     return ''
+
+    def get_fullname(self, obj):
+        return "{} {}".format(obj.first_name, obj.last_name)
+
+    def get_text(self, obj):
+        return self.get_fullname(obj)
 
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
-    customer = serializers.PrimaryKeyRelatedField(queryset=EmailUser.objects.all(),required=False)
+    customer = serializers.PrimaryKeyRelatedField(queryset=EmailUserRO.objects.all(),required=False)
     documents = serializers.SerializerMethodField()
     class Meta:
         model = CommunicationsLogEntry
@@ -51,6 +81,7 @@ class OracleSerializer(serializers.Serializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
+    invoice_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -60,17 +91,24 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'reference',
             'payment_status',
             'settlement_date',
+            'invoice_url',
         )
 
     def get_payment_status(self, invoice):
-        if invoice.payment_status.lower() == 'unpaid':
+        invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
+
+        if invoice_payment_status == 'unpaid':
             return 'Unpaid'
-        elif invoice.payment_status.lower() == 'partially_paid':
+        elif invoice_payment_status == 'partially_paid':
             return 'Partially Paid'
-        elif invoice.payment_status.lower() == 'paid':
+        elif invoice_payment_status == 'paid':
             return 'Paid'
         else:
             return 'Over Paid'
+
+    def get_invoice_url(self, invoice):
+        return f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+
 
 class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):
     class Meta:

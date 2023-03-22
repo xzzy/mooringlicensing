@@ -11,7 +11,10 @@ class Command(BaseCommand):
     help = 'Export and email sticker data'
 
     def handle(self, *args, **options):
+        # 1. Export sticker details as a spreadsheet file
         updates, errors = sticker_export()
+
+        # 2. Email the file generated above to the sticker company
         success_filenames, error_filenames = email_stickers_document()
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()

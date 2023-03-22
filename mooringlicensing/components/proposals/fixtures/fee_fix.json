@@ -1,0 +1,169 @@
+[
+{
+    "model": "mooringlicensing.agegroup",
+    "pk": 1,
+    "fields": {
+        "code": "adult"
+    }
+},
+{
+    "model": "mooringlicensing.agegroup",
+    "pk": 2,
+    "fields": {
+        "code": "child"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 1,
+    "fields": {
+        "fee_season": 1,
+        "name": "Once off application fee",
+        "start_date": "2021-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 2,
+    "fields": {
+        "fee_season": 2,
+        "name": "Period 1 Full fee",
+        "start_date": "2021-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 3,
+    "fields": {
+        "fee_season": 2,
+        "name": "Period 2 50% fee",
+        "start_date": "2022-04-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 4,
+    "fields": {
+        "fee_season": 3,
+        "name": "Period 1 Full fee",
+        "start_date": "2021-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 5,
+    "fields": {
+        "fee_season": 3,
+        "name": "Period 2 50% fee",
+        "start_date": "2022-04-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 6,
+    "fields": {
+        "fee_season": 4,
+        "name": "Period 1 Full feee",
+        "start_date": "2021-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 7,
+    "fields": {
+        "fee_season": 4,
+        "name": "Period 2 50% fee",
+        "start_date": "2022-04-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 8,
+    "fields": {
+        "fee_season": 5,
+        "name": "DCV Permit",
+        "start_date": "2021-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 9,
+    "fields": {
+        "fee_season": 6,
+        "name": "DCV admission fee",
+        "start_date": "2021-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 10,
+    "fields": {
+        "fee_season": 7,
+        "name": "Period 1 Full fee",
+        "start_date": "2022-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 11,
+    "fields": {
+        "fee_season": 7,
+        "name": "Period 2 50% fee",
+        "start_date": "2023-04-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 12,
+    "fields": {
+        "fee_season": 8,
+        "name": "Period 1 Full fee",
+        "start_date": "2022-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 13,
+    "fields": {
+        "fee_season": 8,
+        "name": "Period 2 50% fee",
+        "start_date": "2023-04-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 14,
+    "fields": {
+        "fee_season": 9,
+        "name": "Period 1 Full fee",
+        "start_date": "2022-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 15,
+    "fields": {
+        "fee_season": 9,
+        "name": "Period 2 50% fee",
+        "start_date": "2023-04-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 16,
+    "fields": {
+        "fee_season": 10,
+        "name": "period1",
+        "start_date": "2022-09-01"
+    }
+},
+{
+    "model": "mooringlicensing.feeperiod",
+    "pk": 17,
+    "fields": {
+        "fee_season": 11,
+        "name": "period1",
+        "start_date": "2022-09-01"
+    }
+}
+]

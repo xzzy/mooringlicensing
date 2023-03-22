@@ -11,7 +11,7 @@ from mooringlicensing.components.proposals.models import (
 )
 from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence, VesselOwnershipOnApproval
 from mooringlicensing.components.organisations.models import Organisation
-from ledger.accounts.models import Organisation as ledger_org
+# from ledger.accounts.models import Organisation as ledger_org
 
 import sys
 import csv
