@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+
 
 import ledger_api_client.utils
 from django.core.files.base import ContentFile
@@ -729,12 +729,7 @@ class Approval(RevisionedMixin):
                     self.set_to_cancel = True
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
-                    wla = self.child_obj
-                    wla.internal_status = None
-                    wla.wla_queue_date = None
-                    wla.wla_order = None
-                    wla.save()
-                    wla.set_wla_order()
+                    self.child_obj.processes_after_cancel()
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
                 # Log entry for organisation
@@ -839,12 +834,7 @@ class Approval(RevisionedMixin):
                     self.set_to_surrender = True
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
-                    wla = self.child_obj
-                    wla.internal_status = None
-                    wla.wla_queue_date = None
-                    wla.wla_order = None
-                    wla.save()
-                    wla.set_wla_order()
+                    self.child_obj.processes_after_cancel()
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -1024,6 +1014,9 @@ class WaitingListAllocation(Approval):
         return [], []
 
     def set_wla_order(self):
+        """
+        Renumber all the related allocations with 'current'/'suspended' status from #1 to #n
+        """
         place = 1
         # set wla order per bay for current allocations
         for w in WaitingListAllocation.objects.filter(
@@ -1035,9 +1028,15 @@ class WaitingListAllocation(Approval):
             w.wla_order = place
             w.save()
             place += 1
-        self.refresh_from_db()
+        self.refresh_from_db()  # Should be self.proposal.refresh_from_db()???
         return self
 
+    def processes_after_cancel(self):
+        self.internal_status = None
+        self.wla_queue_date = None
+        self.wla_order = None
+        self.save()
+        self.set_wla_order()
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
@@ -2325,11 +2324,12 @@ class DcvPermit(RevisionedMixin):
 
         line_items = [
             {
-                'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                # 'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
+                'ledger_description': '{} Fee: {} @{}'.format(
                     fee_constructor.application_type.description,
                     self.lodgement_number,
-                    fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-                    fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+                    # fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+                    # fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
                     target_datetime_str,
                 ),
                 # 'oracle_code': application_type.oracle_code,

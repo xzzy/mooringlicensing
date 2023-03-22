@@ -435,6 +435,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             filter_query &= Q(site_licensee_email=request.user.email)
         else:
             filter_query &= ~Q(site_licensee_email=request.user.email)
+
         # don't show discarded applications
         if not level == 'internal':
             filter_query &= ~Q(customer_status='discarded')
@@ -1377,9 +1378,11 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data
         reason_id = request.data.get('reason_id')
-        proposal = request.data.get('proposal', None)
+        # proposal = request.data.get('proposal', None)
+        proposal = request.data.get('proposal')
         data['reason'] = reason_id
         data['proposal'] = proposal['id']
+        # data['proposal'] = proposal_id
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception = True)
         instance = serializer.save()

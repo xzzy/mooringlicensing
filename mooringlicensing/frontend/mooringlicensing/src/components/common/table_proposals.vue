@@ -168,7 +168,7 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     if (full.application_type_dict){
-                        return full.application_type_dict.description
+                        return full.application_type_dict.description + ' (' + full.proposal_type.code + ')'
                     } else {
                         // Should not reach here
                         return ''

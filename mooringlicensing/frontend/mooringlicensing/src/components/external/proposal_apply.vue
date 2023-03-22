@@ -225,7 +225,7 @@ export default {
         selectedApplication: {},
         selectedCurrentProposal: null,
         //selected_application_name: '',
-        application_types: [],
+        application_types_and_licences: [],
         wlaChoices: [],
         aaaChoices: [],
         auaChoices: [],
@@ -280,7 +280,7 @@ export default {
   },
   methods: {
       parseApprovals: function() {
-          this.application_types.forEach(app => {
+          this.application_types_and_licences.forEach(app => {
               if (app.code === 'wla' && app.lodgement_number) {
                   this.wlaApprovals.push({
                       lodgement_number: app.lodgement_number,
@@ -306,9 +306,9 @@ export default {
       },
       parseWla: function() {
           if (this.wlaApprovals.length>1) {
-              // new app
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   if (app.code === 'wla' && !app.approval_id) {
+                      // new app
                       this.wlaMultiple.push(app)
                   }
               }
@@ -321,7 +321,7 @@ export default {
               })
           } else {
               // add wla approval to wlaChoices
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   if (app.code === 'wla' && (this.newWlaAllowed || app.approval_id)) {
                       this.wlaChoices.push(app);
                   }
@@ -331,7 +331,7 @@ export default {
       parseAaa: function() {
           if (this.aaaApprovals.length>1) {
               // new app
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   if (['aaa','aap'].includes(app.code) && !app.approval_id) {
                   //if (app.code === 'wla' && !app.approval_id) {
                       this.aaaMultiple.push(app)
@@ -346,7 +346,7 @@ export default {
               })
           } else {
               // add wla approval to wlaChoices
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   //if (app.code === 'wla') {
                   if (['aaa','aap'].includes(app.code)) {
                       this.aaaChoices.push(app);
@@ -357,7 +357,7 @@ export default {
       parseAua: function() {
           if (this.auaApprovals.length>1) {
               // new app
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   if (['aua','aup'].includes(app.code) && !app.approval_id) {
                   //if (app.code === 'wla' && !app.approval_id) {
                       this.auaMultiple.push(app)
@@ -372,7 +372,7 @@ export default {
               })
           } else {
               // add wla approval to wlaChoices
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   //if (app.code === 'wla') {
                   if (['aua','aup'].includes(app.code)) {
                       this.auaChoices.push(app);
@@ -384,7 +384,7 @@ export default {
           if (this.mlApprovals.length>1) {
               /*
               // new app
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   if (['aua','aup'].includes(app.code) && !app.approval_id) {
                   //if (app.code === 'wla' && !app.approval_id) {
                       this.auaMultiple.push(app)
@@ -400,7 +400,7 @@ export default {
               })
           } else {
               // add wla approval to wlaChoices
-              for (let app of this.application_types) {
+              for (let app of this.application_types_and_licences) {
                   //if (app.code === 'wla') {
                   if (app.code==="ml") {
                       this.mlChoices.push(app);
@@ -417,9 +417,17 @@ export default {
     },
     submit: function() {
         //let vm = this;
+        let title_verb = 'Create'
+        let text_verb = 'create'
+        if (this.selectedApplication.approval_id){
+            title_verb = 'Amend or renew'
+            text_verb = 'amend or renew'
+        }
         swal({
-            title: "Create " + this.selectedApplication.description,
-            text: "Are you sure you want to create " + this.alertText + "?",
+            // title: "Create " + this.selectedApplication.description,
+            // text: "Are you sure you want to create " + this.alertText + "?",
+            title: title_verb + " " + this.selectedApplication.description,
+            text: "Are you sure you want to " + text_verb + " " + this.alertText + "?",
             type: "question",
             showCancelButton: true,
             confirmButtonText: 'Accept'
@@ -502,13 +510,13 @@ export default {
     fetchApplicationTypes: async function(){
         const response = await this.$http.get(api_endpoints.application_types_dict+'?apply_page=True');
         for (let app_type of response.body) {
-            this.application_types.push(app_type)
+            this.application_types_and_licences.push(app_type)
         }
     },
     fetchExistingLicences: async function(){
         const response = await this.$http.get(api_endpoints.existing_licences);
         for (let l of response.body) {
-            this.application_types.push(l)
+            this.application_types_and_licences.push(l)
         }
     },
     fetchWlaAllowed: async function(){
@@ -519,12 +527,13 @@ export default {
   },
   mounted: async function() {
     this.applicationsLoading = true;
-    //let vm = this;
+    
     await this.fetchApplicationTypes();
-    //await this.fetchExistingMooringLicences();
-    await this.fetchExistingLicences();
+    await this.fetchExistingLicences();  // application_types_and_licences has all the application types and the existing licences
+
     await this.fetchWlaAllowed();
-    this.parseApprovals();
+
+    this.parseApprovals();  // wlaApprovals, aaaApprovals, auaApprovals and ml Approvals
     this.parseWla();
     this.parseAaa();
     this.parseAua();

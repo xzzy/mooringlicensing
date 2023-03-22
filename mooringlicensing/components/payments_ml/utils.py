@@ -88,14 +88,15 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
 
     proposal_type_text = '{}'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
     return {
-        'ledger_description': '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
+        # 'ledger_description': '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
+        'ledger_description': '{} fee ({}, {}): {} @{}'.format(
             # fee_constructor.application_type.description,
             application_type_display,
             proposal_type_text,
             vessel_rego_no,
             instance.lodgement_number,
-            fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-            fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+            # fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+            # fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
             target_datetime_str,
         ),
         'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),

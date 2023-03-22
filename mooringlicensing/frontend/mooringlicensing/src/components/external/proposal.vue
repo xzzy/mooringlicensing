@@ -114,16 +114,17 @@
                                             <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
 
                                             <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
-                                                {{ submitText }}&nbsp; <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                                {{ submitText }}&nbsp; 
+                                                <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                             </button>
                                             <input v-else 
-                                            type="button" 
-                                            @click.prevent="submit" 
-                                            class="btn btn-primary" 
-                                            :value="submitText" 
-                                            :disabled="saveExitProposal || savingProposal || disableSubmit"
-                                            id="submitButton"
-                                            :title="disabledSubmitText"
+                                                type="button" 
+                                                @click.prevent="submit" 
+                                                class="btn btn-primary" 
+                                                :value="submitText" 
+                                                :disabled="saveExitProposal || savingProposal || disableSubmit"
+                                                id="submitButton"
+                                                :title="disabledSubmitText"
                                             />
 
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
@@ -498,9 +499,7 @@ export default {
                     //await this.post_and_redirect(this.application_fee_url, {'auto_approve': true, 'csrfmiddlewaretoken' : this.csrf_token});
                     await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
                 } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
-                    console.log('aho1')
                     await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                    console.log('aho2')
                 } else {
                     await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
                     //this.$router.push({
@@ -509,7 +508,6 @@ export default {
                 }
             });
         } catch(err) {
-            console.log('aho3')
             console.log(err)
             console.log(typeof(err.body))
             await swal({
@@ -751,7 +749,6 @@ export default {
             this.$nextTick(async () => {
                 try {
                     await this.save_and_pay();
-                    console.log('aho5')
                 } catch (err) {
                     console.log(err)
                     await swal({
@@ -786,7 +783,6 @@ export default {
         var formElement = $(postFormStr);
         $('body').append(formElement);
         $(formElement).submit();
-        console.log('aho4')
     },
 
   },

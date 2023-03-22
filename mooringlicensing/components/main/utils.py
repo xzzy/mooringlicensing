@@ -219,6 +219,10 @@ def handle_validation_error(e):
 
 
 def sticker_export():
+    """
+    This function exports sticker details data as a spreadsheet file,
+    and store it as a StickerPrintingBatch object.
+    """
     logger = logging.getLogger('cron_tasks')
     # TODO: Implement below
     # Note: if the user wants to apply for e.g. three new authorisations,
@@ -310,6 +314,9 @@ def sticker_export():
 
 
 def email_stickers_document():
+    """
+    Email the file generated at the sticker_export() function to the sticker company:
+    """
     logger = logging.getLogger('cron_tasks')
     updates, errors = [], []
 
@@ -317,7 +324,10 @@ def email_stickers_document():
         batches = StickerPrintingBatch.objects.filter(emailed_datetime__isnull=True)
         if batches.count():
             current_datetime = timezone.localtime(timezone.now())
+
+            # Send sticker details spreadsheet file to the printing company
             send_sticker_printing_batch_email(batches)
+
             for batch in batches:
                 batch.emailed_datetime = current_datetime
                 batch.save()

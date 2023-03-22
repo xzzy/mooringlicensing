@@ -12,24 +12,45 @@ from django.utils import timezone
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 
 class FirstTimeNagScreenMiddleware(object):
-    def process_request(self, request):
-        if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
-            if (not request.user.first_name or not request.user.last_name):
-                path_ft = reverse('first_time')
-                path_logout = reverse('accounts:logout')
-                if request.path not in (path_ft, path_logout):
-                    return redirect(reverse('first_time')+"?next="+urlquote_plus(request.get_full_path()))
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
+            # if not request.user.first_name or not request.user.last_name:
+            if not request.user.first_name or not request.user.last_name or not request.user.residential_address_id or not request.user.postal_address_id:
+                path_first_time = reverse('account')
+                path_logout = reverse('logout')
+                if request.path not in (path_first_time, path_logout):
+                    logger.info('redirect')
+                    return redirect(path_first_time + "?next=" + urlquote_plus(request.get_full_path()))
+                else:
+                    # We don't want to redirect the suer when the user is accessing the firsttime page or logout page.
+                    pass
+        response = self.get_response(request)
+        return response
+
 
 class CacheControlMiddleware(object):
-    def process_response(self, request, response):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    # def process_response(self, request, response):
+    def __call__(self, request):
+        response = self.get_response(request)
         if request.path[:5] == '/api/' or request.path == '/':
             response['Cache-Control'] = 'private, no-store'
         elif request.path[:8] == '/static/':
             response['Cache-Control'] = 'public, max-age=86400'
         return response
+
 
 class RevisionOverrideMiddleware(RevisionMiddleware):
 

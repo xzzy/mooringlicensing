@@ -308,10 +308,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_id = models.IntegerField(null=True,blank=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
     vessel_name = models.CharField(max_length=400, blank=True)
-    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
-    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    # vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
+    vessel_length = models.DecimalField(max_digits=8, decimal_places=2, null=True) # does not exist in MB
+    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, null=True)
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, null=True) # tonnage
     berth_mooring = models.CharField(max_length=200, blank=True)
     # only for draft status proposals, otherwise retrieve from within vessel_ownership
     dot_name = models.CharField(max_length=200, blank=True, null=True)
@@ -3695,9 +3696,9 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
     vessel_name = models.CharField(max_length=400)
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
-    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_draft = models.DecimalField(max_digits=8, decimal_places=2)
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    vessel_weight = models.DecimalField(max_digits=8, decimal_places=2) # tonnage
     berth_mooring = models.CharField(max_length=200, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
@@ -3715,7 +3716,7 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
     @property
     def vessel_applicable_length(self):
-        return self.vessel_length
+        return float(self.vessel_length)
 
 
 class CompanyOwnership(RevisionedMixin):

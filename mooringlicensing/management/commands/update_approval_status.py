@@ -5,7 +5,7 @@ from django.db.models import Q
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import (
     Approval,
-    ApprovalUserAction,
+    ApprovalUserAction, WaitingListAllocation,
 )
 from mooringlicensing.components.proposals.models import ProposalUserAction
 from ledger.accounts.models import EmailUser
@@ -83,6 +83,10 @@ class Command(BaseCommand):
                         a.status = Approval.APPROVAL_STATUS_CANCELLED
                         a.set_to_cancel = False
                         a.save()
+
+                        if hasattr(a, 'child_obj') and type(self.child_obj) == WaitingListAllocation:
+                            self.child_obj.processes_after_cancel()
+
                         send_approval_cancel_email_notification(a)
 
                         proposal = a.current_proposal
@@ -138,11 +142,15 @@ class Command(BaseCommand):
             if a.cancellation_date and a.set_to_cancel:                              
                 if a.cancellation_date <= today:
                     try:
-                        a.status = Approval.STATUS_CANCELLED
+                        a.status = Approval.APPROVAL_STATUS_CANCELLED
                         a.set_to_cancel = False
                         a.save()
 
+                        if hasattr(a, 'child_obj') and type(self.child_obj) == WaitingListAllocation:
+                            self.child_obj.processes_after_cancel()
+
                         send_approval_cancel_email_notification(a)
+
                         proposal = a.current_proposal
                         ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id), user)
                         ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number), user)
