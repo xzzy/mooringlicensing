@@ -472,17 +472,18 @@ class ApprovalSerializer(serializers.ModelSerializer):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
             for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
-                if moa.mooring.mooring_licence:
+                #import ipdb; ipdb.set_trace()
+                if moa.mooring.mooring_licence is not None:
                     licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
-                moorings.append({
-                    "id": moa.id,
-                    "mooring_name": moa.mooring.name,
-                    "sticker": moa.sticker.number if moa.sticker else '',
-                    "licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
-                    'allocated_by': 'Site Licensee' if moa.site_licensee else 'RIA',
-                    "mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
-                    "email": licence_holder_data.get('email') if licence_holder_data else '',
-                    })
+                    moorings.append({
+                        "id": moa.id,
+                        "mooring_name": moa.mooring.name,
+                        "sticker": moa.sticker.number if moa.sticker else '',
+                        "licensee": licence_holder_data.get('full_name') if licence_holder_data else '',
+                        'allocated_by': 'Site Licensee' if moa.site_licensee else 'RIA',
+                        "mobile": licence_holder_data.get('mobile_number') if licence_holder_data else '',
+                        "email": licence_holder_data.get('email') if licence_holder_data else '',
+                        })
         return moorings
 
     def get_authorised_user_moorings(self, obj):
