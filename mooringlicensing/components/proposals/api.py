@@ -633,6 +633,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         proposal_applicant = ProposalApplicant.objects.create(
             first_name=request.user.first_name,
             last_name=request.user.last_name,
+            dob=request.user.dob,
+
             residential_line1=request.user.residential_address.line1,
             residential_line2=request.user.residential_address.line2,
             residential_line3=request.user.residential_address.line3,
@@ -640,6 +642,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
             residential_state=request.user.residential_address.state,
             residential_country=request.user.residential_address.country,
             residential_postcode=request.user.residential_address.postcode,
+
+            postal_same_as_residential=request.user.postal_same_as_residential,
             postal_line1=request.user.postal_address.line1,
             postal_line2=request.user.postal_address.line2,
             postal_line3=request.user.postal_address.line3,
@@ -647,6 +651,11 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
             postal_state=request.user.postal_address.state,
             postal_country=request.user.postal_address.country,
             postal_postcode=request.user.postal_address.postcode,
+
+            email=request.user.email,
+            phone_number=request.user.phone_number,
+            mobile_number=request.user.mobile_number,
+
             proposal=obj
         )
 
@@ -1263,21 +1272,38 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             proposal = self.get_object()
             proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-            serializer = ProposalApplicantSerializer(proposal_applicant, data={
-                # We want to update only following fields
-                'first_name': request.data.get('first_name'),
-                'last_name': request.data.get('last_name'),
-                'dob': request.data.get('dob'),
-            })
+            data = {}
+            dob = request.data.get('dob', '')
+            dob = datetime.strptime(dob, '%d/%m/%Y').date() if dob else dob
+            data['first_name'] = request.data.get('first_name')
+            data['last_name'] = request.data.get('last_name')
+            data['dob'] = dob
+
+            serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            logger.info(f'Personal details of the proposal: {proposal} have been updated with the data: {data}')
             return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def update_contact(self, request, *args, **kwargs):
-        # TODO
-        pass
+        with transaction.atomic():
+            proposal = self.get_object()
+            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+            data = {}
+            if request.data.get('mobile_number', ''):
+                data['mobile_number'] = request.data.get('mobile_number')
+            if request.data.get('phone_number', ''):
+                data['phone_number'] = request.data.get('phone_number')
+
+            serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            logger.info(f'Contact details of the proposal: {proposal} have been updated with the data: {data}')
+            return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -1286,43 +1312,41 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal = self.get_object()
             proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
             data = {}
-            request_residential_address = request.data.get('residential_address', {})
-            if request_residential_address:
-                if request_residential_address.get('line1', ''):
-                    data['residential_line1'] = request_residential_address.get('line1')
-                if request_residential_address.get('locality', ''):
-                    data['residential_locality'] = request_residential_address.get('locality')
-                if request_residential_address.get('state', ''):
-                    data['residential_state'] = request_residential_address.get('state')
-                if request_residential_address.get('postcode', ''):
-                    data['residential_postcode'] = request_residential_address.get('postcode')
-                if request_residential_address.get('country', ''):
-                    data['residential_country'] = request_residential_address.get('country')
+            if 'residential_line1' in request.data:
+                data['residential_line1'] = request.data.get('residential_line1')
+            if 'residential_locality' in request.data:
+                data['residential_locality'] = request.data.get('residential_locality')
+            if 'residential_state' in request.data:
+                data['residential_state'] = request.data.get('residential_state')
+            if 'residential_postcode' in request.data:
+                data['residential_postcode'] = request.data.get('residential_postcode')
+            if 'residential_country' in request.data:
+                data['residential_country'] = request.data.get('residential_country')
             if request.data.get('postal_same_as_residential'):
                 data['postal_same_as_residential'] = True
                 data['postal_line1'] = ''
                 data['postal_locality'] = ''
                 data['postal_state'] = ''
                 data['postal_postcode'] = ''
-                data['postal_country'] = ''
+                data['postal_country'] = data['residential_country']
             else:
                 data['postal_same_as_residential'] = False
-                request_postal_address = request.data.get('postal_address', {})
-                if request_postal_address:
-                    if request_postal_address.get('line1', ''):
-                        data['postal_line1'] = request_postal_address.get('line1')
-                    if request_postal_address.get('locality', ''):
-                        data['postal_locality'] = request_postal_address.get('locality')
-                    if request_postal_address.get('state', ''):
-                        data['postal_state'] = request_postal_address.get('state')
-                    if request_postal_address.get('postcode', ''):
-                        data['postal_postcode'] = request_postal_address.get('postcode')
-                    if request_postal_address.get('country', ''):
-                        data['postal_country'] = request_postal_address.get('country')
+                if 'postal_line1' in request.data:
+                    data['postal_line1'] = request.data.get('postal_line1')
+                if 'postal_locality' in request.data:
+                    data['postal_locality'] = request.data.get('postal_locality')
+                if 'postal_state' in request.data:
+                    data['postal_state'] = request.data.get('postal_state')
+                if 'postal_postcode' in request.data:
+                    data['postal_postcode'] = request.data.get('postal_postcode')
+                if 'postal_country' in request.data:
+                    data['postal_country'] = request.data.get('postal_country')
 
             serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            logger.info(f'Address details of the proposal: {proposal} have been updated with the data: {data}')
             return Response(serializer.data)
 
             # print(request.data)

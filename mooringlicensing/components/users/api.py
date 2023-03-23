@@ -87,6 +87,8 @@ class GetProposalApplicant(views.APIView):
         from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
         proposal = Proposal.objects.get(id=proposal_pk)
         proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+        # proposal_applicant.postal_country = proposal_applicant.residential_country
+        # proposal_applicant.save()
         serializer = ProposalApplicantSerializer(proposal_applicant, context={'request': request})
         return Response(serializer.data)
 

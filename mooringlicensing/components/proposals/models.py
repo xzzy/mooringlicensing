@@ -2114,9 +2114,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 class ProposalApplicant(RevisionedMixin):
     proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
 
-    # Name
+    # Name, etc
     first_name = models.CharField(max_length=128, blank=True, verbose_name='Given name(s)')
     last_name = models.CharField(max_length=128, blank=True)
+    dob = models.DateField(auto_now=False, auto_now_add=False, null=True, blank=True, verbose_name="date of birth", help_text='')
 
     # Residential address
     residential_line1 = models.CharField('Line 1', max_length=255, blank=True)
@@ -2138,6 +2139,9 @@ class ProposalApplicant(RevisionedMixin):
     postal_postcode = models.CharField(max_length=10, blank=True)
 
     # Contact
+    email = models.EmailField(null=True, blank=True,)
+    phone_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="phone number", help_text='')
+    mobile_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="mobile number", help_text='')
 
     class Meta:
         app_label = 'mooringlicensing'
