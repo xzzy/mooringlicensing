@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
+from django_countries.fields import CountryField
 from dateutil.relativedelta import relativedelta
 
 import json
 import datetime
 from decimal import Decimal
 import traceback
+import django_countries
 
 import pytz
 import uuid
@@ -29,7 +31,7 @@ from django.utils import timezone
 # from django.core.urlresolvers import reverse
 from django.urls import reverse
 # from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO, BaseAddress
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import Invoice
 from mooringlicensing import exceptions, settings
@@ -2107,6 +2109,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
         return vessel_exists
+
+
+class ProposalApplicant(RevisionedMixin):
+    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
+
+    # Name, etc
+    first_name = models.CharField(max_length=128, blank=True, verbose_name='Given name(s)')
+    last_name = models.CharField(max_length=128, blank=True)
+    dob = models.DateField(auto_now=False, auto_now_add=False, null=True, blank=True, verbose_name="date of birth", help_text='')
+
+    # Residential address
+    residential_line1 = models.CharField('Line 1', max_length=255, blank=True)
+    residential_line2 = models.CharField('Line 2', max_length=255, blank=True)
+    residential_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    residential_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
+    residential_state = models.CharField(max_length=255, default='WA', blank=True)
+    residential_country = CountryField(default='AU', blank=True)
+    residential_postcode = models.CharField(max_length=10, blank=True)
+
+    # Postal address
+    postal_same_as_residential = models.NullBooleanField(default=False)
+    postal_line1 = models.CharField('Line 1', max_length=255, blank=True)
+    postal_line2 = models.CharField('Line 2', max_length=255, blank=True)
+    postal_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    postal_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
+    postal_state = models.CharField(max_length=255, default='WA', blank=True)
+    postal_country = CountryField(default='AU', blank=True)
+    postal_postcode = models.CharField(max_length=10, blank=True)
+
+    # Contact
+    email = models.EmailField(null=True, blank=True,)
+    phone_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="phone number", help_text='')
+    mobile_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="mobile number", help_text='')
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 
 def update_sticker_doc_filename(instance, filename):
@@ -4343,7 +4381,8 @@ reversion.register(RequirementDocument, follow=[])
 reversion.register(ProposalType, follow=['proposal_set',])
 # TODO: fix this to improve performance
 #reversion.register(Proposal, follow=['documents', 'succeeding_proposals', 'comms_logs', 'companyownership_set', 'insurance_certificate_documents', 'hull_identification_number_documents', 'electoral_roll_documents', 'mooring_report_documents', 'written_proof_documents', 'signed_licence_agreement_documents', 'proof_of_identity_documents', 'proposalrequest_set', 'proposaldeclineddetails', 'action_logs', 'requirements', 'application_fees', 'approval_history_records', 'approvals', 'sticker_set', 'compliances'])
-reversion.register(Proposal)
+reversion.register(Proposal, follow=['proposalapplicant_set'])
+reversion.register(ProposalApplicant)
 reversion.register(StickerPrintingContact, follow=[])
 reversion.register(StickerPrintingBatch, follow=['sticker_set'])
 reversion.register(StickerPrintingResponseEmail, follow=['stickerprintingresponse_set'])
@@ -4384,4 +4423,3 @@ reversion.register(ProposalStandardRequirement, follow=['proposalrequirement_set
 reversion.register(ProposalUserAction, follow=[])
 reversion.register(ProposalRequirement, follow=['requirement_documents', 'proposalrequirement_set', 'compliance_requirement'])
 reversion.register(HelpPage, follow=[])
-
