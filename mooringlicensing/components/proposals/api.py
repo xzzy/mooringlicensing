@@ -18,8 +18,8 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing import settings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-        save_proponent_data,
-        )
+    save_proponent_data, make_proposal_applicant_ready,
+)
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant
 from mooringlicensing.components.main.utils import (
@@ -542,6 +542,9 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
+
+        make_proposal_applicant_ready(obj, request)
+
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
@@ -569,6 +572,9 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
+
+        make_proposal_applicant_ready(obj, request)
+
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
@@ -601,6 +607,9 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type,
                 allocated_mooring=mooring,
                 )
+
+        make_proposal_applicant_ready(obj, request)
+
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
@@ -630,37 +639,11 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
 
-        proposal_applicant = ProposalApplicant.objects.create(
-            first_name=request.user.first_name,
-            last_name=request.user.last_name,
-            dob=request.user.dob,
-
-            residential_line1=request.user.residential_address.line1,
-            residential_line2=request.user.residential_address.line2,
-            residential_line3=request.user.residential_address.line3,
-            residential_locality=request.user.residential_address.locality,
-            residential_state=request.user.residential_address.state,
-            residential_country=request.user.residential_address.country,
-            residential_postcode=request.user.residential_address.postcode,
-
-            postal_same_as_residential=request.user.postal_same_as_residential,
-            postal_line1=request.user.postal_address.line1,
-            postal_line2=request.user.postal_address.line2,
-            postal_line3=request.user.postal_address.line3,
-            postal_locality=request.user.postal_address.locality,
-            postal_state=request.user.postal_address.state,
-            postal_country=request.user.postal_address.country,
-            postal_postcode=request.user.postal_address.postcode,
-
-            email=request.user.email,
-            phone_number=request.user.phone_number,
-            mobile_number=request.user.mobile_number,
-
-            proposal=obj
-        )
+        make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
+
 
 
 class ProposalByUuidViewSet(viewsets.ModelViewSet):

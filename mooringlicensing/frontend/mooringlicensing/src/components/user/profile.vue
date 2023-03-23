@@ -971,6 +971,7 @@ export default {
             });
         },
         fetchProfile: async function(){
+            console.log('in fetchProfile')
             let response = null;
             //let submitter_id = 666;
             if (this.submitterId) {
