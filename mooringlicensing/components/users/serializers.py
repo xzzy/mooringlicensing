@@ -6,7 +6,7 @@ from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
 from mooringlicensing.components.main.models import UserSystemSettings, Document#, ApplicationType
-from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
 from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
 
@@ -87,6 +87,39 @@ class UserFilterSerializer(serializers.ModelSerializer):
 
     def get_name(self, obj):
         return obj.get_full_name()
+
+
+class ProposalApplicantSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProposalApplicant
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+            'dob',
+
+            'residential_line1',
+            'residential_line2',
+            'residential_line3',
+            'residential_locality',
+            'residential_state',
+            'residential_country',
+            'residential_postcode',
+
+            'postal_same_as_residential',
+            'postal_line1',
+            'postal_line2',
+            'postal_line3',
+            'postal_locality',
+            'postal_state',
+            'postal_country',
+            'postal_postcode',
+
+            'email',
+            'phone_number',
+            'mobile_number',
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
