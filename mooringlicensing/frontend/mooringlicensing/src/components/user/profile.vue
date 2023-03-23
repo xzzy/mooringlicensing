@@ -84,29 +84,29 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Residential Address</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_address.line1">
+                                <input :readonly="readonly" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_address.locality">
+                                <input :readonly="readonly" type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">State</label>
                             <div class="col-sm-3">
-                                <input :readonly="readonly" type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_address.state">
+                                <input :readonly="readonly" type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_state">
                             </div>
                             <label for="" class="col-sm-1 control-label">Postcode</label>
                             <div class="col-sm-2">
-                                <input :readonly="readonly" type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_address.postcode">
+                                <input :readonly="readonly" type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
-                                <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="profile.residential_address.country">
+                                <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="profile.residential_country">
                                     <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
                                     <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                 </select>
@@ -127,29 +127,29 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Postal Address</label>
                             <div class="col-sm-6">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_line1" name="Street" placeholder="" v-model="profile.postal_address.line1">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_line1" name="Street" placeholder="" v-model="profile.postal_line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_locality" name="Town/Suburb" placeholder="" v-model="profile.postal_address.locality">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_locality" name="Town/Suburb" placeholder="" v-model="profile.postal_locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">State</label>
                             <div class="col-sm-3">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_state" name="State" placeholder="" v-model="profile.postal_address.state">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_state" name="State" placeholder="" v-model="profile.postal_state">
                             </div>
                             <label for="" class="col-sm-1 control-label">Postcode</label>
                             <div class="col-sm-2">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_postcode" name="Postcode" placeholder="" v-model="profile.postal_address.postcode">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_postcode" name="Postcode" placeholder="" v-model="profile.postal_postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
-                                <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="profile.postal_address.country">
+                                <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="profile.postal_country">
                                     <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
                                     <option value=""></option>
                                     <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
@@ -405,7 +405,7 @@ export default {
             return readonly
         },
         emailReadOnly: function() {
-            let readonly = false;
+            let readonly = true;
             if (this.readonly || this.profile.readonly_email) {
                 readonly = true;
             }
@@ -556,7 +556,8 @@ export default {
             {
               vm.showPersonalError = false;
             vm.updatingPersonal = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')),JSON.stringify(vm.profile),{
+            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')) + '?proposal_id=' + vm.proposalId, JSON.stringify(vm.profile),{
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_personal')), JSON.stringify(vm.profile),{
                 emulateJSON:true
             }).then((response) => {
                 //console.log(response);
@@ -641,7 +642,8 @@ export default {
             else{
               vm.showContactError = false;
             vm.updatingContact = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_contact')),JSON.stringify(vm.profile),{
+            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_contact')),JSON.stringify(vm.profile),{
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_contact')), JSON.stringify(vm.profile),{
                 emulateJSON:true
             }).then((response) => {
                 //console.log(response);
@@ -677,38 +679,47 @@ export default {
                 }
             });
 
-            if (vm.missing_fields.length > 0)
-            {
+            if (vm.missing_fields.length > 0){
               vm.showAddressError = true;
-            }
-            else{
-              vm.showAddressError = false;
+            } else {
+                vm.showAddressError = false;
 
-            vm.updatingAddress = true;
-            let payload = {}
-            payload.residential_address = Object.assign({}, vm.profile.residential_address);
-            payload.postal_address = Object.assign({}, vm.profile.postal_address);
-            if (vm.profile.postal_same_as_residential) {
-                payload.postal_same_as_residential = true;
-            }
-            try {
-                const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
-                vm.updatingAddress = false;
-                vm.profile = response.body;
-                if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-                if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
-                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
-            } catch (error) {
-                swal({
-                    title: "Please fix these errors before saving",
-                    //text: error.bodyText,
-                    html: helpers.formatError(error),
-                    type:'error'
-                });
+                vm.updatingAddress = true;
+                let payload = {}
+                // payload.residential_address = Object.assign({}, vm.profile.residential_address);
+                // payload.postal_address = Object.assign({}, vm.profile.postal_address);
+                payload.residential_line1 = vm.profile.residential_line1
+                payload.residential_locality = vm.profile.residential_locality
+                payload.residential_state = vm.profile.residential_state
+                payload.residential_postcode = vm.profile.residential_postcode
+                payload.residential_country = vm.profile.residential_country
+                payload.postal_line1 = vm.profile.postal_line1
+                payload.postal_locality = vm.profile.postal_locality
+                payload.postal_state = vm.profile.postal_state
+                payload.postal_postcode = vm.profile.postal_postcode
+                payload.postal_country = vm.profile.postal_country
+                if (vm.profile.postal_same_as_residential) {
+                    payload.postal_same_as_residential = true;
+                }
+                try {
+                    // const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_address')), payload);
+                    const response = await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_address')), payload);
+                    vm.updatingAddress = false;
+                    vm.profile = response.body;
+                    if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                    if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                    if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
+                } catch (error) {
+                    swal({
+                        title: "Please fix these errors before saving",
+                        //text: error.bodyText,
+                        html: helpers.formatError(error),
+                        type:'error'
+                    });
 
-                vm.updatingAddress = false;
+                    vm.updatingAddress = false;
+                }
             }
-          }
         },
         updateSystemSettings: function() {
             let vm = this;
@@ -960,12 +971,15 @@ export default {
             });
         },
         fetchProfile: async function(){
+            console.log('in fetchProfile')
             let response = null;
             //let submitter_id = 666;
             if (this.submitterId) {
+                console.log('submitterId')
                 response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
             } else {
-                response = await Vue.http.get(api_endpoints.profile);
+                console.log(api_endpoints.profile)
+                response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
             }
             this.profile = Object.assign(response.body);
             if (this.profile.residential_address == null){ this.profile.residential_address = Object.assign({country:'AU'}); }
