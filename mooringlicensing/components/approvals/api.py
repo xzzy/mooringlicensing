@@ -1293,34 +1293,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                     date_invited=current_date,
                 )
                 proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
-                proposal_applicant_ml = ProposalApplicant.objects.create(
-                    proposal=new_proposal,
-
-                    first_name = proposal_applicant.first_name,
-                    last_name = proposal_applicant.last_name,
-                    dob = proposal_applicant.dob,
-
-                    residential_line1 = proposal_applicant.residential_line1,
-                    residential_line2 = proposal_applicant.residential_line2,
-                    residential_line3 = proposal_applicant.residential_line3,
-                    residential_locality = proposal_applicant.residential_locality,
-                    residential_state = proposal_applicant.residential_state,
-                    residential_country = proposal_applicant.residential_country,
-                    residential_postcode = proposal_applicant.residential_postcode,
-
-                    postal_same_as_residential = proposal_applicant.postal_same_as_residential,
-                    postal_line1 = proposal_applicant.postal_line1,
-                    postal_line2 = proposal_applicant.postal_line2,
-                    postal_line3 = proposal_applicant.postal_line3,
-                    postal_locality = proposal_applicant.postal_locality,
-                    postal_state = proposal_applicant.postal_state,
-                    postal_country = proposal_applicant.postal_country,
-                    postal_postcode = proposal_applicant.postal_postcode,
-
-                    email = proposal_applicant.email,
-                    phone_number = proposal_applicant.phone_number,
-                    mobile_number = proposal_applicant.mobile_number,
-                )
+                proposal_applicant.copy_self_to_proposal(new_proposal)
             if new_proposal:
                 # send email
                 send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)

@@ -43,6 +43,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer
 from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -712,7 +713,8 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
-        if self.instance.proposal_type_id != 1:
+        proposal_type_new = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        if self.instance.proposal_type != proposal_type_new:
             if self.instance.previous_application.preferred_bay_id != data.get('preferred_bay_id'):
                 custom_errors["Preferred bay"] = "You can not change a preferred bay"
         if self.context.get("action") == 'submit':
