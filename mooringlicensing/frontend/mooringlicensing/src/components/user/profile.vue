@@ -254,6 +254,7 @@
             </div>
         </FormSection>
         </div>
+<!--
         <div class="col-sm-12">
             <div class="well well-sm">
                 <p>
@@ -262,6 +263,7 @@
                 </p>
             </div>
         </div>
+-->
     </div>
 </template>
 
@@ -971,7 +973,6 @@ export default {
             });
         },
         fetchProfile: async function(){
-            console.log('in fetchProfile')
             let response = null;
             //let submitter_id = 666;
             if (this.submitterId) {
