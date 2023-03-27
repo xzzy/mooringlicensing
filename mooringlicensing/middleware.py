@@ -48,7 +48,7 @@ class CacheControlMiddleware(object):
         if request.path[:5] == '/api/' or request.path == '/':
             response['Cache-Control'] = 'private, no-store'
         elif request.path[:8] == '/static/':
-            response['Cache-Control'] = 'public, max-age=86400'
+            response['Cache-Control'] = 'public, max-age=300'
         return response
 
 
