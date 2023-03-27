@@ -619,10 +619,10 @@ class ListProposalSerializer(BaseProposalSerializer):
             for inv in proposal.invoices_display():
                 payment_status = get_invoice_payment_status(inv.id)
                 if payment_status == 'paid':
-                    invoices_str += 'invoice={}&'.format(inv.reference)
+                    invoices_str += 'invoice_no={}&'.format(inv.reference)
             if invoices_str:
                 invoices_str = invoices_str[:-1]
-                links += "<div><a href='{}/ledger/payments/oracle/payment?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
+                links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
                 # refund url
                 links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
         return links
