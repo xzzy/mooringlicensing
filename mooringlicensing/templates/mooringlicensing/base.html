@@ -60,7 +60,8 @@
                                 </a>
                                 <a class="navbar-brand" href="{% url 'home' %}">
                                     <div style="inline">
-                                        <img src="{% static 'mooringlicensing/img/dpaw_small.png' %}">{% if is_internal_login %}Applications {% else %}Home {% endif %}
+<!--                                        <img src="{% static 'mooringlicensing/img/dpaw_small.png' %}">{% if is_internal_login %}Applications {% else %}Home {% endif %}-->
+                                        {% if is_internal_login %}Applications {% else %}Home {% endif %}
                                     </div>
                                 </a>
                             </div>
