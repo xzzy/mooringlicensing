@@ -1873,11 +1873,33 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.listed_moorings.add(moa.mooring)
             self.save()
 
+    def clone_proposal_with_status_reset(self):
+        with transaction.atomic():
+            try:
+                proposal = type(self.child_obj).objects.create()
+                proposal.processing_status = 'draft'
+                proposal.previous_application = self
+                proposal.approval = self.approval
+                proposal.null_vessel_on_create = not self.vessel_on_proposal()
+
+                self.proposal_applicant.copy_self_to_proposal(proposal)
+
+                proposal.save(no_revision=True)
+                return proposal
+            except:
+                raise
+
+    @property
+    def proposal_applicant(self):
+        proposal_applicant = ProposalApplicant.objects.get(proposal=self)
+        return proposal_applicant
+
     def renew_approval(self,request):
         with transaction.atomic():
             previous_proposal = self
             try:
-                proposal = clone_proposal_with_status_reset(self)
+                # proposal = clone_proposal_with_status_reset(self)
+                proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
                 proposal.submitter = request.user
                 proposal.previous_application = self
@@ -1917,7 +1939,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             previous_proposal = self
             try:
-                proposal = clone_proposal_with_status_reset(self)
+                # proposal = clone_proposal_with_status_reset(self)
+                proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
                 proposal.submitter = request.user.id
                 proposal.previous_application = self
@@ -2145,6 +2168,36 @@ class ProposalApplicant(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def copy_self_to_proposal(self, target_proposal):
+        ProposalApplicant.objects.create(
+            proposal=target_proposal,
+
+            first_name = self.first_name,
+            last_name = self.last_name,
+            dob = self.dob,
+
+            residential_line1 = self.residential_line1,
+            residential_line2 = self.residential_line2,
+            residential_line3 = self.residential_line3,
+            residential_locality = self.residential_locality,
+            residential_state = self.residential_state,
+            residential_country = self.residential_country,
+            residential_postcode = self.residential_postcode,
+
+            postal_same_as_residential = self.postal_same_as_residential,
+            postal_line1 = self.postal_line1,
+            postal_line2 = self.postal_line2,
+            postal_line3 = self.postal_line3,
+            postal_locality = self.postal_locality,
+            postal_state = self.postal_state,
+            postal_country = self.postal_country,
+            postal_postcode = self.postal_postcode,
+
+            email = self.email,
+            phone_number = self.phone_number,
+            mobile_number = self.mobile_number,
+        )
 
 
 def update_sticker_doc_filename(instance, filename):

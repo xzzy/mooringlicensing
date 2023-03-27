@@ -342,8 +342,9 @@ from '@/utils/hooks'
             },
             profileFullName: function() {
                 if (this.profile) {
-                    return this.profile.full_name;
+                    return this.profile.first_name + ' ' + this.profile.last_name;
                 }
+                return ''
             },
             fee_invoice_url: function(){
                 return this.fee_paid ? this.proposal.fee_invoice_url : '';

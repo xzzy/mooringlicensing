@@ -50,11 +50,25 @@
                 {% if not request.user.is_authenticated %}
                     <div id="ps-login-container">
                         <h3>
-                            Access to {{system_name}}
+                            Access {{system_name}}
                         </h3>
 
                         <!--   Auth2   -->
-                        <a href="/ssologin">Login</a>
+                        <div id="submit-container">
+                            <br>
+                            <a href='/ssologin' class="btn btn-primary">Login</a>
+                            <br><br>
+                        </div>
+                        <p>Click the login button to login or start the new-user registration process.</p>
+                        <hr>
+                        <h4>
+                            {{ system_name }} Password-less Logins
+                        </h4>
+                        <p>
+                            At the Department of Biodiversity, Conservation and Attractions, we employ a password-less authentication system, meaning you never need to remember
+                            a password. When you need to login to a site, such as {{ system_name }}, simply enter your email and an
+                            authentication code will be sent to your registered email address. From there, enter the code on screen to complete the login process.
+                        </p>
 {% comment %}
                         {% bootstrap_messages %}
                         <form method="post" action="{% url "social:complete" backend="email" %}">
