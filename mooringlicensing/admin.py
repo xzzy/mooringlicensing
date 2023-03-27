@@ -51,21 +51,42 @@ mooringlicensing_admin_site = MooringLicensingAdminSite(name='mooringlicensingad
 #
 #
 # @admin.register(EmailUserRO)
-class EmailUserAdmin(admin.ModelAdmin):
-    list_display = (
-        "email",
-        "first_name",
-        "last_name",
-        "is_staff",
-        "is_active",
-    )
-    ordering = ("email",)
-    search_fields = ("id", "email", "first_name", "last_name")
-
-    def has_change_permission(self, request, obj=None):
-        if obj is None:  # and obj.status > 1:
-            return True
-        return None
-
+# class EmailUserAdmin(admin.ModelAdmin):
+#     list_display = (
+#         "email",
+#         "first_name",
+#         "last_name",
+#         "is_staff",
+#         "is_active",
+#     )
+#     ordering = ("email",)
+#     search_fields = ("id", "email", "first_name", "last_name")
+#
+#     def has_change_permission(self, request, obj=None):
+#         if obj is None:  # and obj.status > 1:
+#             return True
+#         return None
+#
+#     def has_delete_permission(self, request, obj=None):
+#         return None
+    
+    
+@admin.register(EmailUserRO)
+class EmailUserROAdmin(admin.ModelAdmin):
+    list_display = ('email','first_name','last_name','is_staff','is_active',)
+    ordering = ('email',)
+    search_fields = ('id','email','first_name','last_name')
+    readonly_fields = ['email','first_name','last_name','is_staff','is_active','user_permissions']
+ 
+#    def has_change_permission(self, request, obj=None):
+#        if obj is None: # and obj.status > 1:
+#            return True
+#        return None 
     def has_delete_permission(self, request, obj=None):
-        return None
+        return False
+    
+#    def get_readonly_fields(self, request, obj=None):
+#        if 'edit' not in request.GET:
+#            return self.readonly_fields
+#        else:
+#            return self.readonly_fields 
