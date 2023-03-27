@@ -111,11 +111,11 @@ uwsgi*.ini
 mooringlicensing/frontend/mooringlicensing/package-lock.json
 
 # npm build files
-mooringlicensing/static/mooringlicensing_vue/css/app.css
-mooringlicensing/static/mooringlicensing_vue/js/app.js
-mooringlicensing/static/mooringlicensing_vue/js/manifest.js
-mooringlicensing/static/mooringlicensing_vue/js/vendor.js
-mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
+#mooringlicensing/static/mooringlicensing_vue/css/app.css
+#mooringlicensing/static/mooringlicensing_vue/js/app.js
+#mooringlicensing/static/mooringlicensing_vue/js/manifest.js
+#mooringlicensing/static/mooringlicensing_vue/js/vendor.js
+#mooringlicensing/static/mooringlicensing_vue/js/babel-polyfill.js
 
 git_history_recent
 
