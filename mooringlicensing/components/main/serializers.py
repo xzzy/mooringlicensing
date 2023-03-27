@@ -114,7 +114,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
 
     def get_ledger_payment_url(self, invoice):
-        return f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payment?invoice={invoice.reference}'
+        return f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={invoice.reference}'
 
 
 class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):
