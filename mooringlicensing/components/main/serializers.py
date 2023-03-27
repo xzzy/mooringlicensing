@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Sum, Max
+
+from mooringlicensing import settings
 from mooringlicensing.components.main.models import (
         CommunicationsLogEntry,
         GlobalSettings, TemporaryDocumentCollection,
@@ -82,6 +84,7 @@ class OracleSerializer(serializers.Serializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     invoice_url = serializers.SerializerMethodField()
+    ledger_payment_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -92,6 +95,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'payment_status',
             'settlement_date',
             'invoice_url',
+            'ledger_payment_url',
         )
 
     def get_payment_status(self, invoice):
@@ -108,6 +112,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_invoice_url(self, invoice):
         return f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+
+    def get_ledger_payment_url(self, invoice):
+        return f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payment?invoice={invoice.reference}'
 
 
 class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):

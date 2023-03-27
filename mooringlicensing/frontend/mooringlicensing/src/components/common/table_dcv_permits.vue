@@ -145,7 +145,7 @@ export default {
                         for (let invoice of full.invoices){
                             links +=  `<div><a href='${invoice.invoice_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                                links +=  `&nbsp;&nbsp;&nbsp;<a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a><br/>`;
                             }
                         }
                     }
@@ -223,15 +223,6 @@ export default {
                 'render': function(row, type, full){
                     let links = '';
                     if (vm.is_internal){
-                        //if (full.invoices){
-                        //    for (let invoice of full.invoices){
-                        //        links += '<div>'
-                        //        if (!vm.is_external){
-                        //            links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
-                        //        }
-                        //        links += '</div>'
-                        //    }
-                        //}
                         if (full.display_create_sticker_action){
                             links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
                         }
