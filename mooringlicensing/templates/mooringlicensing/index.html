@@ -14,6 +14,7 @@
 {% block messages %}
 {% endblock %}
 
+
 {% block content %}
     <div class="container">
         <div class="row">
@@ -32,15 +33,15 @@
                     </h3>
                 </div>
                 <div class="row">
-                    Click here if you want to book at mooring and/or want to pay your daily admission fees.
+                    Click <a href="{{ daily_admission_page_url }}" target="_blank">here</a> if you want to pay for daily admission fees
                 </div>
                 <div class="row">
                     <h3>
-                        DCV permits and admission fees
+                        DCV admission fees
                     </h3>
                 </div>
                 <div class="row">
-                    Click here if you want to pay for a DCV permit or here if you want to pay for DVC admission fees.
+                    Click <a href="/dcv_admission_form">here</a> if you want to pay for DVC admission fees.
                 </div>
             </div>
             <div class="col-md-2">
@@ -49,8 +50,26 @@
                 {% if not request.user.is_authenticated %}
                     <div id="ps-login-container">
                         <h3>
-                            Access to {{system_name}}
+                            Access {{system_name}}
                         </h3>
+
+                        <!--   Auth2   -->
+                        <div id="submit-container">
+                            <br>
+                            <a href='/ssologin' class="btn btn-primary">Login</a>
+                            <br><br>
+                        </div>
+                        <p>Click the login button to login or start the new-user registration process.</p>
+                        <hr>
+                        <h4>
+                            {{ system_name }} Password-less Logins
+                        </h4>
+                        <p>
+                            At the Department of Biodiversity, Conservation and Attractions, we employ a password-less authentication system, meaning you never need to remember
+                            a password. When you need to login to a site, such as {{ system_name }}, simply enter your email and an
+                            authentication code will be sent to your registered email address. From there, enter the code on screen to complete the login process.
+                        </p>
+{% comment %}
                         {% bootstrap_messages %}
                         <form method="post" action="{% url "social:complete" backend="email" %}">
                             {% csrf_token %}
@@ -69,6 +88,7 @@
                             a password. When you need to login to a site, such as {{ system_name }}, simply enter your email and an 
                             authentication link will be sent to your registered email address. From there, simply follow the link to complete the login process.
                         </p>
+{% endcomment %}
                     </div>
                 {% endif %}
             </div>

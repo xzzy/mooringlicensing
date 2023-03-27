@@ -5,7 +5,10 @@ from django.db.models import Min
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeePeriod, FeeConstructor, FeeItem, \
+    FeeItemStickerReplacement
+from mooringlicensing.components.proposals.models import AnnualAdmissionApplication, AuthorisedUserApplication, \
+    MooringLicenceApplication
 
 
 class FeePeriodFormSet(forms.models.BaseInlineFormSet):
@@ -38,13 +41,6 @@ class FeePeriodFormSet(forms.models.BaseInlineFormSet):
                     temp.append(item['start_date'])
                 else:
                     raise forms.ValidationError('Period\'s start date must be unique, but {} is duplicated.'.format(item['start_date']))
-
-    # def clean_name(self):
-    #     data = self.cleaned_data['name']
-    #     if not self.instance.is_editable:
-    #         if data != self.instance.name:
-    #             raise forms.ValidationError('Fee period cannot be changed once used for payment calculation')
-    #     return data
 
 
 class FeePeriodForm(forms.ModelForm):
@@ -96,15 +92,20 @@ class FeeSeasonForm(forms.ModelForm):
 
         return data
 
-    # def clean(self):
-    #     cleaned_data = super(FeeSeasonForm, self).clean()
-    #     if cleaned_data['name']:
-    #         return cleaned_data
-    #     else:
-    #         raise forms.ValidationError('Please enter the name field.')
+    def clean_application_type(self):
+        data = self.cleaned_data['application_type']
+
+        if not self.instance.is_editable:
+            if data != self.instance.application_type:
+                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+        if not data:
+            raise forms.ValidationError('Please select an application type.')
+
+        return data
 
 
 class FeeItemForm(forms.ModelForm):
+
     class Meta:
         model = FeeItem
         fields = '__all__'
@@ -121,19 +122,31 @@ class FeeItemInline(admin.TabularInline):
     model = FeeItem
     extra = 0
     can_delete = False
-    readonly_fields = ('fee_period', 'vessel_size_category', 'proposal_type')
+    readonly_fields = ('fee_period', 'vessel_size_category', 'null_vessel', 'proposal_type', 'age_group', 'admission_type')
     max_num = 0  # This removes 'Add another ...' button
     form = FeeItemForm
 
+    def null_vessel(self, obj):
+        return obj.vessel_size_category.null_vessel
+    null_vessel.boolean = True
+
     def get_formset(self, request, obj=None, **kwargs):
         formset = super(FeeItemInline, self).get_formset(request, obj, **kwargs)
-        # form = formset.form
-        # widget = form.base_fields['fee_period'].widget
-        # widget.can_change_related = False
         return formset
 
-    # def has_change_permission(self, request, obj=None):
-    #     return True
+    def get_fields(self, request, obj=None):
+        fields = super(FeeItemInline, self).get_fields(request, obj)
+        if obj:
+            if obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
+                fields.remove('proposal_type')
+            elif obj.application_type == ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code']):
+                fields.remove('proposal_type')
+                fields.remove('age_group')
+                fields.remove('admission_type')
+            else:
+                fields.remove('age_group')
+                fields.remove('admission_type')
+        return fields
 
 
 class FeeConstructorForm(forms.ModelForm):
@@ -176,25 +189,76 @@ class FeeConstructorForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(FeeConstructorForm, self).clean()
+        if len(self.changed_data) == 1 and self.changed_data[0] == 'enabled' and cleaned_data['enabled'] is False:
+            # When change is only setting 'enabled' field to False, no validation required
+            return cleaned_data
 
         cleaned_application_type = cleaned_data.get('application_type', None)
         cleaned_fee_season = cleaned_data.get('fee_season', None)
-        if cleaned_application_type and cleaned_application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
+        cleaned_vessel_size_category_group = cleaned_data.get('vessel_size_category_group', None)
+
+        if cleaned_application_type and cleaned_application_type.code in (settings.APPLICATION_TYPE_DCV_PERMIT['code'], settings.APPLICATION_TYPE_DCV_ADMISSION['code']):
             # If application type is DcvPermit
             if cleaned_fee_season and cleaned_fee_season.fee_periods.count() > 1:
-                # There are more than 1 period in the season
-                raise forms.ValidationError('A season for the {} cannot have more than 1 period.  Selected season {} has {} periods.'.format(
+                # There are more than 1 periods in the season
+                raise forms.ValidationError('The season for the {} cannot have more than 1 period.  Selected season: {} has {} periods.'.format(
                     cleaned_application_type.description,
                     cleaned_fee_season.name,
                     cleaned_fee_season.fee_periods.count(),
                 ))
+            if cleaned_vessel_size_category_group and cleaned_vessel_size_category_group.vessel_size_categories.count() > 1:
+                # There are more than 1 categories in the season
+                raise forms.ValidationError('The vessel size category group for the {} cannot have more than 1 vessel size category.  Selected vessel size category group: {} has {} vessel size categories.'.format(
+                    cleaned_application_type.description,
+                    cleaned_vessel_size_category_group.name,
+                    cleaned_vessel_size_category_group.vessel_size_categories.count(),
+                ))
+
+        # Check if the applied season overwraps the existing season
+        existing_fee_constructors = FeeConstructor.objects.filter(application_type=cleaned_application_type, enabled=True)
+        if self.instance and self.instance.id:
+            # Exclude the instance itself (allow edit)
+            existing_fee_constructors = existing_fee_constructors.exclude(id=self.instance.id)
+        for existing_fc in existing_fee_constructors:
+            if existing_fc.fee_season.start_date and existing_fc.fee_season.end_date:
+                if existing_fc.fee_season.start_date <= cleaned_fee_season.start_date <= existing_fc.fee_season.end_date or existing_fc.fee_season.start_date <= cleaned_fee_season.end_date <= existing_fc.fee_season.end_date:
+                    # Season overwrapps
+                    raise forms.ValidationError('The season applied overwraps the existing season: {} ({} to {})'.format(
+                        existing_fc.fee_season,
+                        existing_fc.fee_season.start_date,
+                        existing_fc.fee_season.end_date))
+
+        # Check if the season start and end date of the annual admission fee_constructor match those of the authorised user fee_constructor and mooring licence fee_constructor.
+        application_types_aa_au_ml = ApplicationType.objects.filter(code__in=(AnnualAdmissionApplication.code, AuthorisedUserApplication.code, MooringLicenceApplication.code))
+        if cleaned_application_type in application_types_aa_au_ml:
+            existing_fcs = FeeConstructor.objects.filter(application_type__in=application_types_aa_au_ml, enabled=True)
+            if self.instance and self.instance.id:
+                # Exclude the instance itself (allow edit)
+                existing_fcs = existing_fcs.exclude(id=self.instance.id)
+            for existing_fc in existing_fcs:
+                if existing_fc.fee_season.start_date < cleaned_fee_season.start_date < existing_fc.fee_season.end_date or existing_fc.fee_season.start_date < cleaned_fee_season.end_date < existing_fc.fee_season.end_date:
+                    # Season of the annual admission permit doesn't match the season of the authorised user permit
+                    raise forms.ValidationError('The date range of the season applied: {} ({} to {}) does not match that of the existing AAP/AUP/ML: {} ({} to {})'.format(
+                            cleaned_fee_season,
+                            cleaned_fee_season.start_date,
+                            cleaned_fee_season.end_date,
+                            existing_fc.fee_season,
+                            existing_fc.fee_season.start_date,
+                            existing_fc.fee_season.end_date))
 
         return cleaned_data
 
 
+@admin.register(FeeItemStickerReplacement)
+class FeeItemStickerReplacementAdmin(admin.ModelAdmin):
+    list_display = ['amount', 'date_of_enforcement', 'enabled', 'incur_gst']
+
+
 @admin.register(FeeSeason)
 class FeeSeasonAdmin(admin.ModelAdmin):
+    list_display = ['name', 'application_type', 'start_date', 'end_date',]
     inlines = [FeePeriodInline,]
+    list_filter = ['application_type',]
     form = FeeSeasonForm
 
 
@@ -202,10 +266,13 @@ class FeeSeasonAdmin(admin.ModelAdmin):
 class FeeConstructorAdmin(admin.ModelAdmin):
     form = FeeConstructorForm
     inlines = [FeeItemInline,]
-    list_display = ('id', 'application_type', 'fee_season', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment')
+    list_display = ('id', 'application_type', 'fee_season', 'start_date', 'end_date', 'vessel_size_category_group', 'incur_gst', 'enabled', 'num_of_times_used_for_payment',)
+    list_display_links = ['id', 'application_type', ]
+    list_filter = ['application_type', 'enabled']
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Sort 'fee_season' dropdown by the start_date
         if db_field.name == "fee_season":
             kwargs["queryset"] = FeeSeason.objects.annotate(s_date=Min("fee_periods__start_date")).order_by('s_date')
         return super(FeeConstructorAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+

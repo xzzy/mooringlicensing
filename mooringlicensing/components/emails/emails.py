@@ -1,19 +1,22 @@
 import logging
 import mimetypes
+from confy import env
 
 import six
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, EmailMessage
-from django.core.urlresolvers import reverse
+# from django.core.urlresolvers import reverse
 from django.template import loader, Template
 from django.utils.encoding import smart_text
 from django.utils.html import strip_tags
+from confy import env
 
-from ledger.accounts.models import Document
+from ledger_api_client.ledger_models import Document
 
 from mooringlicensing.settings import SYSTEM_NAME
 
-logger = logging.getLogger('log')
+# logger = logging.getLogger('mooringlicensing')
+logger = logging.getLogger(__name__)
 
 
 def _render(template, context):
@@ -24,8 +27,8 @@ def _render(template, context):
     return template.render(context)
 
 
-def host_reverse(name, args=None, kwargs=None):
-    return "{}{}".format(settings.DEFAULT_HOST, reverse(name, args=args, kwargs=kwargs))
+# def host_reverse(name, args=None, kwargs=None):
+#     return "{}{}".format(settings.DEFAULT_HOST, reverse(name, args=args, kwargs=kwargs))
 
 
 class TemplateEmailBase(object):
@@ -33,6 +36,12 @@ class TemplateEmailBase(object):
     html_template = 'mooringlicensing/emails/base_email.html'
     # txt_template can be None, in this case a 'tag-stripped' version of the html will be sent. (see send)
     txt_template = 'mooringlicensing/emails/base-email.txt'
+
+    def __init__(self, subject='', html_template='', txt_template=''):
+        # Update
+        self.subject = subject if subject else self.subject
+        self.html_template = html_template if html_template else self.html_template
+        self.txt_template = txt_template if txt_template else self.txt_template
 
     def send_to_user(self, user, context=None):
         return self.send(user.email, context=context)
@@ -50,6 +59,7 @@ class TemplateEmailBase(object):
         :param cc:
         :return:
         """
+        email_instance = env('EMAIL_INSTANCE','DEV')
         # The next line will throw a TemplateDoesNotExist if html template cannot be found
         html_template = loader.get_template(self.html_template)
         # render html
@@ -82,7 +92,9 @@ class TemplateEmailBase(object):
             else:
                 _attachments.append(attachment)
         msg = EmailMultiAlternatives(self.subject, txt_body, from_email=from_address, to=to_addresses,
-                                     attachments=_attachments, cc=cc, bcc=bcc)
+                attachments=_attachments, cc=cc, bcc=bcc, 
+                headers={'System-Environment': email_instance}
+                )
         msg.attach_alternative(html_body, 'text/html')
         try:
             if not settings.DISABLE_EMAIL:
@@ -132,3 +144,4 @@ def _extract_email_headers(email_message, sender=None):
     }
 
     return email_data
+

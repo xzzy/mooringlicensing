@@ -1,0 +1,78 @@
+{% extends 'mooringlicensing/base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="container">
+        <div class="well">
+            <div class="row"><div class="col-sm-12">
+                <h2>Success!</h2>
+                <strong>A confirmation email has been sent to {{ dcv_admission.submitter.email }}. </strong>
+            </div></div>
+            <br/>
+
+
+            {% if dcv_admission and dcv_admission.id %}
+                <div>
+<!--                    <strong>Your application {{dcv_admission.lodgement_number}} has been successfully submitted.</strong>-->
+<!--                    <br/><br/>-->
+                    <table>
+                        <tr>
+                            <td><strong>DCV Admission: </strong></td>
+                            <td><strong> {{dcv_admission.lodgement_number}}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date/Time: </strong></td>
+                            <td><strong>{{dcv_admission.lodgement_datetime}}</strong></td>
+                        </tr>
+                    </table>
+                    <br />
+                    {% for arrival in dcv_admission.dcv_admission_arrivals.all %}
+                    {% if arrival.private_visit %}
+                        <p>
+                            For payment of daily admissions for your private visit for {{ arrival.arrival_date }} click <a href="daily_admission_url" target="_blank">here</a>
+                        </p>
+                    {% endif %}
+                    {% endfor %}
+                    <br/>
+<!--                    <span>If there is any missing information, Rottnest Island Authority (RIA) may assign this application back to you to complete. In that case you will be notified by email.</span>-->
+                    {% if request.user == submitter or request.user.is_staff %}
+                    {% if request.user.is_authenticated %}
+                    <div class="row" style="margin-top:2em;">
+                        <div class="col-sm-6">
+                            <div><strong>Invoice: </strong><a href="{{ invoice_url }}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
+                            <div><strong>DCV Admission: </strong>
+                                {% for url in admission_urls %}
+                                    <a href="{{ url }}"><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation </a>
+                                {% endfor %}
+
+                                <!-- a href="{% url 'dcv-admission-pdf' dcv_admission.id %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ dcv_admission.lodgement_number }}</a -->
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="col-sm-offset-3 col-sm-6 borderDecoration">
+                    <strong>Sorry it looks like there isn't any dcv_admission currently in your session.</strong>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="row"><div class="col-sm-12" style="margin-top: 1em">
+            {% if request.user == submitter or request.user.is_staff %}
+                {% if request.user.is_authenticated %}
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <a href="{% url 'external' %}" class="pull-right btn btn-info btn-lg">Return to Dashboard</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{% url 'home' %}" class="btn btn-info btn-lg">Log in</a><p>You must be logged in to see your invoice online.</p>
+                {% endif %}
+            {% else %}
+                <p style="font-size: 1.5rem; font-weight: bold;">The DCV Admission and the invoice have been emailed to {{ dcv_admission.submitter.email }}.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

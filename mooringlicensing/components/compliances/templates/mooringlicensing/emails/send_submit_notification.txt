@@ -1,12 +1,6 @@
-{%  extends 'mooringlicensing/emails/base_email.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
 
-{%  block content %}
-    The Compliance {{ Compliance.reference }} has been submitted and can be assessed.
-
-    <p>
-    You can access this Compliance using the following link:
-    </p>
-    {{url}}
-
-
+{% block content_body %}
+The Compliance {{ compliance.reference }} has been submitted and can be assessed.
+You can access this Compliance using the following url: {{ url }}
 {%  endblock %}

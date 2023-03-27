@@ -1,16 +1,8 @@
-{%  extends 'mooringlicensing/emails/base_email.html' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
-{%  block content %}
-
-	<!-- Your Compliance with requirements {{ compliance.reference }} {{compliance.requirement.requirement}} is due for submission.   
-    <p>
-    You can access this Compliance using the following link:
-    </p>
-    <a href="{{url}}">Access Compliance</a> -->
-    <p>Please be aware that the following is due for submission:<br>
- 	{{ compliance.reference }} {{compliance.requirement.requirement}}</p>  
-    <p>
-    To complete the licence requirement please login to your account <a href="{{url}}">here</a>.
-    </p>
-
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>Your compliance with requirement {{ compliance.lodgement_number }} for licence/permit {{ compliance.approval.lodgement_number }} is due on {{ due_date }}.</p>
+<p>Please click <a href="{{ external_compliance_url }}">here</a> to view and submit the requirement.</p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}

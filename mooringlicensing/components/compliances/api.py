@@ -1,43 +1,42 @@
 
 import traceback
-import os
-import datetime
-import base64
-import geojson
+# import os
+# import datetime
+# import base64
+# import geojson
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
-from six.moves.urllib.parse import urlparse
-from wsgiref.util import FileWrapper
+# from wsgiref.util import FileWrapper
 from django.db.models import Q, Min
 from django.db import transaction
-from django.http import HttpResponse
-from django.core.files.base import ContentFile
+# from django.http import HttpResponse
+# from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from django.contrib import messages
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
-from rest_framework import viewsets, serializers, status, generics, views
-from rest_framework.decorators import detail_route, list_route, renderer_classes
+# from django.contrib import messages
+# from django.utils import timezone
+from rest_framework import viewsets, serializers, views
+# from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework.decorators import action as detail_route
+from rest_framework.decorators import action as list_route
+from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
-from rest_framework.pagination import PageNumberPagination
-from datetime import datetime, timedelta
-from collections import OrderedDict
+# from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
+# from rest_framework.pagination import PageNumberPagination
+# from datetime import datetime, timedelta
+# from collections import OrderedDict
 from django.core.cache import cache
-from ledger.accounts.models import EmailUser, Address
-from ledger.address.models import Country
-from datetime import datetime, timedelta, date
-from django.urls import reverse
-from django.shortcuts import render, redirect, get_object_or_404
+# from ledger.accounts.models import EmailUser, Address
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+
+# from ledger.address.models import Country
+# from datetime import datetime, timedelta, date
 from mooringlicensing.components.compliances.models import (
    Compliance,
    ComplianceAmendmentRequest,
    ComplianceAmendmentReason
 )
-#rom mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.compliances.serializers import (
     ComplianceSerializer,
     InternalComplianceSerializer,
@@ -47,14 +46,12 @@ from mooringlicensing.components.compliances.serializers import (
     ComplianceAmendmentRequestSerializer,
     CompAmendmentRequestDisplaySerializer, ListComplianceSerializer
 )
-from mooringlicensing.helpers import is_customer, is_internal
+from mooringlicensing.helpers import is_customer, is_internal, is_in_organisation_contacts
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-#from mooringlicensing.components.proposals.api import ProposalFilterBackend, ProposalRenderer
 
 
 class ComplianceViewSet(viewsets.ModelViewSet):
     serializer_class = ComplianceSerializer
-    #queryset = Compliance.objects.all()
     queryset = Compliance.objects.none()
 
     def get_queryset(self):
@@ -78,72 +75,27 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    # @list_route(methods=['GET',])
-    # def filter_list(self, request, *args, **kwargs):
-    #     """ Used by the external dashboard filters """
-    #     region_qs =  self.get_queryset().filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
-    #     activity_qs =  self.get_queryset().filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
-    #     application_types=ApplicationType.objects.all().values_list('name', flat=True)
-    #     data = dict(
-    #         regions=region_qs,
-    #         activities=activity_qs,
-    #         application_types=application_types,
-    #     )
-    #     return Response(data)
-
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def internal_compliance(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = InternalComplianceSerializer(instance,context={'request':request})
         return Response(serializer.data)
 
-
-#    @list_route(methods=['GET',])
-#    def compliances_paginated(self, request, *args, **kwargs):
-#        """
-#        Used by the external dashboard
-#
-#        http://localhost:8499/api/compliances/compliances_external/paginated/?format=datatables&draw=1&length=2
-#        """
-#
-#        qs = self.get_queryset().exclude(processing_status='future')
-#        qs = ProposalFilterBackend().filter_queryset(request, qs, self)
-#
-#        paginator = DatatablesPageNumberPagination()
-#        paginator.page_size = qs.count()
-#        result_page = paginator.paginate_queryset(qs, request)
-#        serializer = ComplianceSerializer(result_page, context={'request':request}, many=True)
-#        return paginator.get_paginated_response(serializer.data)
-
-#    @list_route(methods=['GET',])
-#    def user_list(self, request, *args, **kwargs):
-#        #Remove filter to include 'Apporved Proposals in external dashboard .exclude(processing_status=Proposal.PROCESSING_STATUS_CHOICES[13][0])
-#        queryset = self.get_queryset().exclude(processing_status='future')
-#        serializer = ComplianceSerializer(queryset, many=True)
-#        return Response(serializer.data)
-#
-#    @list_route(methods=['GET'])
-#    def user_list_paginated(self, request, *args, **kwargs):
-#        """
-#        Placing Paginator class here (instead of settings.py) allows specific method for desired behaviour),
-#        otherwise all serializers will use the default pagination class
-#
-#        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-#        """
-#        queryset = self.get_queryset().exclude(processing_status='future')
-#        paginator = DatatablesPageNumberPagination()
-#        paginator.page_size = queryset.count()
-#        result_page = paginator.paginate_queryset(queryset, request)
-#        #serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-#        serializer = self.get_serializer(result_page, context={'request':request}, many=True)
-#        return paginator.get_paginated_response(serializer.data)
-
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
     def submit(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
                 instance = self.get_object()
+
+                # Can only modify if Due or Future.
+                if instance.processing_status not in ['due', 'future']:
+                    raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
+                                                      .format(instance.processing_status))
+
+                if instance.proposal.applicant_email != request.user.email:
+                    raise serializers.ValidationError('You are not authorised to modify this application.')
+
                 data = {
                     'text': request.data.get('detail'),
                     'num_participants': request.data.get('num_participants')
@@ -153,7 +105,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
-                #if request.data.has_key('num_participants'):
                 if 'num_participants' in request.data:
                     if request.FILES:
                         # if num_adults is present instance.submit is executed after payment in das_payment/views.py
@@ -165,13 +116,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                     instance.submit(request)
 
                 serializer = self.get_serializer(instance)
-                # Save the files
-                '''for f in request.FILES:
-                    document = instance.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
-                # End Save Documents'''
                 return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -184,7 +128,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def assign_request_user(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -201,7 +145,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     def delete_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -220,7 +164,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     def assign_to(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -245,7 +189,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def unassign(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -262,7 +206,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def accept(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -279,7 +223,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def amendment_request(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -297,7 +241,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def action_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -314,7 +258,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
+    @detail_route(methods=['GET',], detail=True)
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -331,7 +275,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, *args, **kwargs):
         try:
@@ -384,7 +328,6 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
             if hasattr(e,'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                #raise serializers.ValidationError(repr(e[0].encode('utf-8')))
                 if hasattr(e,'message'):
                     raise serializers.ValidationError(e.message)
         except Exception as e:
@@ -397,7 +340,6 @@ class ComplianceAmendmentReasonChoicesView(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
         choices_list = []
-        #choices = ComplianceAmendmentRequest.REASON_CHOICES
         choices=ComplianceAmendmentReason.objects.all()
         if choices:
             for c in choices:
@@ -409,7 +351,14 @@ class GetComplianceStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
+        #data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
+        #return Response(data)
+        data = {}
+        if not cache.get('compliance_internal_statuses_dict') or not cache.get('compliance_external_statuses_dict'):
+            cache.set('compliance_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Compliance.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            cache.set('compliance_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
+        data['external_statuses'] = cache.get('compliance_external_statuses_dict')
+        data['internal_statuses'] = cache.get('compliance_internal_statuses_dict')
         return Response(data)
 
 
@@ -421,9 +370,11 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         if filter_compliance_status and not filter_compliance_status.lower() == 'all':
             queryset = queryset.filter(customer_status=filter_compliance_status)
 
-        getter = request.query_params.get
-        fields = self.get_fields(getter)
-        ordering = self.get_ordering(getter, fields)
+        # getter = request.query_params.get
+        # fields = self.get_fields(getter)
+        # ordering = self.get_ordering(getter, fields)
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
@@ -456,14 +407,20 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         request_user = self.request.user
         qs = Compliance.objects.none()
 
+        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+
         if is_internal(self.request):
-            qs = Compliance.objects.all()
+            if target_email_user_id:
+                target_user = EmailUser.objects.get(id=target_email_user_id)
+                qs = Compliance.objects.filter(Q(approval__submitter=target_user))
+            else:
+                qs = Compliance.objects.all()
         elif is_customer(self.request):
-            qs = Compliance.objects.filter(Q(approval__submitter=request_user))
+            qs = Compliance.objects.filter(Q(approval__submitter=request_user.id)).exclude(processing_status="discarded")
 
         return qs
 
-    @list_route(methods=['GET',])
+    @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):
         """
         User is accessing /external/ page
@@ -472,6 +429,7 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         qs = self.filter_queryset(qs)
 
         self.paginator.page_size = qs.count()
+        #result_page = self.paginator.paginate_queryset(qs, request)
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)

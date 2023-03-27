@@ -1,0 +1,10 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>Your {{ proposal.description }} {{ proposal.lodgement_number }} requires amendment.</p>
+{% if reason %}<p>Reason: {{ reason }}</p>{% endif %}
+{% if text %}<p>Details: {{ text }}</p>{% endif %}
+<p>Please click <a href="{{ proposal_external_url }}">here</a> to access your application.</p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}

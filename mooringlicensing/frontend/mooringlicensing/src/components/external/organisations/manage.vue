@@ -252,7 +252,7 @@ export default {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
-                deferRender: true, 
+                deferRender: true,
                 autowidth: true,
                 order: [[2, 'desc']],
                 dom:
@@ -284,7 +284,7 @@ export default {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
-                deferRender: true, 
+                deferRender: true,
                 autowidth: true,
                 order: [[0, 'desc']],
                 processing:true,
@@ -473,13 +473,13 @@ export default {
                                 } else if(full.user_status == 'Declined'){
                                     links +=  `<a data-email='${full.email}'  data-firstname='${full.first_name}' data-lastname='${full.last_name}' data-id='${full.id}' data-mobile='${full.mobile_number}' data-phone='${full.phone_number}' class="accept_declined_contact">Accept (Previously Declined)</a><br/>`;
                                 }
-                            }        
+                            }
                             return links;
                         }
                     }
                   ],
                   processing: true,
-                                  
+
             }
 
         }
@@ -506,7 +506,7 @@ export default {
                 vm.myorgperms = data[2];
                 vm.org.address = vm.org.address != null ? vm.org.address : {};
                 vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
-               
+
             });
         });
     },
@@ -521,7 +521,7 @@ export default {
                 vm.myorgperms = data[1];
                 vm.org.address = vm.org.address != null ? vm.org.address : {};
                 vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
-             
+
             });
         });
     },
@@ -532,7 +532,7 @@ export default {
         eventListeners: function(){
           let vm = this;
           if (typeof vm.$refs.contacts_datatable !== 'undefined') {
-            
+
             vm.$refs.contacts_datatable.vmDataTable.on('click','.remove-contact',(e) => {
                 e.preventDefault();
 
@@ -560,11 +560,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 swal({
                     title: "Contact Accept",
                     text: "Are you sure you want to accept contact request " + name + " (" + email + ")?",
@@ -640,11 +640,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 // console.log(vm.contact_user)
                 swal({
                     title: "Contact Decline",
@@ -681,11 +681,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 swal({
                     title: "Unlink",
                     text: "Are you sure you want to unlink " + name + " (" + email + ")?",
@@ -726,11 +726,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 swal({
                     title: "Organisation Admin",
                     text: "Are you sure you want to make " + name + " (" + email + ") an Organisation Admin?",
@@ -766,11 +766,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 swal({
                     title: "Organisation User",
                     text: "Are you sure you want to make " + name + " (" + email + ") an Organisation User?",
@@ -809,11 +809,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 swal({
                     title: "Suspend User",
                     text: "Are you sure you want to Suspend  " + name + " (" + email + ")?",
@@ -849,11 +849,11 @@ export default {
                 let id = $(e.target).data('id');
                 let mobile = $(e.target).data('mobile');
                 let phone = $(e.target).data('phone');
-                vm.contact_user.first_name= firstname 
+                vm.contact_user.first_name= firstname
                 vm.contact_user.last_name= lastname
-                vm.contact_user.email= email 
-                vm.contact_user.mobile_number= mobile 
-                vm.contact_user.phone_number= phone 
+                vm.contact_user.email= email
+                vm.contact_user.mobile_number= mobile
+                vm.contact_user.phone_number= phone
                 swal({
                     title: "Reinstate User",
                     text: "Are you sure you want to Reinstate  " + name + " (" + email + ")?",
@@ -955,7 +955,7 @@ export default {
                     }
                 }
                 swal(
-                    'Error', 
+                    'Error',
                     'Organisation details cannot be saved because of the following error: '+text,
                     'error'
                 )
@@ -973,12 +973,12 @@ export default {
         },
         deleteContact: function(id){
             let vm = this;
-            
+
             vm.$http.delete(helpers.add_endpoint_json(api.organisation_contacts,id),{
                 emulateJSON:true
             }).then((response) => {
                 swal(
-                    'Contact Deleted', 
+                    'Contact Deleted',
                     'The contact was successfully deleted',
                     'success'
                 )
@@ -986,7 +986,7 @@ export default {
             }, (error) => {
                 console.log(error);
                 swal(
-                    'Contact Deleted', 
+                    'Contact Deleted',
                     'The contact could not be deleted because of the following error '+error,
                     'error'
                 )
@@ -1043,7 +1043,7 @@ export default {
                     )
                 });
             },(error) => {
-            }); 
+            });
         }
     },
     mounted: function(){
@@ -1061,7 +1061,7 @@ export default {
                 vm.myorgperms = data[2];
                 vm.org.address = vm.org.address != null ? vm.org.address : {};
                 vm.org.pins = vm.org.pins != null ? vm.org.pins : {};
-            
+
         });
 
     },
@@ -1072,12 +1072,12 @@ export default {
             window.setTimeout(function () {
                 $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
             },100);
-        }); 
+        });
         this.$nextTick(() => {
             this.eventListeners();
         });
     }
-  
+
 }
 </script>
 

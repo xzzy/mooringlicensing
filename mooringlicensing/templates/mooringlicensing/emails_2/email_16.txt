@@ -1,0 +1,12 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Your {{ approval.description }} {{ approval.lodgement_number }} for vessel {{ vessel_rego_no }} is due for renewal by {{ expiry_date }}.
+If you do not currently have a vessel nominated for your {{ approval.description }}, or you wish to change your nominated vessel for your {{ approval.description }}, you must do so PRIOR to making your application to renew. Only once your amendment application has been assessed and approved will you be able to make your application to renew. Access {{ dashboard_external_url }} to login to your account and make an amendment application to change your vessel.
+If you wish to make an application for an authorised user site, either to be endorsed by a mooring site licensee, or for RIA allocation, you must do so PRIOR to making your application to renew. Only once your application has been endorsed or approved will you be able to make your application to renew. Access {{ dashboard_external_url }} to login to your account and make an amendment application to change your vessel.
+If you will be renewing your {{ approval.description }} with vessel {{ vessel_rego_no }} please access {{ dashboard_external_url }} to log in to the online system to submit your renewal application.
+If you do not submit an application to renew prior to {{ expiry_date }} your {{ approval.description }} {{ approval.lodgement_number }} will expire. Once expired, you will no longer be able to make an application to renew and your {{ approval.description }} {{ approval.lodgement_number }} will be automatically cancelled. This action cannot be reversed, and once cancelled your {{ approval.description }} {{ approval.lodgement_number }} cannot be re-instated.
+This is your first and final notice and no reminders will be provided if a renewal application has not been submitted by you prior to {{ expiry_date }}.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}

@@ -1,7 +1,8 @@
 import os
 
 from io import BytesIO
-from oscar.templatetags.currency_filters import currency
+# from oscar.templatetags.currency_filters import currency
+from ledger_api_client.utils import currency
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Flowable, FrameBreak
@@ -10,8 +11,11 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from django.conf import settings
-from ledger.checkout.utils import calculate_excl_gst
+# from ledger.checkout.utils import calculate_excl_gst
+from ledger_api_client.utils import calculate_excl_gst
 from mooringlicensing.components.main.utils import to_local_tz
+from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeItemStickerReplacement
+from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 DPAW_HEADER_LOGO_SM = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo_small.png')
@@ -97,10 +101,6 @@ class Remittance(Flowable):
         canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
         canvas.drawRightString(current_x * 45,current_y,'Remittance Advice')
 
-        #current_y -= 20
-        #canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
-        #canvas.drawString(current_x * 27,current_y,'PLEASE DETACH AND RETURN WITH YOUR PAYMENT')
-
         current_y -= 50
         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
         canvas.drawString(current_x, current_y, 'ABN: 38 052 249 024')
@@ -110,21 +110,9 @@ class Remittance(Flowable):
         canvas = self.canv
         current_y, current_x = self.current_y, self.current_x
         bpay_logo = ImageReader(BPAY_LOGO)
-        #current_y -= 40
         # Pay By Cheque
         cheque_x = current_x + 4 * inch
         cheque_y = current_y - 10
-        #canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
-        #canvas.drawString(cheque_x, cheque_y, 'Pay By Cheque:')
-        #canvas.setFont(DEFAULT_FONTNAME, 9)
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x, cheque_y, 'Make cheque payable to: Department of Parks and Wildlife')
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x, cheque_y, 'Mail to: Department of Parks and Wildlife')
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x + 32, cheque_y, 'Locked Bag 30')
-        #cheque_y -= 15
-        #canvas.drawString(cheque_x + 32, cheque_y, 'Bentley Delivery Centre WA 6983')
         if self.invoice.payment_method in [self.invoice.PAYMENT_METHOD_MONTHLY_INVOICING, self.invoice.PAYMENT_METHOD_BPAY]:
             # Outer BPAY Box
             canvas.rect(current_x,current_y - 25,2.3*inch,-1.2*inch)
@@ -166,7 +154,7 @@ class Remittance(Flowable):
         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
         canvas.drawString(current_x, current_y, self.invoice.reference)
         canvas.drawString(PAGE_WIDTH/4, current_y, self.invoice.created.strftime(DATE_FORMAT))
-        canvas.drawString((PAGE_WIDTH/4) * 2, current_y, currency(self.invoice.amount - calculate_excl_gst(self.invoice.amount) if not _is_gst_exempt(self.proposal, self.invoice) else 0.0))
+        canvas.drawString((PAGE_WIDTH/4) * 2, current_y, currency(self.invoice.amount - calculate_excl_gst(self.invoice.amount) if not _is_gst_exempt(self.invoice) else 0.0))
         canvas.drawString((PAGE_WIDTH/4) * 3, current_y, currency(self.invoice.amount))
 
     def draw(self):
@@ -175,12 +163,6 @@ class Remittance(Flowable):
             self.__logo_line()
             self.__payment_line()
         self.__footer_line()
-
-
-#def _set_template_group(mooring_var):
-
-
-#def get_template_group(mooring_var):
 
 
 def _create_header(canvas, doc, draw_page_number=True):
@@ -206,10 +188,6 @@ def _create_header(canvas, doc, draw_page_number=True):
 
     invoice = doc.invoice
     proposal = doc.proposal if hasattr(doc, 'proposal') else None
-    #bi = proposal.bookings.filter(invoices__invoice_reference=invoice.reference)
-    #licence_number = proposal.approval.lodgement_number if proposal.approval else None
-
-    # TODO need to fix, since individual parks can be exempt, Below calculation assumes NO PARK IS exempt
 
     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
     current_x = PAGE_MARGIN + 5
@@ -229,36 +207,49 @@ def _create_header(canvas, doc, draw_page_number=True):
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 4, 'Total (AUD)')
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 4, currency(invoice.amount))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, 'GST included (AUD)')
-    canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, currency(invoice.amount - calculate_excl_gst(invoice.amount) if not _is_gst_exempt(proposal, invoice) else 0.0))
+    canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, currency(invoice.amount - calculate_excl_gst(invoice.amount) if not _is_gst_exempt(invoice) else 0.0))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, 'Paid (AUD)')
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, currency(invoice.payment_amount))
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, 'Outstanding (AUD)')
     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, currency(invoice.balance))
 
-    #if bi and bi[0].deferred_payment_date and invoice.payment_method in [invoice.PAYMENT_METHOD_MONTHLY_INVOICING, invoice.PAYMENT_METHOD_BPAY]:
-    #    canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 9, 'Payment Due Date')
-    #    canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 9, bi[0].deferred_payment_date.strftime(DATE_FORMAT))
-
     canvas.restoreState()
 
 
-def _is_gst_exempt(proposal, invoice):
-    if not proposal:
-        return True  # Expecting this is annual site fee
-    # elif proposal.fee_invoice_reference == invoice.reference:
-    elif invoice.reference in proposal.fee_invoice_references:
-        return proposal.application_type.is_gst_exempt
+def _is_gst_exempt(invoice):
+    '''
+    Return False if there is at least one item which incur gst.  Need to rethinkt
+    '''
+    from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, DcvAdmissionFee
+
+    try:
+        my_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
+    except ApplicationFee.DoesNotExist:
+        try:
+            my_fee = DcvPermitFee.objects.get(invoice_reference=invoice.reference)
+        except DcvPermitFee.DoesNotExist:
+            try:
+                my_fee = DcvAdmissionFee.objects.get(invoice_reference=invoice.reference)
+            except DcvAdmissionFee.DoesNotExist:
+                try:
+                    my_fee = StickerActionFee.objects.get(invoice_reference=invoice.reference)
+                except StickerActionFee.DoesNotExist:
+                    raise Exception('No Fee object linking to the invoice: {} found'.format(invoice.reference))
+
+    if isinstance(my_fee, StickerActionFee):
+        fee_item = FeeItemStickerReplacement.get_fee_item_by_date(my_fee.created)
+        if fee_item:
+            return not fee_item.incur_gst
+        else:
+            raise Exception('No FeeItemStickerReplacement object found for the date: {}'.format(my_fee.created))
     else:
-        return False
+        for fee_item in my_fee.fee_items.all():
+            return not fee_item.fee_constructor.incur_gst
 
 
-def _create_invoice(invoice_buffer, invoice, url_var, proposal):
+def _create_invoice(invoice_buffer, invoice, proposal):
 
     global DPAW_HEADER_LOGO
-#    if  cols_var["TEMPLATE_GROUP"] == 'rottnest':
-#        DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'mooring', 'static', 'mooring', 'img','logo-rottnest-island-sm.png')
-#    else:
-#        DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo.jpg')
     DPAW_HEADER_LOGO = os.path.join(settings.PROJECT_DIR, 'payments','static', 'payments', 'img','dbca_logo.jpg')
 
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN + 250, PAGE_WIDTH - 2 * PAGE_MARGIN,
@@ -277,7 +268,6 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
     owner = invoice.owner
 
     elements = []
-    #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 5))
 
     # Draw Products Table
     invoice_table_style = TableStyle([
@@ -308,15 +298,6 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
             ]
         )
         val += 1
-    # Discounts
-    # data.append(
-    #     [
-    #         '',
-    #         '',
-    #         '',
-    #         ''
-    #     ]
-    # )
     for discount in discounts:
         data.append(
             [
@@ -343,7 +324,8 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
@@ -356,21 +338,20 @@ def _create_invoice(invoice_buffer, invoice, url_var, proposal):
 
     remittance = Remittance(HEADER_MARGIN,HEADER_MARGIN - 10, proposal, invoice)
     elements.append(remittance)
-    #_create_remittance(invoice_buffer,doc)
     doc.build(elements)
 
     return invoice_buffer
 
 # proposal needs to be nullable for Annual site fees
-def create_invoice_pdf_bytes(filename, invoice, url_var, proposal=None):
-    invoice_buffer = BytesIO()
-    _create_invoice(invoice_buffer, invoice, url_var, proposal)
-
-    # Get the value of the BytesIO buffer
-    value = invoice_buffer.getvalue()
-    invoice_buffer.close()
-
-    return value
+# def create_invoice_pdf_bytes(filename, invoice, proposal=None):
+#     invoice_buffer = BytesIO()
+#     _create_invoice(invoice_buffer, invoice, proposal)
+#
+# #     Get the value of the BytesIO buffer
+#     value = invoice_buffer.getvalue()
+#     invoice_buffer.close()
+#
+#     return value
 
 
 def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
@@ -383,11 +364,9 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
 
     # this is the only way to get data into the onPage callback function
     doc.invoice = invoice
-    # doc.proposal = proposal
     owner = invoice.owner
 
     elements = []
-    #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 5))
 
     # Draw Products Table
     invoice_table_style = TableStyle([
@@ -419,14 +398,6 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
         )
         val += 1
     # Discounts
-    # data.append(
-    #     [
-    #         '',
-    #         '',
-    #         '',
-    #         ''
-    #     ]
-    # )
     for discount in discounts:
         data.append(
             [
@@ -453,7 +424,8 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    if invoice.payment_status != 'paid' and invoice.payment_status != 'over_paid':
+    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
@@ -464,9 +436,6 @@ def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):
     elements.append(boundary)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-    # remittance = Remittance(HEADER_MARGIN,HEADER_MARGIN - 10, proposal, invoice)
-    # elements.append(remittance)
-    #_create_remittance(invoice_buffer,doc)
     doc.build(elements)
 
     return invoice_buffer

@@ -1,22 +1,23 @@
 <template lang="html">
     <div :class="headerCSS">
-        <!--label :id="id" :num_files="num_documents()" style="display: none;">{{label}}</label-->
-        <label :id="id" :num_files="num_documents()">{{label}}</label>
-        <template v-if="files">
-            <template v-for="v in documents">
+        <!--label :id="id" :num_files="numDocuments">{{label}}</label-->
+        <!--template v-if="files"-->
+        <div v-if="numDocuments > 0">
+            <div v-for="v in documents">
                 <div>
                     File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
                     <span v-if="!readonly">
                         <a @click="delete_document(v)" class="fa fa-trash-o" title="Remove file" :filename="v.name" style="cursor: pointer; color:red;"></a>
                     </span>
                 </div>
-            </template>
-            <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></div>
-        </template>
-        <template v-if="!readonly" v-for="n in repeat">
-            <template v-if="isRepeatable || (!isRepeatable && num_documents()==0) && !show_spinner">
+            </div>
+        </div>
+        <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></div>
+        <!--template v-if="!readonly" v-for="n in repeat">
+            <template v-if="(isRepeatable || (!isRepeatable && numDocuments === 0)) && !show_spinner">
                 <input 
                     :id="name + n" 
+                    :key="name + n" 
                     :name="name" type="file" 
                     :data-que="n" 
                     :accept="fileTypes" 
@@ -26,7 +27,20 @@
                     <span :id="'button-' + name + n" @click="button_clicked(name + n)" class="ffu-input-text">{{ text_string }}</span>
                 </template>
             </template>
-        </template>
+        </template-->
+        <div v-if="(isRepeatable || (!isRepeatable && numDocuments === 0)) && !show_spinner && !readonly">
+            <input 
+                :id="name" 
+                :key="name" 
+                :name="name" type="file" 
+                :accept="fileTypes" 
+                @change="handleChangeWrapper" 
+                :class="ffu_input_element_classname" />
+            <div v-if="replace_button_by_text">
+                <span :id="'button-' + name" @click="button_clicked(name)" class="ffu-input-text">{{ text_string }}</span>
+            </div>
+        </div>
+
     </div>
 </template>
 
@@ -45,7 +59,9 @@ export default {
         label:String,
         id:String,
         fileTypes:{
-            default:function () {
+            type: String,
+            required: false,
+            default: function () {
                 var file_types = 
                     "image/*," + 
                     "video/*," +
@@ -54,12 +70,14 @@ export default {
                     "application/x-7z-compressed,application/x-bzip,application/x-bzip2,application/zip," + 
                     ".dbf,.gdb,.gpx,.prj,.shp,.shx," + 
                     ".json,.kml,.gpx";
+                file_types = ''
                 return file_types;
             }
         },
         isRepeatable:Boolean,
         readonly:Boolean,
         documentActionUrl: String,
+        temporaryDocumentCollectionId: Number,
 
         // For optional text button
         replace_button_by_text: {
@@ -73,8 +91,8 @@ export default {
     },
     data:function(){
         return {
-            repeat:1,
-            files:[],
+            //repeat:1,
+            //files:[],
             show_spinner: false,
             documents:[],
             filename:null,
@@ -84,6 +102,14 @@ export default {
         }
     },
     computed: {
+        numDocuments: function() {
+            return this.documents.length
+        },
+        /*
+        repeat: function() {
+            return this.documents.length + 1;
+        },
+        */
         ffu_input_element_classname: function(){
             if (this.replace_button_by_text){
                 return 'ffu-input-elem'
@@ -114,6 +140,14 @@ export default {
             },
             deep: true
         },
+        temporaryDocumentCollectionId: function() {
+            // read in prop value
+            if (this.temporaryDocumentCollectionId) {
+                this.temporary_document_collection_id = this.temporaryDocumentCollectionId;
+                this.get_documents();
+            }
+        },
+
     },
 
     methods:{
@@ -122,9 +156,9 @@ export default {
                 $("#" + value).trigger('click');
             }
         },
-        handleChange: function (e) {
+        handleChange: async function (e) {
             let vm = this;
-
+            /*
             if (vm.isRepeatable && e.target.files) {
                 let  el = $(e.target).attr('data-que');
                 let avail = $('input[name='+e.target.name+']');
@@ -145,12 +179,12 @@ export default {
                 vm.files = [];
             }
             vm.files.push(e.target.files[0]);
+            */
 
             if (e.target.files.length > 0) {
-                //vm.upload_file(e)
-                this.$nextTick(() => {
-                    this.save_document(e);
-                });
+                //this.$nextTick(() => {
+                await this.save_document(e);
+                //});
             }
 
         },
@@ -173,7 +207,12 @@ export default {
             this.show_spinner = false;
 
         },
-
+        delete_all_documents: function(){
+            console.log('aho')
+            for (let item of this.documents){
+                this.delete_document(item)
+            }
+        },
         delete_document: async function(file) {
             this.show_spinner = true;
 
@@ -208,7 +247,6 @@ export default {
             }
             this.show_spinner = false;
         },
-        
         uploadFile(e){
             let _file = null;
 
@@ -222,30 +260,26 @@ export default {
             }
             return _file
         },
-
         handleChangeWrapper: async function(e) {
+            this.show_spinner = true;
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // If temporary_document, create TemporaryDocumentCollection object and allow document_action_url to update
-                let res = await Vue.http.post(this.document_action_url)
+                const res = await Vue.http.post(this.document_action_url)
                 this.temporary_document_collection_id = res.body.id
-                await this.$emit('update-temp-doc-coll-id',
-                    {
-                        "temp_doc_id": this.temporary_document_collection_id,
-                        "input_name": this.name,
-                    }
-                );
-                this.$nextTick(async () => {
-                    // must emit event here
-                    this.handleChange(e);
-                });
+                await this.handleChange(e);
+                await this.$emit('update-temp-doc-coll-id', this.temporary_document_collection_id);
             } else {
-                this.handleChange(e);
+                await this.handleChange(e);
             }
+            this.show_spinner = false;
         },
 
         save_document: async function(e) {
-            this.show_spinner = true;
-
+            /*
+            console.log("before")
+            await new Promise(resolve => setTimeout(resolve,2000));
+            console.log("after")
+            */
             if (this.document_action_url) {
                 var formData = new FormData();
                 formData.append('action', 'save');
@@ -260,7 +294,7 @@ export default {
                 formData.append('_file', this.uploadFile(e));
                 formData.append('csrfmiddlewaretoken', this.csrf_token);
                 let res = await Vue.http.post(this.document_action_url, formData)
-
+                /*
                 if (this.replace_button_by_text){
                     let button_name = 'button-' + this.name + e.target.dataset.que
                     let elem_to_remove = document.getElementById(button_name)
@@ -268,23 +302,25 @@ export default {
                         elem_to_remove.remove()
                     }
                 }
+                */
                 
                 this.documents = res.body.filedata;
                 this.commsLogId = res.body.comms_instance_id;
-                this.show_spinner = false;
             } else {
             }
 
         },
-
+        /*
         num_documents: function() {
             if (this.documents) {
                 return this.documents.length;
             }
             return 0;
         },
+        */
     },
-    mounted:function () {
+    mounted:async function () {
+        /*
         if (this.value) {
             if (Array.isArray(this.value)) {
                 this.value;
@@ -295,7 +331,8 @@ export default {
                 });
             }
         }
-        this.$nextTick(async () => {
+        */
+        await this.$nextTick(async () => {
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // pass
             } else {
