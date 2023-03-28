@@ -624,7 +624,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 invoices_str = invoices_str[:-1]
                 links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
                 # refund url
-                links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
+                # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
         return links
 
     def get_can_view_payment_details(self, proposal):
