@@ -1,4 +1,4 @@
-{% if request.user.is_superuser %}
+{% if is_mooringlicensing_admin_user or request.user.is_superuser %}
 <li><a class="dropdown-item" href="{% url 'mgt-commands' %}">Management Commands</a></li>
 {% endif %}
 <li><a class="dropdown-item" href="/ledger-ui/accounts">Manage Account</a></li>
