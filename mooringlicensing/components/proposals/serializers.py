@@ -646,12 +646,14 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
-            return obj.assigned_officer.get_full_name()
+            # return obj.assigned_officer.get_full_name()
+            return retrieve_email_userro(obj.assigned_officer).get_full_name() if obj.assigned_officer else ''
         return None
 
     def get_assigned_approver(self,obj):
         if obj.assigned_approver:
-            return obj.assigned_approver.get_full_name()
+            # return obj.assigned_approver.get_full_name()
+            return retrieve_email_userro(obj.assigned_approver).get_full_name() if obj.assigned_approver else ''
         return None
 
     def get_assessor_process(self,obj):
