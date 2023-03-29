@@ -1115,8 +1115,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if not self.can_assess(officer):
                     raise ValidationError('The selected person is not authorised to be assigned to this proposal')
                 if self.processing_status == 'with_approver':
-                    if officer != self.assigned_approver:
-                        self.assigned_approver = officer
+                    if officer.id != self.assigned_approver:
+                        self.assigned_approver = officer.id
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
@@ -1124,8 +1124,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         applicant_field=getattr(self, self.applicant_field)
                         # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                 else:
-                    if officer != self.assigned_officer:
-                        self.assigned_officer = officer
+                    if officer.id != self.assigned_officer:
+                        self.assigned_officer = officer.id
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)

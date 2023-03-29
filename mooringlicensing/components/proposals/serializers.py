@@ -619,12 +619,12 @@ class ListProposalSerializer(BaseProposalSerializer):
             for inv in proposal.invoices_display():
                 payment_status = get_invoice_payment_status(inv.id)
                 if payment_status == 'paid':
-                    invoices_str += 'invoice={}&'.format(inv.reference)
+                    invoices_str += 'invoice_no={}&'.format(inv.reference)
             if invoices_str:
                 invoices_str = invoices_str[:-1]
-                links += "<div><a href='/ledger/payments/invoice/payment?{}' target='_blank'>View Payment</a></div>".format(invoices_str)
+                links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
                 # refund url
-                links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
+                # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
         return links
 
     def get_can_view_payment_details(self, proposal):
@@ -646,12 +646,14 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
-            return obj.assigned_officer.get_full_name()
+            # return obj.assigned_officer.get_full_name()
+            return retrieve_email_userro(obj.assigned_officer).get_full_name() if obj.assigned_officer else ''
         return None
 
     def get_assigned_approver(self,obj):
         if obj.assigned_approver:
-            return obj.assigned_approver.get_full_name()
+            # return obj.assigned_approver.get_full_name()
+            return retrieve_email_userro(obj.assigned_approver).get_full_name() if obj.assigned_approver else ''
         return None
 
     def get_assessor_process(self,obj):
@@ -662,7 +664,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             '''if (obj.assigned_officer and obj.assigned_officer == user) or (user in obj.allowed_assessors):
                 return True'''
             if obj.assigned_officer:
-                if obj.assigned_officer == user:
+                if obj.assigned_officer == user.id:
                     return True
             elif user in obj.allowed_assessors:
                 return True

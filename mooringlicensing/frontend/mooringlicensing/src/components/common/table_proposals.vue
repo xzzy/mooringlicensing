@@ -226,37 +226,6 @@ export default {
                 name: "lodgement_date",
             }
         },
-        /*
-        column_invoice: function(){
-            let vm = this
-            return {
-                // 7. Invoice
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let links = '';
-                    if (full.invoices){
-                        for (let invoice of full.invoices){
-                            links += '<div>'
-                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
-                            if (vm.is_internal && full.can_view_payment_details){
-                                if (invoice.payment_status.toLowerCase() === 'paid'){
-                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
-                                    links +=  `<div><a href='/proposal-payment-history-refund/${full.id}' target='_blank'>Refund Payment</a></div>`;
-                                } else {
-                                    //links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
-                                }
-                            }
-                            links += '</div>'
-                        }
-                    }
-                    return links
-                }
-            }
-        },
-        */
         column_invoice: function(){
             let vm = this
             return {
