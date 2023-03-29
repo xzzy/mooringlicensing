@@ -124,7 +124,7 @@
                                                 {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
-                                                {% if request.user.is_superuser %}
+                                                {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
                                                 {% endif %}
                                                 {% if show_tests and request.user.is_superuser %}
