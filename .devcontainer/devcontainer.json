@@ -1,6 +1,6 @@
 {
 	"name": "Mooring Licensing Development",
-	"image": "dbcawa/docker_app_dev:mooringlicensing_latest",
+	"image": "dbcawa/docker_app_dev:mooringlicensing_dev_latest",
 	"remoteUser": "container",
 	"workspaceFolder": "/data/data/projects/mooringlicensing",
 	"mounts": ["type=bind,source=/data/,target=/data/",
@@ -11,5 +11,5 @@
 		   "--hostname","mooringlicensing-dev"
 		   ],
 	"forwardPorts": [9121,9122,9123,9124,9125],
-	"initializeCommand" : "${localEnv:HOME}/docker-scripts-dev/windows_vbox/postgres_docker_load.sh && ${localEnv:HOME}/docker-scripts-dev/windows_vbox/ledger_docker_load.sh "
+	//"initializeCommand" : "${localEnv:HOME}/docker-scripts-dev/windows_vbox/postgres_docker_load.sh && ${localEnv:HOME}/docker-scripts-dev/windows_vbox/ledger_docker_load.sh "
 }
