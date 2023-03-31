@@ -325,6 +325,24 @@ class VesselSizeCategory(RevisionedMixin):
         smaller_category = self.vessel_size_category_group.get_one_smaller_category(self)
         return smaller_category
 
+    def get_max_allowed_length(self):
+        one_larger_category = self.get_one_larger_category()
+        if one_larger_category:
+            max_allowed_length = one_larger_category.start_size
+            if one_larger_category.include_start_size:
+                include_max_allowed_length = False
+            else:
+                include_max_allowed_length = True
+        else:
+            max_allowed_length = 999999
+            include_max_allowed_length = True
+
+        return max_allowed_length, include_max_allowed_length
+
+    def get_one_larger_category(self):
+        larger_category = self.vessel_size_category_group.get_one_larger_category(self)
+        return larger_category
+
     def __str__(self):
         if self.null_vessel:
             return self.name

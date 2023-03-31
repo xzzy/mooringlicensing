@@ -229,6 +229,9 @@ class FeeItemApplicationFee(models.Model):
     def application_type(self):
         return self.fee_item.application_type
 
+    def get_max_allowed_length(self):
+        return self.fee_item.get_max_allowed_length()
+
 
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
@@ -606,6 +609,9 @@ class FeeItem(models.Model):
 
     def __str__(self):
         return '${}: {}, {}, {}, {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category, self.proposal_type)
+
+    def get_max_allowed_length(self):
+        return self.vessel_size_category.get_max_allowed_length()
 
     @property
     def application_type(self):
