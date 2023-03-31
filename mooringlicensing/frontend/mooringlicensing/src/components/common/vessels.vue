@@ -220,8 +220,12 @@ from '@/utils/hooks'
                 vesselRegoNos: [],
                 selectedRego: null,
                 temporary_document_collection_id: null,
-                max_vessel_length_for_main_component: -1,
+
+                // max_vessel_length_for_main_component: -1,
+                max_vessel_length_tuple: null,
+
                 max_vessel_length_for_aa_component: -1,
+                include_max_vessel_length_for_aa_component: null,
             }
         },
         components:{
@@ -256,9 +260,14 @@ from '@/utils/hooks'
                 },
                 deep: true
             },
-            max_vessel_length_for_main_component: {
+            // max_vessel_length_for_main_component: {
+            //     handler: function(){
+            //         this.$emit("updateMaxVesselLengthForMainComponent", this.max_vessel_length_for_main_component)
+            //     }
+            // },
+            max_vessel_length_tuple: {
                 handler: function(){
-                    this.$emit("updateMaxVesselLengthForMainComponent", this.max_vessel_length_for_main_component)
+                    this.$emit("updateMaxVesselLengthForMainComponent", this.max_vessel_length_tuple)
                 }
             },
             max_vessel_length_for_aa_component: {
@@ -882,7 +891,9 @@ from '@/utils/hooks'
         },
         created: async function() {
             let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`);
-            this.max_vessel_length_for_main_component = res.body.max_length
+            // this.max_vessel_length_for_main_component = res.body
+            // this.include_max_vessel_length_for_main_component = res.body.include_max_length
+            this.max_vessel_length_tuple = res.body
         },
     }
 </script>
