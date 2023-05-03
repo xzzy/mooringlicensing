@@ -1901,7 +1901,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
-                proposal.submitter = request.user
+                proposal.submitter = request.user.id
                 proposal.previous_application = self
                 proposal.proposed_issuance_approval= None
 
