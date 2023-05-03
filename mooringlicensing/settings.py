@@ -451,11 +451,12 @@ LEDGER_TEMPLATE = 'bootstrap5'
 SESSION_COOKIE_NAME = "pp_sessionid"
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 LEDGER_UI_ACCOUNTS_MANAGEMENT = [
-           {'first_name': {'options' : {'view': True, 'edit': True}}},
-           {'last_name': {'options' : {'view': True, 'edit': True}}},
-           {'residential_address': {'options' : {'view': True, 'edit': True}}},
-           {'postal_address': {'options' : {'view': True, 'edit': True}}},
-           {'phone_number' : {'options' : {'view': True, 'edit': True}}},
-           {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
+    {'first_name': {'options' : {'view': True, 'edit': True}}},
+    {'last_name': {'options' : {'view': True, 'edit': True}}},
+    {'residential_address': {'options' : {'view': True, 'edit': True}}},
+    {'postal_address': {'options' : {'view': True, 'edit': True}}},
+    {'phone_number' : {'options' : {'view': True, 'edit': True}}},
+    {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
+    {'dob' : {'options' : {'view': True, 'edit': True}}},
 ]
 MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
