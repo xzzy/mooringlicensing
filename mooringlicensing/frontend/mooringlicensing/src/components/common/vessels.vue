@@ -415,8 +415,7 @@ from '@/utils/hooks'
                     // do not perform check if no previous application vessel
                     if (!this.previousApplicationVesselDetails) {
                         return
-                    }
-                    if (
+                    } else if (
                         (this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
                         this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
                         this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
@@ -429,10 +428,12 @@ from '@/utils/hooks'
                         vesselChanged = true;
                     }
                     // company ownership
-                    if (this.previousApplicationVesselOwnership.company_ownership) {
+                    if (!this.previousApplicationVesselOwnership) {
+                        return
+                    } else if (this.previousApplicationVesselOwnership.company_ownership) {
                         if (this.vesselOwnership.individual_owner) {
                             vesselChanged = true;
-                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
+                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
                             this.previousApplicationVesselOwnership.company_ownership.percentage != this.vesselOwnership.company_ownership.company.percentage) {
                             vesselChanged = true;
                         }
@@ -446,6 +447,8 @@ from '@/utils/hooks'
                 //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
+                console.log('in addToTemporaryDocumentCollectionList')
+                console.log({temp_doc_id})
                 this.temporary_document_collection_id = temp_doc_id;
             },
             /*
