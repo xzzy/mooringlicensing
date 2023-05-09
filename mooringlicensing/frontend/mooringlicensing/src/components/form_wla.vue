@@ -274,12 +274,15 @@
                 if (this.is_external && this.proposal) {
                     //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                     //    this.proposal.max_vessel_length_with_no_payment <= length) {
-                    if (this.max_vessel_length_with_no_payment !== null &&
-                        this.max_vessel_length_with_no_payment <= length) {
+                    if (this.max_vessel_length_with_no_payment !== null && 
+                            (this.max_vessel_length_with_no_payment.max_length < length || 
+                             this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)){
                         // vessel length is in higher category
                         this.higherVesselCategory = true;
+                        console.log('1')
                     } else {
                         this.higherVesselCategory = false;
+                        console.log('2')
                     }
                 }
                 this.updateAmendmentRenewalProperties();

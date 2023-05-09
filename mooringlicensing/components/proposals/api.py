@@ -1108,17 +1108,35 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal = self.get_object()
             max_length = 0
 
-            if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT,]:
-                current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-                target_date = proposal.get_target_date(current_datetime.date())
 
-                max_amount_paid = proposal.get_max_amount_paid_for_main_component()
+            ### test
+            max_vessel_length = (0, True)  # (length, include_length)
+            get_out_of_loop = False
+            while True:
+                for application_fee in proposal.application_fees.all():
+                    for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
+                        length_tuple = fee_item_application_fee.get_max_allowed_length()
+                        if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
+                            max_vessel_length = length_tuple
+                if get_out_of_loop:
+                    break
+                proposal = proposal.previous_application
+                if not proposal or proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
+                    get_out_of_loop = True
 
-                # FeeConstructor to use
-                fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, target_date)
-                max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
+            return Response({'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]})
+            ###
 
-            return Response({'max_length': max_length})
+            # if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT,]:
+            #     current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+            #     target_date = proposal.get_target_date(current_datetime.date())
+            #
+            #     max_amount_paid = proposal.get_max_amount_paid_for_main_component()
+            #
+            #     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, target_date)
+            #     max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
+            #
+            # return Response({'max_length': max_length})
 
         except Exception as e:
             print(traceback.print_exc())

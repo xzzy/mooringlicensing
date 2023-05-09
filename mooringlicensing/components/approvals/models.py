@@ -812,7 +812,10 @@ class Approval(RevisionedMixin):
     def approval_surrender(self,request,details):
         with transaction.atomic():
             try:
-                if not request.user.mooringlicensing_organisations.filter(organisation_id = self.applicant_id):
+                # Check if organisations the request.user belongs to include the organisation this application is for.
+                # if not request.user.mooringlicensing_organisations.filter(organisation_id = self.applicant_id):
+                orgs = Organisation.objects.filter(delegates__contains=[request.user.id,])  # These are the organisations request.user belongs to
+                if not self.org_applicant.id in [org.id for org in orgs]:
                     if request.user not in self.allowed_assessors and not is_customer(request):
                         raise ValidationError('You do not have access to surrender this approval')
                 if not self.can_reissue and self.can_action:
