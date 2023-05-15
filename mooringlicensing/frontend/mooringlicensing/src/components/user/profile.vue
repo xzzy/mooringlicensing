@@ -230,7 +230,8 @@
                     <input :disabled="readonly" type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
                     <label for="electoral_roll_yes">
                         Yes, I am on the
-                        <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
+                        <!-- <a href="https://www.elections.wa.gov.au/oes#/oec" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a> -->
+                        <a target="_blank" href="https://www.elections.wa.gov.au/oes#/oec">WA state electoral roll</a>
                     </label>
                 </div>
                 <div class="col-sm-8">
@@ -488,9 +489,9 @@ export default {
             });
         },
 
-        uploadProofElectoralRoll: function() {
-            console.log("proof");
-        },
+        // uploadProofElectoralRoll: function() {
+        //     console.log("proof");
+        // },
         readFile: function() {
             let vm = this;
             let _file = null;
