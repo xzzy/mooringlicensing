@@ -205,7 +205,7 @@ export default {
     },
     methods: {
         updateMaxVesselLength: function (max_length) {
-            console.log('updateMaxVesselLength')
+            // console.log('updateMaxVesselLength')
             //this.max_vessel_length_with_no_payment = max_length
             //                let combined_length = 0
             //                if (this.max_vessel_length_for_main_component == null && this.max_vessel_length_for_aa_component == null){
@@ -233,12 +233,12 @@ export default {
             this.max_vessel_length_with_no_payment = this.max_vessel_length_for_main_component
         },
         updateMaxVesselLengthForAAComponent: function (length) {
-            console.log('updateMaxVesselLengthForAAComponent')
+            // console.log('updateMaxVesselLengthForAAComponent')
             //this.max_vessel_length_for_aa_component = length
             this.updateMaxVesselLength()
         },
         updateMaxVesselLengthForMainComponent: function (length) {
-            console.log('updateMaxVesselLengthForMainComponent')
+            // console.log('updateMaxVesselLengthForMainComponent')
             this.max_vessel_length_for_main_component = length
             this.updateMaxVesselLength()
         },
@@ -262,10 +262,10 @@ export default {
                         this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
                     // vessel length is in higher category
                     this.higherVesselCategory = true;
-                    console.log('1')
+                    // console.log('1')
                 } else {
                     this.higherVesselCategory = false;
-                    console.log('2')
+                    // console.log('2')
                 }
             }
             this.updateAmendmentRenewalProperties();
@@ -276,7 +276,7 @@ export default {
             this.updateAmendmentRenewalProperties();
         },
         updateAmendmentRenewalProperties: async function () {
-            console.log('updateAmendmentRenewalProperties in form_wla.vue')
+            // console.log('updateAmendmentRenewalProperties in form_wla.vue')
             //if (this.proposal && ['renewal', 'amendment'].includes(this.proposal.proposal_type.code)) {
             if (this.proposal && (this.proposal.proposal_type.code === 'amendment' || this.proposal.pending_amendment_request)) {
                 this.$nextTick(async () => {
@@ -289,25 +289,25 @@ export default {
                     }
                     // auto approve
                     if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
-                        console.log('autoApprove: false')
+                        // console.log('autoApprove: false')
                         await this.$emit("updateAutoApprove", false);
                     } else {
-                        console.log('autoApprove: true')
+                        // console.log('autoApprove: true')
                         await this.$emit("updateAutoApprove", true);
                     }
 
                 });
             } else if (this.proposal && this.proposal.proposal_type.code === 'renewal') {
-                console.log('in renewal')
+                // console.log('in renewal')
                 this.$nextTick(async () => {
                     this.showPaymentTab = true;
                     this.$emit("updateSubmitText", "Pay / Submit");
                     // auto approve
                     if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
-                        console.log('autoApprove: false')
+                        // console.log('autoApprove: false')
                         await this.$emit("updateAutoApprove", false);
                     } else {
-                        console.log('autoApprove: true')
+                        // console.log('autoApprove: true')
                         await this.$emit("updateAutoApprove", true);
                     }
                 });

@@ -23,7 +23,7 @@
                   <div class="panel-heading">
                     <i v-if="showCompletion && profile.personal_details" class="fa fa-check fa-2x pull-left" style="color:green"></i>
                     <i v-else-if="showCompletion && !profile.personal_details" class="fa fa-times fa-2x pull-left" style="color:red"></i>
-                    <h3 class="panel-title">Personal Details <small>Provide your personal details</small>
+                    <h3 class="panel-title">Personal Details <small>Provide your personal details as per Department of Trasport vessel registration papers</small>
                         <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
