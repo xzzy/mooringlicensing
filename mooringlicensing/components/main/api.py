@@ -9,6 +9,8 @@ from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+
+from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.main.models import (
         GlobalSettings,
         TemporaryDocumentCollection,
@@ -107,55 +109,36 @@ class GetExternalDashboardSectionsList(views.APIView):
 class OracleJob(views.APIView):
     renderer_classes = [JSONRenderer,]
 
+    @basic_exception_handler
     def get(self, request, format=None):
-        try:
-            data = {
-                "date":request.GET.get("date"),
-                "override": request.GET.get("override")
-            }
-            serializer = OracleSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            oracle_integration(serializer.validated_data['date'].strftime('%Y-%m-%d'),serializer.validated_data['override'])
-            data = {'successful':True}
-            return Response(data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e[0]))
+        data = {
+            "date":request.GET.get("date"),
+            "override": request.GET.get("override")
+        }
+        serializer = OracleSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        oracle_integration(serializer.validated_data['date'].strftime('%Y-%m-%d'),serializer.validated_data['override'])
+        data = {'successful':True}
+        return Response(data)
 
 class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
     queryset = TemporaryDocumentCollection.objects.all()
     serializer_class = TemporaryDocumentCollectionSerializer
 
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
         print("create temp doc coll")
         print(request.data)
-        try:
-            with transaction.atomic():
-                serializer = TemporaryDocumentCollectionSerializer(
-                        data=request.data, 
-                        )
-                serializer.is_valid(raise_exception=True)
-                if serializer.is_valid():
-                    instance = serializer.save()
-                    save_document(request, instance, comms_instance=None, document_type=None)
+        with transaction.atomic():
+            serializer = TemporaryDocumentCollectionSerializer(
+                    data=request.data,
+                    )
+            serializer.is_valid(raise_exception=True)
+            if serializer.is_valid():
+                instance = serializer.save()
+                save_document(request, instance, comms_instance=None, document_type=None)
 
-                    return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0]))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+                return Response(serializer.data)
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))

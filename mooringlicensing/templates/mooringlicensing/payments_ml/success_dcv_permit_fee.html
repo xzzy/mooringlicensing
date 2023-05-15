@@ -25,7 +25,8 @@
                         </tr>
                     </table>
                     <br/>
-                    <span>If there is any missing information, Rottnest Island Authority (RIA) may assign this application back to you to complete. In that case you will be notified by email.</span>
+                    {% include "mooringlicensing/payments_ml/last_line_incorrect_info.html" %}
+<!--                    <span>If there is any missing information, Rottnest Island Authority (RIA) may assign this application back to you to complete. In that case you will be notified by email.</span>-->
                     {% if request.user == submitter or request.user.is_staff %}
                     {% if request.user.is_authenticated %}
                     <div class="row" style="margin-top:2em;">

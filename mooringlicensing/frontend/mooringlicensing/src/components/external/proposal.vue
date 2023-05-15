@@ -100,7 +100,7 @@
                                         <p class="pull-right" style="margin-top:5px">
                                             <input type="checkbox" v-model="terms_and_conditions_checked" id="terms_and_conditions_checked" />
                                             <label for="terms_and_conditions_checked">
-                                                I agree with all the <a href="https://rottnestisland.com/boating/boating-on-rottnest-island/tandc" target="_blank">RIA Terms and Conditions</a>
+                                                I agree with all the <a href="https://ria.wa.gov.au/boating/moorings/terms" target="_blank">RIA Terms and Conditions</a>
                                             </label>
 
                                             <button v-if="saveExitProposal" type="button" class="btn btn-primary" disabled>

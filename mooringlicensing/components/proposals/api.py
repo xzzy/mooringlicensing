@@ -1113,6 +1113,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             max_vessel_length = (0, True)  # (length, include_length)
             get_out_of_loop = False
             while True:
+                if not proposal.application_fees.all():
+                    break
                 for application_fee in proposal.application_fees.all():
                     for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
                         length_tuple = fee_item_application_fee.get_max_allowed_length()

@@ -74,6 +74,8 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
 
 
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime, v_rego_no=''):
+    from mooringlicensing.components.proposals.models import WaitingListApplication
+
     target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
     application_type_display = fee_constructor.application_type.description
     application_type_display = application_type_display.replace('Application', '')
@@ -87,18 +89,29 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
         vessel_rego_no = 'no vessel'
 
     proposal_type_text = '{}'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
-    return {
-        # 'ledger_description': '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
-        'ledger_description': '{} fee ({}, {}): {} @{}'.format(
-            # fee_constructor.application_type.description,
+
+    if application_type.code == WaitingListApplication.code:
+        # Keep season dates on the Waiting List
+        ledger_description = '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
             application_type_display,
             proposal_type_text,
             vessel_rego_no,
             instance.lodgement_number,
-            # fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-            # fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+            fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+            fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+            target_datetime_str,
+        )
+    else:
+        ledger_description = '{} fee ({}, {}): {} @{}'.format(
+            application_type_display,
+            proposal_type_text,
+            vessel_rego_no,
+            instance.lodgement_number,
             target_datetime_str,
         ),
+
+    return {
+        'ledger_description': ledger_description,
         'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
         'price_incl_tax': float(fee_amount_adjusted),
         'price_excl_tax': float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted),

@@ -130,6 +130,8 @@ export default {
             } else {
                 url = this.documentActionUrl
             }
+            console.log('in document_action_url at filefield_immediate.vue')
+            console.log({url})
             return url;
         },
     },
