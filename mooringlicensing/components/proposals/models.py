@@ -1901,7 +1901,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
-                proposal.submitter = request.user
+                proposal.submitter = request.user.id
                 proposal.previous_application = self
                 proposal.proposed_issuance_approval= None
 
@@ -3717,28 +3717,33 @@ class Vessel(RevisionedMixin):
                     Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
                     Q(id=proposal_being_processed.id))
         if Proposal.objects.filter(proposals_filter):
-            raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+            # raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
 
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
         ## ML Filter
         ml_filter = Q(
-                ~Q(
-                    Q(status__in=['cancelled', 'expired', 'surrendered']) | 
-                    Q(proposal__vessel_ownership=vessel_ownership) | 
-                    Q(proposal=proposal_being_processed)
-                    ) &
-                Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
-                Q(vesselownershiponapproval__vessel_ownership__end_date__isnull=True) &
-                Q(vesselownershiponapproval__end_date__isnull=True) &
-                Q(vesselownershiponapproval__vessel_ownership__vessel=self)
-                )
+            ~Q(
+                Q(status__in=['cancelled', 'expired', 'surrendered']) |
+                Q(proposal__vessel_ownership=vessel_ownership) |
+                Q(proposal=proposal_being_processed)
+            ) &
+            Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
+            Q(vesselownershiponapproval__vessel_ownership__end_date__isnull=True) &
+            Q(vesselownershiponapproval__end_date__isnull=True) &
+            Q(vesselownershiponapproval__vessel_ownership__vessel=self)
+        )
         ## Other Approvals filter
         approval_filter = Q(
-                Q(current_proposal__vessel_ownership__vessel=self) & 
-                ~Q(current_proposal__vessel_ownership=vessel_ownership) &
-                ~Q(proposal=proposal_being_processed)
-                )
+            Q(current_proposal__vessel_ownership__vessel=self) &
+            ~Q(current_proposal__vessel_ownership=vessel_ownership) &
+            ~Q(proposal=proposal_being_processed)
+        )
+
+        if proposal_being_processed.approval:
+            approval_filter &= ~Q(id=proposal_being_processed.approval.id)  # We don't want to include the approval this proposal is for.
+
         if MooringLicence.objects.filter(ml_filter) or Approval.objects.filter(approval_filter):
             raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
 

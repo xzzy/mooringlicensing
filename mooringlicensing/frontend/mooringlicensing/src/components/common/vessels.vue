@@ -316,6 +316,18 @@ from '@/utils/hooks'
                     return true;
                 }
             },
+            // *** testing
+            vesselOwnershipExists: function(){
+                let exist = false
+                if (this.previousApplicationVesselOwnership){
+                    
+
+                } else {
+                    // new application
+                }
+                return exist
+            },
+            // ***
             mooringLicenceCurrentVesselDisplayText: function() {
                 let displayText = '';
                 if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
@@ -368,6 +380,8 @@ from '@/utils/hooks'
                 } else {
                     url = 'temporary_document';
                 }
+                console.log('in vesselRegistrationDocumentUrl at vessel.vue')
+                console.log({url})
                 return url;
             },
             hullIdentificationNumberDocumentUrl: function() {
@@ -415,8 +429,7 @@ from '@/utils/hooks'
                     // do not perform check if no previous application vessel
                     if (!this.previousApplicationVesselDetails) {
                         return
-                    }
-                    if (
+                    } else if (
                         (this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
                         this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
                         this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
@@ -429,10 +442,12 @@ from '@/utils/hooks'
                         vesselChanged = true;
                     }
                     // company ownership
-                    if (this.previousApplicationVesselOwnership.company_ownership) {
+                    if (!this.previousApplicationVesselOwnership) {
+                        return
+                    } else if (this.previousApplicationVesselOwnership.company_ownership) {
                         if (this.vesselOwnership.individual_owner) {
                             vesselChanged = true;
-                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
+                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
                             this.previousApplicationVesselOwnership.company_ownership.percentage != this.vesselOwnership.company_ownership.company.percentage) {
                             vesselChanged = true;
                         }
@@ -446,6 +461,8 @@ from '@/utils/hooks'
                 //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
+                console.log('in addToTemporaryDocumentCollectionList')
+                console.log({temp_doc_id})
                 this.temporary_document_collection_id = temp_doc_id;
             },
             /*
@@ -453,10 +470,11 @@ from '@/utils/hooks'
             },
             */
             retrieveIndividualOwner: async function() {
-                //console.log("retrieve individual owner")
+                console.log("in retrieveIndividualOwner()")
                 if (this.individualOwner && this.vessel.id) {
                     const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
                     const res = await this.$http.post(url);
+                    console.log({res})
                     if (res.body) {
                         let vesselOwnership = Object.assign({}, res.body);
                         vesselOwnership.individual_owner = true;
@@ -483,6 +501,7 @@ from '@/utils/hooks'
                 return data;
             },
             initialiseCompanyNameSelect: async function(){
+                console.log('in initialiseCompanyNameSelect()')
                 let vm = this;
                 // Vessel search
                 $(vm.$refs.company_name).select2({
@@ -544,6 +563,7 @@ from '@/utils/hooks'
                 vm.readCompanyName();
             },
             readCompanyName: function() {
+                console.log('in readCompanyName()')
                 this.$nextTick(() => {
                     let vm = this;
                     if (vm.vessel.vessel_ownership.company_ownership && vm.vessel.vessel_ownership.company_ownership.company) {
@@ -559,6 +579,7 @@ from '@/utils/hooks'
                 });
             },
             initialiseRegoNoSelect: function(){
+                console.log('in initialiseRegoNoSelect()')
                 let vm = this;
                 // Vessel search
                 $(vm.$refs.vessel_rego_nos).select2({
@@ -567,6 +588,7 @@ from '@/utils/hooks'
                     placeholder:"",
                     tags: true,
                     createTag: function (tag) {
+                        console.log('in createTag()')
                         return {
                             id: tag.term,
                             text: tag.term,
@@ -577,6 +599,7 @@ from '@/utils/hooks'
                         url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
+                            console.log('in data()')
                             var query = {
                                 term: params.term,
                                 type: 'public',
@@ -585,12 +608,13 @@ from '@/utils/hooks'
                         },
                     },
                     templateSelection: function(data) {
-                        //console.log("templateSelection");
+                        console.log("in templateSelection()");
+                        console.log({data})
                         return vm.validateRegoNo(data.text);
                     },
                 }).
                 on("select2:select", function (e) {
-                    console.log("select2:select");
+                    console.log("in select2:select handler");
                     if (!e.params.data.selected) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -599,6 +623,7 @@ from '@/utils/hooks'
                     }
                     //console.log("Process select2");
                     let data = e.params.data;
+                    console.log({data})
                     vm.$nextTick(async () => {
                         let max_length = 0
                         if (!data.tag) {
@@ -632,6 +657,7 @@ from '@/utils/hooks'
                     });
                 }).
                 on("select2:unselect",function (e) {
+                    console.log("in select2:unselect handler");
                     //console.log("select2:unselect")
                     var selected = $(e.currentTarget);
                     vm.vessel.rego_no = '';
@@ -646,6 +672,7 @@ from '@/utils/hooks'
                         });
                 }).
                 on("select2:open",function (e) {
+                    console.log("in select2:open handler");
                     //console.log("select2:open")
                     const searchField = $(".select2-search__field")
                     // move focus to select2 field
@@ -663,14 +690,16 @@ from '@/utils/hooks'
                 vm.readRegoNo();
             },
             parseVesselOwnershipList: async function(res) {
+                console.log('in parseVesselOwnershipList()')
+                console.log({res})
                 let vm = this;
                 let individualOwner = false;
                 let companyOwner = false;
                 for (let vo of res.body) {
                     if (vo.individual_owner) {
-                        individualOwner = true;
+                        individualOwner = true  // Is this correct?  This variable is overwritten by the last loop accessing here.
                     } else if (vo.company_ownership) {
-                        companyOwner = true;
+                        companyOwner = true  // Is this correct?  This variable is overwritten by the last loop accessing here.
                     }
                 }
                 if (individualOwner) {
@@ -696,19 +725,23 @@ from '@/utils/hooks'
                 });
             },
             readRegoNo: function() {
+                console.log('in readRegoNo()')
                 let vm = this;
                 if (vm.vessel.rego_no) {
+                    console.log('*aho')
                     var option = new Option(vm.vessel.rego_no, vm.vessel.rego_no, true, true);
                     $(vm.$refs.vessel_rego_nos).append(option).trigger('change');
                 }
             },
             fetchVesselTypes: async function(){
+                console.log('in fetchVesselTypes()')
                 const response = await this.$http.get(api_endpoints.vessel_types_dict);
                 for (let vessel_type of response.body) {
                     this.vesselTypes.push(vessel_type)
                 }
             },
             lookupCompanyOwnership: async function(id) {
+                console.log('in lookupCompanyOwnership()')
                 //console.log(id)
                 const url = api_endpoints.lookupCompanyOwnership(id);
                 const payload = {
@@ -724,10 +757,12 @@ from '@/utils/hooks'
             },
 
             lookupVessel: async function(id) {
+                console.log('in looupVessel()')
                 const url = api_endpoints.lookupVessel(id);
                 await this.fetchReadonlyVesselCommon(url);
             },
             fetchDraftData: function() {
+                console.log('in fetchDraftData()')
                 this.vessel.rego_no = this.proposal.rego_no;
                 this.vessel.id = this.proposal.vessel_id;
                 let vessel_details = {};
@@ -774,6 +809,7 @@ from '@/utils/hooks'
             },
             */
             readOwnershipFromProposal: function() {
+                console.log('in readOwnershipFromProposal()')
                 let vessel_ownership = {};
                 vessel_ownership.percentage = this.proposal.percentage;
                 vessel_ownership.individual_owner = this.proposal.individual_owner;
@@ -791,6 +827,8 @@ from '@/utils/hooks'
                 }
             },
             fetchReadonlyVesselCommon: async function(url) {
+                console.log('in fetchReadonlyVesselCommon()')
+                console.log({url})
                 const res = await this.$http.get(url);
                 const vesselData = res.body;
                 // read in vessel ownership data from Proposal if in Draft status
@@ -813,6 +851,7 @@ from '@/utils/hooks'
         },
         mounted: function () {
             this.$nextTick(async () => {
+                console.log('in mounted nextTick()')
                 await this.fetchVesselTypes();
                 if (this.proposal && this.keep_current_vessel) {
                     // fetches vessel data from proposal (saved as draft)
@@ -851,6 +890,8 @@ from '@/utils/hooks'
                             api_endpoints.proposal,
                             this.proposal.waiting_list_application_id + '/fetch_vessel/'
                         );
+                        console.log('fetch_vessel1')
+                        console.log({url})
                         res = await this.$http.get(url);
                         //console.log(res)
                     } else if (this.proposal.previous_application_vessel_details_id) {
@@ -859,15 +900,20 @@ from '@/utils/hooks'
                             api_endpoints.proposal,
                             this.proposal.previous_application_id + '/fetch_vessel/'
                         );
+                        console.log('fetch_vessel2')
+                        console.log({url})
                         res = await this.$http.get(url);
                     }
                     if (!this.proposal.rego_no && res && res.body && !res.body.vessel_ownership.end_date) {
                         this.vessel = Object.assign({}, res.body);
+                        console.log({res})
+                        console.log('res.body has been assigned to the this.vessel.')
                         const payload = {
                             id: this.vessel.id,
                             tag: false,
                             selected: true,
                         }
+                        console.log('trigger select2:select.')
                         $(vm.$refs.vessel_rego_nos).trigger({
                             type: 'select2:select',
                             params: {
