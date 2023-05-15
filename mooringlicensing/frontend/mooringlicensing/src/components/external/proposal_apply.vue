@@ -13,42 +13,6 @@
                         <div>
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
-                                    <label v-if="wlaChoices.length>0">Waiting List</label>
-                                    <div v-if="wlaApprovals.length<=1">
-                                        <div v-for="(application_type, index) in wlaChoices">
-                                            <input 
-                                            type="radio" 
-                                            name="applicationType" 
-                                            :id="application_type.code + '_' + index" 
-                                            value="application_type" 
-                                            @change="selectApplication(application_type)"
-                                            />
-                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
-                                        </div>
-                                    </div>
-                                    <div v-else>
-                                        <div class="row" v-for="application_type in wlaMultiple">
-                                            <div class="col-sm-5">
-                                                <input 
-                                                type="radio" 
-                                                name="applicationType" 
-                                                :id="application_type.code" 
-                                                value="application_type" 
-                                                @change="selectApplication(application_type)"
-                                                />
-                                                <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
-                                            </div>
-                                            <span class="pull-left col-sm-2" v-if="application_type.multiple">
-                                                <select class="form-control" v-model="selectedCurrentProposal">
-                                                    <option v-for="approval in wlaApprovals" :value="approval.current_proposal_id">
-                                                        {{ approval.lodgement_number }}
-                                                    </option>
-                                                </select>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group">
                                     <label>Annual Admission</label>
                                     <div v-if="aaaApprovals.length<=1">
                                         <div v-for="(application_type, index) in aaaChoices">
@@ -120,8 +84,44 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="form-group">
+                                    <label v-if="wlaChoices.length>0">Waiting List</label>
+                                    <div v-if="wlaApprovals.length<=1">
+                                        <div v-for="(application_type, index) in wlaChoices">
+                                            <input 
+                                            type="radio" 
+                                            name="applicationType" 
+                                            :id="application_type.code + '_' + index" 
+                                            value="application_type" 
+                                            @change="selectApplication(application_type)"
+                                            />
+                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else>
+                                        <div class="row" v-for="application_type in wlaMultiple">
+                                            <div class="col-sm-5">
+                                                <input 
+                                                type="radio" 
+                                                name="applicationType" 
+                                                :id="application_type.code" 
+                                                value="application_type" 
+                                                @change="selectApplication(application_type)"
+                                                />
+                                                <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
+                                            </div>
+                                            <span class="pull-left col-sm-2" v-if="application_type.multiple">
+                                                <select class="form-control" v-model="selectedCurrentProposal">
+                                                    <option v-for="approval in wlaApprovals" :value="approval.current_proposal_id">
+                                                        {{ approval.lodgement_number }}
+                                                    </option>
+                                                </select>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div v-if="mlApprovals.length" class="form-group">
-                                    <label>Mooring Licence</label>
+                                    <label>Mooring Site Licence</label>
                                     <div v-if="mlApprovals.length<=1">
                                         <div v-for="(application_type, index) in mlChoices">
                                             <input 
@@ -393,8 +393,8 @@ export default {
               */
               // add generic
               this.mlMultiple.push({
-                  new_application_text: "I want to amend or renew my current mooring licence",
-                  description: "Mooring Licence Application",
+                  new_application_text: "I want to amend or renew my current mooring site licence",
+                  description: "Mooring Site Licence Application",
                   code: "ml_multiple",
                   multiple: true
               })
