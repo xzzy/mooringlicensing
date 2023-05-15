@@ -128,6 +128,7 @@ export default {
                     // subtitle: "- View and amend your waiting list allocation",
                     subtitle: "- View or amend your waiting list allocation",
                     Index: "waiting_list",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'LicencesAndPermitsTable': {
                     type: 'LicencesAndPermitsTable',
@@ -137,6 +138,7 @@ export default {
                     // subtitle: "- View existing licences / permits and renew them",
                     subtitle: "- View or renew licences or permits",
                     Index: "licences_and_permits",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'CompliancesTable': {
                     type: 'CompliancesTable',
@@ -146,6 +148,7 @@ export default {
                     // subtitle: "- View submitted Compliances and submit new ones",
                     subtitle: "- Manage compliance requirements",
                     Index: "compliances",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'AuthorisedUserApplicationsTable': {
                     type: 'AuthorisedUserApplicationsTable',
@@ -155,6 +158,7 @@ export default {
                     label: "Endorsements (licensees only)",
                     subtitle: "- View or approve mooring authorisations", 
                     Index: "authorised_user_applications_for_my_endorsement",
+                    subtitle_class_name: "subtitle-l",
                 },
             }
         }
