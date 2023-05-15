@@ -3717,7 +3717,8 @@ class Vessel(RevisionedMixin):
                     Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
                     Q(id=proposal_being_processed.id))
         if Proposal.objects.filter(proposals_filter):
-            raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+            # raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
 
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
