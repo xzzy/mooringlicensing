@@ -18,7 +18,7 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing import settings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, make_proposal_applicant_ready,
+    save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant
@@ -640,6 +640,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 )
 
         make_proposal_applicant_ready(obj, request)
+
+        make_ownership_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)

@@ -3879,8 +3879,8 @@ class VesselOwnershipManager(models.Manager):
 
 
 class VesselOwnership(RevisionedMixin):
-    owner = models.ForeignKey('Owner', on_delete=models.CASCADE)
-    vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
+    owner = models.ForeignKey('Owner', null=True, blank=True, on_delete=models.CASCADE)
+    vessel = models.ForeignKey(Vessel, null=True, blank=True, on_delete=models.CASCADE)
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True, on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)

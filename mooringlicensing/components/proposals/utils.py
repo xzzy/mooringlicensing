@@ -1013,3 +1013,10 @@ def make_proposal_applicant_ready(proposal, request):
         proposal_applicant.mobile_number = request.user.mobile_number
 
         proposal_applicant.save()
+
+
+def make_ownership_ready(proposal, request):
+    vessel_ownership = VesselOwnership.objects.create()
+    proposal.vessel_ownership = vessel_ownership
+    proposal.save()
+    logger.info(f'New vessel_ownership {vessel_ownership} has been created and linked to {proposal}')
