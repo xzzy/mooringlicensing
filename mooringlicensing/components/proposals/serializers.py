@@ -1110,23 +1110,26 @@ class InternalProposalSerializer(BaseProposalSerializer):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
             for moa in obj.approval.mooringonapproval_set.all():
-                suitable_for_mooring = True
-                # only do check if vessel details exist
-                if obj.vessel_details:
-                    suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
-                color = '#000000' if suitable_for_mooring else '#FF0000'
-                moorings.append({
-                    "id": moa.id,
-                    "mooring_name": '<span style="color:{}">{}</span>'.format(color, moa.mooring.name),
-                    "bay": '<span style="color:{}">{}</span>'.format(color, str(moa.mooring.mooring_bay)),
-                    "site_licensee": '<span style="color:{}">RIA Allocated</span>'.format(color) if not moa.site_licensee else
-                        '<span style="color:{}">User Requested</span>'.format(color),
-                    "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else
-                        '<span style="color:{}">Historical</span>'.format(color),
-                    "checked": True if suitable_for_mooring and not moa.end_date else False,
-                    "suitable_for_mooring": suitable_for_mooring,
-                    "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
-                    })
+                if moa.mooring.mooring_licence is not None:
+                    suitable_for_mooring = True
+                    # only do check if vessel details exist
+                    if obj.vessel_details:
+                        suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
+                    color = '#000000' if suitable_for_mooring else '#FF0000'
+                    #import ipdb; ipdb.set_trace()
+                    moorings.append({
+                        "id": moa.id,
+                        "mooring_name": '<span style="color:{}">{}</span>'.format(color, moa.mooring.name),
+                        "bay": '<span style="color:{}">{}</span>'.format(color, str(moa.mooring.mooring_bay)),
+                        "site_licensee": '<span style="color:{}">RIA Allocated</span>'.format(color) if not moa.site_licensee else
+                            '<span style="color:{}">User Requested</span>'.format(color),
+                        "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else
+                            '<span style="color:{}">Historical</span>'.format(color),
+                        "checked": True if suitable_for_mooring and not moa.end_date else False,
+                        "suitable_for_mooring": suitable_for_mooring,
+                        #"mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'] if moa.mooring.mooring_licence else False,
+                        "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
+                        })
         return moorings
 
     def get_mooring_licence_vessels(self, obj):
