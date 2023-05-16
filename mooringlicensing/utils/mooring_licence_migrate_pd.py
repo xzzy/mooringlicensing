@@ -235,19 +235,19 @@ class MooringLicenceReader():
         
     FROM shell_plus:
         from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
-        mlr=MooringLicenceReader('PersonDets20221222-125823.txt', 'MooringDets20221222-125546.txt', 'VesselDets20221222-125823.txt', 'UserDets20221222-130353.txt', 'ApplicationDets20221222-125157.txt', 'annual_admissions_booking_report_20230125084027.csv')
+        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt', 'annual_admissions_booking_report.csv')
 
-        self.create_users()
-        self.create_vessels()
-        self.create_mooring_licences()
-        self.create_authuser_permits()
-        self.create_waiting_list()
-        self.create_dcv()
+        mlr.create_users()
+        mlr.create_vessels()
+        mlr.create_mooring_licences()
+        mlr.create_authuser_permits()
+        mlr.create_waiting_list()
+        mlr.create_dcv()
 
     OR
         from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
-        mlr=MooringLicenceReader('PersonDets20221222-125823.txt', 'MooringDets20221222-125546.txt', 'VesselDets20221222-125823.txt', 'UserDets20221222-130353.txt', 'ApplicationDets20221222-125157.txt', 'annual_admissions_booking_report_20230125084027.csv')
-        self.run_migration
+        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt', 'annual_admissions_booking_report.csv')
+        mlr.run_migration
 
     FROM mgt-command:
         python manage_ds.py mooring_migration_script --filename mooringlicensing/utils/csv/MooringDets20221201-083202.txt
@@ -257,6 +257,10 @@ class MooringLicenceReader():
         pm = df['permit_number'].value_counts().loc[lambda x: x>1][1:].astype('int')
         pm.to_excel('/tmp/permit_numbers.xlsx')
 
+    From RKS:
+
+    from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
+    mlr=MooringLicenceReader('PersonDets.txt','MooringDets.txt','VesselDets.txt','UserDets.txt','ApplicationDets.txt','annual_admissions_booking_report.csv',path='/app/shared/clean/clean_22Dec2022/')
 
     """
 
@@ -298,11 +302,12 @@ class MooringLicenceReader():
         self.ml_no_ves_rows = []
 
     def __get_phone_number(self, row):
-        row.home_number.replace(' ', '')
-        row.work_number.replace(' ', '')
-        if row.work_number:
+        if 'work_number' in row and row.work_number:
+            row.work_number.replace(' ', '')
             return row.work_number
-        else:
+
+        elif 'home_number' in row and row.home_number:
+            row.home_number.replace(' ', '')
             return row.home_number
 
     def __get_work_number(self, row):
@@ -679,7 +684,8 @@ class MooringLicenceReader():
                         email=email,
                         first_name=first_name,
                         last_name=last_name,
-                        phone_number=self.__get_work_number(user_row),
+                        #phone_number=self.__get_work_number(user_row),
+                        phone_number=self.__get_phone_number(user_row),
                         mobile_number=self.__get_mobile_number(user_row)
                     )
 
@@ -692,7 +698,8 @@ class MooringLicenceReader():
                     # update user details
                     user.first_name = first_name
                     user.last_name = last_name
-                    user.phone_number = self.__get_work_number(user_row)
+                    #user.phone_number = self.__get_work_number(user_row)
+                    user.phone_number = self.__get_phone_number(user_row),
                     user.mobile_number = self.__get_mobile_number(user_row)
 
                     country = Country.objects.get(printable_name='Australia')
@@ -785,7 +792,7 @@ class MooringLicenceReader():
         postfix = ['Nominated Ves', 'Ad Ves 2', 'Ad Ves 3', 'Ad Ves 4', 'Ad Ves 5', 'Ad Ves 6', 'Ad Ves 7']
         for user_id, pers_no in tqdm(self.pers_ids):
             try:
-                #if pers_no=='200700':
+                #if pers_no=='202600':
                 #    import ipdb; ipdb.set_trace()
 
                 #import ipdb; ipdb.set_trace()
@@ -811,11 +818,12 @@ class MooringLicenceReader():
                         ves_type=ves['Type ' + postfix[i]]
                         rego_no=ves['DoT Rego ' + postfix[i]]
                         pct_interest=ves['%Interest ' + postfix[i]]
-                        tot_length=ves['Total Length ' + postfix[i]]
+                        tot_length=ves['Reg Length ' + postfix[i]]
                         draft=ves['Draft ' + postfix[i]]
                         tonnage=ves['Tonnage ' + postfix[i]]
                         au_sticker=ves['Au Sticker No ' + postfix[i]]
                         c_sticker=ves['C Sticker No ' + postfix[i]]
+                        au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
 
                         #if rego_no=='BZ314':
                         #    import ipdb; ipdb.set_trace()
@@ -856,8 +864,8 @@ class MooringLicenceReader():
                                 vessel_weight=try_except(tonnage),
                                 berth_mooring=''
                             )
-                        #au_vessels.update({rego_no:au_sticker})
-                        self.vessels_au.update({rego_no:au_sticker})
+                        #au_vessels.update({rego_no:au_sticker, sticker_sent:})
+                        self.vessels_au.update({rego_no: dict(au_sticker=au_sticker, au_sticker_sent=au_sticker_date)})
                         c_vessels.append((rego_no, c_sticker))
                         #if pers_no=='200700':
                         #    import ipdb; ipdb.set_trace()
@@ -908,13 +916,14 @@ class MooringLicenceReader():
                     ves_type=ves['Type ' + postfix[i]]
                     rego_no=ves['DoT Rego ' + postfix[i]]
                     pct_interest=ves['%Interest ' + postfix[i]]
-                    tot_length=ves['Total Length ' + postfix[i]]
+                    tot_length=ves['Reg Length ' + postfix[i]]
                     draft=ves['Draft ' + postfix[i]]
                     tonnage=ves['Tonnage ' + postfix[i]]
                     beam=ves['Beam ' + postfix[i]]
                     ml_sticker=ves['Lic Sticker Number ' + postfix[i]]
                     au_sticker=ves['Au Sticker No ' + postfix[i]]
                     c_sticker=ves['C Sticker No ' + postfix[i]]
+                    au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
 
                     #if rego_no=='DO904':
                     #    import ipdb; ipdb.set_trace()
@@ -930,7 +939,8 @@ class MooringLicenceReader():
                             'percentage':    pct_interest,
                             'ml_sticker':    ml_sticker,
                             'au_sticker':    au_sticker,
-                            'c_sticker':    c_sticker,
+                            'c_sticker':     c_sticker,
+                            'au_sticker_date': au_sticker_date,
                         }
                     })
 
@@ -961,8 +971,10 @@ class MooringLicenceReader():
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
                 
-#                if row.pers_no == '211305':
-#                    import ipdb; ipdb.set_trace()
+                #if row.pers_no == '209722':
+                #    import ipdb; ipdb.set_trace()
+                #else:
+                #    continue
 
                 if not row.name or len([_str for _str in ['KINGSTON REEF','NN64','PB 02','RIA'] if row.name in _str])>0:
                     continue
@@ -1018,7 +1030,7 @@ class MooringLicenceReader():
                 ves_type = ves_row['Type ' + postfix]
                 rego_no = ves_row['DoT Rego ' + postfix]
                 pct_interest = ves_row['%Interest ' + postfix]
-                tot_length = ves_row['Total Length ' + postfix]
+                tot_length = ves_row['Reg Length ' + postfix]
                 draft = ves_row['Draft ' + postfix]
                 tonnage = ves_row['Tonnage ' + postfix]
                 sticker_number = ves_row['Lic Sticker Number ' + postfix] #if ves_row['Lic Sticker Number ' + postfix] else None
@@ -1191,7 +1203,7 @@ class MooringLicenceReader():
                         approval=approval,
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
-                        printing_date=TODAY,
+                        printing_date=None, #TODAY,
                         #mailing_date=sticker_sent, #TODAY,
                         mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
                         sticker_printing_batch=None,
@@ -1247,7 +1259,7 @@ class MooringLicenceReader():
                     # exclude mooring
                     continue
 
-                #if row.pers_no_u == '000011':
+                #if row.pers_no_u == '210758':
                 #    import ipdb; ipdb.set_trace()
 
                 #if rego_no == 'GM894':
@@ -1280,7 +1292,13 @@ class MooringLicenceReader():
                 #sticker_number = row['sticker'],
                 #rego_no = row['vessel_rego']
                 rego_no = row.name
-                sticker_number = self.vessels_au.get(rego_no)
+                #if sticker_number == 31779:
+                #    import ipdb; ipdb.set_trace()
+                sticker_info = self.vessels_au.get(rego_no)
+                if sticker_info:
+                    sticker_number = sticker_info['au_sticker']
+                    sticker_sent = sticker_info['au_sticker_sent']
+
                 if sticker_number is None:
                     no_au_stickers.append(rego_no)
                 else:
@@ -1404,9 +1422,10 @@ class MooringLicenceReader():
                         approval=approval,
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
-                        printing_date=TODAY,
+                        printing_date=None, #TODAY,
                         #mailing_date=sticker_sent, #TODAY,
-                        mailing_date=datetime.datetime.strptime(date_issued, '%d/%m/%Y').date() if date_issued else None,
+                        #mailing_date=datetime.datetime.strptime(date_issued, '%d/%m/%Y').date() if date_issued else None,
+                        mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
                     )
@@ -2071,6 +2090,14 @@ class MooringLicenceReader():
 #            a.generate_dcv_permit_doc()
 #            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
 
+
+    def create_licence_pdfs(self):
+        MooringLicenceReader.create_pdf_ml()
+        MooringLicenceReader.create_pdf_aup()
+        MooringLicenceReader.create_pdf_wl()
+        MooringLicenceReader.create_pdf_aa()
+        MooringLicenceReader.create_pdf_dcv()
+    
     @classmethod
     def create_pdf_ml(self):
         """ MooringLicenceReader.create_pdf_ml()
@@ -2114,7 +2141,10 @@ class MooringLicenceReader():
             approvals = approvals_migrated.filter(migrated=True, current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
 
         for idx, a in enumerate(approvals):
-            a.generate_dcv_permit_doc() if isinstance(a, DcvPermit) else a.generate_doc()
+            if isinstance(a, DcvPermit) and len(a.permits.all())==0:
+                a.generate_dcv_permit_doc()
+            elif not hasattr(a, 'licence_document') or a.licence_document is None: 
+                a.generate_doc()
             print(f'{idx}, Created PDF for {permit_name}: {a}')
 
 
