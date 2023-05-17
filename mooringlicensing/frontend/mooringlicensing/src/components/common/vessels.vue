@@ -462,9 +462,17 @@ from '@/utils/hooks'
                     } else if (this.previousApplicationVesselOwnership.company_ownership) {
                         if (this.vesselOwnership.individual_owner) {
                             vesselChanged = true;
-                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
-                            this.previousApplicationVesselOwnership.company_ownership.percentage != this.vesselOwnership.company_ownership.company.percentage) {
-                            vesselChanged = true;
+                        } else {
+                            if (this.previousApplicationVesselOwnership.company_ownership.company !== this.vesselOwnership.company_ownership.company){
+                                if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()){
+                                    vesselChanged = True
+                                }
+                            }
+                            if (this.previousApplicationVesselOwnership.company_ownership != this.vesselOwnership.company_ownership.company){
+                                if (this.previousApplicationVesselOwnership.company_ownership.percentage != this.vesselOwnership.company_ownership.company.percentage){
+                                    vesselChanged = true;
+                                }
+                            }
                         }
                     } else if (!this.previousApplicationVesselOwnership.company_ownership && !this.vesselOwnership.individual_owner) {
                         vesselChanged = true;
