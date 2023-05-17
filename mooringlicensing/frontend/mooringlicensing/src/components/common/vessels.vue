@@ -312,6 +312,9 @@ from '@/utils/hooks'
                 return companyName
             },
             existingVesselOwnership: function() {
+                console.log('in existingVesselOwnership()')
+                console.log(this.vessel.vessel_ownership)
+                console.log(this.vessel.vessel_ownership.id)
                 if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
                     return true;
                 }
@@ -352,14 +355,16 @@ from '@/utils/hooks'
                 return retVal;
             },
             companyOwner: function() {
-                if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
-                    return true;
-                }
+                // if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
+                    // return true;
+                // }
+                return !this.individualOwner
             },
             individualOwner: function() {
                 if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
                     return true;
                 }
+                return false
             },
             profileFullName: function() {
                 if (this.profile) {
