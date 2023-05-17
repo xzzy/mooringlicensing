@@ -313,11 +313,21 @@ from '@/utils/hooks'
             },
             existingVesselOwnership: function() {
                 console.log('in existingVesselOwnership()')
-                console.log(this.vessel.vessel_ownership)
-                console.log(this.vessel.vessel_ownership.id)
-                if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
-                    return true;
+                // if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
+                
+                // Found that there is a case where there is no vessel_ownership.id is defined (I don't know why), which results in javascript error.
+                // Therefore rewrite the above line avoiding accessing the vessel_ownership.id
+                if (this.vessel.vessel_ownership){
+                    if (this.vessel.vessel_ownership.percentage){
+                        return true
+                    }
+                    if (this.vessel.vessel_ownership.company_ownership){
+                        if (this.vessel.vessel_ownership.company_ownership.percentage){
+                            return true
+                        }
+                    }
                 }
+                return false
             },
             // *** testing
             vesselOwnershipExists: function(){
