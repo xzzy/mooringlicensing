@@ -1115,6 +1115,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             max_vessel_length = (0, True)  # (length, include_length)
             get_out_of_loop = False
             while True:
+                if get_out_of_loop:
+                    break
+
                 if not proposal.application_fees.all():
                     break
                 for application_fee in proposal.application_fees.all():
@@ -1122,8 +1125,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         length_tuple = fee_item_application_fee.get_max_allowed_length()
                         if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
                             max_vessel_length = length_tuple
-                if get_out_of_loop:
-                    break
                 proposal = proposal.previous_application
                 if not proposal or proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
                     get_out_of_loop = True
