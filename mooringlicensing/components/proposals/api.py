@@ -641,7 +641,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
         make_proposal_applicant_ready(obj, request)
 
-        make_ownership_ready(obj, request)
+        # make_ownership_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)

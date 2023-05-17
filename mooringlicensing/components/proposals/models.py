@@ -1692,15 +1692,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice_text = 'Payment Invoice'
                             basket_params = {
                                 'products': line_items,
+                                # 'products': [{'ledger_description': 'test', 'oracle_code': 'T1 EXEMPT', 'price_incl_tax': 138.0, 'price_excl_tax': 125.454545454545, 'quantity': 1}],
                                 'vouchers': [],
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
-                                # 'booking_reference': 'PB-' + str(booking_id),
+                                'booking_reference': 'ML-' + str(self.id),
                                 # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
                                 # 'organisation': 7,
                                 'tax_override': True,
                             }
+                            print(basket_params)
                             # basket_user_id = customer_id
                             # basket_hash = utils_ledger_api_client.create_basket_session(
                             from ledger_api_client.utils import create_basket_session, process_create_future_invoice

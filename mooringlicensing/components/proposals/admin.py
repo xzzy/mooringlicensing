@@ -22,6 +22,16 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
     list_display = ['reason']
 
 
+@admin.register(models.Company)
+class CompanyAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.CompanyOwnership)
+class CompanyOwnershipAdmin(admin.ModelAdmin):
+    list_display = ['company', 'vessel', 'percentage', 'start_date', 'end_date',]
+
+
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'submitter', 'approval',]
