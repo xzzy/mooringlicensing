@@ -161,7 +161,7 @@
                                         <div class="col-sm-3">
                                         </div>
                                         <div class="col-sm-6">
-                                            <input :readonly="readonly" type="checkbox" id="postal_same_as_residential"
+                                            <input :disabled="readonly" type="checkbox" id="postal_same_as_residential"
                                                 v-model="email_user.postal_same_as_residential" />
                                             <label for="postal_same_as_residential" class="control-label">Same as
                                                 residential address</label>
