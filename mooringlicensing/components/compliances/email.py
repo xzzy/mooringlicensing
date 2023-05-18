@@ -357,7 +357,7 @@ def _log_compliance_email(email_message, compliance, sender=None):
         'text': text,
         'compliance': compliance,
         'customer': customer,
-        'staff': staff,
+        'staff': staff.id,
         'to': to,
         'fromm': fromm,
         'cc': all_ccs
@@ -404,7 +404,7 @@ def _log_org_email(email_message, organisation, customer ,sender=None):
         'text': text,
         'organisation': organisation,
         'customer': customer,
-        'staff': staff,
+        'staff': staff.id,
         'to': to,
         'fromm': fromm,
         'cc': all_ccs
