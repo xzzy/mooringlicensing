@@ -66,6 +66,10 @@ COPY patch_for_admin_0001_initial.patch ./patch_for_admin_0001_initial.patch
 COPY patch_for_admin_0001_initial.patch_revert ./patch_for_admin_0001_initial.patch_revert
 COPY patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
 COPY patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
+
+RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
+RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
+
 RUN python manage_ml.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
