@@ -365,10 +365,9 @@ from '@/utils/hooks'
                 return retVal;
             },
             companyOwner: function() {
-                // if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
-                    // return true;
-                // }
-                return !this.individualOwner
+                if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
+                    return true;
+                }
             },
             individualOwner: function() {
                 if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
