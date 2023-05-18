@@ -35,20 +35,29 @@
                                       </form>
                                 </div-->
                                 <div v-if="applicantType == 'SUB'" class="panel-body panel-collapse collapse in" :id="detailsBody">
-                                      <form class="form-horizontal">
-                                          <div class="form-group">
+                                    <form class="form-horizontal">
+                                        <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Given Name(s)</label>
                                             <div class="col-sm-6">
                                                 <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="email_user.first_name">
                                             </div>
-                                          </div>
-                                          <div class="form-group">
+                                        </div>
+                                        <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Surname</label>
                                             <div class="col-sm-6">
                                                 <input disabled type="text" class="form-control" name="applicantName" placeholder="" v-model="email_user.last_name">
                                             </div>
-                                          </div>
-                                      </form>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="" class="col-sm-3 control-label">Date of Birth</label>
+                                            <div class="col-sm-6" ref="dobDatePicker">
+                                                <input disabled type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="email_user.dob"/>
+                                                <!-- <span class="input-group-addon"> -->
+                                                    <!-- <span class="glyphicon glyphicon-calendar ml-1"></span> -->
+                                                <!-- </span> -->
+                                            </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
