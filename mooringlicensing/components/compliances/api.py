@@ -1,4 +1,3 @@
-
 import traceback
 # import os
 # import datetime
@@ -46,7 +45,8 @@ from mooringlicensing.components.compliances.serializers import (
     ComplianceAmendmentRequestSerializer,
     CompAmendmentRequestDisplaySerializer, ListComplianceSerializer
 )
-from mooringlicensing.helpers import is_customer, is_internal, is_in_organisation_contacts
+from mooringlicensing.components.organisations.models import Organisation
+from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 
@@ -58,8 +58,10 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Compliance.objects.all().exclude(processing_status='discarded')
         elif is_customer(self.request):
-            user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
-            queryset =  Compliance.objects.filter( Q(proposal__org_applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
+            # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
+            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            # queryset =  Compliance.objects.filter( Q(proposal__org_applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
+            queryset =  Compliance.objects.filter(Q(proposal__org_applicant__in=user_orgs) | Q(proposal__submitter=self.request.user.id)).exclude(processing_status='discarded')
             return queryset
         return Compliance.objects.none()
 
