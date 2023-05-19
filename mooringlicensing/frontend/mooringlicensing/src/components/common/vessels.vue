@@ -104,6 +104,16 @@
                     <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
+<!-- Start:new file field -->
+            <FileField
+                :readonly="readonly"
+                ref="vessel_rego_document"
+                name="vessel_rego_document"
+                :isRepeatable="true"
+                :documentActionUrl="vesselRegoDocumentUrl"
+                :replace_button_by_text="true"
+            />
+<!-- End:new file field -->
 
             <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
@@ -383,6 +393,10 @@ from '@/utils/hooks'
             },
             fee_invoice_url: function(){
                 return this.fee_paid ? this.proposal.fee_invoice_url : '';
+            },
+            vesselRegoDocumentUrl: function() {
+                let url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+                return url
             },
             vesselRegistrationDocumentUrl: function() {
                 let url = '';

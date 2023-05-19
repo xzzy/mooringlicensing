@@ -1,4 +1,8 @@
 import traceback
+import pathlib
+import uuid
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 import pytz
 from django.db.models import Q
 from django.db import transaction
@@ -21,7 +25,7 @@ from mooringlicensing.components.proposals.utils import (
     save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalType, ProposalApplicant
+    ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
@@ -754,6 +758,49 @@ class ProposalViewSet(viewsets.ModelViewSet):
        except Exception as e:
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def vessel_rego_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        action = request.data.get('action')
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            pass
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+            new_filename = uuid.uuid4()
+            filepath = pathlib.Path(filename)
+            original_file_name = filepath.stem
+            original_file_ext = filepath.suffix
+            # document = instance.temp_vessel_registration_documents.create(input_name='aho', name=filename)[0]
+            document = VesselRegistrationDocument.objects.create(
+                proposal=instance,
+                original_file_name=original_file_name,
+                original_file_ext=original_file_ext,
+            )
+            path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
+            path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, new_filename.hex + original_file_ext), ContentFile(_file.read()))
+            document._file = path
+            document.save()
+
+        returned_file_data = []
+        returned_file_data = [dict(
+            file=d._file.url,
+            id=d.id,
+            name=d.original_file_name + d.original_file_ext,
+        ) for d in instance.temp_vessel_registration_documents.all() if d._file]
+        # for f in instance.temp_vessel_registration_documents.all():
+        #     print(f)
+
+        return Response({'filedata': returned_file_data})
+
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))

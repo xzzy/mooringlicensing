@@ -3934,12 +3934,16 @@ class VesselOwnership(RevisionedMixin):
 
 
 class VesselRegistrationDocument(Document):
-    vessel_ownership = models.ForeignKey(VesselOwnership,related_name='vessel_registration_documents', on_delete=models.CASCADE)
+    vessel_ownership = models.ForeignKey(VesselOwnership, null=True, blank=True, related_name='vessel_registration_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
     hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+    # test
+    proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='temp_vessel_registration_documents', on_delete=models.CASCADE)
+    original_file_name = models.CharField(max_length=512, null=True, blank=True)
+    original_file_ext = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'

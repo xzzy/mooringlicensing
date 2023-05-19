@@ -26,6 +26,14 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
 class CompanyAdmin(admin.ModelAdmin):
     pass
 
+@admin.register(models.VesselRegistrationDocument)
+class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(models.VesselOwnership)
+class VesselOwnershipAdmin(admin.ModelAdmin):
+    pass
+
 
 @admin.register(models.CompanyOwnership)
 class CompanyOwnershipAdmin(admin.ModelAdmin):
