@@ -103,7 +103,7 @@ class DcvAdmissionFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
+    dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.CASCADE, blank=True, null=True, related_name='dcv_admission_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
@@ -143,7 +143,7 @@ class DcvPermitFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+    dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.CASCADE, blank=True, null=True, related_name='dcv_permit_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
@@ -245,7 +245,7 @@ class ApplicationFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    proposal = models.ForeignKey('Proposal', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE, blank=True, null=True, related_name='application_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
@@ -342,7 +342,7 @@ class FeePeriod(models.Model):
 
 
 class FeeConstructor(models.Model):
-    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.PROTECT)
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.CASCADE)
     fee_season = ChainedForeignKey(FeeSeason,
                                    chained_field='application_type',
                                    chained_model_field='application_type',
@@ -352,7 +352,7 @@ class FeeConstructor(models.Model):
                                    null=True,
                                    blank=True,
                                    related_name='fee_constructors')
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.PROTECT)
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.CASCADE)
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
 
