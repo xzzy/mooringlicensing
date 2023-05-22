@@ -1,8 +1,9 @@
+import os
 import traceback
 import pathlib
 import uuid
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
+from django.core.files.storage import default_storage, FileSystemStorage
 import pytz
 from django.db.models import Q
 from django.db import transaction
@@ -111,7 +112,7 @@ from copy import deepcopy
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
-    PAYMENT_SYSTEM_ID
+    PAYMENT_SYSTEM_ID, BASE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -775,29 +776,33 @@ class ProposalViewSet(viewsets.ModelViewSet):
         elif action == 'save':
             filename = request.data.get('filename')
             _file = request.data.get('_file')
-            new_filename = uuid.uuid4()
+
             filepath = pathlib.Path(filename)
             original_file_name = filepath.stem
             original_file_ext = filepath.suffix
-            # document = instance.temp_vessel_registration_documents.create(input_name='aho', name=filename)[0]
+
+            # Calculate a new unique filename
+            unique_id = uuid.uuid4()
+            new_filename = unique_id.hex + original_file_ext
+
             document = VesselRegistrationDocument.objects.create(
                 proposal=instance,
                 original_file_name=original_file_name,
                 original_file_ext=original_file_ext,
             )
-            path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
-            path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, new_filename.hex + original_file_ext), ContentFile(_file.read()))
-            document._file = path
-            document.save()
+            path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+
+            logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
         returned_file_data = []
-        returned_file_data = [dict(
-            file=d._file.url,
-            id=d.id,
-            name=d.original_file_name + d.original_file_ext,
-        ) for d in instance.temp_vessel_registration_documents.all() if d._file]
-        # for f in instance.temp_vessel_registration_documents.all():
-        #     print(f)
+        for d in instance.temp_vessel_registration_documents.all():
+            if d._file:
+                returned_file_data.append({
+                    'file': d._file.url,
+                    'id': d.id,
+                    'name': d.original_file_name + d.original_file_ext,
+                })
 
         return Response({'filedata': returned_file_data})
 

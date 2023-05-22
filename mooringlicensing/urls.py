@@ -191,6 +191,9 @@ urlpatterns = [
     url(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
     url(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
+
+    url(r'^secure-media/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+
 ] + ledger_patterns + media_serv_patterns
 
 if settings.DEBUG:  # Serve media locally in development.
