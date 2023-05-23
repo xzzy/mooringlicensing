@@ -59,7 +59,7 @@
         </FormSection>
  -->
 
-        <span @click="recalc">test</span>
+        <!-- <span @click="recalc">test</span> -->
         <template v-for="component in components_ordered">
             <FormSection 
                 :formCollapse="component.formCollapse"

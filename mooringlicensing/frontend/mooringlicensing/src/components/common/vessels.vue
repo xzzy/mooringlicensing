@@ -484,6 +484,7 @@ from '@/utils/hooks'
                             if (this.vesselOwnership.individual_owner) {
                                 vesselChanged = true;
                                 vesselOwnershipChanged = true
+                                console.log('*3')
                             } else {
                                 try{
                                     if (this.previousApplicationVesselOwnership.company_ownership && this.vesselOwnership.company_ownership){
@@ -492,6 +493,7 @@ from '@/utils/hooks'
                                                 if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()){
                                                     vesselChanged = true
                                                     vesselOwnershipChanged = true
+                                                    console.log('*1')
                                                 }
                                             }
                                         }
@@ -501,6 +503,7 @@ from '@/utils/hooks'
                                             if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.company.percentage){
                                                 vesselChanged = true;
                                                 vesselOwnershipChanged = true
+                                                console.log('*2')
                                             }
                                         }
                                     }
@@ -520,8 +523,8 @@ from '@/utils/hooks'
                 const missingVessel = this.vessel.rego_no ? false : true;
                 await this.$emit("noVessel", missingVessel)
 
-                console.log('emit updateVesselOwnershipChanged from the vessels.vue')
-                await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
+                // console.log('emit updateVesselOwnershipChanged from the vessels.vue')
+                // await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
                 //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
