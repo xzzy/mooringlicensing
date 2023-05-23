@@ -232,10 +232,10 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField(blank=True, null=True)
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
-    # submitter = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='mooringlicensing_approvals')
+    # submitter = models.ForeignKey(EmailUser, on_delete=models.CASCADE, blank=True, null=True, related_name='mooringlicensing_approvals')
     submitter = models.IntegerField(blank=True, null=True)
-    org_applicant = models.ForeignKey(Organisation, on_delete=models.PROTECT, blank=True, null=True, related_name='org_approvals')
-    # proxy_applicant = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='proxy_approvals')
+    org_applicant = models.ForeignKey(Organisation, on_delete=models.CASCADE, blank=True, null=True, related_name='org_approvals')
+    # proxy_applicant = models.ForeignKey(EmailUser, on_delete=models.CASCADE, blank=True, null=True, related_name='proxy_approvals')
     proxy_applicant = models.IntegerField(blank=True, null=True)
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
@@ -947,7 +947,7 @@ class Approval(RevisionedMixin):
 
 
 class WaitingListAllocation(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)
     code = 'wla'
     prefix = 'WLA'
     description = 'Waiting List Allocation'
@@ -1042,7 +1042,7 @@ class WaitingListAllocation(Approval):
         self.set_wla_order()
 
 class AnnualAdmissionPermit(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)
     code = 'aap'
     prefix = 'AAP'
     description = 'Annual Admission Permit'
@@ -1195,7 +1195,7 @@ class AnnualAdmissionPermit(Approval):
 
 
 class AuthorisedUserPermit(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)
     code = 'aup'
     prefix = 'AUP'
     description = 'Authorised User Permit'
@@ -1566,7 +1566,7 @@ class AuthorisedUserPermit(Approval):
 
 
 class MooringLicence(Approval):
-    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.PROTECT)
+    approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)
     code = 'ml'
     prefix = 'MOL'
     description = 'Mooring Licence'
@@ -1975,11 +1975,11 @@ class ApprovalUserAction(UserAction):
             what=str(action)
         )
 
-    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.PROTECT)
+    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.CASCADE)
     who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
-    approval= models.ForeignKey(Approval, related_name='action_logs', on_delete=models.PROTECT)
+    approval= models.ForeignKey(Approval, related_name='action_logs', on_delete=models.CASCADE)
 
 
 class DcvOrganisation(RevisionedMixin):
@@ -2149,7 +2149,7 @@ class DcvAdmissionArrival(RevisionedMixin):
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, on_delete=models.SET_NULL)
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
-    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_arrivals')
+    fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.CASCADE, blank=True, null=True, related_name='dcv_admission_arrivals')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2528,7 +2528,7 @@ def update_dcv_permit_doc_filename(instance, filename):
 
 
 class DcvAdmissionDocument(Document):
-    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions', on_delete=models.PROTECT)
+    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions', on_delete=models.CASCADE)
     _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
@@ -2542,7 +2542,7 @@ class DcvAdmissionDocument(Document):
 
 
 class DcvPermitDocument(Document):
-    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits', on_delete=models.PROTECT)
+    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits', on_delete=models.CASCADE)
     _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
