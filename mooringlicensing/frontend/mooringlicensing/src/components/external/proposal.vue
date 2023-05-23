@@ -296,7 +296,8 @@ export default {
     },
     updateAutoApprove: function(approve) {
         this.autoApprove = approve;
-        //console.log("updateAutoApprove");
+        console.log('%cin updateAutoApprove', 'color: #990000')
+        console.log(this.autoApprove)
     },
     updateMooringAuth: function(changed) {
         this.mooringOptionsChanged = changed;
@@ -305,6 +306,8 @@ export default {
     updateVesselChanged: function(vesselChanged) {
         console.log('in updateVesselChanged at the proposal.vue')
         this.vesselChanged = vesselChanged;
+        console.log('this.vesselChanged: ')
+        console.log(this.vesselChanged)
         //console.log("updateVesselChanged");
     },
     updateMooringPreference: function(preferenceChanged) {
