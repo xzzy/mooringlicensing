@@ -1181,11 +1181,11 @@ export default {
         amendApproval:function (proposal_id) {
             let vm = this;
             swal({
-                title: "Amend Approval",
-                text: "Are you sure you want to amend this approval?",
+                title: "Amend waiting list alloction",
+                text: "Are you sure you want to amend this allocation?",
                 type: "warning",
                 showCancelButton: true,
-                confirmButtonText: 'Amend approval',
+                confirmButtonText: 'Amend Allocation',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')),{

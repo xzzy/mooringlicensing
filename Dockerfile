@@ -26,10 +26,19 @@ ENV BPAY_ALLOWED=False
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install --no-install-recommends -y wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata cron rsyslog gunicorn
+RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata cron rsyslog gunicorn
 RUN apt-get install --no-install-recommends -y libpq-dev patch libreoffice
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim nodejs npm
 RUN ln -s /usr/bin/python3 /usr/bin/python 
+
+# Install nodejs
+RUN update-ca-certificates
+# install node 16
+RUN touch install_node.sh
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x -o install_node.sh
+RUN chmod +x install_node.sh && ./install_node.sh
+RUN apt-get install -y nodejs
+# Install nodejs
 
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
@@ -57,6 +66,10 @@ COPY patch_for_admin_0001_initial.patch ./patch_for_admin_0001_initial.patch
 COPY patch_for_admin_0001_initial.patch_revert ./patch_for_admin_0001_initial.patch_revert
 COPY patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
 COPY patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
+
+RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
+RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
+
 RUN python manage_ml.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
