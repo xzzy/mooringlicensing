@@ -19,7 +19,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE, BASE_DIR
+from mooringlicensing.settings import TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 # from ledger_api_client.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
@@ -3936,18 +3936,15 @@ class VesselOwnership(RevisionedMixin):
                 if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
                     proposal.approval.internal_reissue()
 
-FileSystemStorage(
-    location=os.path.join(BASE_DIR, 'secure-media'),
-    base_url='/secure-media/'
-)
 
 class VesselRegistrationDocument(Document):
     vessel_ownership = models.ForeignKey(VesselOwnership, null=True, blank=True, related_name='vessel_registration_documents', on_delete=models.CASCADE)
     _file = models.FileField(
+        null=True,
         max_length=512,
         storage=FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
-            location=os.path.join(BASE_DIR, 'secure-media'),
-            base_url='/secure-media/'
+            location=os.path.join(BASE_DIR, PRIVATE_MEDIA_DIR_NAME),
+            base_url=f'/{PRIVATE_MEDIA_DIR_NAME}/'
         )
     )
     input_name = models.CharField(max_length=255,null=True,blank=True)
@@ -3963,6 +3960,11 @@ class VesselRegistrationDocument(Document):
         app_label = 'mooringlicensing'
         verbose_name = "Vessel Registration Papers"
 
+    def __str__(self):
+        ret_str = f'{self.original_file_name}{self.original_file_ext}'
+        if self._file:
+            ret_str += f' ({self._file.url})'
+        return ret_str
 
 class Owner(RevisionedMixin):
     # emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)

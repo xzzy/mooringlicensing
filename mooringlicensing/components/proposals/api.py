@@ -112,7 +112,7 @@ from copy import deepcopy
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
-    PAYMENT_SYSTEM_ID, BASE_DIR
+    PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
 
 logger = logging.getLogger(__name__)
 
@@ -782,8 +782,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             original_file_ext = filepath.suffix
 
             # Calculate a new unique filename
-            unique_id = uuid.uuid4()
-            new_filename = unique_id.hex + original_file_ext
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                new_filename = unique_id.hex + original_file_ext
+            else:
+                new_filename = original_file_name + original_file_ext
 
             document = VesselRegistrationDocument.objects.create(
                 proposal=instance,
@@ -796,7 +799,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
         returned_file_data = []
-        for d in instance.temp_vessel_registration_documents.all():
+
+        # retrieve temporarily uploaded documents when the proposal is 'draft'
+        docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
+        docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
+        all_the_docs = docs_in_limbo | docs  # Merge two querysets
+
+        for d in all_the_docs:
             if d._file:
                 returned_file_data.append({
                     'file': d._file.url,

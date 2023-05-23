@@ -26,13 +26,15 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
 class CompanyAdmin(admin.ModelAdmin):
     pass
 
+
 @admin.register(models.VesselRegistrationDocument)
 class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['original_file_name', 'original_file_ext', 'proposal', 'vessel_ownership', '_file']
+
 
 @admin.register(models.VesselOwnership)
 class VesselOwnershipAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['owner', 'vessel', 'company_ownership', 'percentage', 'start_date', 'end_date',]
 
 
 @admin.register(models.CompanyOwnership)

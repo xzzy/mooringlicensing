@@ -22,7 +22,7 @@ from reversion.models import Version
 from rest_framework.views import APIView
 import logging
 
-from mooringlicensing.settings import BASE_DIR
+from mooringlicensing.settings import BASE_DIR, PRIVATE_MEDIA_DIR_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -182,14 +182,13 @@ class VesselRegistrationDocumentView(APIView):
     def get(self, request,  proposal_id, filename):
         logger.info(f'{VesselRegistrationDocumentView.__name__} get method is called.')
 
-        file_path = os.path.join(BASE_DIR, f'secure-media/proposal/{proposal_id}/vessel_registration_documents/{filename}')
+        file_path = os.path.join(BASE_DIR, f'{PRIVATE_MEDIA_DIR_NAME}/proposal/{proposal_id}/vessel_registration_documents/{filename}')
 
         with open(file_path, 'rb') as f:
             mimetypes.init()
             f_name = os.path.basename(file_path)
             mime_type_guess = mimetypes.guess_type(f_name)
             if mime_type_guess is not None:
-                # response = HttpResponse(f.read(), content_type=mime_type_guess[0])
                 response = HttpResponse(f, content_type=mime_type_guess[0])
             response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
 
