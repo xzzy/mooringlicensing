@@ -22,6 +22,26 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
     list_display = ['reason']
 
 
+@admin.register(models.Company)
+class CompanyAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.VesselRegistrationDocument)
+class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
+    list_display = ['original_file_name', 'original_file_ext', 'proposal', 'vessel_ownership', '_file']
+
+
+@admin.register(models.VesselOwnership)
+class VesselOwnershipAdmin(admin.ModelAdmin):
+    list_display = ['owner', 'vessel', 'company_ownership', 'percentage', 'start_date', 'end_date',]
+
+
+@admin.register(models.CompanyOwnership)
+class CompanyOwnershipAdmin(admin.ModelAdmin):
+    list_display = ['company', 'vessel', 'percentage', 'start_date', 'end_date',]
+
+
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'submitter', 'approval',]

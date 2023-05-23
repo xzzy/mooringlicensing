@@ -104,8 +104,23 @@
                     <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="berth_mooring" placeholder="" v-model="vessel.vessel_details.berth_mooring" required=""/>
                 </div>
             </div>
-
+<!-- Start:new file field -->
             <div v-if="showDotRegistrationPapers" class="row form-group">
+                <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
+                <div class="col-sm-9">
+                    <FileField
+                        :readonly="readonly"
+                        ref="vessel_rego_document"
+                        name="vessel_rego_document"
+                        :isRepeatable="true"
+                        :documentActionUrl="vesselRegoDocumentUrl"
+                        :replace_button_by_text="true"
+                    />
+                </div>
+            </div>
+<!-- End:new file field -->
+
+            <!-- <div v-if="showDotRegistrationPapers" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                 <div v-if="!existingVesselOwnership" class="col-sm-9">
                     <FileField
@@ -129,8 +144,8 @@
                         :replace_button_by_text="true"
                     />
                 </div>
+            </div> -->
 
-            </div>
             <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already provided on the registration papers</label>
                 <div class="col-sm-9">
@@ -312,9 +327,22 @@ from '@/utils/hooks'
                 return companyName
             },
             existingVesselOwnership: function() {
-                if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
-                    return true;
+                console.log('in existingVesselOwnership()')
+                // if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
+                
+                // Found that there is a case where there is no vessel_ownership.id is defined (I don't know why), which results in javascript error.
+                // Therefore rewrite the above line avoiding accessing the vessel_ownership.id
+                if (this.vessel.vessel_ownership){
+                    if (this.vessel.vessel_ownership.percentage){
+                        return true
+                    }
+                    if (this.vessel.vessel_ownership.company_ownership){
+                        if (this.vessel.vessel_ownership.company_ownership.percentage){
+                            return true
+                        }
+                    }
                 }
+                return false
             },
             // *** testing
             vesselOwnershipExists: function(){
@@ -360,6 +388,7 @@ from '@/utils/hooks'
                 if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
                     return true;
                 }
+                return false
             },
             profileFullName: function() {
                 if (this.profile) {
@@ -369,6 +398,10 @@ from '@/utils/hooks'
             },
             fee_invoice_url: function(){
                 return this.fee_paid ? this.proposal.fee_invoice_url : '';
+            },
+            vesselRegoDocumentUrl: function() {
+                let url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+                return url
             },
             vesselRegistrationDocumentUrl: function() {
                 let url = '';
@@ -424,40 +457,71 @@ from '@/utils/hooks'
                 });
             },
             vesselChanged: async function() {
-                let vesselChanged = false;
+                let vesselChanged = false
+                let vesselOwnershipChanged = false
+
                 await this.$nextTick(() => {
                     // do not perform check if no previous application vessel
-                    if (!this.previousApplicationVesselDetails) {
+                    if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership) {
                         return
-                    } else if (
-                        (this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
-                        this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
-                        this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
-                        (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim() !== this.previousApplicationVesselDetails.vessel_name.trim()) ||
-                        this.vesselDetails.vessel_type !== this.previousApplicationVesselDetails.vessel_type ||
-                        this.vesselDetails.vessel_name.weight != this.previousApplicationVesselDetails.vessel_name.weight ||
-                        this.vesselOwnership.percentage != this.previousApplicationVesselOwnership.percentage ||
-                        (this.vesselOwnership.dot_name && this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim())
-                    ) {
-                        vesselChanged = true;
-                    }
-                    // company ownership
-                    if (!this.previousApplicationVesselOwnership) {
-                        return
-                    } else if (this.previousApplicationVesselOwnership.company_ownership) {
-                        if (this.vesselOwnership.individual_owner) {
-                            vesselChanged = true;
-                        } else if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim() ||
-                            this.previousApplicationVesselOwnership.company_ownership.percentage != this.vesselOwnership.company_ownership.company.percentage) {
+                    } else {
+
+                        if (
+                            (this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
+                            this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
+                            this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
+                            (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim() !== this.previousApplicationVesselDetails.vessel_name.trim()) ||
+                            this.vesselDetails.vessel_type !== this.previousApplicationVesselDetails.vessel_type ||
+                            this.vesselDetails.vessel_name.weight != this.previousApplicationVesselDetails.vessel_name.weight ||
+                            this.vesselOwnership.percentage != this.previousApplicationVesselOwnership.percentage ||
+                            (this.vesselOwnership.dot_name && this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim())
+                        ) {
                             vesselChanged = true;
                         }
-                    } else if (!this.previousApplicationVesselOwnership.company_ownership && !this.vesselOwnership.individual_owner) {
-                        vesselChanged = true;
+
+                        // company ownership
+                        if (this.previousApplicationVesselOwnership.company_ownership) {
+                            if (this.vesselOwnership.individual_owner) {
+                                vesselChanged = true;
+                                vesselOwnershipChanged = true
+                            } else {
+                                try{
+                                    if (this.previousApplicationVesselOwnership.company_ownership && this.vesselOwnership.company_ownership){
+                                        if (this.previousApplicationVesselOwnership.company_ownership.company && this.vesselOwnership.company_ownership.company){
+                                            if (this.previousApplicationVesselOwnership.company_ownership.company.name && this.vesselOwnership.company_ownership.company.name){
+                                                if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()){
+                                                    vesselChanged = true
+                                                    vesselOwnershipChanged = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (this.previousApplicationVesselOwnership.company_ownership != this.vesselOwnership.company_ownership.company){
+                                        if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.company){
+                                            if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.company.percentage){
+                                                vesselChanged = true;
+                                                vesselOwnershipChanged = true
+                                            }
+                                        }
+                                    }
+                                } catch (err){
+                                    console.error(err)
+                                }
+                            }
+                        } else if (!this.previousApplicationVesselOwnership.company_ownership && !this.vesselOwnership.individual_owner) {
+                            vesselChanged = true;
+                            vesselOwnershipChanged = true
+                        }
                     }
                 });
+                console.log('emit vesselChanged from the vessels.vue')
                 await this.$emit("vesselChanged", vesselChanged)
+
                 const missingVessel = this.vessel.rego_no ? false : true;
                 await this.$emit("noVessel", missingVessel)
+
+                console.log('emit updateVesselOwnershipChanged from the vessels.vue')
+                await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
                 //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
@@ -566,7 +630,7 @@ from '@/utils/hooks'
                 console.log('in readCompanyName()')
                 this.$nextTick(() => {
                     let vm = this;
-                    if (vm.vessel.vessel_ownership.company_ownership && vm.vessel.vessel_ownership.company_ownership.company) {
+                    if (vm.vessel.vessel_ownership && vm.vessel.vessel_ownership.company_ownership && vm.vessel.vessel_ownership.company_ownership.company) {
                         var option = new Option(
                             vm.vessel.vessel_ownership.company_ownership.company.name,
                             vm.vessel.vessel_ownership.company_ownership.company.name,

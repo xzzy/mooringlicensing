@@ -59,6 +59,7 @@
         </FormSection>
  -->
 
+        <span @click="recalc">test</span>
         <template v-for="component in components_ordered">
             <FormSection 
                 :formCollapse="component.formCollapse"
@@ -181,6 +182,10 @@ export default {
 
     },
     methods: {
+        recalc: function(){
+            console.log('test')
+            console.log(this.components['WaitingListTable'])
+        }
     },
     mounted: function () {
 
