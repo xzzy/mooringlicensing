@@ -3906,7 +3906,7 @@ class VesselOwnership(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return "{}: {}".format(self.owner, self.vessel)
+        return f'id:{self.id}, owner: {self.owner}, vessel: {self.vessel}'
 
     def get_fee_items_paid(self):
         # Return all the fee_items for this vessel

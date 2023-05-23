@@ -459,6 +459,7 @@ from '@/utils/hooks'
             vesselChanged: async function() {
                 let vesselChanged = false
                 let vesselOwnershipChanged = false
+                let consoleColour = 'color: #009900'
 
                 await this.$nextTick(() => {
                     // do not perform check if no previous application vessel
@@ -469,62 +470,67 @@ from '@/utils/hooks'
                         if (
                             (this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
                             this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
-                            this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
+                            // this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
                             (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim() !== this.previousApplicationVesselDetails.vessel_name.trim()) ||
                             this.vesselDetails.vessel_type !== this.previousApplicationVesselDetails.vessel_type ||
-                            this.vesselDetails.vessel_name.weight != this.previousApplicationVesselDetails.vessel_name.weight ||
-                            this.vesselOwnership.percentage != this.previousApplicationVesselOwnership.percentage ||
-                            (this.vesselOwnership.dot_name && this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim())
+                            this.vesselDetails.vessel_name.weight != this.previousApplicationVesselDetails.vessel_name.weight
+                            // this.vesselOwnership.percentage != this.previousApplicationVesselOwnership.percentage ||
+                            // (this.vesselOwnership.dot_name && this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim())
                         ) {
                             vesselChanged = true;
                         }
 
-                        // company ownership
+                        // Ownership
                         if (this.previousApplicationVesselOwnership.company_ownership) {
+                            // Company ownership in the previous application
                             if (this.vesselOwnership.individual_owner) {
-                                vesselChanged = true;
+                                // Individual ownership in the current application
+                                // vesselChanged = true;
                                 vesselOwnershipChanged = true
-                                console.log('*3')
+                                console.log('%c CompanyOwnership --> IndividualOwnership', consoleColour)
                             } else {
-                                try{
-                                    if (this.previousApplicationVesselOwnership.company_ownership && this.vesselOwnership.company_ownership){
-                                        if (this.previousApplicationVesselOwnership.company_ownership.company && this.vesselOwnership.company_ownership.company){
-                                            if (this.previousApplicationVesselOwnership.company_ownership.company.name && this.vesselOwnership.company_ownership.company.name){
-                                                if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()){
-                                                    vesselChanged = true
-                                                    vesselOwnershipChanged = true
-                                                    console.log('*1')
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (this.previousApplicationVesselOwnership.company_ownership != this.vesselOwnership.company_ownership.company){
-                                        if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.company){
-                                            if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.company.percentage){
-                                                vesselChanged = true;
+                                if (this.vesselOwnership.company_ownership){
+                                    if (this.previousApplicationVesselOwnership.company_ownership.company && this.vesselOwnership.company_ownership.company){
+                                        if (this.previousApplicationVesselOwnership.company_ownership.company.name && this.vesselOwnership.company_ownership.company.name){
+                                            if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()){
+                                                // vesselChanged = true
                                                 vesselOwnershipChanged = true
-                                                console.log('*2')
+                                                console.log('%c*1', consoleColour)
                                             }
                                         }
                                     }
-                                } catch (err){
-                                    console.error(err)
+                                }
+                                if (this.vesselOwnership.company_ownership.company){
+                                    if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.company){
+                                        if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.company.percentage){
+                                            // vesselChanged = true;
+                                            vesselOwnershipChanged = true
+                                            console.log('%c*2', consoleColour)
+                                        }
+                                    }
                                 }
                             }
-                        } else if (!this.previousApplicationVesselOwnership.company_ownership && !this.vesselOwnership.individual_owner) {
-                            vesselChanged = true;
-                            vesselOwnershipChanged = true
+                        } else {
+                            // Indivisual ownership in the previous application
+                            if (!this.vesselOwnership.individual_owner) {
+                                // Not individual ownership in the current application
+                                // vesselChanged = true;
+                                vesselOwnershipChanged = true
+                                console.log('%c IndividualOwnership --> CompanyOwnership', consoleColour)
+                            }
                         }
                     }
-                });
-                console.log('emit vesselChanged from the vessels.vue')
+                    console.log({vesselChanged})
+                    console.log({vesselOwnershipChanged})
+                })
+                console.log("%cemit vesselChanged from the vessels.vue", consoleColour)
                 await this.$emit("vesselChanged", vesselChanged)
 
                 const missingVessel = this.vessel.rego_no ? false : true;
                 await this.$emit("noVessel", missingVessel)
 
-                // console.log('emit updateVesselOwnershipChanged from the vessels.vue')
-                // await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
+                console.log('emit updateVesselOwnershipChanged from the vessels.vue')
+                await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
                 //return vesselChanged;
             },
             addToTemporaryDocumentCollectionList(temp_doc_id) {
@@ -795,7 +801,6 @@ from '@/utils/hooks'
                 console.log('in readRegoNo()')
                 let vm = this;
                 if (vm.vessel.rego_no) {
-                    console.log('*aho')
                     var option = new Option(vm.vessel.rego_no, vm.vessel.rego_no, true, true);
                     $(vm.$refs.vessel_rego_nos).append(option).trigger('change');
                 }

@@ -269,6 +269,8 @@ export default {
                     this.higherVesselCategory = false;
                 }
             }
+            console.log('this.higherVesselCategory:')
+            console.log(this.higherVesselCategory)
             this.updateAmendmentRenewalProperties();
         },
         updateVesselOwnershipChanged: function(changed){
