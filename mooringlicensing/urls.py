@@ -31,6 +31,7 @@ from ledger_api_client.urls import urlpatterns as ledger_patterns
 
 # API patterns
 from mooringlicensing.management.default_data_manager import DefaultDataManager
+from mooringlicensing.settings import PRIVATE_MEDIA_DIR_NAME
 from mooringlicensing.utils import are_migrations_running
 from django.urls import path
 
@@ -191,6 +192,9 @@ urlpatterns = [
     url(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
     url(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
+
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+
 ] + ledger_patterns + media_serv_patterns
 
 if settings.DEBUG:  # Serve media locally in development.

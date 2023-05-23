@@ -303,6 +303,7 @@ export default {
         //console.log("updateMooringAuth");
     },
     updateVesselChanged: function(vesselChanged) {
+        console.log('in updateVesselChanged at the proposal.vue')
         this.vesselChanged = vesselChanged;
         //console.log("updateVesselChanged");
     },

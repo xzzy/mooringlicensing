@@ -26,7 +26,7 @@ from mooringlicensing.components.proposals.models import (
     Proposal,
     Company,
     CompanyOwnership,
-    Mooring, ProposalApplicant
+    Mooring, ProposalApplicant, VesselRegistrationDocument
 )
 from mooringlicensing.components.proposals.serializers import (
         SaveVesselDetailsSerializer,
@@ -846,17 +846,32 @@ def store_vessel_ownership(request, vessel, instance=None):
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
+
     # check and set blocking_owner
     if instance:
         vessel.check_blocking_ownership(vessel_ownership, instance)
+
     # save temp doc if exists
-    if request.data.get('proposal', {}).get('temporary_document_collection_id'):
-        handle_document(instance, vessel_ownership, request.data)
+    handle_vessel_registrarion_documents_in_limbo(instance.id, vessel_ownership)
+    # if request.data.get('proposal', {}).get('temporary_document_collection_id'):
+    #     handle_document(instance, vessel_ownership, request.data)
+
     # Vessel docs
-    temp = vessel_ownership.vessel_registration_documents.all()
     if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
         raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
+
+def handle_vessel_registrarion_documents_in_limbo(proposal_id, vessel_ownership):
+    # VesselRegistrationDocument object with proposal is the documents stored for the draft proposal
+    documents_in_limbo = VesselRegistrationDocument.objects.filter(proposal_id=proposal_id)
+
+    for doc in documents_in_limbo:
+        doc.vessel_ownership = vessel_ownership  # Link to the vessel_ownership
+        doc.proposal = None  # Unlink to the proposal.  This link is used when proposal is draft and vessel_ownership is unknown.
+        doc.save()
+
+        logger.info(f'VesselRegistrationFile: {doc} has had a link to the vessel_ownership: {vessel_ownership}')
+
 
 def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
     print("handle document")
@@ -1013,3 +1028,10 @@ def make_proposal_applicant_ready(proposal, request):
         proposal_applicant.mobile_number = request.user.mobile_number
 
         proposal_applicant.save()
+
+
+def make_ownership_ready(proposal, request):
+    vessel_ownership = VesselOwnership.objects.create()
+    proposal.vessel_ownership = vessel_ownership
+    proposal.save()
+    logger.info(f'New vessel_ownership {vessel_ownership} has been created and linked to {proposal}')
