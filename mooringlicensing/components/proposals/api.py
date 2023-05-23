@@ -1194,8 +1194,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 else:
                     # Previous application exists
                     if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
-                        # Previous application is 'new'/'renewal' in that case,
-                        # we don't want to go back any further, so set flat to True
+                        # Previous application is 'new'/'renewal'
+                        # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
                         get_out_of_loop = True
 
             return Response({'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]})
