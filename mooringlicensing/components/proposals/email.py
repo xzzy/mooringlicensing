@@ -742,6 +742,9 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
     html_template = 'mooringlicensing/emails_2/email_17.html'
     txt_template = 'mooringlicensing/emails_2/email_17.txt'
 
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
+
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
@@ -749,6 +752,7 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
         'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
+        'proposal_url': make_http_https(proposal_url),
     }
 
     email = TemplateEmailBase(

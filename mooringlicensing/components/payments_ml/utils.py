@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):
     basket_params = {
         'products': make_serializable(lines),
+        # 'products': [{'ledger_description': 'test', 'oracle_code': 'T1 EXEMPT', 'price_incl_tax': 138.0, 'price_excl_tax': 125.454545454545, 'quantity': 1}],
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
@@ -108,7 +109,7 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
             vessel_rego_no,
             instance.lodgement_number,
             target_datetime_str,
-        ),
+        )
 
     return {
         'ledger_description': ledger_description,

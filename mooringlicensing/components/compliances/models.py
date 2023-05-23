@@ -160,14 +160,14 @@ class Compliance(RevisionedMixin):
                 if self.processing_status == 'future' or 'due':
                     self.processing_status = 'with_assessor'
                     self.customer_status = 'with_assessor'
-                    self.submitter = request.user
+                    self.submitter = request.user.id
 
                     if request.FILES:
                         for f in request.FILES:
                             document = self.documents.create(name=str(request.FILES[f]))
                             document._file = request.FILES[f]
                             document.save()
-                    if (self.amendment_requests):
+                    if self.amendment_requests:
                         qs = self.amendment_requests.filter(status = "requested")
                         if (qs):
                             for q in qs:
