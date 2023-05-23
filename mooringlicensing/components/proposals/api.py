@@ -1,4 +1,9 @@
+import os
 import traceback
+import pathlib
+import uuid
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage, FileSystemStorage
 import pytz
 from django.db.models import Q
 from django.db import transaction
@@ -18,10 +23,10 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing import settings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, make_proposal_applicant_ready,
+    save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalType, ProposalApplicant
+    ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
@@ -107,7 +112,7 @@ from copy import deepcopy
 import logging
 
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
-    PAYMENT_SYSTEM_ID
+    PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
 
 logger = logging.getLogger(__name__)
 
@@ -641,6 +646,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
         make_proposal_applicant_ready(obj, request)
 
+        # make_ownership_ready(obj, request)
+
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
 
@@ -752,6 +759,62 @@ class ProposalViewSet(viewsets.ModelViewSet):
        except Exception as e:
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def vessel_rego_document(self, request, *args, **kwargs):
+        instance = self.get_object()
+        action = request.data.get('action')
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            pass
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+            original_file_name = filepath.stem
+            original_file_ext = filepath.suffix
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                new_filename = unique_id.hex + original_file_ext
+            else:
+                new_filename = original_file_name + original_file_ext
+
+            document = VesselRegistrationDocument.objects.create(
+                proposal=instance,
+                original_file_name=original_file_name,
+                original_file_ext=original_file_ext,
+            )
+            path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+
+            logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
+
+        returned_file_data = []
+
+        # retrieve temporarily uploaded documents when the proposal is 'draft'
+        docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
+        docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
+        all_the_docs = docs_in_limbo | docs  # Merge two querysets
+
+        for d in all_the_docs:
+            if d._file:
+                returned_file_data.append({
+                    'file': d._file.url,
+                    'id': d.id,
+                    'name': d.original_file_name + d.original_file_ext,
+                })
+
+        return Response({'filedata': returned_file_data})
+
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -1113,6 +1176,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             max_vessel_length = (0, True)  # (length, include_length)
             get_out_of_loop = False
             while True:
+                if get_out_of_loop:
+                    break
+
                 if not proposal.application_fees.all():
                     break
                 for application_fee in proposal.application_fees.all():
@@ -1120,8 +1186,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         length_tuple = fee_item_application_fee.get_max_allowed_length()
                         if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
                             max_vessel_length = length_tuple
-                if get_out_of_loop:
-                    break
                 proposal = proposal.previous_application
                 if not proposal or proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
                     get_out_of_loop = True

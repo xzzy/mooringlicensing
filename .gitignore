@@ -89,6 +89,7 @@ target/
 
 # media
 media/
+private-media/
 
 # export
 export/
