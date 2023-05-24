@@ -1,11 +1,31 @@
 {% extends 'mooringlicensing/base.html' %}
 
 {% block content %}
-<div class="container" style="z-index:1">
-    <div class="col-lg-12 mb-4">
-        <div class="round-box col-12 px-3 pt-3 pb-3" style="background-color: #f1f1f1; border: 1px solid #d2d2d2;">
-            Login Success,  <A href='/'>Home</a>
+
+<div style="">
+    <div class='login-success-bg-body'>
+        <div class="container login-success-bg-body-container" >
+            <div class="col-lg-3 mb-4">
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="round-box col-12 px-3 pt-3 text-center login-success-message-box">
+                    <div class='login-success-message-icon' ><img src="/static/mooringlicensing/img/tick-success.png"></div>
+                    <h2 style='padding-top: 30px;'>Login Success</h2>
+                    
+
+                    <div class='fs-1' style='font-size: 20px;'>
+                        <p>Click <A href='/'>here</a> to access the Marine Administration System for Permits and Licences.<p>                        
+                        <a class='btn btn-primary btn-lg' href='/'>Goto Portal</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 mb-4">
+            </div>            
         </div>
+
+        &nbsp;
     </div>
 </div>
 {% endblock %}
