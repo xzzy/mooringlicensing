@@ -482,39 +482,33 @@ from '@/utils/hooks'
 
                         // Ownership
                         if (this.previousApplicationVesselOwnership.company_ownership) {
-                            // Company ownership in the previous application
                             if (this.vesselOwnership.individual_owner) {
-                                // Individual ownership in the current application
-                                // vesselChanged = true;
+                                // Company ownership --> Individual ownership
                                 vesselOwnershipChanged = true
-                                console.log('%c CompanyOwnership --> IndividualOwnership', consoleColour)
+                                console.log('%cCompanyOwnership --> IndividualOwnership', consoleColour)
                             } else {
                                 if (this.vesselOwnership.company_ownership){
                                     if (this.previousApplicationVesselOwnership.company_ownership.company && this.vesselOwnership.company_ownership.company){
                                         if (this.previousApplicationVesselOwnership.company_ownership.company.name && this.vesselOwnership.company_ownership.company.name){
                                             if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()){
-                                                // vesselChanged = true
+                                                // Company name changed
                                                 vesselOwnershipChanged = true
-                                                console.log('%c*1', consoleColour)
+                                                console.log('%cCompany name changed', consoleColour)
                                             }
                                         }
                                     }
-                                }
-                                if (this.vesselOwnership.company_ownership.company){
-                                    if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.company){
-                                        if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.company.percentage){
-                                            // vesselChanged = true;
+                                    if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.percentage){
+                                        if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.percentage){
+                                            // Company percentage changed
                                             vesselOwnershipChanged = true
-                                            console.log('%c*2', consoleColour)
+                                            console.log('%cCompanyOwnership percentage changed', consoleColour)
                                         }
                                     }
                                 }
                             }
                         } else {
-                            // Indivisual ownership in the previous application
                             if (!this.vesselOwnership.individual_owner) {
-                                // Not individual ownership in the current application
-                                // vesselChanged = true;
+                                // Individual ownership --> Company ownership
                                 vesselOwnershipChanged = true
                                 console.log('%c IndividualOwnership --> CompanyOwnership', consoleColour)
                             }
