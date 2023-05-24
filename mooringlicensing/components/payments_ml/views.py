@@ -98,7 +98,8 @@ class DcvAdmissionFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
                     # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
                     return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
-                    return_preload_url=request.build_absolute_uri(reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid})),
+                    # return_preload_url=request.build_absolute_uri(reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid})),
+                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
                     booking_reference=str(dcv_admission_fee.uuid),
                     invoice_text='DCV Admission Fee',
                 )
@@ -140,7 +141,8 @@ class DcvPermitFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('dcv_permit_fee_success')),  # return url
                     # request.build_absolute_uri(reverse('dcv_permit_fee_success')),  # return preload url
                     return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
-                    return_preload_url=request.build_absolute_uri(reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid})),
+                    # return_preload_url=request.build_absolute_uri(reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid})),
+                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid}),
                     booking_reference=str(dcv_permit_fee.uuid),
                     invoice_text='DCV Permit Fee',
                 )
@@ -292,7 +294,8 @@ class StickerReplacementFeeView(TemplateView):
                     # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
                     # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
-                    return_preload_url=request.build_absolute_uri(reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid})),
+                    # return_preload_url=request.build_absolute_uri(reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid})),
+                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
                     booking_reference=str(sticker_action_fee.uuid),
                     invoice_text='{}'.format(application_type.description),
                 )
@@ -469,7 +472,8 @@ class ApplicationFeeView(TemplateView):
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
-                return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+                # return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
+                return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
                 checkout_response = checkout(
                     request,
                     proposal.submitter_obj,

@@ -42,6 +42,7 @@ from ledger_api_client.order import Order
 #from mooring import models
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.payments_ml.models import ApplicationFee
+from mooringlicensing.settings import MOORING_LICENSING_EXTERNAL_URL
 
 logger = logging.getLogger('booking_checkout')
 
@@ -851,11 +852,13 @@ def admissionsCheckout(request, admissionsBooking, lines, invoice_text=None, vou
     }
     
     basket, basket_hash = create_basket_session(request, basket_params)
+    return_preload_url= MOORING_LICENSING_EXTERNAL_URL + reverse("public_admissions_success")
     checkout_params = {
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
         'return_url': request.build_absolute_uri(reverse('public_admissions_success')),
-        'return_preload_url': request.build_absolute_uri(reverse('public_admissions_success')),
+        # 'return_preload_url': request.build_absolute_uri(reverse('public_admissions_success')),
+        'return_preload_url': return_preload_url,
         'force_redirect': True,
         'proxy': True if internal else False,
         'invoice_text': invoice_text,
@@ -895,11 +898,13 @@ def annual_admission_checkout(request, booking, lines, invoice_text=None, vouche
         'tax_override': True,
     }
     basket, basket_hash = create_basket_session(request, basket_params)
+    return_preload_url = MOORING_LICENSING_EXTERNAL_URL + reverse("public_booking_annual_admission_success")
     checkout_params = {
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
         'return_url': request.build_absolute_uri(reverse('public_booking_annual_admission_success')),
-        'return_preload_url': request.build_absolute_uri(reverse('public_booking_annual_admission_success')),
+        # 'return_preload_url': request.build_absolute_uri(reverse('public_booking_annual_admission_success')),
+        'return_preload_url': return_preload_url,
         'force_redirect': True,
         'proxy': True if internal else False,
         'invoice_text': invoice_text,
@@ -953,11 +958,13 @@ def checkout(request, booking, lines, invoice_text=None, vouchers=[], internal=F
     }
  
     basket, basket_hash = create_basket_session(request, basket_params)
+    return_preload_url = MOORING_LICENSING_EXTERNAL_URL + reverse("public_booking_success")
     checkout_params = {
         'system': settings.PS_PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
         'return_url': request.build_absolute_uri(reverse('public_booking_success')),
-        'return_preload_url': request.build_absolute_uri(reverse('public_booking_success')),
+        # 'return_preload_url': request.build_absolute_uri(reverse('public_booking_success')),
+        'return_preload_url': return_preload_url,
         'force_redirect': True,
         'proxy': True if internal else False,
         'invoice_text': invoice_text,

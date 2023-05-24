@@ -247,11 +247,13 @@ def make_serializable(line_items):
 def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
 
     basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
+    return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse(return_url_ns)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
         'return_url': request.build_absolute_uri(reverse(return_url_ns)),
-        'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
+        # 'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
+        'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice.text,
     }
