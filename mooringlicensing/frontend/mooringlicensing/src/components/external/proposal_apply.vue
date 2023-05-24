@@ -426,8 +426,8 @@ export default {
         swal({
             // title: "Create " + this.selectedApplication.description,
             // text: "Are you sure you want to create " + this.alertText + "?",
-            title: title_verb + " " + this.selectedApplication.description,
-            text: "Are you sure you want to " + text_verb + " " + this.alertText + "?",
+            title: title_verb + " " + this.selectedApplication.description.toLowerCase(),
+            text: "Are you sure you want to " + text_verb + " " + this.alertText.toLowerCase() + "?",
             type: "question",
             showCancelButton: true,
             confirmButtonText: 'Accept'

@@ -3983,7 +3983,12 @@ class Owner(RevisionedMixin):
     def __str__(self):
         if self.emailuser:
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            return retrieve_email_userro(self.emailuser).get_full_name()
+            emailuser = retrieve_email_userro(self.emailuser)
+            if emailuser:
+                return emailuser.get_full_name()
+            else:
+                return ''
+            # return emailuser.get_full_name()
         else:
             return ''
         # return self.emailuser.get_full_name()
