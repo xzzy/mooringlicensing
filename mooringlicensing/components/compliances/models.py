@@ -63,8 +63,8 @@ class Compliance(RevisionedMixin):
                                )
 
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
-    proposal = models.ForeignKey('mooringlicensing.Proposal', related_name='compliances', on_delete=models.PROTECT)
-    approval = models.ForeignKey('mooringlicensing.Approval', related_name='compliances', on_delete=models.PROTECT)
+    proposal = models.ForeignKey('mooringlicensing.Proposal', related_name='compliances', on_delete=models.CASCADE)
+    approval = models.ForeignKey('mooringlicensing.Approval', related_name='compliances', on_delete=models.CASCADE)
     due_date = models.DateField()
     text = models.TextField(blank=True)
     num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
@@ -160,14 +160,14 @@ class Compliance(RevisionedMixin):
                 if self.processing_status == 'future' or 'due':
                     self.processing_status = 'with_assessor'
                     self.customer_status = 'with_assessor'
-                    self.submitter = request.user
+                    self.submitter = request.user.id
 
                     if request.FILES:
                         for f in request.FILES:
                             document = self.documents.create(name=str(request.FILES[f]))
                             document._file = request.FILES[f]
                             document.save()
-                    if (self.amendment_requests):
+                    if self.amendment_requests:
                         qs = self.amendment_requests.filter(status = "requested")
                         if (qs):
                             for q in qs:
@@ -310,7 +310,7 @@ def update_compliance_comms_log_filename(instance, filename):
 
 
 class ComplianceLogDocument(Document):
-    log_entry = models.ForeignKey('ComplianceLogEntry', related_name='documents', on_delete=models.PROTECT)
+    log_entry = models.ForeignKey('ComplianceLogEntry', related_name='documents', on_delete=models.CASCADE)
     _file = models.FileField(upload_to=update_compliance_comms_log_filename, max_length=512)
 
     class Meta:
@@ -318,7 +318,7 @@ class ComplianceLogDocument(Document):
 
 
 class CompRequest(models.Model):
-    compliance = models.ForeignKey(Compliance, on_delete=models.PROTECT)
+    compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
     # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)

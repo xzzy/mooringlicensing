@@ -1,4 +1,8 @@
 from __future__ import unicode_literals
+from django.core.files.storage import FileSystemStorage
+
+import os
+
 from django_countries.fields import CountryField
 from dateutil.relativedelta import relativedelta
 
@@ -15,7 +19,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 # from ledger_api_client.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
@@ -1692,15 +1696,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice_text = 'Payment Invoice'
                             basket_params = {
                                 'products': line_items,
+                                # 'products': [{'ledger_description': 'test', 'oracle_code': 'T1 EXEMPT', 'price_incl_tax': 138.0, 'price_excl_tax': 125.454545454545, 'quantity': 1}],
                                 'vouchers': [],
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
-                                # 'booking_reference': 'PB-' + str(booking_id),
+                                'booking_reference': 'ML-' + str(self.id),
                                 # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
                                 # 'organisation': 7,
                                 'tax_override': True,
                             }
+                            print(basket_params)
                             # basket_user_id = customer_id
                             # basket_hash = utils_ledger_api_client.create_basket_session(
                             from ledger_api_client.utils import create_basket_session, process_create_future_invoice
@@ -3932,17 +3938,33 @@ class VesselOwnership(RevisionedMixin):
 
 
 class VesselRegistrationDocument(Document):
-    vessel_ownership = models.ForeignKey(VesselOwnership,related_name='vessel_registration_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    vessel_ownership = models.ForeignKey(VesselOwnership, null=True, blank=True, related_name='vessel_registration_documents', on_delete=models.CASCADE)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
+            location=os.path.join(BASE_DIR, PRIVATE_MEDIA_DIR_NAME),
+            base_url=f'/{PRIVATE_MEDIA_DIR_NAME}/'
+        )
+    )
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
     hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+    # test
+    proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='temp_vessel_registration_documents', on_delete=models.CASCADE)
+    original_file_name = models.CharField(max_length=512, null=True, blank=True)
+    original_file_ext = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Vessel Registration Papers"
 
+    def __str__(self):
+        ret_str = f'{self.original_file_name}{self.original_file_ext}'
+        if self._file:
+            ret_str += f' ({self._file.url})'
+        return ret_str
 
 class Owner(RevisionedMixin):
     # emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)

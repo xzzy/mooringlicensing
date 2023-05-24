@@ -302,25 +302,24 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
+                            console.log({full})
                             //return 'not implemented'
                             let links = '';
                             if (!vm.is_external){
                                 //if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
                                 if (full.can_process && full.status !== 'Approved') {
                                     links +=  `<a href='/internal/compliance/${full.id}'>Process</a><br/>`;
-
-                                }
-                                else {
+                                } else {
                                     links +=  `<a href='/internal/compliance/${full.id}'>View</a><br/>`;
                                 }
                             }
                             else{
                                 if (full.can_user_view) {
+                                    // When the compliance is not in the editable status for external user
                                     links +=  `<a href='/external/compliance/${full.id}'>View</a><br/>`;
-
-                                }
-                                else {
-                                    links +=  `<a href='/external/compliance/${full.id}'>Submit</a><br/>`;
+                                } else {
+                                    // Otherwise external user can edit
+                                    links +=  `<a href='/external/compliance/${full.id}'>Continue</a><br/>`;
                                 }
                             }
                             return links;

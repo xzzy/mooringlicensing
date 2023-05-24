@@ -67,6 +67,7 @@
                         :readonly="readonly" 
                         :is_internal="is_internal" 
                         @updateVesselLength="updateVesselLength"
+                        @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                         @vesselChanged="vesselChanged" 
                         @noVessel="noVessel"
                         @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
@@ -154,6 +155,7 @@ export default {
             uuid: 0,
             keepCurrentVessel: true,
             mooringPreferenceChanged: false,
+            vesselOwnershipChanged: false,
             //vesselLength: null,
             showPaymentTab: true,
             higherVesselCategory: false,
@@ -246,6 +248,7 @@ export default {
             await this.$emit("noVessel", noVessel);
         },
         vesselChanged: async function (vesselChanged) {
+            console.log('emit vesselChanged from form_wla.vue')
             await this.$emit("vesselChanged", vesselChanged);
         },
         toggleMooringPreference: async function (preferenceChanged) {
@@ -262,12 +265,17 @@ export default {
                         this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
                     // vessel length is in higher category
                     this.higherVesselCategory = true;
-                    // console.log('1')
                 } else {
                     this.higherVesselCategory = false;
-                    // console.log('2')
                 }
             }
+            this.updateAmendmentRenewalProperties();
+        },
+        updateVesselOwnershipChanged: function(changed){
+            console.log('in updateVesselOwnershipChanged at the form_wla.vue')
+            console.log({changed})
+
+            this.vesselOwnershipChanged = changed
             this.updateAmendmentRenewalProperties();
         },
         resetCurrentVessel: function (keep) {
@@ -288,30 +296,32 @@ export default {
                         await this.$emit("updateSubmitText", "Submit");
                     }
                     // auto approve
-                    if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
-                        // console.log('autoApprove: false')
-                        await this.$emit("updateAutoApprove", false);
-                    } else {
-                        // console.log('autoApprove: true')
-                        await this.$emit("updateAutoApprove", true);
-                    }
-
+                    // if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
+                    //     await this.$emit("updateAutoApprove", false);
+                    // } else {
+                    //     await this.$emit("updateAutoApprove", true);
+                    // }
                 });
             } else if (this.proposal && this.proposal.proposal_type.code === 'renewal') {
-                // console.log('in renewal')
                 this.$nextTick(async () => {
                     this.showPaymentTab = true;
                     this.$emit("updateSubmitText", "Pay / Submit");
                     // auto approve
-                    if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
-                        // console.log('autoApprove: false')
-                        await this.$emit("updateAutoApprove", false);
-                    } else {
-                        // console.log('autoApprove: true')
-                        await this.$emit("updateAutoApprove", true);
-                    }
+                    // if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
+                    //     await this.$emit("updateAutoApprove", false);
+                    // } else {
+                    //     await this.$emit("updateAutoApprove", true);
+                    // }
                 });
             }
+            this.$nextTick(async () => {
+                // auto approve
+                if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged || this.vesselOwnershipChanged) {
+                    await this.$emit("updateAutoApprove", false);
+                } else {
+                    await this.$emit("updateAutoApprove", true);
+                }
+            })
         },
 
         populateProfile: function (profile) {

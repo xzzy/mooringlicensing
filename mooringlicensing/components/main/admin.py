@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 
 from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
-    NumberOfDaysSetting, NumberOfDaysType
+    NumberOfDaysSetting, NumberOfDaysType, TemporaryDocument
 from mooringlicensing.components.payments_ml.models import OracleCodeItem
 
 
@@ -95,6 +95,11 @@ class VesselSizeCategoryGroupForm(forms.ModelForm):
 class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
     inlines = [VesselSizeCategoryInline,]
     form = VesselSizeCategoryGroupForm
+
+
+@admin.register(TemporaryDocument)
+class TemporaryDocumentAdmin(admin.ModelAdmin):
+    pass
 
 
 class OracleCodeItemInline(admin.TabularInline):

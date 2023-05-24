@@ -192,6 +192,7 @@ export default {
         },
 
         get_documents: async function() {
+            console.log('in get_documents')
             this.show_spinner = true;
 
             if (this.document_action_url) {
@@ -203,6 +204,7 @@ export default {
                 formData.append('input_name', this.name);
                 formData.append('csrfmiddlewaretoken', this.csrf_token);
                 let res = await Vue.http.post(this.document_action_url, formData)
+                console.log({res})
                 this.documents = res.body.filedata;
                 this.commsLogId = res.body.comms_instance_id;
             }
