@@ -80,3 +80,31 @@
 }
 
 /* Padding fixes for top bar */
+
+
+.login-success-bg-body {
+    z-index:3; 
+    background-image: url('/static/mooringlicensing/img/ria-bg.jpg'); 
+    height:100%; 
+    width: 100%; 
+    position: absolute; 
+    background-size: 100%; 
+    background-repeat:no-repeat;
+}
+
+.login-success-bg-body-container {
+    z-index:1; 
+    margin-top:20%;
+}
+
+.login-success-message-box {
+    background-color: #FFFFFF; 
+    border: 1px solid #FFFFFF; 
+    padding-bottom: 30px;
+}
+.login-success-message-icon {
+    position: absolute; 
+    margin-top: -30px; 
+    width:92%; 
+    align-text: center;
+}
