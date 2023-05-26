@@ -257,6 +257,7 @@ export default {
             //this.updateAmendmentRenewalProperties();
         },
         updateVesselLength: function (length) {
+            console.log('%cin updateVesselLength()', 'color: #44aa33')
             if (this.is_external && this.proposal) {
                 //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                 //    this.proposal.max_vessel_length_with_no_payment <= length) {
@@ -269,7 +270,7 @@ export default {
                     this.higherVesselCategory = false;
                 }
             }
-            console.log('this.higherVesselCategory:')
+            console.log('%cthis.higherVesselCategory:', 'color: #44aa33')
             console.log(this.higherVesselCategory)
             this.updateAmendmentRenewalProperties();
         },
