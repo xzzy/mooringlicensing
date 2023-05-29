@@ -29,19 +29,19 @@ from mooringlicensing.components.proposals.models import (
     Mooring, ProposalApplicant, VesselRegistrationDocument
 )
 from mooringlicensing.components.proposals.serializers import (
-        SaveVesselDetailsSerializer,
-        SaveVesselOwnershipSerializer,
-        SaveCompanyOwnershipSerializer,
-        SaveDraftProposalVesselSerializer,
-        #SaveProposalSerializer,
-        SaveWaitingListApplicationSerializer,
-        SaveMooringLicenceApplicationSerializer,
-        SaveAuthorisedUserApplicationSerializer,
-        SaveAnnualAdmissionApplicationSerializer,
-        VesselSerializer,
-        VesselOwnershipSerializer,
-        VesselDetailsSerializer,
-        )
+    SaveVesselDetailsSerializer,
+    SaveVesselOwnershipSerializer,
+    SaveCompanyOwnershipSerializer,
+    SaveDraftProposalVesselSerializer,
+    #SaveProposalSerializer,
+    SaveWaitingListApplicationSerializer,
+    SaveMooringLicenceApplicationSerializer,
+    SaveAuthorisedUserApplicationSerializer,
+    SaveAnnualAdmissionApplicationSerializer,
+    VesselSerializer,
+    VesselOwnershipSerializer,
+    VesselDetailsSerializer, CompanyOwnershipSerializer,
+)
 
 from mooringlicensing.components.approvals.models import (
     ApprovalHistory,
@@ -52,7 +52,7 @@ from mooringlicensing.components.approvals.models import (
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 import traceback
 import os
 from copy import deepcopy
@@ -737,7 +737,7 @@ def submit_vessel_data(instance, request, vessel_data):
      #   raise serializers.ValidationError("This vessel is already part of another application/permit/licence")
 
     ## vessel ownership cannot be greater than 100%
-    ownership_percentage_validation(vessel_ownership)
+    ownership_percentage_validation(vessel_ownership, instance)
     #delete_draft_vessel_data(instance)
 
 def store_vessel_data(request, vessel_data):
@@ -789,6 +789,8 @@ def store_vessel_ownership(request, vessel, instance=None):
         ## Company
         company_name = vessel_ownership_data.get("company_ownership").get("company").get("name")
         company, created = Company.objects.get_or_create(name=company_name)
+        if created:
+            logger.info(f'Company: {company} has been created.')
         ## CompanyOwnership
         company_ownership_data = vessel_ownership_data.get("company_ownership")
         company_ownership_set = CompanyOwnership.objects.filter(
@@ -836,13 +838,17 @@ def store_vessel_ownership(request, vessel, instance=None):
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
     owner, created = Owner.objects.get_or_create(emailuser=request.user.id)
+    if created:
+        logger.info(f'Owner: {owner} has bee created.')
 
     vessel_ownership_data['owner'] = owner.id
     vessel_ownership, created = VesselOwnership.objects.get_or_create(
             owner=owner, 
             vessel=vessel, 
-            company_ownership=company_ownership
+            # company_ownership=company_ownership
             )
+    if created:
+        logger.info(f'VesselOwnership: {vessel_ownership} has been created.')
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
@@ -887,7 +893,7 @@ def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
             instance.temporary_document_collection_id = None
             instance.save()
 
-def ownership_percentage_validation(vessel_ownership):
+def ownership_percentage_validation(vessel_ownership, proposal):
     individual_ownership_id = None
     company_ownership_id = None
     min_percent_fail = False
@@ -918,10 +924,15 @@ def ownership_percentage_validation(vessel_ownership):
         raise serializers.ValidationError({
             "Ownership Percentage": "Minimum of 25 percent"
             })
+
     ## Calc total existing
+    vessel_ownerships_to_excluded = proposal.get_previous_vessel_ownerships()
+
     total_percent = vessel_ownership_percentage
     vessel = vessel_ownership.vessel
     for vo in vessel.filtered_vesselownership_set.all():
+        if vo in vessel_ownerships_to_excluded:
+            continue
         if hasattr(vo.company_ownership, 'id'):
             if (vo.company_ownership.id != company_ownership_id and 
                     vo.company_ownership.percentage and

@@ -370,6 +370,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def get_previous_vessel_ownerships(self):
+        vessel_ownerships = []
+        get_out_of_loop = False
+
+        if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
+            # When the proposal being processed is an amendment/renewal application,
+            # we want to exclude the ownership percentages from the previous applications.
+            proposal = self
+
+            while True:
+                if proposal.previous_application:
+                    if proposal.previous_application.vessel_ownership.excludable(proposal):
+                        vessel_ownerships.append(proposal.previous_application.vessel_ownership)
+
+                if get_out_of_loop:
+                    break
+
+                # Retrieve the previous application
+                proposal = proposal.previous_application
+
+                if not proposal:
+                    # No previous application exists.  Get out of the loop
+                    break
+                else:
+                    # Previous application exists
+                    if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+                        # Previous application is 'new'/'renewal'
+                        # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
+                        get_out_of_loop = True
+
+        return vessel_ownerships
+
     @property
     def submitter_obj(self):
         return retrieve_email_userro(self.submitter) if self.submitter else None
@@ -3907,6 +3939,33 @@ class VesselOwnership(RevisionedMixin):
 
     def __str__(self):
         return f'id:{self.id}, owner: {self.owner}, vessel: {self.vessel}'
+
+    def excludable(self, originated_proposal):
+        # Return True if self is excludable from the percentage calculation
+
+        def get_latest_proposals(proposal, latest_proposals_list):
+            if not proposal.succeeding_proposals.count():
+                if proposal not in latest_proposals_list:
+                    latest_proposals_list.append(proposal)
+            else:
+                for succeeding_proposal in proposal.succeeding_proposals.all():
+                    get_latest_proposals(succeeding_proposal, latest_proposals_list)
+
+        excludable = True
+
+        latest_proposals = []
+        for proposal in self.proposal_set.all():
+            get_latest_proposals(proposal, latest_proposals)
+
+        for proposal in latest_proposals:
+            if proposal == originated_proposal:
+                continue
+            from mooringlicensing.components.approvals.models import Approval
+            if proposal.approval.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
+                excludable = False
+
+        return excludable
+
 
     def get_fee_items_paid(self):
         # Return all the fee_items for this vessel

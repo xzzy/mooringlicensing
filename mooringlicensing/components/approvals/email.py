@@ -99,19 +99,20 @@ def send_auth_user_no_moorings_notification(approval):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-    	sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        try:
+            sender_user = EmailUser.objects.get(email__icontains=sender)
+        except:
+            EmailUser.objects.create(email=sender, password='')
+            sender_user = EmailUser.objects.get(email__icontains=sender)
 
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+        _log_approval_email(msg, approval, sender=sender_user)
+        #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
 def send_auth_user_mooring_removed_notification(approval, mooring_licence):
@@ -139,19 +140,20 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-    	sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        try:
+            sender_user = EmailUser.objects.get(email__icontains=sender)
+        except:
+            EmailUser.objects.create(email=sender, password='')
+            sender_user = EmailUser.objects.get(email__icontains=sender)
 
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+        _log_approval_email(msg, approval, sender=sender_user)
+        #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
 def send_approval_expire_email_notification(approval):
@@ -184,19 +186,20 @@ def send_approval_expire_email_notification(approval):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        try:
+            sender_user = EmailUser.objects.get(email__icontains=sender)
+        except:
+            EmailUser.objects.create(email=sender, password='')
+            sender_user = EmailUser.objects.get(email__icontains=sender)
 
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+        _log_approval_email(msg, approval, sender=sender_user)
+        #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
 def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=None):
@@ -234,12 +237,12 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
     # TODO: fix bcc with correct security group
     bcc = []
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
-
-    _log_approval_email(msg, approval, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+    if msg:
+        _log_approval_email(msg, approval, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
     return msg
 
@@ -276,12 +279,12 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     bcc = []
 
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
-
-    _log_approval_email(msg, approval, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+    if msg:
+        _log_approval_email(msg, approval, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
     return msg
 
@@ -499,10 +502,9 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
         cc=cc,
         bcc=bcc,
     )
-
-    sender = get_user_as_email_user(msg.from_email)
-    email_data = _extract_email_headers(msg, sender=sender)
-    return email_data
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        email_data = _extract_email_headers(msg, sender=sender)
 
 
 def send_dcv_admission_mail(dcv_admission, invoice, request):
@@ -556,10 +558,9 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
         cc=cc,
         bcc=bcc,
     )
-
-    sender = get_user_as_email_user(msg.from_email)
-    email_data = _extract_email_headers(msg, sender=sender)
-    return email_data
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        email_data = _extract_email_headers(msg, sender=sender)
 
 
 def send_approval_cancel_email_notification(approval):
@@ -593,13 +594,14 @@ def send_approval_cancel_email_notification(approval):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender_user)
+        #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
 def send_approval_suspend_email_notification(approval, request=None):
@@ -643,13 +645,14 @@ def send_approval_suspend_email_notification(approval, request=None):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender_user)
+        #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
 def send_approval_surrender_email_notification(approval, request=None):
@@ -690,12 +693,13 @@ def send_approval_surrender_email_notification(approval, request=None):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender_user)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
 def send_approval_reinstate_email_notification(approval, request):
@@ -722,13 +726,14 @@ def send_approval_reinstate_email_notification(approval, request):
         if cc_list:
             all_ccs = [cc_list]
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender)
-    #_log_org_email(msg, approval.applicant, proposal.submitter_obj, sender=sender)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender)
+        #_log_org_email(msg, approval.applicant, proposal.submitter_obj, sender=sender)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
@@ -775,13 +780,13 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
@@ -819,13 +824,13 @@ def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownersh
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
@@ -864,13 +869,13 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownership, stickers_to_be_returned):
@@ -909,13 +914,13 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice):
@@ -955,13 +960,13 @@ def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice):
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, mooring, stickers_to_be_returned):
@@ -996,13 +1001,13 @@ def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, 
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit, mooring, stickers_to_be_returned):
@@ -1037,13 +1042,13 @@ def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_approval_email(msg, approval, sender=sender, attachments=attachments)
-    if approval.org_applicant:
-        _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, approval, sender=sender, attachments=attachments)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 # 39
 # email to account holder with authentication link to complete login process

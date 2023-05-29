@@ -170,10 +170,9 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
     # in send() method, self.html_template is rendered by context and attached as alternative
     # In other words, self.html_template should be full html-email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-    if not msg:
-        raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
 
     return msg
 
@@ -203,8 +202,9 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     # in send() method, self.html_template is rendered by context and attached as alternative
     # In other words, self.html_template should be full html-email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
 
     return msg
 
@@ -228,8 +228,9 @@ def send_approver_approve_decline_email_notification(request, proposal):
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 # TODO: #4
@@ -263,13 +264,14 @@ def send_amendment_email_notification(amendment_request, request, proposal):
             all_ccs = [cc_list]
 
     msg = email.send(to, cc=all_ccs, context=context)
-    sender = get_user_as_email_user(msg.from_email)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
 
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender)
+        _log_proposal_email(msg, proposal, sender=sender)
+        if proposal.org_applicant:
+            _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
 def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
@@ -315,9 +317,10 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     bcc = request.data.get('cc_email')
     bcc_list = bcc.split(',')
     msg = email.send(retrieve_email_userro(mooring_licence_application.submitter).email, bcc=bcc_list, attachments=attachments, context=context)
-    sender = settings.DEFAULT_FROM_EMAIL
-    log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
-    _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user, attachments=attachments)
+    if msg:
+        sender = settings.DEFAULT_FROM_EMAIL
+        log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
+        _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user, attachments=attachments)
 
 
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
@@ -350,13 +353,13 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    _log_proposal_email(msg, proposal, sender=sender)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        _log_proposal_email(msg, proposal, sender=sender)
+        if proposal.org_applicant:
+            _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender)
 
     return msg
 
@@ -384,13 +387,13 @@ def send_comppliance_due_date_notification(approval, compliance,):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    _log_compliance_email(msg, compliance, sender=sender)
-    if compliance.proposal.org_applicant:
-        _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
-    else:
-        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        _log_compliance_email(msg, compliance, sender=sender)
+        if compliance.proposal.org_applicant:
+            _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
+        else:
+            _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
     return msg
 
 
@@ -417,13 +420,13 @@ def send_comliance_overdue_notification(request, approval, compliance,):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    _log_compliance_email(msg, compliance, sender=sender)
-    if compliance.proposal.org_applicant:
-        _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
-    else:
-        _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        _log_compliance_email(msg, compliance, sender=sender)
+        if compliance.proposal.org_applicant:
+            _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
+        else:
+            _log_user_email(msg, compliance.proposal.submitter_obj, compliance.submitter, sender=sender)
     return msg
 
 # 10
@@ -454,8 +457,9 @@ def send_invitee_reminder_email(proposal, due_date, number_of_days, request=None
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -486,8 +490,9 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -519,8 +524,9 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -550,8 +556,9 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -597,8 +604,9 @@ def send_endorser_reminder_email(proposal, request=None):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 
@@ -641,17 +649,17 @@ def send_approval_renewal_email_notification(approval):
         attachments.append(attachment)
 
     msg = email.send(proposal.submitter_obj.email, cc=[], attachments=attachments, context=context)
-
-    from mooringlicensing.components.approvals.models import Approval
-    if isinstance(approval, Approval):
-        _log_approval_email(msg, approval, sender=sender_user)
-        if approval.org_applicant:
-            _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+    if msg:
+        from mooringlicensing.components.approvals.models import Approval
+        if isinstance(approval, Approval):
+            _log_approval_email(msg, approval, sender=sender_user)
+            if approval.org_applicant:
+                _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
+            else:
+                _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user, attachments=attachments)
         else:
-            _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user, attachments=attachments)
-    else:
-        # TODO: log for DcvPermit???
-        pass
+            # TODO: log for DcvPermit???
+            pass
 
 
 def send_application_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
@@ -765,9 +773,9 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -833,9 +841,9 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
     to_address = proposal.submitter_obj.email
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -913,9 +921,9 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -971,9 +979,9 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -1052,9 +1060,9 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -1135,10 +1143,10 @@ def send_au_summary_to_ml_holder(mooring_licence, request, au_proposal):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=[], bcc=[],)
-
-    sender = get_user_as_email_user(msg.from_email)
-    # log_proposal_email(msg, proposal, sender, attachments)
-    _log_approval_email(msg, mooring_licence, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        # log_proposal_email(msg, proposal, sender, attachments)
+        _log_approval_email(msg, mooring_licence, sender, attachments)
     return msg
 
 
@@ -1219,9 +1227,9 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -1281,9 +1289,9 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -1364,9 +1372,9 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=all_ccs, bcc=all_bccs,)
-
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments)
     return msg
 
 
@@ -1400,12 +1408,13 @@ def send_other_documents_submitted_notification_email(request, proposal):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=cc, bcc=bcc,)
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender, attachments=attachments)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
-    else:
-        _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender, attachments=attachments)
+    if msg:
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender, attachments=attachments)
+        if proposal.org_applicant:
+            _log_org_email(msg, proposal.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, proposal.submitter_obj, proposal.submitter_obj, sender=sender, attachments=attachments)
 
     return msg
 
@@ -1498,9 +1507,10 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
 
     # Send email
     msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
 
     return msg
 
@@ -1528,9 +1538,10 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = get_user_as_email_user(msg.from_email)
-    log_proposal_email(msg, proposal, sender)
+    if msg:
+        # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
     return msg
 
 
