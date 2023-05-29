@@ -29,19 +29,19 @@ from mooringlicensing.components.proposals.models import (
     Mooring, ProposalApplicant, VesselRegistrationDocument
 )
 from mooringlicensing.components.proposals.serializers import (
-        SaveVesselDetailsSerializer,
-        SaveVesselOwnershipSerializer,
-        SaveCompanyOwnershipSerializer,
-        SaveDraftProposalVesselSerializer,
-        #SaveProposalSerializer,
-        SaveWaitingListApplicationSerializer,
-        SaveMooringLicenceApplicationSerializer,
-        SaveAuthorisedUserApplicationSerializer,
-        SaveAnnualAdmissionApplicationSerializer,
-        VesselSerializer,
-        VesselOwnershipSerializer,
-        VesselDetailsSerializer,
-        )
+    SaveVesselDetailsSerializer,
+    SaveVesselOwnershipSerializer,
+    SaveCompanyOwnershipSerializer,
+    SaveDraftProposalVesselSerializer,
+    #SaveProposalSerializer,
+    SaveWaitingListApplicationSerializer,
+    SaveMooringLicenceApplicationSerializer,
+    SaveAuthorisedUserApplicationSerializer,
+    SaveAnnualAdmissionApplicationSerializer,
+    VesselSerializer,
+    VesselOwnershipSerializer,
+    VesselDetailsSerializer, CompanyOwnershipSerializer,
+)
 
 from mooringlicensing.components.approvals.models import (
     ApprovalHistory,
@@ -789,6 +789,8 @@ def store_vessel_ownership(request, vessel, instance=None):
         ## Company
         company_name = vessel_ownership_data.get("company_ownership").get("company").get("name")
         company, created = Company.objects.get_or_create(name=company_name)
+        if created:
+            logger.info(f'Company: {company} has been created.')
         ## CompanyOwnership
         company_ownership_data = vessel_ownership_data.get("company_ownership")
         company_ownership_set = CompanyOwnership.objects.filter(
@@ -836,13 +838,17 @@ def store_vessel_ownership(request, vessel, instance=None):
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id
     owner, created = Owner.objects.get_or_create(emailuser=request.user.id)
+    if created:
+        logger.info(f'Owner: {owner} has bee created.')
 
     vessel_ownership_data['owner'] = owner.id
     vessel_ownership, created = VesselOwnership.objects.get_or_create(
             owner=owner, 
             vessel=vessel, 
-            company_ownership=company_ownership
+            # company_ownership=company_ownership
             )
+    if created:
+        logger.info(f'VesselOwnership: {vessel_ownership} has been created.')
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()

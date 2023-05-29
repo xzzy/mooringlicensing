@@ -373,16 +373,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def get_previous_vessel_ownerships(self):
         vessel_ownerships = []
         get_out_of_loop = False
-        proposal = self
 
         if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
             # When the proposal being processed is an amendment/renewal application,
             # we want to exclude the ownership percentages from the previous applications.
+            proposal = self
+
             while True:
                 if proposal.previous_application:
-
-                    # TODO: making sure if proposal.previous_application.vessel_ownership is not used for another application which is the application of the current approval
-
                     if proposal.previous_application.vessel_ownership.excludable(proposal):
                         vessel_ownerships.append(proposal.previous_application.vessel_ownership)
 
