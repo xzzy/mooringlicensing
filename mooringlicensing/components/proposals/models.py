@@ -2304,6 +2304,9 @@ class StickerPrintingResponseEmail(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def __str__(self):
+        return f'Id: {self.id}, subject: {self.email_subject}'
+
 
 class StickerPrintingResponse(Document):
     _file = models.FileField(upload_to=update_sticker_response_doc_filename, max_length=512)
@@ -2313,6 +2316,12 @@ class StickerPrintingResponse(Document):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def __str__(self):
+        if self._file:
+            return f'Id: {self.id}, {self._file.url}'
+        else:
+            return f'Id: {self.id}'
 
     @property
     def email_subject(self):
