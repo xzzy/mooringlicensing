@@ -3066,14 +3066,16 @@ class AuthorisedUserApplication(Proposal):
                 # there is a sticker to be returned, application status gets 'Sticker to be Returned' status
                 self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
                 self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.id), request)
-        elif stickers_to_be_printed:
-            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-            self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
-        elif self.auto_approve:
-            self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-            self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
         else:
-            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            # There are no stickers to be returned
+            if stickers_to_be_printed:
+                # There is a sticker to be printed
+                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
+            else:
+                # There are no stickers to be printed
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
         self.save()
         # self.refresh_from_db()
         # self.proposal.refresh_from_db()
