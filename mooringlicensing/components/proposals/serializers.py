@@ -90,6 +90,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class CompanyOwnershipSerializer(serializers.ModelSerializer):
     company = CompanySerializer()
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = CompanyOwnership
@@ -106,6 +107,13 @@ class CompanyOwnershipSerializer(serializers.ModelSerializer):
                 'updated',
                 )
 
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 
 class MooringSerializer(serializers.ModelSerializer):
     mooring_bay_name = serializers.SerializerMethodField()
@@ -874,6 +882,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = Proposal
@@ -896,6 +905,14 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 #'keep_existing_mooring',
                 #'keep_existing_vessel',
                 )
+
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 
 
 class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
@@ -1609,6 +1626,7 @@ class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = VesselOwnership
@@ -1633,6 +1651,14 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
+
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 
 
 class MooringBaySerializer(serializers.ModelSerializer):
@@ -1688,6 +1714,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = CompanyOwnership
@@ -1696,4 +1723,12 @@ class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
                 'vessel',
                 'percentage',
                 )
+
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 

@@ -1108,6 +1108,9 @@ class AnnualAdmissionPermit(Approval):
             proposal_initiated=proposal,
             fee_season=self.latest_applied_season,
         )
+
+        logger.info(f'Sticker: {sticker} has been created (proposal_initiated: {proposal}).')
+
         return sticker
 
     def _get_current_stickers(self):
@@ -1120,6 +1123,8 @@ class AnnualAdmissionPermit(Approval):
         return current_stickers
 
     def manage_stickers(self, proposal):
+        logger.info('AnnualAdmissionPermit.manage_stickers() method is called.')
+
         if proposal.approval and proposal.approval.reissued:
             # Can only change the conditions, so goes to Approved
             proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -1147,6 +1152,7 @@ class AnnualAdmissionPermit(Approval):
                 for current_sticker in current_stickers:
                     current_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
                     current_sticker.save()
+                    logger.info(f'Status: {Sticker.STICKER_STATUS_TO_BE_RETURNED} has been set to the sticker {current_sticker}.')
 
                 if current_stickers:
                     if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
@@ -1154,17 +1160,22 @@ class AnnualAdmissionPermit(Approval):
                         # it gets 'printing_sticker' status
                         proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                         proposal.save()
+                        logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
                     else:
                         # When the application changes to new vessel
                         # it gets 'sticker_to_be_returned' status
                         new_sticker.status = Sticker.STICKER_STATUS_NOT_READY_YET
                         new_sticker.save()
+                        logger.info(f'Status: {Sticker.STICKER_STATUS_NOT_READY_YET} has been set to the sticker {new_sticker}.')
+
                         proposal.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
                         proposal.save()
+                        logger.info(f'Status: {Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED} has been set to the proposal {proposal}.')
                 else:
                     # Even when 'amendment' application, there might be no current stickers because of sticker-lost, etc
                     proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                     proposal.save()
+                    logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
 
                 return [], list(current_stickers)
         elif proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
@@ -1180,14 +1191,18 @@ class AnnualAdmissionPermit(Approval):
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
                 )
+                logger.info(f'Sticker: {new_sticker} has been created.')
 
                 # Old sticker goes to status Expired when new sticker is printed
                 new_sticker.sticker_to_replace = sticker_to_be_replaced
                 new_sticker.save()
 
+                logger.info(f'Sticker: {sticker_to_be_replaced} is replaced by the sticker: {new_sticker}.')
+
                 # Application goes to status Printing Sticker
                 proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 proposal.save()
+                logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
 
                 return [], []
             else:
@@ -1380,6 +1395,8 @@ class AuthorisedUserPermit(Approval):
         return moas
 
     def manage_stickers(self, proposal):
+        logger.info('AuthorisedUserPermit.manage_stickers() method is called.')
+
         moas_to_be_reallocated = []  # MooringOnApproval objects to be on the new stickers
         stickers_to_be_returned = []  # Stickers to be returned
         stickers_to_be_replaced = []  # Stickers to be replaced by new stickers.  Temporarily used
@@ -1727,6 +1744,8 @@ class MooringLicence(Approval):
         return current_stickers
 
     def manage_stickers(self, proposal):
+        logger.info('MooringLicence.manage_stickers() method is called.')
+
         if proposal.approval and proposal.approval.reissued:
             # Can only change the conditions, so goes to Approved
             proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -2556,8 +2575,8 @@ class DcvPermitDocument(Document):
 
 
 class Sticker(models.Model):
-    STICKER_STATUS_READY = 'ready'
-    STICKER_STATUS_NOT_READY_YET = 'not_ready_yet'
+    STICKER_STATUS_NOT_READY_YET = 'not_ready_yet'  # This status is assigned to the new replacement sticker.  Once the old sticker is returned, the status changes to STICKER_STATUS_READY.
+    STICKER_STATUS_READY = 'ready'  # This status is assigned to the new sticker.  Cron job picks up the sticker with this status and process it.
     STICKER_STATUS_AWAITING_PRINTING = 'awaiting_printing'
     STICKER_STATUS_CURRENT = 'current'
     STICKER_STATUS_TO_BE_RETURNED = 'to_be_returned'
@@ -2650,7 +2669,10 @@ class Sticker(models.Model):
         return moorings
 
     def __str__(self):
-        return '{} ({})'.format(self.number, self.status)
+        if self.number:
+            return '{} ({})'.format(self.number, self.status)
+        else:
+            return f'Id: {self.id} ({self.status})'
 
     def record_lost(self):
         self.status = Sticker.STICKER_STATUS_LOST
