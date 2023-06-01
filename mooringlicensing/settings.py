@@ -467,6 +467,7 @@ LEDGER_UI_ACCOUNTS_MANAGEMENT = [
     {'phone_number' : {'options' : {'view': True, 'edit': True}}},
     {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
     {'dob' : {'options' : {'view': True, 'edit': True}}},
+    {'postal_same_as_residential' : {'options' : {'view': True, 'edit': True}}},
 ]
 MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
 PRIVATE_MEDIA_DIR_NAME = env('PRIVATE_MEDIA_DIR_NAME', 'private-media')
