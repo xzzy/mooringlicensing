@@ -45,9 +45,9 @@
     </head>
     {% block development_header %}
     {% if DJANGO_SETTINGS.EMAIL_INSTANCE == 'DEV' or DJANGO_SETTINGS.EMAIL_INSTANCE == 'UAT' or DJANGO_SETTINGS.EMAIL_INSTANCE == 'TEST'  %}
-    <div class="col-lg-12 p-3 bg-danger text-white text-center fs-6" style='background-color: #dc3545 !important; padding: 18px ;font-size: 18px ; color: #FFFFFF;'>
-        DEVELOPMENT: FOR TESTING ONLY DO NOT USE
-    </div>
+        <div class="col-lg-12 p-3 bg-danger text-white text-center fs-6" style='background-color: #dc3545 !important; padding: 18px ;font-size: 18px ; color: #FFFFFF;'>
+            DEVELOPMENT: FOR TESTING ONLY DO NOT USE
+        </div>
     {% endif %}
     {% endblock %}
 

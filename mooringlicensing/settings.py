@@ -448,8 +448,17 @@ GIT_COMMIT_DATE = ''
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
 LEDGER_TEMPLATE = 'bootstrap5'
-SESSION_COOKIE_NAME = "pp_sessionid"
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+#SESSION_COOKIE_NAME = "pp_sessionid"
+#SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+# Change to file session backend to improve web application speed
+SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+if EMAIL_INSTANCE == 'DEV' or EMAIL_INSTANCE == 'UAT' or EMAIL_INSTANCE == 'TEST':
+    SESSION_FILE_PATH = env('SESSION_FILE_PATH', BASE_DIR+'/session_store/')
+    if not os.path.isdir(SESSION_FILE_PATH):
+        os.mkdir(SESSION_FILE_PATH)       
+else:
+    SESSION_FILE_PATH = env('SESSION_FILE_PATH', '/app/session_store/')
+
 LEDGER_UI_ACCOUNTS_MANAGEMENT = [
     {'first_name': {'options' : {'view': True, 'edit': True}}},
     {'last_name': {'options' : {'view': True, 'edit': True}}},
