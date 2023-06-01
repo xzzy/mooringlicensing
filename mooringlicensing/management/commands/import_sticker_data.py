@@ -90,6 +90,7 @@ class Command(BaseCommand):
                     email_date=email_date,
                     email_message_id=email_message_id,
                 )
+                logger.info(f'StickerPrintingResponseEmail object: {sticker_printing_response_email} has been created')
 
                 # downloading attachments
                 for part in email_message.walk():
@@ -108,6 +109,7 @@ class Command(BaseCommand):
                                 sticker_printing_response_email=sticker_printing_response_email,
                                 name=fileName,
                             )
+                            logger.info(f'StickerPrintingResponse object: {sticker_printing_response} has been created')
 
                             # Load attachment file
                             my_bytes = part.get_payload(decode=True)
@@ -123,7 +125,11 @@ class Command(BaseCommand):
                 imapclient.copy(num, "Archive")
                 imapclient.store(num, "+FLAGS", "\\Deleted")
             except:
-                logger.exception('Exception has been raised when processing emails')
+                if email_subject:
+                    logger.exception(f'Exception has been raised when processing email: subject {email_subject}')
+                else:
+                    logger.exception(f'Exception has been raised when processing email')
+
                 continue
 
         imapclient.close()

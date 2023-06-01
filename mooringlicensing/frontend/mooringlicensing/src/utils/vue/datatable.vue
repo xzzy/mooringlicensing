@@ -63,11 +63,14 @@ module.exports = {
              },
            }
            //var options = Object.assign(vm.dtOptions,responsiveOptions)
-           var options = Object.assign(vm.dtOptions)
+           var options = Object.assign(vm.dtOptions);
            vm.vmDataTable = $(vm.table).DataTable(options);
             $(vm.table).on( 'page.dt', function () {
                 vm.vmDataTable.columns.adjust().responsive.recalc();
             } );
+            $(vm.table).on('drawDatatable', function(){
+                vm.vmDataTable.draw();
+            });
            /*$(vm.table).resize(function (e) {
                vm.vmDataTable.draw(true);
            });*/

@@ -257,6 +257,7 @@ export default {
             //this.updateAmendmentRenewalProperties();
         },
         updateVesselLength: function (length) {
+            console.log('%cin updateVesselLength()', 'color: #44aa33')
             if (this.is_external && this.proposal) {
                 //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                 //    this.proposal.max_vessel_length_with_no_payment <= length) {
@@ -269,6 +270,8 @@ export default {
                     this.higherVesselCategory = false;
                 }
             }
+            console.log('%cthis.higherVesselCategory:', 'color: #44aa33')
+            console.log(this.higherVesselCategory)
             this.updateAmendmentRenewalProperties();
         },
         updateVesselOwnershipChanged: function(changed){
@@ -277,6 +280,7 @@ export default {
 
             this.vesselOwnershipChanged = changed
             this.updateAmendmentRenewalProperties();
+            this.$emit("updateVesselOwnershipChanged", changed);
         },
         resetCurrentVessel: function (keep) {
             this.keepCurrentVessel = keep;
@@ -295,23 +299,11 @@ export default {
                         this.showPaymentTab = false;
                         await this.$emit("updateSubmitText", "Submit");
                     }
-                    // auto approve
-                    // if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
-                    //     await this.$emit("updateAutoApprove", false);
-                    // } else {
-                    //     await this.$emit("updateAutoApprove", true);
-                    // }
                 });
             } else if (this.proposal && this.proposal.proposal_type.code === 'renewal') {
                 this.$nextTick(async () => {
                     this.showPaymentTab = true;
                     this.$emit("updateSubmitText", "Pay / Submit");
-                    // auto approve
-                    // if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged) {
-                    //     await this.$emit("updateAutoApprove", false);
-                    // } else {
-                    //     await this.$emit("updateAutoApprove", true);
-                    // }
                 });
             }
             this.$nextTick(async () => {

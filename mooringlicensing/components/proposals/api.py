@@ -1171,24 +1171,32 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal = self.get_object()
             max_length = 0
 
-
             ### test
             max_vessel_length = (0, True)  # (length, include_length)
             get_out_of_loop = False
             while True:
+                if proposal.application_fees.all():
+                    for application_fee in proposal.application_fees.all():
+                        for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
+                            length_tuple = fee_item_application_fee.get_max_allowed_length()
+                            if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
+                                max_vessel_length = length_tuple
+
                 if get_out_of_loop:
                     break
 
-                if not proposal.application_fees.all():
-                    break
-                for application_fee in proposal.application_fees.all():
-                    for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
-                        length_tuple = fee_item_application_fee.get_max_allowed_length()
-                        if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
-                            max_vessel_length = length_tuple
+                # Retrieve the previous application
                 proposal = proposal.previous_application
-                if not proposal or proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
-                    get_out_of_loop = True
+
+                if not proposal:
+                    # No previous application exists.  Get out of the loop
+                    break
+                else:
+                    # Previous application exists
+                    if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
+                        # Previous application is 'new'/'renewal'
+                        # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
+                        get_out_of_loop = True
 
             return Response({'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]})
             ###

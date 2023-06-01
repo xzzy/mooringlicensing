@@ -321,18 +321,22 @@
                 }
             },
             */
-            updateVesselLength: function(length) {
+            updateVesselLength: function (length) {
+                console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
                     //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                     //    this.proposal.max_vessel_length_with_no_payment <= length) {
                     if (this.max_vessel_length_with_no_payment !== null &&
-                        this.max_vessel_length_with_no_payment <= length) {
+                        (this.max_vessel_length_with_no_payment.max_length < length ||
+                            this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
                         // vessel length is in higher category
                         this.higherVesselCategory = true;
                     } else {
                         this.higherVesselCategory = false;
                     }
                 }
+                console.log('%cthis.higherVesselCategory:', 'color: #44aa33')
+                console.log(this.higherVesselCategory)
                 this.updateAmendmentRenewalProperties();
             },
             resetCurrentVessel: function(keep) {

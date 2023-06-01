@@ -43,6 +43,7 @@
             @updateSubmitText="updateSubmitText"
             @vesselChanged="updateVesselChanged"
             @mooringPreferenceChanged="updateMooringPreference"
+            @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
             @noVessel="noVessel"
             />
 
@@ -181,6 +182,7 @@ export default {
       mooringOptionsChanged: false,
       // WLA
       mooringPreferenceChanged: false,
+      vesselOwnershipChanged: false,
       submitText: "Submit",
       autoApprove: false,
       missingVessel: false,
@@ -199,16 +201,45 @@ export default {
   },
   computed: {
       disableSubmit: function() {
+          console.log('%cHere0', 'color: #FF0000')
           let disable = false;
-          if (this.proposal && this.proposal.proposal_type.code ==='amendment' && this.missingVessel) {
-              disable = true;
-          } else if (this.proposal && this.proposal.proposal_type.code ==='amendment') {
-              if (['aaa', 'mla'].includes(this.proposal.application_type_code) && !this.vesselChanged) {
-                  disable = true;
-              } else if (this.proposal.application_type_code === 'wla' && !this.vesselChanged && !this.mooringPreferenceChanged) {
-                  disable = true;
-              } else if (this.proposal.application_type_code === 'aua' && !this.vesselChanged && !this.mooringOptionsChanged) {
-                  disable = true;
+          // if (this.proposal && this.proposal.proposal_type.code ==='amendment' && this.missingVessel) {
+          //     console.log('%cHere1', 'color: #FF0000')
+          //     disable = true;
+          // } else if (this.proposal && this.proposal.proposal_type.code ==='amendment') {
+          //     if (['aaa', 'mla'].includes(this.proposal.application_type_code) && !this.vesselChanged) {
+          //         console.log('%cHere2', 'color: #FF0000')
+          //         disable = true;
+          //     } else if (this.proposal.application_type_code === 'wla' && !this.vesselChanged && !this.mooringPreferenceChanged) {
+          //         console.log('%cHere3', 'color: #FF0000')
+          //         disable = true;
+          //     } else if (this.proposal.application_type_code === 'aua' && !this.vesselChanged && !this.mooringOptionsChanged) {
+          //         console.log('%cHere4', 'color: #FF0000')
+          //         disable = true;
+          //     }
+          // }
+          if (this.proposal){
+              if (this.proposal.proposal_type.code ==='amendment'){
+                  if (this.missingVessel){
+                      disable = true;
+                  } else {
+                      if (['aaa', 'mla'].includes(this.proposal.application_type_code)){
+                          if (!this.vesselChanged) {
+                              console.log('%cHere2', 'color: #FF0000')
+                              disable = true;
+                          }
+                      } else if (this.proposal.application_type_code === 'wla'){
+                          if (!this.vesselChanged && !this.mooringPreferenceChanged && !this.vesselOwnershipChanged) {
+                              console.log('%cHere3', 'color: #FF0000')
+                              disable = true;
+                          }
+                      } else if (this.proposal.application_type_code === 'aua'){
+                          if (!this.vesselChanged && !this.mooringOptionsChanged) {
+                              console.log('%cHere4', 'color: #FF0000')
+                              disable = true;
+                          }
+                      }
+                  }
               }
           }
           return disable;
@@ -296,7 +327,8 @@ export default {
     },
     updateAutoApprove: function(approve) {
         this.autoApprove = approve;
-        //console.log("updateAutoApprove");
+        console.log('%cin updateAutoApprove', 'color: #990000')
+        console.log(this.autoApprove)
     },
     updateMooringAuth: function(changed) {
         this.mooringOptionsChanged = changed;
@@ -305,11 +337,16 @@ export default {
     updateVesselChanged: function(vesselChanged) {
         console.log('in updateVesselChanged at the proposal.vue')
         this.vesselChanged = vesselChanged;
+        console.log('this.vesselChanged: ')
+        console.log(this.vesselChanged)
         //console.log("updateVesselChanged");
     },
     updateMooringPreference: function(preferenceChanged) {
         this.mooringPreferenceChanged = preferenceChanged;
         //console.log("updateMooringPreference");
+    },
+    updateVesselOwnershipChanged: function(changed) {
+        this.vesselOwnershipChanged = changed
     },
     proposal_refs:function(){
       if(this.applicationTypeCode == 'wla') {

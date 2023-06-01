@@ -637,6 +637,8 @@ class FeeItem(models.Model):
             vessel_size = float(vessel_size)
             smaller_vessel_size_category = self.vessel_size_category.get_one_smaller_category()
             if smaller_vessel_size_category:
+                # There is a smaller vessel size category of this incremental fee item.
+                # Absolute amount of this fee item is calculated by adding the incremental amount per meter to the absolute amount of the previous fee item.
                 smaller_fee_item = self.fee_constructor.feeitem_set.filter(fee_period=self.fee_period, proposal_type=self.proposal_type, vessel_size_category=smaller_vessel_size_category)
                 if smaller_fee_item.count() == 1:
                     smaller_fee_item = smaller_fee_item.first()
@@ -651,8 +653,17 @@ class FeeItem(models.Model):
                     # Should not reach here
                     raise Exception('FeeItem object not found in the FeeConstructor: {} for {}, {} and {}'.format(self.fee_constructor, self.fee_period, self.proposal_type, smaller_vessel_size_category))
             else:
-                # This fee_item is for the smallest vessel size category and also incremental
-                number_of_increment = ceil(vessel_size - float(self.vessel_size_category.start_size))
+                # This fee_item is for the smallest vessel size category and also incremental fee item
+                # Because of this is the smallest fee item, absolute amount is calculated from the size 0 meter, not the start size of this item.
+
+                calculate_from_zero_meter = True
+                if calculate_from_zero_meter:
+                    # Calculate from 0.00 meter
+                    number_of_increment = ceil(vessel_size - 0.00)
+                else:
+                    # Calculate from the start size of this fee item
+                    number_of_increment = ceil(vessel_size - float(self.vessel_size_category.start_size))
+
                 absolute_amount = self.amount * number_of_increment
                 return absolute_amount
 
