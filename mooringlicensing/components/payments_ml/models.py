@@ -230,7 +230,10 @@ class FeeItemApplicationFee(models.Model):
         return self.fee_item.application_type
 
     def get_max_allowed_length(self):
-        return self.fee_item.get_max_allowed_length()
+        vessel_length = None
+        if self.vessel_details:
+            vessel_length = float(self.vessel_details.vessel_length)
+        return self.fee_item.get_max_allowed_length(vessel_length)
 
 
 class ApplicationFee(Payment):
@@ -610,8 +613,26 @@ class FeeItem(models.Model):
     def __str__(self):
         return '${}: {}, {}, {}, {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category, self.proposal_type)
 
-    def get_max_allowed_length(self):
-        return self.vessel_size_category.get_max_allowed_length()
+    def get_max_allowed_length(self, vessel_length):
+        logger.info(f'get_max_allowed_length() is called in the fee_item: {self}')
+
+        if self.incremental_amount:
+            # max_length = ceil(vessel_length + 1.00)  # When fee_item is incremental_amount, the amount is incremented per 1.00 meter.
+
+            if vessel_length.is_integer():
+                # vessel_size is on the borderline of changing fees
+                if self.vessel_size_category.include_start_size:
+                    max_length = vessel_length + 1.00
+                else:
+                    max_length = vessel_length
+            else:
+                max_length = ceil(vessel_length)
+            max_length_tuple = max_length, not self.vessel_size_category.include_start_size
+        else:
+            max_length_tuple = self.vessel_size_category.get_max_allowed_length()
+
+        logger.info(f'{self} {max_length_tuple}')
+        return max_length_tuple
 
     @property
     def application_type(self):

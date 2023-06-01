@@ -1178,9 +1178,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if proposal.application_fees.all():
                     for application_fee in proposal.application_fees.all():
                         for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
-                            length_tuple = fee_item_application_fee.get_max_allowed_length()
-                            if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
-                                max_vessel_length = length_tuple
+                            if fee_item_application_fee.application_fee.proposal.application_type == fee_item_application_fee.fee_item.fee_constructor.application_type:
+                                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] is the main component of the proposal: [{proposal}]')
+                                length_tuple = fee_item_application_fee.get_max_allowed_length()
+                                if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
+                                    max_vessel_length = length_tuple
+                            else:
+                                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] is not the main component of the proposal: [{proposal}]')
 
                 if get_out_of_loop:
                     break
@@ -1198,7 +1202,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
                         get_out_of_loop = True
 
-            return Response({'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]})
+            res = {'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]}
+            logger.info(f'max_vessel_length_for_main_component: {res}')
+
+            return Response(res)
             ###
 
             # if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT,]:
@@ -1236,6 +1243,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             application_type_aa = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
             fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type_aa, target_date)
             max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
+
+            logger.info(f'max_vessel_length_for_aa_component: {max_length}')
 
             return Response({'max_length': max_length})
 

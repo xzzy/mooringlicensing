@@ -652,6 +652,8 @@ export default {
                             await vm.parseVesselOwnershipList(res);
 
                             const res_for_length = await vm.$http.get(`${api_endpoints.proposal}${vm.proposal.id}/get_max_vessel_length_for_aa_component?vid=${data.id}`);
+                            console.log('aa component')
+                            console.log(res_for_length.body.max_length)
                             vm.max_vessel_length_for_aa_component = res_for_length.body.max_length
                         } else {
                             console.log("new vessel");
@@ -955,6 +957,8 @@ export default {
         let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`);
         // this.max_vessel_length_for_main_component = res.body
         // this.include_max_vessel_length_for_main_component = res.body.include_max_length
+        console.log('main component')
+        console.log(res.body)
         this.max_vessel_length_tuple = res.body
     },
 }
