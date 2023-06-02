@@ -18,6 +18,9 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
+
+
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -40,6 +43,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/static/favicon.svg"/>
     </head>
+    {% block development_header %}
+    {% if DJANGO_SETTINGS.EMAIL_INSTANCE == 'DEV' or DJANGO_SETTINGS.EMAIL_INSTANCE == 'UAT' or DJANGO_SETTINGS.EMAIL_INSTANCE == 'TEST'  %}
+        <div class="col-lg-12 p-3 bg-danger text-white text-center fs-6" style='background-color: #dc3545 !important; padding: 18px ;font-size: 18px ; color: #FFFFFF;'>
+            DEVELOPMENT: FOR TESTING ONLY DO NOT USE
+        </div>
+    {% endif %}
+    {% endblock %}
+
+
     <body>
         <header class="topmast-rottnest">
             {% block header %}

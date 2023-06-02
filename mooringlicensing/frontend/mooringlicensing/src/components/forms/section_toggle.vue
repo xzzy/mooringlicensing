@@ -88,6 +88,12 @@ export default {
             }, 100);
             */
         });
+        $('#'+vm.section_id).on('show.bs.collapse', function(){
+            var datatables = $('[class*=" dataTable "]');
+            for(let i in datatables){
+                $(datatables[i]).trigger('drawDatatable');
+            }
+        })
     },
     updated:function () {
     },

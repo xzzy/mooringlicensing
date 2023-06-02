@@ -7,7 +7,7 @@ from mooringlicensing.components.main.models import SystemMaintenance
 # from ledger.payments.helpers import is_payment_admin
 from datetime import datetime, timedelta
 from django.utils import timezone
-from ledger_api_client.helpers import is_payment_admin
+from ledger_api_client.helpers import is_payment_admin_cached
 import pytz
 
 register = Library()
@@ -36,7 +36,7 @@ def is_model_backend(context):
 def is_payment_officer(context):
     request = context['request']
     #user= request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
-    return is_payment_admin(request.user)
+    return is_payment_admin_cached(request, request.user)
 
 @register.simple_tag()
 def system_maintenance_due():
