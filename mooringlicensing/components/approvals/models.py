@@ -1432,6 +1432,11 @@ class AuthorisedUserPermit(Approval):
                 moas_current = self._get_current_moas()
                 for moa in moas_current:
                     stickers_to_be_replaced.append(moa.sticker)
+            else:
+                # TODO: When amendment and even no vessel removed (changed), if some changes made on the moorings, such as adding a new mooring,
+                # TODO: some of the stickers might need to be replaced
+                moas_test = self._get_current_moas()
+
         else:
             # When New/reissuedNew, (vessel changed)
             # MooringOnApprovals which has end_date OR related ML is not current status, but sticker is still in current/awaiting_printing status
@@ -1634,7 +1639,7 @@ class MooringLicence(Approval):
             'approval': self,
             'application': self.current_proposal,
             'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-            'applicant_first_name': self.submitter.first_name,
+            'applicant_first_name': retrieve_email_userro(self.submitter).first_name,
             'mooring_name': self.mooring.name,
             'authorised_persons': authorised_persons,
             'public_url': get_public_url(),
