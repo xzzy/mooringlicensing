@@ -1407,6 +1407,7 @@ class AuthorisedUserPermit(Approval):
         for moa in new_moas:
             if moa not in moas_to_be_reallocated:
                 if moa.approval and moa.approval.current_proposal and moa.approval.current_proposal.vessel_details:
+                    logger.info(f'Mooring: {moa.mooring} should be assigned to the new sticker.')
                     moas_to_be_reallocated.append(moa)
                 else:
                     # Null vessel
@@ -1433,10 +1434,13 @@ class AuthorisedUserPermit(Approval):
                 for moa in moas_current:
                     stickers_to_be_replaced.append(moa.sticker)
             else:
-                # TODO: When amendment and even no vessel removed (changed), if some changes made on the moorings, such as adding a new mooring,
-                # TODO: some of the stickers might need to be replaced
-                moas_test = self._get_current_moas()
-
+                # When amendment and even no vessel removed (changed), if some changes made on the moorings, such as adding a new mooring,
+                # some of the stickers might need to be replaced
+                moas_current = self._get_current_moas()
+                for moa in moas_current:
+                    if not moa.sticker.mooringonapproval_set.count() % 4 == 0:
+                        stickers_to_be_replaced.append(moa.sticker)
+                        stickers_to_be_replaced_for_renewal.append(moa.sticker)
         else:
             # When New/reissuedNew, (vessel changed)
             # MooringOnApprovals which has end_date OR related ML is not current status, but sticker is still in current/awaiting_printing status
@@ -1483,8 +1487,12 @@ class AuthorisedUserPermit(Approval):
     def check_unfilled_existing_sticker(self, moas_to_be_reallocated, stickers_to_be_returned):
         if len(moas_to_be_reallocated) > 0:
             # There is at least one mooring to be allocated to a new sticker
+            logger.info('There is at least one mooring to be allocated to a new sticker.')
+
             if len(moas_to_be_reallocated) % 4 != 0:
                 # The number of moorings to be allocated is not a multiple of 4, which requires existing non-filled sticker to be replaced, too
+                logger.info(f'The number of moorings: {len(moas_to_be_reallocated)} to be allocated is not a multiple of 4, which requires existing non-filled sticker to be replaced')
+
                 # Find sticker which doesn't have 4 moorings on it
                 stickers = self.stickers.filter(
                     status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,
@@ -1500,9 +1508,9 @@ class AuthorisedUserPermit(Approval):
                         moas_to_be_reallocated.append(moa)
                 elif stickers.count() > 1:
                     # Should not reach here
-                    raise ValueError(
-                        'AUP: {} has more than one stickers without 4 moorings'.format(self.lodgement_number)
-                        )
+                    msg = f'AUP: {self.lodgement_number} has more than one stickers without 4 moorings.'
+                    logger.error(msg)
+                    raise ValueError(msg)
             else:
                 # Because the number of moorings to be on new stickers is a multiple of 4,
                 # We just assign all of them to new stickers rather than finding out an existing sticker which is not filled with 4 moorings
@@ -1577,7 +1585,7 @@ class AuthorisedUserPermit(Approval):
                 )
                 new_stickers.append(new_sticker)
             if moa_to_be_on_new_sticker.sticker in stickers_to_be_replaced_for_renewal:
-                # Store old sticker in the new sticker in order to set 'expired' status to it once the new sticker gets 'current' status
+                # Store old sticker in the new sticker in order to set 'expired' status to it once the new sticker gets 'awaiting_printing' status
                 new_sticker.sticker_to_replace = moa_to_be_on_new_sticker.sticker
                 new_sticker.save()
             # Update moa by a new sticker

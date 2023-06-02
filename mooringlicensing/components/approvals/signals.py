@@ -14,9 +14,11 @@ class StickerListener(object):
     @staticmethod
     @receiver(post_save, sender=Sticker)
     def _post_save(sender, instance, **kwargs):
+        logger.info('StickerListener._post_save() method is called.')
         sticker_saved = instance
         if sticker_saved.status == Sticker.STICKER_STATUS_CURRENT:
             if sticker_saved.proposal_initiated and sticker_saved.proposal_initiated.processing_status == Proposal.PROCESSING_STATUS_PRINTING_STICKER:
+                # Retrieve the stickers being printed for this proposal
                 stickers_being_printed = Sticker.objects.filter(
                     proposal_initiated=sticker_saved.proposal_initiated,
                     status__in=[

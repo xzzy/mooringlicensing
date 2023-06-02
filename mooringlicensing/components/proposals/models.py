@@ -1493,6 +1493,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_WLA_AAA(self, request, details=None):
         with transaction.atomic():
             try:
+                logger.info('Proposal.final_approval_for_WLA_AAA() is called.')
+
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 self.proposed_decline_status = False
 
@@ -1637,6 +1639,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_AUA_MLA(self, request=None, details=None):
         with transaction.atomic():
             try:
+                logger.info('Proposal.final_approval_for_AUA_MLA() is called.')
+
                 self.proposed_decline_status = False
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 current_date = current_datetime.date()
