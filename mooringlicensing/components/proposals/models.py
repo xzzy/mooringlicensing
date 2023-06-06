@@ -425,39 +425,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return fee_amount_adjusted
 
-    #    def get_max_amounts_paid_in_this_season(self, target_date, for_aa_component=False):
-#        """
-#        Return max amount paid per application_type
-#        """
-#        prev_application = self.previous_application
-#
-#        # Search through the history of proposals of the self.approval
-#        max_amounts_paid = self.get_max_amounts_paid(prev_application)
-#
-#        # For AAP component, we also have to search all the AAP components paid for this vessel in this season.
-#        if for_aa_component and self.vessel_details:
-#            # We need to search for the AA component, and this is not null vessel application
-#            annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
-#            max_amount_paid_for_aap = 0
-#            current_approvals = self.vessel_details.vessel.get_current_aaps(target_date)
-#
-#            for approval in current_approvals:
-#                # Current approval exists
-#                max_amounts_paid2 = self.get_max_amounts_paid(approval.current_proposal, True)
-#                if annual_admission_type in max_amounts_paid2:
-#                    # When there is an AAP component
-#                    if max_amount_paid_for_aap < max_amounts_paid2[annual_admission_type]:
-#                        # Update variable
-#                        max_amount_paid_for_aap = max_amounts_paid2[annual_admission_type]
-#
-#            if not annual_admission_type in max_amounts_paid:
-#                max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#            else:
-#                if max_amounts_paid[annual_admission_type] < max_amount_paid_for_aap:
-#                    max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#
-#        return max_amounts_paid
-
     def get_max_amount_paid_for_main_component(self):
         max_amount_paid_for_main_component = 0
 
@@ -495,48 +462,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return max_amount_paid_for_aa_component
 
-#    def get_max_amounts_paid_in_this_season(self, target_date, vessel=None):
-#        """
-#        Return max amount paid per application_type
-#        """
-#
-#        # Note:
-#        # self.vessel_details.vessel is used for calculate main component
-#        # parameter vessel is used for additional AA component
-#
-#        prev_application = self.previous_application
-#
-#        # Search through the history of proposals of the self.approval
-#        max_amounts_paid = self.get_max_amounts_paid(prev_application, None)  # None: we don't mind vessel for main component
-#
-#        # For AAP component, we also have to search all the AAP components paid for this vessel in this season.
-#        if not vessel and self.vessel_details:
-#            # When vessel not specified, but vessel is set to this proposal
-#            vessel = self.vessel_details.vessel
-#
-#        if vessel:
-#            # We need to search for the AA component, and this is not null vessel application
-#            annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
-#            max_amount_paid_for_aap = 0
-#            current_approvals = vessel.get_current_aaps(target_date)
-#
-#            for approval in current_approvals:
-#                # Current approval exists
-#                max_amounts_paid2 = self.get_max_amounts_paid(approval.current_proposal, vessel)  # We mind vessel for AA component
-#                if annual_admission_type in max_amounts_paid2:
-#                    # When there is an AAP component
-#                    if max_amount_paid_for_aap < max_amounts_paid2[annual_admission_type]:
-#                        # Update variable
-#                        max_amount_paid_for_aap = max_amounts_paid2[annual_admission_type]
-#
-#            if not annual_admission_type in max_amounts_paid:
-#                max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#            else:
-#                if max_amounts_paid[annual_admission_type] < max_amount_paid_for_aap:
-#                    max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#
-#        return max_amounts_paid
-
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
@@ -554,7 +479,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # We are interested only in the AnnualAdmission component
                             target_vessel = fee_item_application_fee.vessel_details.vessel
                             if target_vessel != vessel:
-                                continue  # For annual admission component, we mind the vessel
+                                # This fee_item_application_fee is not for the vessel we are looking at.
+                                continue
                             current_approvals = target_vessel.get_current_approvals(target_date)
                             for key, qs in current_approvals.items():
                                 # We want to exclude the approval being amended(modified)
