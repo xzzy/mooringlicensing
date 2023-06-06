@@ -473,11 +473,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_main_component
 
     def get_max_amount_paid_for_aa_component(self, target_date, vessel):
-        annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
+        logger.info('Proposal.get_max_amount_paid_for_aa_component is called.')
+
         max_amount_paid_for_aa_component = 0
 
         # Get max amount for AA from this proposal history
-        max_amount_paid = self.get_amount_paid_so_far_for_aa_through_this_proposal(self.previous_application)
+        max_amount_paid = self.get_amount_paid_so_far_for_aa_through_this_proposal(self.previous_application, vessel)  # TODO: Fix, this amount might be paid for another vessel.
         if max_amount_paid_for_aa_component < max_amount_paid:
             max_amount_paid_for_aa_component = max_amount_paid
 
@@ -536,7 +537,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 #
 #        return max_amounts_paid
 
-    def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal):
+    def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
@@ -552,6 +553,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         if fee_item_application_fee.application_type == annual_admission_type:
                             # We are interested only in the AnnualAdmission component
                             target_vessel = fee_item_application_fee.vessel_details.vessel
+                            if target_vessel != vessel:
+                                continue  # For annual admission component, we mind the vessel
                             current_approvals = target_vessel.get_current_approvals(target_date)
                             for key, qs in current_approvals.items():
                                 # We want to exclude the approval being amended(modified)
@@ -3693,9 +3696,11 @@ class MooringUserAction(UserAction):
 
     @classmethod
     def log_action(cls, mooring, action, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return cls.objects.create(
             mooring=mooring,
-            who=user.id if user else None,
+            who=user if user else None,
             what=str(action)
         )
 
