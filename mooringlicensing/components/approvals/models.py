@@ -1262,7 +1262,7 @@ class AuthorisedUserPermit(Approval):
             context = {
                 'approval': self,
                 'application': self.current_proposal,
-                'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+                'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
                 'applicant_name': self.submitter_obj.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
@@ -1274,7 +1274,7 @@ class AuthorisedUserPermit(Approval):
                 'vessel_length': vessel_length,
                 'vessel_draft': vessel_draft,
                 'moorings': moorings,  # m.name, m.licensee_full_name, m.licensee_email, m.licensee_phone
-                'expiry_date': self.expiry_date.strftime('%d/%m/%Y'),
+                'expiry_date': self.expiry_date.strftime('%d/%m/%Y') if self.expiry_date else '',
                 'public_url': get_public_url(),
             }
             return context

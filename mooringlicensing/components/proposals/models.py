@@ -1635,7 +1635,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=request)
 
                         #--- Reflect any changes made in the function above (update_or_create_approval) ---#
-                        self.approval.refresh_from_db()
+                        if self.approval:
+                            self.approval.refresh_from_db()
                         self.refresh_from_db()  # Reflect child_ojb's attributes, such as processing_status, to this proposal object.
                         self.child_obj.refresh_from_db()
                         #-------------------------------#
