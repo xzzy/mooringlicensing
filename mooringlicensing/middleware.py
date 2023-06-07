@@ -26,7 +26,7 @@ class FirstTimeNagScreenMiddleware(object):
         if request.user.is_authenticated and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
             # if not request.user.first_name or not request.user.last_name:
             if not request.user.first_name or not request.user.last_name or not request.user.residential_address_id or not request.user.postal_address_id:
-                path_first_time = reverse('account')
+                path_first_time = reverse('account-firstime')
                 path_logout = reverse('logout')
                 if request.path not in (path_first_time, path_logout):
                     logger.info('redirect')
