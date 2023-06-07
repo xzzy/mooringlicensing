@@ -761,6 +761,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         application_fee = self.get_main_application_fee()
         if application_fee:
             start_date = application_fee.fee_constructor.start_date
+        elif self.fee_season:
+            start_date = self.fee_season.start_date
         return start_date
 
     @property
@@ -772,6 +774,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         application_fee = self.get_main_application_fee()
         if application_fee:
             end_date = application_fee.fee_constructor.end_date
+        elif self.fee_season:
+            end_date = self.fee_season.end_date
         return end_date
 
     @property
@@ -2874,6 +2878,7 @@ class AuthorisedUserApplication(Proposal):
                 send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
+        logger.info(f'AuthorisedUserApplication.update_or_create_approval() is called')
         # This function is called after payment success for new/amendment/renewal application
 
         created = None
@@ -3291,6 +3296,7 @@ class MooringLicenceApplication(Proposal):
             send_documents_upload_for_mooring_licence_application_email(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
+        logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
             if self.approval and self.approval.child_obj.mooring:
