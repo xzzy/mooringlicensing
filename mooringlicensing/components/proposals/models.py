@@ -2715,10 +2715,15 @@ class AuthorisedUserApplication(Proposal):
                     ml_exists_for_this_vessel = True
 
             if ml_exists_for_this_vessel:
+                logger.info(f'ML for the vessel: {self.vessel_details.vessel} exists. No charges for the AUP: {self}')
+
                 # When there is 'current' ML, no charge for the AUP
-                # But before leave here, we just want to store the fee_season user is applying for.
+                # But before leaving here, we want to store the fee_season under this application the user is applying for.
                 self.fee_season = fee_constructor.fee_season
                 self.save()
+
+                logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
+
                 return [], {}  # no line items, no db process
         else:
             # Null vessel application
