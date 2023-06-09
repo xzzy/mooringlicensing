@@ -1724,17 +1724,20 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             sale_date = request.data.get('sale_date')
+
+            logger.info(f'Recording vessel sale of the vessel_ownership: [{instance}] with the sale_date: {sale_date}')
+
             if sale_date:
                 if not instance.end_date:
                     # proposals with instance copied to listed_vessels
                     for proposal in instance.listed_on_proposals.all():
-                        if proposal.processing_status not in ['discarded', 'approved', 'declined']:
+                        if proposal.processing_status not in [Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED,]:
                             raise serializers.ValidationError(
                                     "You cannot record the sale of this vessel at this time as application {} that lists this vessel is still in progress.".format(proposal.lodgement_number)
                                     )
                     # submitted proposals with instance == proposal.vessel_ownership
                     for proposal in instance.proposal_set.all():
-                        if proposal.processing_status not in ['discarded', 'approved', 'declined']:
+                        if proposal.processing_status not in [Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED,]:
                             raise serializers.ValidationError(
                                     "You cannot record the sale of this vessel at this time as application {} that lists this vessel is still in progress.".format(proposal.lodgement_number)
                                     )
@@ -1766,12 +1769,16 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                     for a_sticker in instance.sticker_set.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
                         a_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
                         a_sticker.save()
+                        logger.info(f'Status of the sticker: {a_sticker} has been changed to {Sticker.STICKER_STATUS_TO_BE_RETURNED}')
+
                         stickers_to_be_returned.append(a_sticker)
                         stickers_updated.append(a_sticker)
                     for a_sticker in instance.sticker_set.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET]):
                         # vessel sold before the sticker is picked up by cron for export (very rarely happens)
                         a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
                         a_sticker.save()
+                        logger.info(f'Status of the sticker: {a_sticker} has been changed to {Sticker.STICKER_STATUS_CANCELLED}')
+
                         stickers_updated.append(a_sticker)
 
                     # Update MooringOnApproval
@@ -1779,6 +1786,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                     for moa in moas:
                         moa.sticker = None
                         moa.save()
+                        logger.info(f'Sticker:None is set to the MooringOnApproval: {moa}')
 
                     # write approval history
                     approval.write_approval_history('Vessel sold by owner')

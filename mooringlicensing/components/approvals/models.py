@@ -371,6 +371,8 @@ class Approval(RevisionedMixin):
         return ''
 
     def write_approval_history(self, reason=None):
+        logger.info(f'Writing the approval history of the approval: [{self}]...')
+
         history_count = self.approvalhistory_set.count()
         if not history_count:
             new_approval_history_entry = ApprovalHistory.objects.create(
@@ -2004,7 +2006,7 @@ class ApprovalUserAction(UserAction):
     ACTION_AMEND_APPROVAL = "Create amendment Application for approval {}"
     ACTION_REISSUE_APPROVAL = "Reissue approval {}"
     ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Licence {}"
-    ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval {}"
+    ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval: {}"
 
     class Meta:
         app_label = 'mooringlicensing'
