@@ -1862,6 +1862,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.approval = self.approval
                 proposal.null_vessel_on_create = not self.vessel_on_proposal()
 
+                logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')
+
                 self.proposal_applicant.copy_self_to_proposal(proposal)
 
                 proposal.save(no_revision=True)
@@ -1878,6 +1880,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             previous_proposal = self
             try:
+                logger.info(f'Renewing approval: [{self.approval}]...')
+
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
@@ -1919,6 +1923,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             previous_proposal = self
             try:
+                logger.info(f'Amending approval: [{self.approval}]...')
+
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)

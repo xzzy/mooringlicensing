@@ -482,7 +482,8 @@ def save_proponent_data_aua(instance, request, viewset):
 
 # draft and submit
 def save_vessel_data(instance, request, vessel_data):
-    print("save vessel data")
+    logger.info(f'save_vessel_data is called with the vessel_data: {vessel_data}')
+
     vessel_details_data = {}
     vessel_id = vessel_data.get('id')
     vessel_details_data = vessel_data.get("vessel_details")
@@ -551,10 +552,11 @@ def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
 #    instance.save()
 
 def submit_vessel_data(instance, request, vessel_data):
-    print("submit vessel data")
-    print(vessel_data)
+    logger.info(f'submit_vessel_data() is called with the vessel_data: {vessel_data}')
+
     # Dot vessel rego lookup
     if settings.DO_DOT_CHECK:
+        logger.info('Performing DoT check...')
         vessel_lookup_errors = {}
         # Mooring Licence vessel history
         if type(instance.child_obj) == MooringLicenceApplication and instance.approval:
@@ -600,6 +602,7 @@ def submit_vessel_data(instance, request, vessel_data):
     ## save vessel data into proposal first
     save_vessel_data(instance, request, vessel_data)
     vessel, vessel_details = store_vessel_data(request, vessel_data)
+
     # associate vessel_details with proposal
     instance.vessel_details = vessel_details
     instance.save()
@@ -741,6 +744,8 @@ def submit_vessel_data(instance, request, vessel_data):
     #delete_draft_vessel_data(instance)
 
 def store_vessel_data(request, vessel_data):
+    logger.info(f'store_vessel_data() is called with the vessel_data: {vessel_data}')
+
     if not vessel_data.get('rego_no'):
         raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
     rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
@@ -774,6 +779,8 @@ def store_vessel_data(request, vessel_data):
     return vessel, vessel_details
 
 def store_vessel_ownership(request, vessel, instance=None):
+    logger.info(f'store_vessel_ownership() is called with the vessel: {vessel}')
+
     ## Get Vessel
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
     vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
@@ -839,7 +846,10 @@ def store_vessel_ownership(request, vessel, instance=None):
     vessel_ownership_data['vessel'] = vessel.id
     owner, created = Owner.objects.get_or_create(emailuser=request.user.id)
     if created:
-        logger.info(f'Owner: {owner} has bee created.')
+        logger.info(f'New Owner: {owner} has been created.')
+    else:
+        logger.info(f'Existing Owner: {owner} has been retrieved.')
+
 
     vessel_ownership_data['owner'] = owner.id
     vessel_ownership, created = VesselOwnership.objects.get_or_create(
@@ -848,7 +858,10 @@ def store_vessel_ownership(request, vessel, instance=None):
             # company_ownership=company_ownership
             )
     if created:
-        logger.info(f'VesselOwnership: {vessel_ownership} has been created.')
+        logger.info(f'New VesselOwnership: {vessel_ownership} has been created.')
+    else:
+        logger.info(f'Existing VesselOwnership: {vessel_ownership} has been retrieved.')
+
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
@@ -894,6 +907,8 @@ def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
             instance.save()
 
 def ownership_percentage_validation(vessel_ownership, proposal):
+    logger.info(f'Calculating the total vessel ownership percentage of the vessel: [{vessel_ownership.vessel}]...')
+
     individual_ownership_id = None
     company_ownership_id = None
     min_percent_fail = False
@@ -927,6 +942,7 @@ def ownership_percentage_validation(vessel_ownership, proposal):
 
     ## Calc total existing
     vessel_ownerships_to_excluded = proposal.get_previous_vessel_ownerships()
+    logger.info(f'Vessel ownerships to be excluded from the calculation: {vessel_ownerships_to_excluded}')
 
     total_percent = vessel_ownership_percentage
     vessel = vessel_ownership.vessel
@@ -939,10 +955,13 @@ def ownership_percentage_validation(vessel_ownership, proposal):
                     vo.company_ownership.blocking_proposal
                     ):
                 total_percent += vo.company_ownership.percentage
+                logger.info(f'Vessel ownership to be taken into account in the calculation: {vo.company_ownership}')
         elif vo.percentage and vo.id != individual_ownership_id:
             total_percent += vo.percentage
-    print("total_percent")
-    print(total_percent)
+            logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
+
+    logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}')
+
     if total_percent > 100:
         raise serializers.ValidationError({
             "Ownership Percentage": "Total of 100 percent exceeded"

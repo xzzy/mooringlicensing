@@ -325,13 +325,9 @@
             vm.set_tabs();
             vm.form = document.forms.new_proposal;
             await this.$emit("updateSubmitText", "Pay / Submit");
-            await this.$emit("updateAutoApprove", true);
+            await this.$emit("updateAutoApprove", true);  // Auto approve at all times
             await this.updateAmendmentRenewalProperties();
-            //window.addEventListener('beforeunload', vm.leaving);
-            //indow.addEventListener('onblur', vm.leaving);
-
         }
-
     }
 </script>
 
