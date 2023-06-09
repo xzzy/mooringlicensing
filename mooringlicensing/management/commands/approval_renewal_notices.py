@@ -18,7 +18,7 @@ from mooringlicensing.components.proposals.email import send_approval_renewal_em
 
 import logging
 
-from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting, ApplicationType
 from mooringlicensing.management.commands.utils import construct_email_message
 from mooringlicensing.settings import (
     CODE_DAYS_FOR_RENEWAL_WLA,
@@ -74,8 +74,9 @@ class Command(BaseCommand):
                     if v_details and not v_ownership.end_date:
                         a.generate_renewal_doc()
                     else:
-                        # When no vessel, renewal would not be offered
-                        continue
+                        if a.application_type.code == AuthorisedUserPermit.code:
+                            # When AU and no vessel, renewal would not be offered
+                            continue
                 send_approval_renewal_email_notification(a)
                 a.renewal_sent = True
                 a.save()
