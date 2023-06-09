@@ -40,32 +40,32 @@ module.exports = {
    },
    methods:{
        initEvents: function () {
-           let vm =this;
-           var responsiveHelper;
-           var breakpointDefinition = {
-               //bootstrap grid values
-               tablet: 992,
-               phone : 768
-           };
-           var responsiveOptions = {
-               autoWidth        : false,
-               preDrawCallback: function () {
-                 // Initialize the responsive datatables helper once.
-                 if (!responsiveHelper) {
-                     responsiveHelper = new ResponsiveDatatablesHelper(vm.table, breakpointDefinition);
-                 }
-             },
-             rowCallback    : function (nRow) {
-                 responsiveHelper.createExpandIcon(nRow);
-             },
-             drawCallback   : function (oSettings) {
-                 responsiveHelper.respond();
-             },
-           }
-           //var options = Object.assign(vm.dtOptions,responsiveOptions)
-           var options = Object.assign(vm.dtOptions);
-           vm.vmDataTable = $(vm.table).DataTable(options);
-            $(vm.table).on( 'page.dt', function () {
+            let vm =this;
+            var responsiveHelper;
+            var breakpointDefinition = {
+                //bootstrap grid values
+                tablet: 992,
+                phone : 768
+            };
+            var responsiveOptions = {
+                autoWidth        : false,
+                preDrawCallback: function () {
+                  // Initialize the responsive datatables helper once.
+                  if (!responsiveHelper) {
+                      responsiveHelper = new ResponsiveDatatablesHelper(vm.table, breakpointDefinition);
+                  }
+              },
+              rowCallback    : function (nRow) {
+                  responsiveHelper.createExpandIcon(nRow);
+              },
+              drawCallback   : function (oSettings) {
+                  responsiveHelper.respond();
+              },
+            }
+            //var options = Object.assign(vm.dtOptions,responsiveOptions)
+            var options = Object.assign(vm.dtOptions);
+            vm.vmDataTable = $(vm.table).DataTable(options);
+            $(vm.table).on('page.dt', function () {
                 vm.vmDataTable.columns.adjust().responsive.recalc();
             } );
             $(vm.table).on('drawDatatable', function(){

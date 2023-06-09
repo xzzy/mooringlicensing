@@ -410,53 +410,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         """
         Retrieve all the fee_items for this vessel
         """
+        logger.info(f'Adjusting the fee amount for proposal: {self.lodgement_number}, fee_item: [{fee_item_being_applied}], vessel_length: {vessel_length}')
+
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
         if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,) or fee_item_being_applied.application_type == annual_admission_type:
             # When amendment or adjusting an AA component, amount needs to be adjusted
             fee_amount_adjusted = fee_amount_adjusted - max_amount_paid
-            logger.info('Deduct {} from {}'.format(fee_item_being_applied, max_amount_paid))
-            fee_amount_adjusted = Decimal('0.00') if fee_amount_adjusted <= 0 else fee_amount_adjusted
 
-            logger.info('Adjusting the fee amount for proposal: {}, fee_item: {}, vessel_length: {}'.format(self.lodgement_number, fee_item_being_applied, vessel_length))
+            logger.info(f'Deduct {max_amount_paid} from {fee_amount_adjusted}')
+
+            fee_amount_adjusted = Decimal('0.00') if fee_amount_adjusted <= 0 else fee_amount_adjusted
         else:
             pass
 
         return fee_amount_adjusted
-
-    #    def get_max_amounts_paid_in_this_season(self, target_date, for_aa_component=False):
-#        """
-#        Return max amount paid per application_type
-#        """
-#        prev_application = self.previous_application
-#
-#        # Search through the history of proposals of the self.approval
-#        max_amounts_paid = self.get_max_amounts_paid(prev_application)
-#
-#        # For AAP component, we also have to search all the AAP components paid for this vessel in this season.
-#        if for_aa_component and self.vessel_details:
-#            # We need to search for the AA component, and this is not null vessel application
-#            annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
-#            max_amount_paid_for_aap = 0
-#            current_approvals = self.vessel_details.vessel.get_current_aaps(target_date)
-#
-#            for approval in current_approvals:
-#                # Current approval exists
-#                max_amounts_paid2 = self.get_max_amounts_paid(approval.current_proposal, True)
-#                if annual_admission_type in max_amounts_paid2:
-#                    # When there is an AAP component
-#                    if max_amount_paid_for_aap < max_amounts_paid2[annual_admission_type]:
-#                        # Update variable
-#                        max_amount_paid_for_aap = max_amounts_paid2[annual_admission_type]
-#
-#            if not annual_admission_type in max_amounts_paid:
-#                max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#            else:
-#                if max_amounts_paid[annual_admission_type] < max_amount_paid_for_aap:
-#                    max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#
-#        return max_amounts_paid
 
     def get_max_amount_paid_for_main_component(self):
         max_amount_paid_for_main_component = 0
@@ -473,11 +442,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_main_component
 
     def get_max_amount_paid_for_aa_component(self, target_date, vessel):
-        annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
+        logger.info('Proposal.get_max_amount_paid_for_aa_component is called.')
+
         max_amount_paid_for_aa_component = 0
 
         # Get max amount for AA from this proposal history
-        max_amount_paid = self.get_amount_paid_so_far_for_aa_through_this_proposal(self.previous_application)
+        max_amount_paid = self.get_amount_paid_so_far_for_aa_through_this_proposal(self.previous_application, vessel)  # TODO: Fix, this amount might be paid for another vessel.
         if max_amount_paid_for_aa_component < max_amount_paid:
             max_amount_paid_for_aa_component = max_amount_paid
 
@@ -494,49 +464,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return max_amount_paid_for_aa_component
 
-#    def get_max_amounts_paid_in_this_season(self, target_date, vessel=None):
-#        """
-#        Return max amount paid per application_type
-#        """
-#
-#        # Note:
-#        # self.vessel_details.vessel is used for calculate main component
-#        # parameter vessel is used for additional AA component
-#
-#        prev_application = self.previous_application
-#
-#        # Search through the history of proposals of the self.approval
-#        max_amounts_paid = self.get_max_amounts_paid(prev_application, None)  # None: we don't mind vessel for main component
-#
-#        # For AAP component, we also have to search all the AAP components paid for this vessel in this season.
-#        if not vessel and self.vessel_details:
-#            # When vessel not specified, but vessel is set to this proposal
-#            vessel = self.vessel_details.vessel
-#
-#        if vessel:
-#            # We need to search for the AA component, and this is not null vessel application
-#            annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
-#            max_amount_paid_for_aap = 0
-#            current_approvals = vessel.get_current_aaps(target_date)
-#
-#            for approval in current_approvals:
-#                # Current approval exists
-#                max_amounts_paid2 = self.get_max_amounts_paid(approval.current_proposal, vessel)  # We mind vessel for AA component
-#                if annual_admission_type in max_amounts_paid2:
-#                    # When there is an AAP component
-#                    if max_amount_paid_for_aap < max_amounts_paid2[annual_admission_type]:
-#                        # Update variable
-#                        max_amount_paid_for_aap = max_amounts_paid2[annual_admission_type]
-#
-#            if not annual_admission_type in max_amounts_paid:
-#                max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#            else:
-#                if max_amounts_paid[annual_admission_type] < max_amount_paid_for_aap:
-#                    max_amounts_paid[annual_admission_type] = max_amount_paid_for_aap
-#
-#        return max_amounts_paid
-
-    def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal):
+    def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
@@ -552,6 +480,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         if fee_item_application_fee.application_type == annual_admission_type:
                             # We are interested only in the AnnualAdmission component
                             target_vessel = fee_item_application_fee.vessel_details.vessel
+                            if target_vessel != vessel:
+                                # This fee_item_application_fee is not for the vessel we are looking at.
+                                continue
                             current_approvals = target_vessel.get_current_approvals(target_date)
                             for key, qs in current_approvals.items():
                                 # We want to exclude the approval being amended(modified)
@@ -832,6 +763,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         application_fee = self.get_main_application_fee()
         if application_fee:
             start_date = application_fee.fee_constructor.start_date
+        elif self.fee_season:
+            # application_fee can be None when there are no charges for this proposal i.e. AU doesn't charge anything when ML exists for the same vessel.
+            start_date = self.fee_season.start_date
         return start_date
 
     @property
@@ -843,6 +777,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         application_fee = self.get_main_application_fee()
         if application_fee:
             end_date = application_fee.fee_constructor.end_date
+        elif self.fee_season:
+            # application_fee can be None when there are no charges for this proposal i.e. AU doesn't charge anything when ML exists for the same vessel.
+            end_date = self.fee_season.end_date
         return end_date
 
     @property
@@ -1706,7 +1643,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=request)
 
                         #--- Reflect any changes made in the function above (update_or_create_approval) ---#
-                        self.approval.refresh_from_db()
+                        if self.approval:
+                            self.approval.refresh_from_db()
                         self.refresh_from_db()  # Reflect child_ojb's attributes, such as processing_status, to this proposal object.
                         self.child_obj.refresh_from_db()
                         #-------------------------------#
@@ -1924,6 +1862,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.approval = self.approval
                 proposal.null_vessel_on_create = not self.vessel_on_proposal()
 
+                logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')
+
                 self.proposal_applicant.copy_self_to_proposal(proposal)
 
                 proposal.save(no_revision=True)
@@ -1940,6 +1880,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             previous_proposal = self
             try:
+                logger.info(f'Renewing approval: [{self.approval}]...')
+
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL)
@@ -1981,6 +1923,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             previous_proposal = self
             try:
+                logger.info(f'Amending approval: [{self.approval}]...')
+
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
@@ -2109,6 +2053,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return type_list
 
     def get_target_date(self, applied_date):
+        logger.info(f'Proposal.get_target_date() is called with the parameter applied_date: {applied_date}')
+
         if self.proposal_type.code == settings.PROPOSAL_TYPE_AMENDMENT:
             if applied_date < self.approval.latest_applied_season.start_date:
                 # This amendment application is being applied after the renewal but before the new season starts
@@ -2361,13 +2307,15 @@ class WaitingListApplication(Proposal):
         """
         Create the ledger lines - line item for application fee sent to payment system
         """
+        logger.info('WaitingListApplication.create_fee_lines() is called')
+
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
 
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
         target_date = self.get_target_date(current_datetime.date())
-        logger.info('Creating fee lines for the proposal: {}, target date: {}'.format(self.lodgement_number, target_date))
+        logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self, target_date))
 
         # Any changes to the DB should be made after the success of payment process
         db_processes_after_success = {}
@@ -2389,9 +2337,13 @@ class WaitingListApplication(Proposal):
                 logger.error(msg)
                 raise Exception(msg)
 
+        logger.info(f'vessel_length: {vessel_length}')
+
         # Retrieve FeeItem object from FeeConstructor object
-        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type,
-                                                                                          target_date)
+        fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
+
+        logger.info(f'FeeConstructor (for main component(WL)): {fee_constructor}')
+
         if not fee_constructor:
             # Fees have not been configured for this application type and date
             msg = 'FeeConstructor object for the ApplicationType: {} not found for the date: {} for the application: {}'.format(
@@ -2401,9 +2353,12 @@ class WaitingListApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+
+        logger.info(f'Max amount paid (for main component(WL)): {max_amount_paid}')
+        logger.info(f'FeeItem (for main component(WL)): {fee_item}')
+        logger.info(f'Fee amount adjusted (for main component(WL)): {fee_amount_adjusted}')
 
         db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
         db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
@@ -2415,7 +2370,7 @@ class WaitingListApplication(Proposal):
         line_items.append(
             generate_line_item(application_type, fee_amount_adjusted, fee_constructor, self, current_datetime))
 
-        logger.info('{}'.format(line_items))
+        logger.info(f'line_items calculated: {line_items}')
 
         return line_items, db_processes_after_success
 
@@ -2557,6 +2512,8 @@ class AnnualAdmissionApplication(Proposal):
         """
         Create the ledger lines - line item for application fee sent to payment system
         """
+        logger.info('AnnualAdmissionApplication.create_fee_lines() is called')
+
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
 
@@ -2565,7 +2522,7 @@ class AnnualAdmissionApplication(Proposal):
         target_date = self.get_target_date(current_datetime.date())
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
-        logger.info('Creating fee lines for the proposal: {}, target date: {}'.format(self.lodgement_number, target_date))
+        logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self, target_date))
 
         # Any changes to the DB should be made after the success of payment process
         db_processes_after_success = {}
@@ -2585,8 +2542,13 @@ class AnnualAdmissionApplication(Proposal):
                 logger.error(msg)
                 raise Exception(msg)
 
+        logger.info(f'vessel_length: {vessel_length}')
+
         # Retrieve FeeItem object from FeeConstructor object
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(self.application_type, target_date)
+
+        logger.info(f'FeeConstructor (for main component(AA)): {fee_constructor}')
+
         if self.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
             # There is also annual admission fee component for the AUA/MLA.
             fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
@@ -2603,9 +2565,12 @@ class AnnualAdmissionApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+
+        logger.info(f'Max amount paid (for main component(AA)): {max_amount_paid}')
+        logger.info(f'FeeItem (for main component(AA)): {fee_item}')
+        logger.info(f'Fee amount adjusted (for main component(AA)): {fee_amount_adjusted}')
 
         db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
         db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
@@ -2616,7 +2581,7 @@ class AnnualAdmissionApplication(Proposal):
         line_items = []
         line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor, self, current_datetime))
 
-        logger.info('{}'.format(line_items))
+        logger.info(f'line_items calculated: {line_items}')
 
         return line_items, db_processes_after_success
 
@@ -2745,6 +2710,8 @@ class AuthorisedUserApplication(Proposal):
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
+        logger.info('AuthorisedUserApplication.create_fee_lines() is called')
+
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
 
@@ -2753,7 +2720,7 @@ class AuthorisedUserApplication(Proposal):
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
         accept_null_vessel = False
 
-        logger.info('Creating fee lines for the proposal: {}, target date: {}'.format(self.lodgement_number, target_date))
+        logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self, target_date))
 
         if self.vessel_details:
             vessel_length = self.vessel_details.vessel_applicable_length
@@ -2769,9 +2736,14 @@ class AuthorisedUserApplication(Proposal):
                 logger.error(msg)
                 raise Exception(msg)
 
+        logger.info(f'vessel_length: {vessel_length}')
+
         # Retrieve FeeItem object from FeeConstructor object
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(self.application_type, target_date)
         fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+
+        logger.info(f'FeeConstructor (for main component(AU)): {fee_constructor}')
+        logger.info(f'FeeConstructor (for AA component): {fee_constructor_for_aa}')
 
         # There is also annual admission fee component for the AUA/MLA if needed.
         ml_exists_for_this_vessel = False
@@ -2785,10 +2757,15 @@ class AuthorisedUserApplication(Proposal):
                     ml_exists_for_this_vessel = True
 
             if ml_exists_for_this_vessel:
+                logger.info(f'ML for the vessel: {self.vessel_details.vessel} exists. No charges for the AUP: {self}')
+
                 # When there is 'current' ML, no charge for the AUP
-                # But before leave here, we just want to store the fee_season user is applying for.
+                # But before leaving here, we want to store the fee_season under this application the user is applying for.
                 self.fee_season = fee_constructor.fee_season
                 self.save()
+
+                logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
+
                 return [], {}  # no line items, no db process
         else:
             # Null vessel application
@@ -2799,9 +2776,13 @@ class AuthorisedUserApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+
+        logger.info(f'Max amount paid (for main component(AU)): {max_amount_paid}')
+        logger.info(f'FeeItem (for main component(AU)): {fee_item}')
+        logger.info(f'Fee amount adjusted (for main component(AU)): {fee_amount_adjusted}')
+
         fee_items_to_store.append({
             'fee_item_id': fee_item.id,
             'vessel_details_id': self.vessel_details.id if self.vessel_details else '',
@@ -2814,6 +2795,11 @@ class AuthorisedUserApplication(Proposal):
             max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, self.vessel_details.vessel)
             fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
             fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+
+            logger.info(f'Max amount paid (for AA component): {max_amount_paid}')
+            logger.info(f'FeeItem (for AA component): {fee_item_for_aa}')
+            logger.info(f'Fee amount adjusted (for AA component): {fee_amount_adjusted_additional}')
+
             fee_items_to_store.append({
                 'fee_item_id': fee_item_for_aa.id,
                 'vessel_details_id': self.vessel_details.id if self.vessel_details else '',
@@ -2821,7 +2807,7 @@ class AuthorisedUserApplication(Proposal):
             })
             line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime))
 
-        logger.info('{}'.format(line_items))
+        logger.info(f'line_items calculated: {line_items}')
 
         return line_items, fee_items_to_store
 
@@ -2939,6 +2925,7 @@ class AuthorisedUserApplication(Proposal):
                 send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
+        logger.info(f'AuthorisedUserApplication.update_or_create_approval() is called')
         # This function is called after payment success for new/amendment/renewal application
 
         created = None
@@ -3163,6 +3150,8 @@ class MooringLicenceApplication(Proposal):
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
+        logger.info('MooringLicenceApplication.create_fee_lines() is called')
+
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
 
@@ -3171,11 +3160,14 @@ class MooringLicenceApplication(Proposal):
         target_date = self.get_target_date(current_datetime.date())
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
-        logger.info('Creating fee lines for the proposal: {}, target date: {}'.format(self.lodgement_number, target_date))
+        logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self.lodgement_number, target_date))
 
         # Retrieve FeeItem object from FeeConstructor object
         fee_constructor_for_ml = FeeConstructor.get_fee_constructor_by_application_type_and_date(self.application_type, target_date)
         fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+
+        logger.info(f'FeeConstructor (for main component(ML)): {fee_constructor_for_ml}')
+        logger.info(f'FeeConstructor (for AA component): {fee_constructor_for_aa}')
 
         vessel_detais_list_to_be_processed = [self.vessel_details,]
         vessel_details_largest = self.vessel_details
@@ -3206,11 +3198,17 @@ class MooringLicenceApplication(Proposal):
                 logger.error(msg)
                 raise Exception(msg)
 
+        logger.info(f'Largest vessel_length: {vessel_length}')
+
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-
         fee_item = fee_constructor_for_ml.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+
+        logger.info(f'Max amount paid (for main component(ML)): {max_amount_paid}')
+        logger.info(f'FeeItem (for main component(ML)): {fee_item}')
+        logger.info(f'Fee amount adjusted (for main component(ML)): {fee_amount_adjusted}')
+
         fee_items_to_store.append({
             'fee_item_id': fee_item.id,
             'vessel_details_id': vessel_details_largest.id if vessel_details_largest else '',
@@ -3226,6 +3224,11 @@ class MooringLicenceApplication(Proposal):
             # Check if there is already an AA component paid for this vessel
             fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
             fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+
+            logger.info(f'Max amount paid (for AA component): {max_amount_paid}')
+            logger.info(f'FeeItem (for AA component): {fee_item_for_aa}')
+            logger.info(f'Fee amount adjusted (for AA component): {fee_amount_adjusted_additional}')
+
             fee_items_to_store.append({
                 'fee_item_id': fee_item_for_aa.id,
                 'vessel_details_id': vessel_details.id if vessel_details else '',
@@ -3233,7 +3236,7 @@ class MooringLicenceApplication(Proposal):
             })
             line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
 
-        logger.info('{}'.format(line_items))
+        logger.info(f'line_items calculated: {line_items}')
 
         return line_items, fee_items_to_store
 
@@ -3356,6 +3359,7 @@ class MooringLicenceApplication(Proposal):
             send_documents_upload_for_mooring_licence_application_email(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
+        logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
             if self.approval and self.approval.child_obj.mooring:
@@ -3693,9 +3697,11 @@ class MooringUserAction(UserAction):
 
     @classmethod
     def log_action(cls, mooring, action, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
         return cls.objects.create(
             mooring=mooring,
-            who=user.id if user else None,
+            who=user if user else None,
             what=str(action)
         )
 

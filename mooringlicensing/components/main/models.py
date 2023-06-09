@@ -180,7 +180,7 @@ class GlobalSettings(models.Model):
         KEY_ML_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML.docx'),
         KEY_ML_AU_LIST_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML - AU Summary.docx'),
         KEY_MINIMUM_VESSEL_LENGTH: 3.75,
-        KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.50,
+        KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.40,
         KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
         KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST: 'LicencesAndPermitsTable, ApplicationsTable, CompliancesTable, WaitingListTable, AuthorisedUserApplicationsTable',
     }

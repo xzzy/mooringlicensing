@@ -371,6 +371,8 @@ class Approval(RevisionedMixin):
         return ''
 
     def write_approval_history(self, reason=None):
+        logger.info(f'Writing the approval history of the approval: [{self}]...')
+
         history_count = self.approvalhistory_set.count()
         if not history_count:
             new_approval_history_entry = ApprovalHistory.objects.create(
@@ -888,6 +890,7 @@ class Approval(RevisionedMixin):
     def get_fee_items(self):
         fee_items = []
         for proposal in self.proposal_set.all():
+            logger.info(f'proposal.fee_season: {proposal.fee_season}')
             for application_fee in proposal.application_fees.all():
                 if application_fee.fee_items:
                     for fee_item in application_fee.fee_items.all():
@@ -901,12 +904,22 @@ class Approval(RevisionedMixin):
     def latest_applied_season(self):
         latest_applied_season = None
 
-        for fee_item in self.get_fee_items():
-            if latest_applied_season:
-                if latest_applied_season.end_date < fee_item.fee_period.fee_season.end_date:
+        if self.get_fee_items():
+            for fee_item in self.get_fee_items():
+                if latest_applied_season:
+                    if latest_applied_season.end_date < fee_item.fee_period.fee_season.end_date:
+                        latest_applied_season = fee_item.fee_period.fee_season
+                else:
                     latest_applied_season = fee_item.fee_period.fee_season
-            else:
-                latest_applied_season = fee_item.fee_period.fee_season
+        else:
+            logger.info(f'No FeeItems found under the Approval: {self}.  Probably because the approval is AUP and the ML for the same vessel exists.')
+            for proposal in self.proposal_set.all():
+                if proposal.fee_season:
+                    if latest_applied_season:
+                        if latest_applied_season.end_date < proposal.fee_season.end_date:
+                            latest_applied_season = proposal.fee_season
+                    else:
+                        latest_applied_season = proposal.fee_season
 
         return latest_applied_season
 
@@ -1262,7 +1275,7 @@ class AuthorisedUserPermit(Approval):
             context = {
                 'approval': self,
                 'application': self.current_proposal,
-                'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+                'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
                 'applicant_name': self.submitter_obj.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
@@ -1274,7 +1287,7 @@ class AuthorisedUserPermit(Approval):
                 'vessel_length': vessel_length,
                 'vessel_draft': vessel_draft,
                 'moorings': moorings,  # m.name, m.licensee_full_name, m.licensee_email, m.licensee_phone
-                'expiry_date': self.expiry_date.strftime('%d/%m/%Y'),
+                'expiry_date': self.expiry_date.strftime('%d/%m/%Y') if self.expiry_date else '',
                 'public_url': get_public_url(),
             }
             return context
@@ -1993,7 +2006,7 @@ class ApprovalUserAction(UserAction):
     ACTION_AMEND_APPROVAL = "Create amendment Application for approval {}"
     ACTION_REISSUE_APPROVAL = "Reissue approval {}"
     ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Licence {}"
-    ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval {}"
+    ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval: {}"
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2117,6 +2130,8 @@ class DcvAdmission(RevisionedMixin):
         return urls
 
     def create_fee_lines(self):
+        logger.info('DcvAdmission.create_fee_lines() is called')
+
         db_processes_after_success = {}
 
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -2304,6 +2319,7 @@ class DcvPermit(RevisionedMixin):
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
+        logger.info('DcvPermit.create_fee_lines() is called')
 
         # Any changes to the DB should be made after the success of payment process
         db_processes_after_success = {}
