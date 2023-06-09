@@ -33,7 +33,7 @@ cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'Send Approval renewal notice when approval is due to expire in 30 days'
+    help = 'Send Approval renewal notice when approval is due to expire in X days'
 
     def perform_per_type(self, number_of_days_code, approval_class, updates, errors):
         today = timezone.localtime(timezone.now()).date()
@@ -69,7 +69,13 @@ class Command(BaseCommand):
                 if approval_class == DcvPermit:
                     pass
                 else:
-                    a.generate_renewal_doc()
+                    v_details = a.current_proposal.latest_vessel_details
+                    v_ownership = a.current_proposal.vessel_ownership
+                    if v_details and not v_ownership.end_date:
+                        a.generate_renewal_doc()
+                    else:
+                        # When no vessel, renewal would not be offered
+                        continue
                 send_approval_renewal_email_notification(a)
                 a.renewal_sent = True
                 a.save()
