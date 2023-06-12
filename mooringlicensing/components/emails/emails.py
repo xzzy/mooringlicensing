@@ -59,6 +59,8 @@ class TemplateEmailBase(object):
         :param cc:
         :return:
         """
+        logger.info(f'TemplateEmailBase.send() is called with the subject: {self.subject}')
+
         email_instance = env('EMAIL_INSTANCE','DEV')
         # The next line will throw a TemplateDoesNotExist if html template cannot be found
         html_template = loader.get_template(self.html_template)
