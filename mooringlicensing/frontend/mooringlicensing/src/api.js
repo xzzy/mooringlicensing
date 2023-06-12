@@ -2,6 +2,8 @@
 module.exports = {
     application_types:"/api/application_types",
     application_types_dict:"/api/application_types_dict",
+    application_categories:"/api/application_categories",
+    application_categories_dict:"/api/application_categories_dict",
     application_statuses_dict:"/api/application_statuses_dict",
     wla_allowed:"/api/wla_allowed",
     applicants_dict: "/api/applicants_dict",

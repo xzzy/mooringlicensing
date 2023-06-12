@@ -334,6 +334,19 @@ class GetApplicationTypeDict(views.APIView):
         return Response(data)
 
 
+class GetApplicationCategoryDict(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        apply_page = request.GET.get('apply_page', 'false')
+        apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
+        data = cache.get('application_category_dict')
+        if not data:
+            cache.set('application_category_dict',Proposal.application_categories_dict(apply_page=apply_page), settings.LOV_CACHE_TIMEOUT)
+            data = cache.get('application_category_dict')
+        return Response(data)
+
+
 class GetApplicationStatusesDict(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
@@ -422,6 +435,15 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 filter_query &= Q(id__in=aaa_list)
             elif filter_application_type == 'wla':
                 filter_query &= Q(id__in=wla_list)
+
+        filter_application_category = request.GET.get('filter_application_category')
+        if filter_application_category and not filter_application_category.lower() == 'all':
+            if filter_application_category == 'new':
+                filter_query &= Q(proposal_type__code=settings.PROPOSAL_TYPE_NEW)
+            elif filter_application_category == 'amendment':
+                filter_query &= Q(proposal_type__code=settings.PROPOSAL_TYPE_AMENDMENT)
+            elif filter_application_category == 'renewal':
+                filter_query &= Q(proposal_type__code=settings.PROPOSAL_TYPE_RENEWAL)
 
         filter_application_status = request.GET.get('filter_application_status')
         if filter_application_status and not filter_application_status.lower() == 'all':
