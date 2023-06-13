@@ -410,7 +410,7 @@ class VesselMigration(object):
                             ua=ProposalUserAction.objects.create(
                                 proposal=proposal,
                                 who=user,
-                                what='Mooring Licence - Migrated Application',
+                                what='Mooring Site Licence - Migrated Application',
                             )
 
                             vooa = VesselOwnershipOnApproval.objects.create(

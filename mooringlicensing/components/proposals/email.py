@@ -535,7 +535,7 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     # email to assessor group when invite to apply for a mooring licence is expired, either because mooring licence is not submitted or additional documents are not submitted
     # (internal)
     email = TemplateEmailBase(
-        subject='Expired mooring licence application - not submitted on time',
+        subject='Expired mooring site licence application - not submitted on time',
         html_template='mooringlicensing/emails_2/email_14.html',
         txt_template='mooringlicensing/emails_2/email_14.txt',
     )

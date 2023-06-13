@@ -19,7 +19,8 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME
+from mooringlicensing.settings import TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME, GROUP_ASSESSOR_MOORING_LICENCE, \
+    GROUP_APPROVER_MOORING_LICENCE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 # from ledger_api_client.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
@@ -2301,7 +2302,7 @@ class WaitingListApplication(Proposal):
     code = 'wla'
     prefix = 'WL'
 
-    new_application_text = "I want to be included on the waiting list for a mooring license"
+    new_application_text = "I want to be included on the waiting list for a mooring site licence"
 
     apply_page_visibility = True
     description = 'Waiting List Application'
@@ -3152,7 +3153,7 @@ class MooringLicenceApplication(Proposal):
     prefix = 'ML'
     new_application_text = ""
     apply_page_visibility = False
-    description = 'Mooring Licence Application'
+    description = 'Mooring Site Licence Application'
 
     # This uuid is used to generate the URL for the ML document upload page
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
@@ -3210,7 +3211,7 @@ class MooringLicenceApplication(Proposal):
                 accept_null_vessel = True
             else:
                 # msg = 'No vessel specified for the application {}'.format(self.lodgement_number)
-                msg = 'The application fee admin data has not been set up correctly for the Mooring Licence application type.  Please contact the Rottnest Island Authority.'
+                msg = 'The application fee admin data has not been set up correctly for the Mooring Site Licence application type.  Please contact the Rottnest Island Authority.'
                 logger.error(msg)
                 raise Exception(msg)
 
@@ -3300,12 +3301,12 @@ class MooringLicenceApplication(Proposal):
     @property
     def assessor_group(self):
         # return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
-        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_ASSESSOR_MOORING_LICENCE)
 
     @property
     def approver_group(self):
         # return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
-        return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_APPROVER_MOORING_LICENCE)
 
     @property
     def assessor_recipients(self):
@@ -3704,8 +3705,8 @@ class MooringLogEntry(CommunicationsLogEntry):
         app_label = 'mooringlicensing'
 
 class MooringUserAction(UserAction):
-    ACTION_ASSIGN_MOORING_LICENCE = "Assign Mooring Licence {}"
-    ACTION_SWITCH_MOORING_LICENCE = "Remove existing Mooring Licence {} and assign {}"
+    ACTION_ASSIGN_MOORING_LICENCE = "Assign Mooring Site Licence {}"
+    ACTION_SWITCH_MOORING_LICENCE = "Remove existing Mooring Site Licence {} and assign {}"
 
     class Meta:
         app_label = 'mooringlicensing'

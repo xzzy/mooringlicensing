@@ -308,7 +308,7 @@ export default {
         mooringLicenceCurrentVesselDisplayText: function () {
             let displayText = '';
             if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                displayText += `Your mooring licence ${this.proposal.approval_lodgement_number}
+                displayText += `Your mooring site licence ${this.proposal.approval_lodgement_number}
                     currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}.`;
             }
             return displayText;

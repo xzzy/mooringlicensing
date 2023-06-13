@@ -116,6 +116,16 @@ class DefaultDataManager(object):
         #     except Exception as e:
         #         logger.error('{}, Group name: {}'.format(e, group_name))
 
+        # Change the existing text 'Mooring Licnece' to 'Mooring Site Licence'
+        approver_ml = ledger_api_client.managed_models.SystemGroup.objects.filter(name='Mooring Licensing - Approvers: Mooring Licence')
+        if approver_ml:
+            approver_ml[0].name = 'Mooring Licensing - Approvers: Mooring Site Licence'
+            approver_ml[0].save()
+        approver_ml = ledger_api_client.managed_models.SystemGroup.objects.filter(name='Mooring Licensing - Assessors: Mooring Licence')
+        if approver_ml:
+            approver_ml[0].name = 'Mooring Licensing - Assessors: Mooring Site Licence'
+            approver_ml[0].save()
+
         # SystemGroup  # For the segregated system, use the SystemGroup.
         for group_name in settings.CUSTOM_GROUPS:
             try:

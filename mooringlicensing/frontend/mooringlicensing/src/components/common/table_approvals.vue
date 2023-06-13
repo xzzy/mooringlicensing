@@ -284,7 +284,7 @@ export default {
                     'Vessel length',
                     'Vessel draft',
                     'Vessel Rego',
-                    'Mooring Licence Applications',
+                    'Mooring Site Licence Applications',
                 ]
             } else if (this.is_internal) {
                 return [
@@ -646,7 +646,7 @@ export default {
                             } else if (full.approval_type_dict.code === 'aap'){
                                 approval_letter_name = 'Annual Admission Permit'
                             } else if (full.approval_type_dict.code === 'ml'){
-                                approval_letter_name = 'Mooring Licence'
+                                approval_letter_name = 'Mooring Site Licence'
                             }
                             let ret_elems = `<div><a href='${full.licence_document}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> ${approval_letter_name}</a></div>`;
                             if (full.authorised_user_summary_document){
@@ -894,7 +894,7 @@ export default {
             console.log("refreshFromResponse");
             await swal({
                 title: "Saved",
-                text: 'Mooring Licence Application ' + lodgementNumber + ' has been created',
+                text: 'Mooring Site Licence Application ' + lodgementNumber + ' has been created',
                 type:'success'
             });
             await this.$refs.approvals_datatable.vmDataTable.ajax.reload();
