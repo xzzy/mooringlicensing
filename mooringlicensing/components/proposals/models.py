@@ -2052,6 +2052,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return type_list
 
+    @classmethod
+    def application_categories_dict(cls, apply_page):
+        category_list = []
+        for category in settings.PROPOSAL_TYPES:
+            category_list.append({
+                "code": category['code'],
+                "description": category['description'],
+            })
+        return category_list
+
     def get_target_date(self, applied_date):
         logger.info(f'Proposal.get_target_date() is called with the parameter applied_date: {applied_date}')
 
