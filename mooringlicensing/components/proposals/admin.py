@@ -118,7 +118,8 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
 
     def get_actions(self, request):
         actions = super(StickersPrintingBatchAdmin, self).get_actions(request)
-        del actions["delete_selected"]
+        if 'delete_selected' in actions:
+            del actions["delete_selected"]
         return actions
 
     def has_add_permission(self, request):
@@ -166,7 +167,8 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
 
     def get_actions(self, request):
         actions = super(StickersPrintingResponseAdmin, self).get_actions(request)
-        del actions["delete_selected"]
+        if 'delete_selected' in actions:
+            del actions["delete_selected"]
         return actions
 
     def has_add_permission(self, request):
