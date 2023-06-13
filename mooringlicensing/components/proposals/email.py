@@ -796,7 +796,8 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
         cc_list = proposal.proposed_issuance_approval.get('cc_email')
         if cc_list:
             all_ccs = cc_list.split(',')
-        attach_invoice = False
+        # attach_invoice = False
+        attach_invoice = True if proposal.auto_approve else False
         attach_licence_doc = True
     elif decision == 'declined':
         subject = 'Your annual admission application {} has been declined'.format(proposal.lodgement_number)
@@ -804,7 +805,8 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
         cc_list = proposal.proposaldeclineddetails.cc_email
         if cc_list:
             all_ccs = cc_list.split(',')
-        attach_invoice = False
+        # attach_invoice = False
+        attach_invoice = True if proposal.auto_approve else False
         attach_licence_doc = False
     else:
         logger.warning('Decision is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))

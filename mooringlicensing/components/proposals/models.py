@@ -2469,10 +2469,13 @@ class WaitingListApplication(Proposal):
             if invoice_pdf.status_code == 200:
                 attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
                 attachments.append(attachment)
-        ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
-        if not self.auto_approve:
-            send_notification_email_upon_submit_to_assessor(request, self, attachments)
-        return ret_value
+        try:
+            ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
+            if not self.auto_approve:
+                send_notification_email_upon_submit_to_assessor(request, self, attachments)
+        except Exception as e:
+            logger.exception("Error when sending confirmation/notification email upon submit.", exc_info=True)
+
 
     @property
     def does_accept_null_vessel(self):
@@ -2678,10 +2681,13 @@ class AnnualAdmissionApplication(Proposal):
             if invoice_pdf.status_code == 200:
                 attachment = (f'invoice#{self.invoice.reference}', invoice_pdf.content, 'application/pdf')
                 attachments.append(attachment)
-        ret_value = send_confirmation_email_upon_submit(request, self, True, attachments)
         if not self.auto_approve:
-            send_notification_email_upon_submit_to_assessor(request, self, attachments)
-        return ret_value
+            try:
+                send_confirmation_email_upon_submit(request, self, True, attachments)
+                send_notification_email_upon_submit_to_assessor(request, self, attachments)
+            except Exception as e:
+                logger.exception("Error when sending confirmation/notification email upon submit.", exc_info=True)
+
 
     def process_after_approval(self, request=None, total_amount=0):
         pass

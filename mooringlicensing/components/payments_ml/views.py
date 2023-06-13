@@ -946,9 +946,10 @@ class ApplicationFeeSuccessViewPreload(APIView):
                             proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                             proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id), request)
 
-                            ret1 = proposal.child_obj.send_emails_after_payment_success(request)
-                            if not ret1:
-                                raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
+                            proposal.child_obj.send_emails_after_payment_success(request)
+                            # ret1 = proposal.child_obj.send_emails_after_payment_success(request)
+                            # if not ret1:
+                            #     raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
                             proposal.save()
 
                         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
