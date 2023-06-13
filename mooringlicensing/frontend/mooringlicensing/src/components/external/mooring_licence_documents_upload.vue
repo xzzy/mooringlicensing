@@ -1,8 +1,8 @@
 <template>
     <div class="container">
-        <FormSection 
-            :formCollapse="false" 
-            label="Other documents" 
+        <FormSection
+            :formCollapse="false"
+            label="Other documents"
             Index="other_documents"
         >
             <div class="row form-group">
@@ -13,7 +13,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-5 control-label">Copy of current mooring report</label>
                 <div class="col-sm-7">
-                    <FileField 
+                    <FileField
                         ref="mooring_report_documents"
                         name="mooring-report-documents"
                         :isRepeatable="true"
@@ -26,7 +26,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-5 control-label">Written proof of finalisation concerning the ownership of the mooring apparatus between you and the previous licensee</label>
                 <div class="col-sm-7">
-                    <FileField 
+                    <FileField
                         ref="written_proof_documents"
                         name="written-proof-documents"
                         :isRepeatable="true"
@@ -39,7 +39,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-5 control-label">Signed licence agreement</label>
                 <div class="col-sm-7">
-                    <FileField 
+                    <FileField
                         ref="signed_licence_agreement_documents"
                         name="signed-licence-agreement-documents"
                         :isRepeatable="true"
@@ -52,7 +52,7 @@
             <div class="row form-group">
                 <label for="" class="col-sm-5 control-label">Proof of Identity</label>
                 <div class="col-sm-7">
-                    <FileField 
+                    <FileField
                         ref="proof_of_identity_documents"
                         name="proof-of-identity-documents"
                         :isRepeatable="true"
@@ -164,7 +164,7 @@ export default {
             vm.submitting = true;
 
             swal({
-                title: "Other Documents for Mooring Licence Application",
+                title: "Other Documents for Mooring Site Licence Application",
                 text: "Are you sure you want to submit the documents?",
                 type: "question",
                 showCancelButton: true,

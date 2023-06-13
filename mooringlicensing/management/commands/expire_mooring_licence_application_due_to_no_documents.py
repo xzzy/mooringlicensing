@@ -20,14 +20,9 @@ cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'Expire mooring licence application if additional documents are not submitted within a configurable number of days from the initial submit of the mooring licence application and email to inform the applicant'
+    help = 'Expire mooring site licence application if additional documents are not submitted within a configurable number of days from the initial submit of the mooring licence application and email to inform the applicant'
 
     def handle(self, *args, **options):
-        try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-        except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
-
         errors = []
         updates = []
         today = timezone.localtime(timezone.now()).date()

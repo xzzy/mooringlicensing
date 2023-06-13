@@ -3,7 +3,7 @@
 {% block content_body %}
 Dear {{ recipient.first_name }} {{ recipient.last_name }},
 
-Your opportunity to apply for a mooring licence has been discarded as you did not submit your mooring licence application before this date. Your Waiting List Allocation will remain current but has been moved to the back of the queue.
+Your opportunity to apply for a mooring site licence has been discarded as you did not submit your mooring site licence application before this date. Your Waiting List Allocation will remain current but has been moved to the back of the queue.
 
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}
@@ -17,7 +17,7 @@ Your opportunity to apply for a mooring licence has been discarded as you did no
 {% block content %}
     {{ proposal.submitter }},
     <p>
-        Your mooring licence application: {{ proposal.lodgement_number }} has been expired.
+        Your mooring site licence application: {{ proposal.lodgement_number }} has been expired.
     </p>
 
     Regards,

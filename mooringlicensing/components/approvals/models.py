@@ -211,8 +211,8 @@ class Approval(RevisionedMixin):
     INTERNAL_STATUS_SUBMITTED = 'submitted' #c - no change to queue #y
     INTERNAL_STATUS_CHOICES = (
         (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
-        (INTERNAL_STATUS_OFFERED, 'Mooring Licence offered'),
-        (INTERNAL_STATUS_SUBMITTED, 'Mooring Licence application submitted'),
+        (INTERNAL_STATUS_OFFERED, 'Mooring Site Licence offered'),
+        (INTERNAL_STATUS_SUBMITTED, 'Mooring Site Licence application submitted'),
         )
     lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
@@ -1612,7 +1612,7 @@ class MooringLicence(Approval):
     approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)
     code = 'ml'
     prefix = 'MOL'
-    description = 'Mooring Licence'
+    description = 'Mooring Site Licence'
     sticker_colour = 'red'
     template_file_key = GlobalSettings.KEY_ML_TEMPLATE_FILE
 
@@ -1715,7 +1715,7 @@ class MooringLicence(Approval):
             }
             return context
         except Exception as e:
-            msg = 'Mooring Licence: {} cannot generate licence. {}'.format(self.lodgement_number, str(e))
+            msg = 'Mooring Site Licence: {} cannot generate licence. {}'.format(self.lodgement_number, str(e))
             logger.error(msg)
             raise e
 
@@ -2005,7 +2005,7 @@ class ApprovalUserAction(UserAction):
     ACTION_RENEW_APPROVAL = "Create renewal Application for approval {}"
     ACTION_AMEND_APPROVAL = "Create amendment Application for approval {}"
     ACTION_REISSUE_APPROVAL = "Reissue approval {}"
-    ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Licence {}"
+    ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Site Licence {}"
     ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval: {}"
 
     class Meta:

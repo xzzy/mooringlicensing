@@ -280,9 +280,9 @@ GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
 GROUP_ASSESSOR_WAITING_LIST = 'Mooring Licensing - Assessors: Waiting List'
 GROUP_ASSESSOR_ANNUAL_ADMISSION = 'Mooring Licensing - Assessors: Annual Admission'
 GROUP_ASSESSOR_AUTHORISED_USER = 'Mooring Licensing - Assessors: Authorised User'
-GROUP_ASSESSOR_MOORING_LICENCE = 'Mooring Licensing - Assessors: Mooring Licence'
+GROUP_ASSESSOR_MOORING_LICENCE = 'Mooring Licensing - Assessors: Mooring Site Licence'
 GROUP_APPROVER_AUTHORISED_USER = 'Mooring Licensing - Approvers: Authorised User'
-GROUP_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Licence'
+GROUP_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Site Licence'
 GROUP_DCV_PERMIT_ADMIN = 'Mooring Licensing - DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
 CUSTOM_GROUPS = [
     GROUP_MOORING_LICENSING_ADMIN,
@@ -332,19 +332,19 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     {
         'code': CODE_DAYS_BEFORE_PERIOD_MLA,
         'name': 'MLA application submit notification',
-        'description': 'Number of days before end of period in which the mooring licence application needs to be submitted',
+        'description': 'Number of days before end of period in which the mooring site licence application needs to be submitted',
         'default': 14
     },
     {
         'code': CODE_DAYS_IN_PERIOD_MLA,
         'name': 'MLA application submit period',
-        'description': 'Number of days in which the mooring licence application needs to be submitted.',
+        'description': 'Number of days in which the mooring site licence application needs to be submitted.',
         'default': 28
     },  ### 1
     {
         'code': CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA,
         'name': 'MLA documents submit period',
-        'description': 'Number of days in which the additional documents for a mooring licence application needs to be submitted.',
+        'description': 'Number of days in which the additional documents for a mooring site licence application needs to be submitted.',
         'default': 28
     },  ### 2
     {
@@ -409,7 +409,7 @@ ORACLE_CODES = [
     },
     {
         'identifier': ORACLE_CODE_ID_ML,
-        'name': 'Mooring licence fees',
+        'name': 'Mooring site licence fees',
     },
     {
         'identifier': ORACLE_CODE_ID_DCV_PERMIT,

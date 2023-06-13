@@ -5,7 +5,7 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
 
 {% if decision == 'approved' %}
     {% if payment_url %}
-        <p>Your mooring licence application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.
+        <p>Your mooring site licence application {{ proposal.lodgement_number }} has been conditionally approved pending your payment of fees. Please see attached documents for more details.
         {% if stickers_to_be_returned|length > 0 %}
         <p>Please return sticker<br />
             {% for sticker in stickers_to_be_returned %}
@@ -13,12 +13,12 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
             {% endfor %}
         <p>of your old vessel to the Rottnest Island Authority.</p>
         {% endif %}
-        <p>The new sticker(s) for your vessel will be mailed to you once your payment has been received. Please click <a href="{{ payment_url }}">here</a> to pay the fees for your mooring licence.</p>
+        <p>The new sticker(s) for your vessel will be mailed to you once your payment has been received. Please click <a href="{{ payment_url }}">here</a> to pay the fees for your mooring site licence.</p>
         {% if details %}
             <p>Details: {{ details }}</p>
         {% endif %}
     {% else %}
-        <p>Your mooring licence application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
+        <p>Your mooring site licence application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
         {% if stickers_to_be_returned|length > 0 %}
         <p>Please return sticker<br />
             {% for sticker in stickers_to_be_returned %}
@@ -34,7 +34,7 @@ Dear {{ recipient.first_name }} {{ recipient.last_name}},
 {% endif %}
 
 {% if decision == 'declined' %}
-    <p>Your mooring licence application {{ proposal.lodgement_number }} has been declined.</p>
+    <p>Your mooring site licence application {{ proposal.lodgement_number }} has been declined.</p>
     {% if details %}
         <p>Details: {{ details }}</p>
     {% endif %}

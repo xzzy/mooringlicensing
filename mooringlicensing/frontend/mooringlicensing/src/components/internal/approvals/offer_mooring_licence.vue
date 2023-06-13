@@ -26,11 +26,11 @@
                                     <label class="control-label pull-left" for="mooring_site_id">Mooring Site ID</label>
                                 </div>
                                 <div class="col-sm-6">
-                                    <select 
-                                        id="mooring_lookup"  
-                                        name="mooring_lookup"  
-                                        ref="mooring_lookup" 
-                                        class="form-control" 
+                                    <select
+                                        id="mooring_lookup"
+                                        name="mooring_lookup"
+                                        ref="mooring_lookup"
+                                        class="form-control"
                                         style="width: 100%"
                                     />
                                 </div>
@@ -67,7 +67,7 @@
                         <div class="row form-group">
                             <label for="" class="col-sm-3 control-label">Document</label>
                             <div class="col-sm-9">
-                                <FileField 
+                                <FileField
                                     ref="waiting_list_offer_documents"
                                     name="waiting-list-offer-documents"
                                     :isRepeatable="true"
@@ -156,7 +156,7 @@ export default {
         },
         title: function(){
             //return this.processing_status == 'With Approver' ? 'Grant' : 'Propose grant';
-            return "Offer Mooring Licence";
+            return "Offer Mooring Site Licence";
         },
         csrf_token: function() {
           return helpers.getCookie('csrftoken')

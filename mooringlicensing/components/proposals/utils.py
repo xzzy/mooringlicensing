@@ -712,7 +712,7 @@ def submit_vessel_data(instance, request, vessel_data):
         MooringLicenceApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
         MooringLicence.objects.filter(submitter=instance.submitter).filter(status__in=['current', 'suspended']))
         ):
-        raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Licence and Mooring Licence application")
+        raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application")
     elif (type(instance.child_obj) == AnnualAdmissionApplication and (proposals_aaa or approvals_aap or
             proposals_aua or approvals_aup or proposals_mla or approvals_ml)):
         #association_fail = True

@@ -1,3 +1,4 @@
+import django.forms
 from django.contrib import admin
 from django.utils.html import mark_safe
 
@@ -9,7 +10,7 @@ from mooringlicensing.components.main.models import (
 )
 from reversion.admin import VersionAdmin
 from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse, \
-    StickerPrintingContact, StickerPrintedContact
+    StickerPrintingContact, StickerPrintedContact, MooringBay
 
 
 class ProposalDocumentInline(admin.TabularInline):
@@ -75,10 +76,24 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
     form = forms.SystemMaintenanceAdminForm
 
 
+@admin.register(MooringBay)
+class MooringBayAdmin(admin.ModelAdmin):
+    pass
+
+class GlobalSettingsForm(django.forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(GlobalSettingsForm, self).__init__(*args, **kwargs)
+        instance = kwargs.get('instance', None)
+        if instance:
+            if instance.key == GlobalSettings.KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST:
+                self.fields['value'].help_text = 'Arrange the table names below in the order in which you want them to appear on the external dashboard page:<ul><li>LicencesAndPermitsTable</li><li>ApplicationsTable</li><li>CompliancesTable</li><li>WaitingListTable</li><li>AuthorisedUserApplicationsTable</li></ul>'
+
+
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value', '_file',]
     ordering = ('key',)
+    form = GlobalSettingsForm
 
     def get_fields(self, request, obj=None):
         if obj and obj.key in GlobalSettings.keys_for_file:
@@ -118,7 +133,8 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
 
     def get_actions(self, request):
         actions = super(StickersPrintingBatchAdmin, self).get_actions(request)
-        del actions["delete_selected"]
+        if 'delete_selected' in actions:
+            del actions["delete_selected"]
         return actions
 
     def has_add_permission(self, request):
@@ -166,7 +182,8 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
 
     def get_actions(self, request):
         actions = super(StickersPrintingResponseAdmin, self).get_actions(request)
-        del actions["delete_selected"]
+        if 'delete_selected' in actions:
+            del actions["delete_selected"]
         return actions
 
     def has_add_permission(self, request):

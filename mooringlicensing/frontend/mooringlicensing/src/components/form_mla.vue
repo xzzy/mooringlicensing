@@ -2,7 +2,7 @@
     <div class="">
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
-            <h4>Mooring Licence {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
+            <h4>Mooring Site Licence {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
         </div>
 
         <div class="">
@@ -36,9 +36,9 @@
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
-                    <Profile 
-                    :isApplication="true" 
-                    v-if="applicantType == 'SUB'" 
+                    <Profile
+                    :isApplication="true"
+                    v-if="applicantType == 'SUB'"
                     ref="profile"
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
@@ -49,9 +49,9 @@
                     />
                   </div>
                   <div v-else>
-                    <Applicant 
-                        :email_user="proposal.submitter" 
-                        :applicantType="proposal.applicant_type" 
+                    <Applicant
+                        :email_user="proposal.submitter"
+                        :applicantType="proposal.applicant_type"
                         id="proposalStartApplicant"
                         :readonly="readonly"
                         :showElectoralRoll="showElectoralRoll"
@@ -62,16 +62,16 @@
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                   <div v-if="proposal">
-                      <CurrentVessels 
+                      <CurrentVessels
                           :proposal=proposal
                           :readonly=readonly
                           :is_internal=is_internal
                           @resetCurrentVessel=resetCurrentVessel
                           />
                   </div>
-                  <Vessels 
-                  :proposal="proposal" 
-                  :profile="profileVar" 
+                  <Vessels
+                  :proposal="proposal"
+                  :profile="profileVar"
                   :id="'proposalStartVessels' + uuid"
                   :key="'proposalStartVessels' + uuid"
                   :keep_current_vessel=keepCurrentVessel
@@ -87,8 +87,8 @@
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
                   <Insurance
-                  :proposal="proposal" 
-                  id="insurance" 
+                  :proposal="proposal"
+                  id="insurance"
                   ref="insurance"
                   :readonly="readonly"
                   />
@@ -286,7 +286,7 @@
                         // new application
                         //higherCategory = true;
                         //pass
-                    } else if (this.proposal.max_vessel_length_with_no_payment && 
+                    } else if (this.proposal.max_vessel_length_with_no_payment &&
                         this.proposal.max_vessel_length_with_no_payment <= length) {
                         // vessel length is in higher category
                         higherCategory = true;
@@ -393,7 +393,7 @@
             vm.form = document.forms.new_proposal;
             this.updateAmendmentRenewalProperties();
         }
- 
+
     }
 </script>
 
