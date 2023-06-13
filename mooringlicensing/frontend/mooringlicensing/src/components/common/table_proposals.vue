@@ -10,6 +10,15 @@
                     </select>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Category</label>
+                    <select class="form-control" v-model="filterApplicationCategory">
+                        <option value="All">All</option>
+                        <option v-for="category in application_categories" :value="category.code">{{ category.description }}</option>
+                    </select>
+                </div>
+            </div>
             <div class="col-md-3" v-if="is_internal">
                 <div class="form-group">
                     <label for="">Applicant</label>
@@ -77,11 +86,13 @@ export default {
 
             // selected values for filtering
             filterApplicationType: null,
+            filterApplicationCategory: null,
             filterApplicationStatus: null,
             filterApplicant: null,
 
             // filtering options
             application_types: [],
+            application_categories: [],
             application_statuses: [],
             applicants: [],
         }
@@ -100,6 +111,10 @@ export default {
             //}
         },
         filterApplicationType: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        },
+        filterApplicationCategory: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
@@ -406,6 +421,7 @@ export default {
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         d.filter_application_type = vm.filterApplicationType
+                        d.filter_application_category = vm.filterApplicationCategory
                         d.filter_application_status = vm.filterApplicationStatus
                         d.filter_applicant = vm.filterApplicant
                         d.level = vm.level
@@ -459,6 +475,12 @@ export default {
             // Application Types
             vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
                 vm.application_types = response.body
+            },(error) => {
+            })
+
+            // Application Categories
+            vm.$http.get(api_endpoints.application_categories_dict+'?apply_page=False').then((response) => {
+                vm.application_categories = response.body
             },(error) => {
             })
 

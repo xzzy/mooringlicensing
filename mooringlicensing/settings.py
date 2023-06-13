@@ -174,6 +174,20 @@ PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
+PROPOSAL_TYPES = [
+    {
+        'code': PROPOSAL_TYPE_NEW,
+        'description': 'New Application',
+    },
+    {
+        'code': PROPOSAL_TYPE_AMENDMENT,
+        'description': 'Amendment',
+    },
+    {
+        'code': PROPOSAL_TYPE_RENEWAL,
+        'description': 'Renewal',
+    },
+]
 
 HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
