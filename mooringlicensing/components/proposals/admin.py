@@ -11,6 +11,7 @@ from mooringlicensing.components.main.models import (
 from reversion.admin import VersionAdmin
 from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse, \
     StickerPrintingContact, StickerPrintedContact, MooringBay
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
 
 class ProposalDocumentInline(admin.TabularInline):
@@ -45,9 +46,16 @@ class CompanyOwnershipAdmin(admin.ModelAdmin):
 
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
-    list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'submitter', 'approval',]
+    list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'get_submitter', 'approval',]
     list_display_links = ['id', 'lodgement_number', ]
     inlines =[ProposalDocumentInline,]
+    search_fields = ['id', 'lodgement_number', 'approval__lodgement_number',]
+
+    def get_submitter(self, obj):
+        if obj.submitter:
+            return retrieve_email_userro(obj.submitter)
+        else:
+            return '---'
 
 
 @admin.register(models.ProposalStandardRequirement)
