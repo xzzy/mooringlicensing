@@ -7,6 +7,9 @@ import logging
 import ledger_api_client
 
 from rest_framework import serializers
+
+from mooringlicensing.components.proposals.models import Proposal
+
 logger = logging.getLogger(__name__)
 
 def belongs_to(user, group_name):
@@ -79,7 +82,7 @@ def is_authorised_to_modify(request, instance):
 
     if is_customer(request):
         # the status of the application must be DRAFT for customer to modify
-        authorised &= instance.processing_status in ['draft', 'awaiting_documents', 'printing_sticker']
+        authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_DRAFT, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]
         # the applicant and submitter must be the same
         authorised &= request.user.email == instance.applicant_email
 

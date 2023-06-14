@@ -712,7 +712,7 @@ def submit_vessel_data(instance, request, vessel_data):
         MooringLicenceApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
         MooringLicence.objects.filter(submitter=instance.submitter).filter(status__in=['current', 'suspended']))
         ):
-        raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Licence and Mooring Licence application")
+        raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application")
     elif (type(instance.child_obj) == AnnualAdmissionApplication and (proposals_aaa or approvals_aap or
             proposals_aua or approvals_aup or proposals_mla or approvals_ml)):
         #association_fail = True
@@ -830,10 +830,16 @@ def store_vessel_ownership(request, vessel, instance=None):
             serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
             serializer.is_valid(raise_exception=True)
             company_ownership = serializer.save()
+
+            logger.info(f'CompanyOwnership: [{company_ownership}] has been created')
+
         elif edit_company_ownership:
             serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
             serializer.is_valid(raise_exception=True)
             company_ownership = serializer.save()
+
+            logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
+
     ## add to vessel_ownership_data
     if company_ownership and company_ownership.id:
         vessel_ownership_data['company_ownership'] = company_ownership.id
@@ -841,6 +847,8 @@ def store_vessel_ownership(request, vessel, instance=None):
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
             company_ownership.save()
+
+            logger.info(f'BlockingProposal: [{instance.lodgement_number}] has been set to the CompanyOwnership: [{company_ownership}]')
     else:
         vessel_ownership_data['company_ownership'] = None
     vessel_ownership_data['vessel'] = vessel.id

@@ -324,7 +324,7 @@ class MooringLicenceMigration(object):
                     ua=ProposalUserAction.objects.create(
                         proposal=proposal,
                         who=user.id,
-                        what='Mooring Licence - Migrated Application',
+                        what='Mooring Site Licence - Migrated Application',
                     )
 
                     #approval = WaitingListAllocation.objects.create(

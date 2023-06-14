@@ -1136,7 +1136,7 @@ class MooringLicenceReader():
                 pua=ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user,
-                    what='Mooring Licence - Migrated Application',
+                    what='Mooring Site Licence - Migrated Application',
                 )
 
 
@@ -1157,7 +1157,7 @@ class MooringLicenceReader():
 
                     approval=approval,
                     who=user,
-                    what='Mooring Licence - Migrated Application',
+                    what='Mooring Site Licence - Migrated Application',
                 )
 
                 proposal.approval = approval

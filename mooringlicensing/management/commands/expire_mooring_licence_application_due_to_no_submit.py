@@ -21,7 +21,7 @@ cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'expire mooring licence application if not submitted within configurable number of days after being invited to apply for a mooring licence and send email to inform waiting list allocation holder'
+    help = 'expire mooring site licence application if not submitted within configurable number of days after being invited to apply for a mooring site licence and send email to inform waiting list allocation holder'
 
     def handle(self, *args, **options):
         try:

@@ -16,11 +16,11 @@
                                     <label>Annual Admission</label>
                                     <div v-if="aaaApprovals.length<=1">
                                         <div v-for="(application_type, index) in aaaChoices">
-                                            <input 
-                                            type="radio" 
-                                            name="applicationType" 
-                                            :id="application_type.code + '_' + index" 
-                                            value="application_type" 
+                                            <input
+                                            type="radio"
+                                            name="applicationType"
+                                            :id="application_type.code + '_' + index"
+                                            value="application_type"
                                             @change="selectApplication(application_type)"
                                             />
                                             <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -29,11 +29,11 @@
                                     <div v-else>
                                         <div class="row" v-for="application_type in aaaMultiple">
                                             <div class="col-sm-5">
-                                                <input 
-                                                type="radio" 
-                                                name="applicationType" 
-                                                :id="application_type.code" 
-                                                value="application_type" 
+                                                <input
+                                                type="radio"
+                                                name="applicationType"
+                                                :id="application_type.code"
+                                                value="application_type"
                                                 @change="selectApplication(application_type)"
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -52,11 +52,11 @@
                                     <label>Authorised User</label>
                                     <div v-if="auaApprovals.length<=1">
                                         <div v-for="(application_type, index) in auaChoices">
-                                            <input 
-                                            type="radio" 
-                                            name="applicationType" 
-                                            :id="application_type.code + '_' + index" 
-                                            value="application_type" 
+                                            <input
+                                            type="radio"
+                                            name="applicationType"
+                                            :id="application_type.code + '_' + index"
+                                            value="application_type"
                                             @change="selectApplication(application_type)"
                                             />
                                             <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -65,11 +65,11 @@
                                     <div v-else>
                                         <div class="row" v-for="application_type in auaMultiple">
                                             <div class="col-sm-5">
-                                                <input 
-                                                type="radio" 
-                                                name="applicationType" 
-                                                :id="application_type.code" 
-                                                value="application_type" 
+                                                <input
+                                                type="radio"
+                                                name="applicationType"
+                                                :id="application_type.code"
+                                                value="application_type"
                                                 @change="selectApplication(application_type)"
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -88,11 +88,11 @@
                                     <label v-if="wlaChoices.length>0">Waiting List</label>
                                     <div v-if="wlaApprovals.length<=1">
                                         <div v-for="(application_type, index) in wlaChoices">
-                                            <input 
-                                            type="radio" 
-                                            name="applicationType" 
-                                            :id="application_type.code + '_' + index" 
-                                            value="application_type" 
+                                            <input
+                                            type="radio"
+                                            name="applicationType"
+                                            :id="application_type.code + '_' + index"
+                                            value="application_type"
                                             @change="selectApplication(application_type)"
                                             />
                                             <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -101,11 +101,11 @@
                                     <div v-else>
                                         <div class="row" v-for="application_type in wlaMultiple">
                                             <div class="col-sm-5">
-                                                <input 
-                                                type="radio" 
-                                                name="applicationType" 
-                                                :id="application_type.code" 
-                                                value="application_type" 
+                                                <input
+                                                type="radio"
+                                                name="applicationType"
+                                                :id="application_type.code"
+                                                value="application_type"
                                                 @change="selectApplication(application_type)"
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -124,11 +124,11 @@
                                     <label>Mooring Site Licence</label>
                                     <div v-if="mlApprovals.length<=1">
                                         <div v-for="(application_type, index) in mlChoices">
-                                            <input 
-                                            type="radio" 
-                                            name="applicationType" 
-                                            :id="application_type.code + '_' + index" 
-                                            value="application_type" 
+                                            <input
+                                            type="radio"
+                                            name="applicationType"
+                                            :id="application_type.code + '_' + index"
+                                            value="application_type"
                                             @change="selectApplication(application_type)"
                                             />
                                             <label :for="application_type.code + '_' + index" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -137,11 +137,11 @@
                                     <div v-else>
                                         <div class="row" v-for="application_type in mlMultiple">
                                             <div class="col-sm-5">
-                                                <input 
-                                                type="radio" 
-                                                name="applicationType" 
-                                                :id="application_type.code" 
-                                                value="application_type" 
+                                                <input
+                                                type="radio"
+                                                name="applicationType"
+                                                :id="application_type.code"
+                                                value="application_type"
                                                 @change="selectApplication(application_type)"
                                                 />
                                                 <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -160,24 +160,24 @@
                                 <!--div class="form-group">
                                     <label>Authorised User</label>
                                     <div v-for="application_type in auaChoices">
-                                        <input 
-                                        type="radio" 
-                                        name="applicationType" 
-                                        :id="application_type.code" 
-                                        value="application_type" 
+                                        <input
+                                        type="radio"
+                                        name="applicationType"
+                                        :id="application_type.code"
+                                        value="application_type"
                                         @change="selectApplication(application_type)"
                                         />
                                         <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Mooring Licence</label>
+                                    <label>Mooring Site Licence</label>
                                     <div v-for="application_type in mlChoices">
-                                        <input 
-                                        type="radio" 
-                                        name="applicationType" 
-                                        :id="application_type.code" 
-                                        value="application_type" 
+                                        <input
+                                        type="radio"
+                                        name="applicationType"
+                                        :id="application_type.code"
+                                        value="application_type"
                                         @change="selectApplication(application_type)"
                                         />
                                         <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
@@ -480,7 +480,7 @@ export default {
                     }
                 } else if (this.selectedApplication && ['ml','ml_multiple'].includes(this.selectedApplication.code)) {
                     res = await this.$http.post(url);
-                } 
+                }
                 const proposal = res.body;
                 this.$router.push({
                     name:"draft_proposal",
@@ -527,7 +527,7 @@ export default {
   },
   mounted: async function() {
     this.applicationsLoading = true;
-    
+
     await this.fetchApplicationTypes();
     await this.fetchExistingLicences();  // application_types_and_licences has all the application types and the existing licences
 
@@ -545,7 +545,7 @@ export default {
 
     let initialisers = [
         utils.fetchProfile(),
-        
+
         //utils.fetchProposal(to.params.proposal_id)
     ]
     next(vm => {
@@ -556,7 +556,7 @@ export default {
             vm.loading.splice('fetching profile', 1)
         })
     })
-    
+
   }
 }
 </script>
