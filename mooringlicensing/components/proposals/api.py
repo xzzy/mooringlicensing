@@ -1179,7 +1179,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
 
-            logger.info(f'Proposal: {instance} has been submitted.')
+            logger.info(f'Proposal: {instance} has been submitted by the user: {request.user}.')
 
             # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
