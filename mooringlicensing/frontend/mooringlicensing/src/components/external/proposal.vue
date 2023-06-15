@@ -197,14 +197,14 @@ export default {
       AuthorisedUserApplication,
       MooringLicenceApplication,
   },
-  watch: {
-      disableSubmit() {
-          //console.log("disableSubmit")
-      },
-  },
+  // watch: {
+  //     disableSubmit() {
+  //         //console.log("disableSubmit")
+  //     },
+  // },
   computed: {
       disableSubmit: function() {
-          console.log('%cHere0', 'color: #FF0000')
+          console.log('%cdisableSubmit() is being called...', 'color: #FF0000')
           let disable = false;
           // if (this.proposal && this.proposal.proposal_type.code ==='amendment' && this.missingVessel) {
           //     console.log('%cHere1', 'color: #FF0000')
@@ -228,18 +228,18 @@ export default {
                   } else {
                       if (['aaa', 'mla'].includes(this.proposal.application_type_code)){
                           if (!this.vesselChanged) {
-                              console.log('%cHere2', 'color: #FF0000')
                               disable = true;
+                              console.log('%cSubmit button is disabled 1', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'wla'){
                           if (!this.vesselChanged && !this.mooringPreferenceChanged && !this.vesselOwnershipChanged) {
-                              console.log('%cHere3', 'color: #FF0000')
                               disable = true;
+                              console.log('%cSubmit button is disabled 2', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'aua'){
                           if (!this.vesselChanged && !this.mooringOptionsChanged) {
-                              console.log('%cHere4', 'color: #FF0000')
                               disable = true;
+                              console.log('%cSubmit button is disabled 3', 'color: #FF0000')
                           }
                       }
                   }
@@ -340,8 +340,7 @@ export default {
     updateVesselChanged: function(vesselChanged) {
         console.log('in updateVesselChanged at the proposal.vue')
         this.vesselChanged = vesselChanged;
-        console.log('this.vesselChanged: ')
-        console.log(this.vesselChanged)
+        console.log('this.vesselChanged: ' + this.vesselChanged)
         //console.log("updateVesselChanged");
     },
     updateMooringPreference: function(preferenceChanged) {
