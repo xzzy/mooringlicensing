@@ -419,12 +419,12 @@ export default {
 
                     if (
                         // this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
-                        this.vesselDetails.vessel_draft != this.previousApplicationVesselDetails.vessel_draft ||
-                        this.vesselDetails.vessel_length != this.previousApplicationVesselDetails.vessel_length ||
+                        Number(this.vesselDetails.vessel_draft) != Number(this.previousApplicationVesselDetails.vessel_draft) ||
+                        Number(this.vesselDetails.vessel_length) != Number(this.previousApplicationVesselDetails.vessel_length) ||
                         (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim() !== this.previousApplicationVesselDetails.vessel_name.trim()) ||
                         this.vesselDetails.vessel_type !== this.previousApplicationVesselDetails.vessel_type ||
-                        this.vesselDetails.vessel_name.weight != this.previousApplicationVesselDetails.vessel_name.weight ||
-                        this.vesselOwnership.percentage != this.previousApplicationVesselOwnership.percentage
+                        Number(this.vesselDetails.vessel_weight) != Number(this.previousApplicationVesselDetails.vessel_weight) ||
+                        Number(this.vesselOwnership.percentage) != Number(this.previousApplicationVesselOwnership.percentage)
                         // (this.vesselOwnership.dot_name && this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim())
                     ) {
                         vesselChanged = true;
@@ -448,7 +448,7 @@ export default {
                                     }
                                 }
                                 if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.percentage) {
-                                    if (this.previousApplicationVesselOwnership.company_ownership.percentage !== this.vesselOwnership.company_ownership.percentage) {
+                                    if (Number(this.previousApplicationVesselOwnership.company_ownership.percentage) !== Number(this.vesselOwnership.company_ownership.percentage)) {
                                         // Company percentage changed
                                         vesselOwnershipChanged = true
                                         console.log('%cCompanyOwnership percentage changed', consoleColour)
@@ -464,8 +464,8 @@ export default {
                         }
                     }
                 }
-                console.log({ vesselChanged })
-                console.log({ vesselOwnershipChanged })
+                console.log('vesselChanged: ' + vesselChanged)
+                console.log('vesselOwnershipChanged: ' + vesselOwnershipChanged)
             })
             console.log("%cemit vesselChanged from the vessels.vue", consoleColour)
             await this.$emit("vesselChanged", vesselChanged)
@@ -473,7 +473,7 @@ export default {
             const missingVessel = this.vessel.rego_no ? false : true;
             await this.$emit("noVessel", missingVessel)
 
-            console.log('emit updateVesselOwnershipChanged from the vessels.vue')
+            console.log('%cemit updateVesselOwnershipChanged from the vessels.vue', consoleColour)
             await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
             //return vesselChanged;
         },
