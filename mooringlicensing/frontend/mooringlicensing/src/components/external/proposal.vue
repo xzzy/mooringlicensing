@@ -32,59 +32,62 @@
                 </ul>
             </div>
             <WaitingListApplication
-            v-if="proposal && proposal.application_type_code==='wla'"
-            :proposal="proposal"
-            :is_external="true"
-            ref="waiting_list_application"
-            :showElectoralRoll="showElectoralRoll"
-            :readonly="readonly"
-            :submitterId="submitterId"
-            @updateAutoApprove="updateAutoApprove"
-            @updateSubmitText="updateSubmitText"
-            @vesselChanged="updateVesselChanged"
-            @mooringPreferenceChanged="updateMooringPreference"
-            @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
-            @noVessel="noVessel"
+                v-if="proposal && proposal.application_type_code==='wla'"
+                :proposal="proposal"
+                :is_external="true"
+                ref="waiting_list_application"
+                :showElectoralRoll="showElectoralRoll"
+                :readonly="readonly"
+                :submitterId="submitterId"
+                @updateAutoApprove="updateAutoApprove"
+                @updateSubmitText="updateSubmitText"
+                @vesselChanged="updateVesselChanged"
+                @mooringPreferenceChanged="updateMooringPreference"
+                @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                @noVessel="noVessel"
             />
 
             <AnnualAdmissionApplication
-            v-if="proposal && proposal.application_type_code==='aaa'"
-            :proposal="proposal"
-            :is_external="true"
-            ref="annual_admission_application"
-            :showElectoralRoll="showElectoralRoll"
-            :readonly="readonly"
-            :submitterId="submitterId"
-            @updateAutoApprove="updateAutoApprove"
-            @updateSubmitText="updateSubmitText"
-            @vesselChanged="updateVesselChanged"
-            @noVessel="noVessel"
+                v-if="proposal && proposal.application_type_code==='aaa'"
+                :proposal="proposal"
+                :is_external="true"
+                ref="annual_admission_application"
+                :showElectoralRoll="showElectoralRoll"
+                :readonly="readonly"
+                :submitterId="submitterId"
+                @updateAutoApprove="updateAutoApprove"
+                @updateSubmitText="updateSubmitText"
+                @vesselChanged="updateVesselChanged"
+                @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                @noVessel="noVessel"
             />
             <AuthorisedUserApplication
-            v-if="proposal && proposal.application_type_code==='aua'"
-            :proposal="proposal"
-            :is_external="true"
-            ref="authorised_user_application"
-            :readonly="readonly"
-            :submitterId="submitterId"
-            @updateSubmitText="updateSubmitText"
-            @updateAutoApprove="updateAutoApprove"
-            @vesselChanged="updateVesselChanged"
-            @changeMooring="updateMooringAuth"
-            @noVessel="noVessel"
+                v-if="proposal && proposal.application_type_code==='aua'"
+                :proposal="proposal"
+                :is_external="true"
+                ref="authorised_user_application"
+                :readonly="readonly"
+                :submitterId="submitterId"
+                @updateSubmitText="updateSubmitText"
+                @updateAutoApprove="updateAutoApprove"
+                @vesselChanged="updateVesselChanged"
+                @changeMooring="updateMooringAuth"
+                @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                @noVessel="noVessel"
             />
             <MooringLicenceApplication
-            v-if="proposal && proposal.application_type_code==='mla'"
-            :proposal="proposal"
-            :is_external="true"
-            ref="mooring_licence_application"
-            :showElectoralRoll="showElectoralRoll"
-            :readonly="readonly"
-            :submitterId="submitterId"
-            @updateSubmitText="updateSubmitText"
-            @updateAutoApprove="updateAutoApprove"
-            @vesselChanged="updateVesselChanged"
-            @noVessel="noVessel"
+                v-if="proposal && proposal.application_type_code==='mla'"
+                :proposal="proposal"
+                :is_external="true"
+                ref="mooring_licence_application"
+                :showElectoralRoll="showElectoralRoll"
+                :readonly="readonly"
+                :submitterId="submitterId"
+                @updateSubmitText="updateSubmitText"
+                @updateAutoApprove="updateAutoApprove"
+                @vesselChanged="updateVesselChanged"
+                @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                @noVessel="noVessel"
             />
 
             <div>
@@ -194,14 +197,14 @@ export default {
       AuthorisedUserApplication,
       MooringLicenceApplication,
   },
-  watch: {
-      disableSubmit() {
-          //console.log("disableSubmit")
-      },
-  },
+  // watch: {
+  //     disableSubmit() {
+  //         //console.log("disableSubmit")
+  //     },
+  // },
   computed: {
       disableSubmit: function() {
-          console.log('%cHere0', 'color: #FF0000')
+          console.log('%cdisableSubmit() is being called...', 'color: #FF0000')
           let disable = false;
           // if (this.proposal && this.proposal.proposal_type.code ==='amendment' && this.missingVessel) {
           //     console.log('%cHere1', 'color: #FF0000')
@@ -225,18 +228,18 @@ export default {
                   } else {
                       if (['aaa', 'mla'].includes(this.proposal.application_type_code)){
                           if (!this.vesselChanged) {
-                              console.log('%cHere2', 'color: #FF0000')
                               disable = true;
+                              console.log('%cSubmit button is disabled 1', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'wla'){
                           if (!this.vesselChanged && !this.mooringPreferenceChanged && !this.vesselOwnershipChanged) {
-                              console.log('%cHere3', 'color: #FF0000')
                               disable = true;
+                              console.log('%cSubmit button is disabled 2', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'aua'){
                           if (!this.vesselChanged && !this.mooringOptionsChanged) {
-                              console.log('%cHere4', 'color: #FF0000')
                               disable = true;
+                              console.log('%cSubmit button is disabled 3', 'color: #FF0000')
                           }
                       }
                   }
@@ -337,8 +340,7 @@ export default {
     updateVesselChanged: function(vesselChanged) {
         console.log('in updateVesselChanged at the proposal.vue')
         this.vesselChanged = vesselChanged;
-        console.log('this.vesselChanged: ')
-        console.log(this.vesselChanged)
+        console.log('this.vesselChanged: ' + this.vesselChanged)
         //console.log("updateVesselChanged");
     },
     updateMooringPreference: function(preferenceChanged) {
