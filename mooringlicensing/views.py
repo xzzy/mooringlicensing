@@ -177,7 +177,7 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
         command_script = request.POST.get('script', None)
 
         if command_script:
-            print('running {}'.format(command_script))
+            logger.info('Running {}...'.format(command_script))
             # call_command(command_script, params=request.POST)
             call_command(command_script,)
             data.update({command_script: 'true'})

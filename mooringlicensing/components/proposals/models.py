@@ -443,7 +443,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_main_component
 
     def get_max_amount_paid_for_aa_component(self, target_date, vessel):
-        logger.info('Proposal.get_max_amount_paid_for_aa_component is called.')
+        logger.info('Proposal.get_max_amount_paid_for_aa_component() is called.')
 
         max_amount_paid_for_aa_component = 0
 
@@ -466,6 +466,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_aa_component
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
+        logger.info('Proposal.get_amount_paid_so_far_for_aa_through_this_proposal() is called.')
+
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
@@ -480,22 +482,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
                         if fee_item_application_fee.application_type == annual_admission_type:
                             # We are interested only in the AnnualAdmission component
+                            logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
+
                             target_vessel = fee_item_application_fee.vessel_details.vessel
-                            if target_vessel != vessel:
-                                # This fee_item_application_fee is not for the vessel we are looking at.
-                                continue
+                            # Retrieve the current approvals of the target_vessel
                             current_approvals = target_vessel.get_current_approvals(target_date)
                             for key, qs in current_approvals.items():
                                 # We want to exclude the approval being amended(modified)
                                 current_approvals[key] = qs.exclude(id=self.approval.id)
-                            if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
-                                # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
-                                # In this case, we can transfer this amount
-                                amount_paid = fee_item_application_fee.amount_paid
+                            logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
+
+                            if target_vessel != vessel:
+                                # This fee_item_application_fee is not for the vessel we are looking at.
+                                if current_approvals['aaps'] or current_approvals['aups'] or current_approvals['mls']:
+                                    # This fee_item_application_fee is still used for other approval(s)
+                                    logger.info(f'Vessel: [{target_vessel}] still has current approval(s): [{current_approvals}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
+                                    continue
+
+                            # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
+                            # In this case, we can transfer this amount
+                            amount_paid = fee_item_application_fee.amount_paid
 #                                if max_amount_paid < amount_paid:
 #                                    # The amount paid found is larger than the one stored, update it.
 #                                    max_amount_paid = amount_paid
-                                max_amount_paid += amount_paid
+                            max_amount_paid += amount_paid
+                            logger.info(f'Transfer the amount paid: [{fee_item_application_fee}].')
+
                 if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
                     # Now, 'prev_application' is the very first application for this season
                     # We are not interested in any older applications
@@ -2784,9 +2796,12 @@ class AuthorisedUserApplication(Proposal):
                 logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
 
                 return [], {}  # no line items, no db process
+            else:
+                logger.info(f'ML for the vessel: {self.vessel_details.vessel} does not exist.')
+
         else:
             # Null vessel application
-            pass
+            logger.info(f'This is null vessel application')
 
         fee_items_to_store = []
         line_items = []
@@ -2994,7 +3009,6 @@ class AuthorisedUserApplication(Proposal):
             if mooring_id_pk:
                 ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
 
-            existing_mooring_count = approval.mooringonapproval_set.count()
             if ria_selected_mooring:
                 moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
             else:
