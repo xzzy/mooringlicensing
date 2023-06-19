@@ -1443,7 +1443,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_WLA_AAA(self, request, details=None):
         with transaction.atomic():
             try:
-                logger.info('Proposal.final_approval_for_WLA_AAA() is called.')
+                logger.info(f'Proposal.final_approval_for_WLA_AAA() of [{self}] is called.')
 
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 self.proposed_decline_status = False
@@ -1495,6 +1495,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             'submitter': self.submitter,
                         }
                     )
+                    if created:
+                        logger.info(f'New approval: [{approval}] has been created.')
                 self.approval = approval
                 self.save()
 
@@ -1589,11 +1591,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_AUA_MLA(self, request=None, details=None):
         with transaction.atomic():
             try:
-                logger.info('Proposal.final_approval_for_AUA_MLA() is called.')
+                logger.info(f'Proposal.final_approval_for_AUA_MLA() of the proposal: [{self}] is called.')
 
                 self.proposed_decline_status = False
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                current_date = current_datetime.date()
 
                 # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -2965,7 +2966,7 @@ class AuthorisedUserApplication(Proposal):
         # Manage approval
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # When new application
-            approval, created = self.approval_class.objects.update_or_create(
+            approval, approval_created = self.approval_class.objects.update_or_create(
                 current_proposal=self,
                 defaults={
                     'issue_date': current_datetime,
@@ -2974,9 +2975,22 @@ class AuthorisedUserApplication(Proposal):
                     'submitter': self.submitter,
                 }
             )
-            if created:
+            if approval_created:
+                from mooringlicensing.components.approvals.models import Approval
+                logger.info(f'Approval: [{approval}] has been created.')
+
+
+                # Cancel existing annual admission permit for the same vessl if exists
+                target_vessel = approval.current_proposal.vessel_ownership.vessel
+                approvals = target_vessel.get_current_aaps(current_datetime.date())
+                if approvals:
+                    approvals[0].status = Approval.APPROVAL_STATUS_CANCELLED
+                    approvals[0].save()
+                    logger.info(f'Approval: {approvals[0].lodgement_number} for the vessel: [{target_vessel}] has been cancelled because the AUP: [{approval}] for the same vessel has been created.')
+
                 self.approval = approval
                 self.save()
+
         elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             # When amendment application
             approval = self.approval.child_obj
@@ -3142,7 +3156,7 @@ class AuthorisedUserApplication(Proposal):
         self.save()
         self.proposal.save()
 
-        return approval, created
+        return approval, approval_created
 
     @property
     def does_accept_null_vessel(self):
