@@ -23,9 +23,7 @@ def belongs_to(user, group_name):
         "User-belongs_to" + str(user.id) + "group_name:" + group_name
     )
     if belongs_to_value:
-        print(
-            "From Cache - User-belongs_to" + str(user.id) + "group_name:" + group_name
-        )
+        logger.info(f'From Cache - User-belongs_to: {str(user.id)}, group_name: {group_name}')
     if belongs_to_value is None:
     #     belongs_to_value = user.groups().filter(name=group_name).exists()
         belongs_to_value = False

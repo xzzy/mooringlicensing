@@ -24,7 +24,7 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" id="pills-mooring-tab" data-toggle="pill" href="#pills-mooring" role="tab" aria-controls="pills-mooring" aria-selected="false">
-                  Mooring
+                  Mooring Bay
                 </a>
               </li>
               <li v-show="showPaymentTab" class="nav-item" id="li-payment">

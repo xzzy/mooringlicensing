@@ -26,7 +26,9 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
 
 @admin.register(models.Company)
 class CompanyAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'name',]
+    list_display_links = ['id', 'name',]
+    search_fields = ['name',]
 
 
 @admin.register(models.VesselRegistrationDocument)
@@ -86,7 +88,9 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
 
 @admin.register(MooringBay)
 class MooringBayAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['name', 'code', 'mooring_bookings_id', 'active',]
+    list_filter = ('active',)
+
 
 class GlobalSettingsForm(django.forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -138,6 +142,8 @@ class StickersPrintedContactAdmin(admin.ModelAdmin):
 class StickersPrintingBatchAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', '_file', 'uploaded_date', 'emailed_datetime',]
     list_display_links = ['id', 'name', '_file',]
+    search_fields = ['name',]
+    # list_filter = ('processed', 'no_errors_when_process',)
 
     def get_actions(self, request):
         actions = super(StickersPrintingBatchAdmin, self).get_actions(request)
@@ -181,6 +187,8 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
         'processed',
         'no_errors_when_process',
     ]
+    search_fields = ['name',]
+    list_filter = ('processed', 'no_errors_when_process',)
 
     def get_attached_file(self, obj):
         if obj._file:
