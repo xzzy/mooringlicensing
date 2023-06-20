@@ -2978,15 +2978,7 @@ class AuthorisedUserApplication(Proposal):
             if approval_created:
                 from mooringlicensing.components.approvals.models import Approval
                 logger.info(f'Approval: [{approval}] has been created.')
-
-
-                # Cancel existing annual admission permit for the same vessl if exists
-                target_vessel = approval.current_proposal.vessel_ownership.vessel
-                approvals = target_vessel.get_current_aaps(current_datetime.date())
-                if approvals:
-                    approvals[0].status = Approval.APPROVAL_STATUS_CANCELLED
-                    approvals[0].save()
-                    logger.info(f'Approval: {approvals[0].lodgement_number} for the vessel: [{target_vessel}] has been cancelled because the AUP: [{approval}] for the same vessel has been created.')
+                approval.cancel_existing_annual_admission_permit(current_datetime.date())
 
                 self.approval = approval
                 self.save()
@@ -3432,7 +3424,7 @@ class MooringLicenceApplication(Proposal):
                 approval.submitter = self.submitter
                 approval.save()
             else:
-                approval, created = self.approval_class.objects.update_or_create(
+                approval, approval_created = self.approval_class.objects.update_or_create(
                     current_proposal=self,
                     defaults={
                         'issue_date': current_datetime,
@@ -3441,12 +3433,18 @@ class MooringLicenceApplication(Proposal):
                         'submitter': self.submitter,
                     }
                 )
+
+                if approval_created:
+                    from mooringlicensing.components.approvals.models import Approval
+                    logger.info(f'Approval: [{approval}] has been created.')
+                    approval.cancel_existing_annual_admission_permit(current_datetime.date())
+
                 # associate mooring licence with mooring, only on NEW proposal_type
                 if not self.approval:
                     self.allocated_mooring.mooring_licence = approval
                     self.allocated_mooring.save()
                 # always associate proposal with approval
-                if created:
+                if approval_created:
                     self.approval = approval
                     self.save()
                 # Move WLA to status approved
