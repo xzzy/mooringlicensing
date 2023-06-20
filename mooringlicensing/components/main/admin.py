@@ -4,6 +4,7 @@ from django.contrib import admin
 from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
     NumberOfDaysSetting, NumberOfDaysType, TemporaryDocument
 from mooringlicensing.components.payments_ml.models import OracleCodeItem
+from django.utils.html import mark_safe
 
 
 class VesselSizeCategoryForm(forms.ModelForm):
@@ -95,6 +96,14 @@ class VesselSizeCategoryGroupForm(forms.ModelForm):
 class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
     inlines = [VesselSizeCategoryInline,]
     form = VesselSizeCategoryGroupForm
+    list_display = ['name', 'get_vessel_size_categories',]
+
+    def get_vessel_size_categories(self, obj):
+        aho = list(obj.vessel_size_categories.all())
+        baka = '<br />'.join(str(v) for v in aho)
+        return mark_safe(baka)
+
+    get_vessel_size_categories.short_description = 'vessel size category'
 
 
 @admin.register(TemporaryDocument)
