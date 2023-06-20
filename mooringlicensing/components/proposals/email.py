@@ -13,7 +13,6 @@ from django.urls import reverse
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
 
 from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email
 from mooringlicensing.components.compliances.email import _log_compliance_email
@@ -22,12 +21,11 @@ from datetime import datetime
 
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.emails.utils import get_user_as_email_user, make_url_for_internal, get_public_url, \
-    make_url_for_external, make_http_https
+    make_http_https
 from mooringlicensing.components.users.utils import _log_user_email
-# from mooringlicensing.components.main.utils import _log_user_email
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status, get_invoice_url
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 from mooringlicensing.settings import CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA, CODE_DAYS_IN_PERIOD_MLA, \
-    PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
+    PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, MOORING_LICENSING_EXTERNAL_URL
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +243,8 @@ def send_amendment_email_notification(amendment_request, request, proposal):
     )
 
     reason = amendment_request.reason.reason
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    url = MOORING_LICENSING_EXTERNAL_URL + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
     context = {
         'public_url': get_public_url(request),
@@ -253,7 +252,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
         'proposal': proposal,
         'reason': reason,
         'text': amendment_request.text,
-        'proposal_external_url': make_url_for_external(url),
+        'proposal_external_url': url,
     }
 
     to = proposal.submitter_obj.email
@@ -284,7 +283,8 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
 
     ria_generated_proposal = waiting_list_allocation.ria_generated_proposal.all()[0] if waiting_list_allocation.ria_generated_proposal.all() else None
 
-    url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id}))
+    # url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id}))
+    url = MOORING_LICENSING_EXTERNAL_URL + reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id})
 
     today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
@@ -298,7 +298,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
         'recipient': mooring_licence_application.submitter,
         'application_period': days_setting_application_period.number_of_days,
         'documents_period': days_setting_documents_period.number_of_days,
-        'proposal_external_url': make_url_for_external(url),
+        'proposal_external_url': url,
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
