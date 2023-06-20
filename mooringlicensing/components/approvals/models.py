@@ -263,6 +263,24 @@ class Approval(RevisionedMixin):
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
 
+    def cancel_existing_annual_admission_permit(self, current_date):
+        # Cancel existing annual admission permit for the same vessl if exists
+        if self.current_proposal and self.current_proposal.vessel_ownership:
+            target_vessel = self.current_proposal.vessel_ownership.vessel
+            aaps = target_vessel.get_current_aaps(current_date)
+            if aaps.count() == 1:
+                aap = aaps[0]
+                aap.status = Approval.APPROVAL_STATUS_CANCELLED
+                aap.save()
+                logger.info(f'Approval: {aap.lodgement_number} for the vessel: [{target_vessel}] has been cancelled because the AUP: [{self}] for the same vessel has been created.')
+
+                # Set 'to_be_returned' status to the sticker(s) for the aap
+                stickers = aap.stickers.filter(vessel_ownership__vessel=target_vessel)
+                self._update_stickers_to_be_removed(stickers)
+
+            elif aaps.count() > 1:
+                logger.warning(f'Vessel: [{target_vessel}] has more than one current annual admission permits.')
+
     @property
     def submitter_obj(self):
         return retrieve_email_userro(self.submitter) if self.submitter else None
