@@ -2,7 +2,7 @@
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
-                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number *</label>
+                <label for="vessel_search" class="col-sm-3 control-label">Unique Vessel Identifier (UVI) *</label>
                 <div class="col-sm-9">
                     <select :disabled="regoReadonly" id="vessel_search" ref="vessel_rego_nos" class="form-control"
                         style="width: 40%">
@@ -746,9 +746,11 @@ export default {
         readRegoNo: function () {
             console.log('in readRegoNo()')
             let vm = this;
+            console.log('%cvm.vessel.rego_no: ' + vm.vessel.rego_no, 'color: #993300')
             if (vm.vessel.rego_no) {
                 var option = new Option(vm.vessel.rego_no, vm.vessel.rego_no, true, true);
                 $(vm.$refs.vessel_rego_nos).append(option).trigger('change');
+                console.log('%coption appended', 'color: #993300')
             }
         },
         fetchVesselTypes: async function () {
@@ -871,7 +873,8 @@ export default {
         this.$nextTick(async () => {
             console.log('in mounted nextTick()')
             await this.fetchVesselTypes();
-            if (this.proposal && this.keep_current_vessel) {
+            // if (this.proposal && this.keep_current_vessel) {
+            if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
                 // fetches vessel data from proposal (saved as draft)
                 //await this.fetchVessel();
                 await this.fetchDraftData();
@@ -888,7 +891,7 @@ export default {
             //if (!this.keep_current_vessel && this.proposal.proposal_type.code !=='new' && this.proposal.application_type_code === 'mla') {
             if (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new') {
                 //await this.fetchVessel();
-                await this.fetchDraftData();
+                // await this.fetchDraftData();
             } else if (!this.keep_current_vessel) {
                 // pass
             } else if (this.proposal && this.proposal.pending_amendment_request) {
