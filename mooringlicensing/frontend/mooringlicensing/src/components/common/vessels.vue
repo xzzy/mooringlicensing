@@ -875,10 +875,10 @@ export default {
             await this.fetchVesselTypes();
             // if (this.proposal && this.keep_current_vessel) {
             if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
+
                 // fetches vessel data from proposal (saved as draft)
-                //await this.fetchVessel();
                 await this.fetchDraftData();
-                //} else if (!this.proposal && !this.creatingVessel) {
+
             } else if (!this.proposal) {
                 // route.params.vessel_id in this case is a vesselownership id
                 const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
@@ -887,11 +887,12 @@ export default {
             this.initialiseRegoNoSelect();
             this.initialiseCompanyNameSelect();
             this.addEventListeners();
+            
             // read in Renewal/Amendment vessel details
             //if (!this.keep_current_vessel && this.proposal.proposal_type.code !=='new' && this.proposal.application_type_code === 'mla') {
             if (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new') {
                 //await this.fetchVessel();
-                // await this.fetchDraftData();
+                // await this.fetchDraftData();  // Combine this if statement with the above (line 879).  Due to the complexity of this if statements, not very sure if it is correct though it works.
             } else if (!this.keep_current_vessel) {
                 // pass
             } else if (this.proposal && this.proposal.pending_amendment_request) {
