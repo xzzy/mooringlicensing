@@ -1681,6 +1681,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # invoice = Invoice.objects.get(order_number=order.number)
 
                             ### Future Invoice ###
+                            reference = self.previous_application.lodgement_number if self.previous_application else self.lodgement_number
                             invoice_text = 'Payment Invoice'
                             basket_params = {
                                 'products': line_items,
@@ -1688,7 +1689,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 'vouchers': [],
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
-                                'booking_reference': 'ML-' + str(self.id),
+                                'booking_reference': reference,
                                 # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
                                 # 'organisation': 7,
