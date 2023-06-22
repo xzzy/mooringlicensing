@@ -18,7 +18,7 @@ from mooringlicensing.settings import TIME_ZONE
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
-    AuthorisedUserApplication, VesselDetails, WaitingListApplication
+    AuthorisedUserApplication, VesselDetails, WaitingListApplication, Proposal
 from smart_selects.db_fields import ChainedForeignKey
 
 # logger = logging.getLogger('mooringlicensing')
@@ -478,7 +478,31 @@ class FeeConstructor(models.Model):
             raise
 
     @classmethod
-    def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_fee_constructor_by_date(self, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        fee_constructors = []
+        for item in Proposal.__subclasses__():
+            if hasattr(item, 'code'):
+                myType = ApplicationType.objects.filter(code=item.code)
+                if myType:
+                    try:
+                        fc = self.get_fee_constructor_by_application_type_and_date(myType[0], target_date)
+                        fee_constructors.append(fc)
+                    except:
+                        logger.warning(f'FeeConstructor of the ApplicationType: {myType[0]} for the time: {target_date} may not have been configured yet.')
+        for app_type in settings.APPLICATION_TYPES:
+            myType = ApplicationType.objects.filter(code=app_type['code'])
+            if myType:
+                try:
+                    fc = self.get_fee_constructor_by_application_type_and_date(myType[0], target_date)
+                    fee_constructors.append(fc)
+                except:
+                    logger.warning(f'FeeConstructor of the ApplicationType: {myType[0]} for the time: {target_date} may not have been configured yet.')
+        logger.info(fee_constructors)
+        return fee_constructors
+
+
+    @classmethod
+    def get_fee_constructor_by_application_type_and_date(cls, application_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         # logger = logging.getLogger('mooringlicensing')
         logger = logging.getLogger(__name__)
 
@@ -497,7 +521,7 @@ class FeeConstructor(models.Model):
                 fee_constructor = fee_constructor_qs.last()
 
             if target_date <= fee_constructor.fee_season.end_date:
-                # fee_constructor object selected above has not ended yet
+                # Found. fee_constructor object selected above has not ended yet
                 return fee_constructor
             else:
                 # fee_constructor object selected above has already ended

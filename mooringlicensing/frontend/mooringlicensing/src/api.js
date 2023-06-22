@@ -6,6 +6,7 @@ module.exports = {
     application_categories_dict:"/api/application_categories_dict",
     application_statuses_dict:"/api/application_statuses_dict",
     wla_allowed:"/api/wla_allowed",
+    current_season: "/api/current_season",
     applicants_dict: "/api/applicants_dict",
     vessel_types_dict:"/api/vessel_types_dict",
     insurance_choices_dict:"/api/insurance_choices_dict",

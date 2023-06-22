@@ -34,6 +34,8 @@ def make_url_for_external(url):
     # Public URL should not have 'internal' substring
     if '-dev-internal' in url:
         url = url.replace('-dev-internal', '-dev')
+    elif '-uat-internal-oim01' in url:
+        url = url.replace('-uat-internal-oim01', '-uat')
     elif '-uat-internal' in url:
         url = url.replace('-uat-internal', '-uat')
     else:

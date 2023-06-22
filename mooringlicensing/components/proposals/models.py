@@ -1681,6 +1681,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             # invoice = Invoice.objects.get(order_number=order.number)
 
                             ### Future Invoice ###
+                            reference = self.previous_application.lodgement_number if self.previous_application else self.lodgement_number
                             invoice_text = 'Payment Invoice'
                             basket_params = {
                                 'products': line_items,
@@ -1688,7 +1689,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 'vouchers': [],
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
-                                'booking_reference': 'ML-' + str(self.id),
+                                'booking_reference': reference,
                                 # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
                                 # 'organisation': 7,
@@ -3815,11 +3816,18 @@ class Vessel(RevisionedMixin):
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
         # Requirement: If vessel is owned by multiple parties then there must be no other application
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
-        proposals_filter = Q(vessel_ownership__vessel=self) & ~Q(Q(vessel_ownership=vessel_ownership) |
-                    Q(processing_status__in=['printing_sticker', 'approved', 'declined', 'discarded']) |
-                    Q(id=proposal_being_processed.id))
-        if Proposal.objects.filter(proposals_filter):
-            # raise serializers.ValidationError("Another owner of this vessel has an unresolved application outstanding")
+        proposals_filter = Q(
+            vessel_ownership__vessel=self) & ~Q(
+            Q(vessel_ownership=vessel_ownership) |
+            Q(processing_status__in=[
+                Proposal.PROCESSING_STATUS_DECLINED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
+                Proposal.PROCESSING_STATUS_DISCARDED,]) |
+            Q(id=proposal_being_processed.id)
+        )
+        blocking_proposals = Proposal.objects.filter(proposals_filter)
+        if blocking_proposals:
+            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel is already listed with RIA under another owner.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
 
         # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
@@ -3827,15 +3835,26 @@ class Vessel(RevisionedMixin):
         ## ML Filter
         ml_filter = Q(
             ~Q(
-                Q(status__in=['cancelled', 'expired', 'surrendered']) |
+                # Q(status__in=['cancelled', 'expired', 'surrendered']) |
+                Q(status__in=[
+                    Approval.APPROVAL_STATUS_CANCELLED,
+                    Approval.APPROVAL_STATUS_EXPIRED,
+                    Approval.APPROVAL_STATUS_SURRENDERED]) |
                 Q(proposal__vessel_ownership=vessel_ownership) |
                 Q(proposal=proposal_being_processed)
             ) &
-            Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED]) &
+            Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[
+                Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+                Proposal.PROCESSING_STATUS_APPROVED]) &
             Q(vesselownershiponapproval__vessel_ownership__end_date__isnull=True) &
             Q(vesselownershiponapproval__end_date__isnull=True) &
             Q(vesselownershiponapproval__vessel_ownership__vessel=self)
         )
+        blocking_proposals = MooringLicence.objects.filter(ml_filter)
+        if blocking_proposals:
+            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  Another owner of this vessel holds a current Mooring Site Licence.')
+            raise serializers.ValidationError("Another owner of this vessel holds a current Mooring Site Licence")
+
         ## Other Approvals filter
         approval_filter = Q(
             Q(current_proposal__vessel_ownership__vessel=self) &
@@ -3846,7 +3865,9 @@ class Vessel(RevisionedMixin):
         if proposal_being_processed.approval:
             approval_filter &= ~Q(id=proposal_being_processed.approval.id)  # We don't want to include the approval this proposal is for.
 
-        if MooringLicence.objects.filter(ml_filter) or Approval.objects.filter(approval_filter):
+        blocking_proposals = Approval.objects.filter(approval_filter)
+        if blocking_proposals:
+            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  Another owner of this vessel holds a current Licence/Permit.')
             raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
 
     @property

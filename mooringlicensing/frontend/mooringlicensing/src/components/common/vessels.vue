@@ -2,7 +2,7 @@
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
-                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration number *</label>
+                <label for="vessel_search" class="col-sm-3 control-label">Unique Vessel Identifier (UVI) *</label>
                 <div class="col-sm-9">
                     <select :disabled="regoReadonly" id="vessel_search" ref="vessel_rego_nos" class="form-control"
                         style="width: 40%">
@@ -34,13 +34,18 @@
                                 :value="false" v-model="vessel.vessel_ownership.individual_owner" required="" />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
-                        <div v-show="companyOwner" class="col-sm-8">
-                            <select :disabled="readonly" id="company_name" ref="company_name" class="form-control"
-                                style="width: 40%" />
-                        </div>
                     </div>
                 </div>
             </div>
+            <transition>
+                <div v-show="companyOwner" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">Company</label>
+                    <div class="col-sm-8">
+                        <select :disabled="readonly" id="company_name" ref="company_name" class="form-control"
+                            style="width: 40%" />
+                    </div>
+                </div>  
+            </transition>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage *</label>
                 <div v-if="individualOwner" class="col-sm-2">
@@ -70,13 +75,15 @@
                 </div>
             </div>
             <!-- Start:new file field -->
-            <div v-if="showDotRegistrationPapers" class="row form-group">
-                <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
-                <div class="col-sm-9">
-                    <FileField :readonly="readonly" ref="vessel_rego_document" name="vessel_rego_document"
-                        :isRepeatable="true" :documentActionUrl="vesselRegoDocumentUrl" :replace_button_by_text="true" />
+            <transition>
+                <div v-if="showDotRegistrationPapers" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
+                    <div class="col-sm-9">
+                        <FileField :readonly="readonly" ref="vessel_rego_document" name="vessel_rego_document"
+                            :isRepeatable="true" :documentActionUrl="vesselRegoDocumentUrl" :replace_button_by_text="true" />
+                    </div>
                 </div>
-            </div>
+            </transition>
             <!-- End:new file field -->
 
             <!-- <div v-if="showDotRegistrationPapers" class="row form-group">
@@ -746,9 +753,11 @@ export default {
         readRegoNo: function () {
             console.log('in readRegoNo()')
             let vm = this;
+            console.log('%cvm.vessel.rego_no: ' + vm.vessel.rego_no, 'color: #993300')
             if (vm.vessel.rego_no) {
                 var option = new Option(vm.vessel.rego_no, vm.vessel.rego_no, true, true);
                 $(vm.$refs.vessel_rego_nos).append(option).trigger('change');
+                console.log('%coption appended', 'color: #993300')
             }
         },
         fetchVesselTypes: async function () {
@@ -871,11 +880,12 @@ export default {
         this.$nextTick(async () => {
             console.log('in mounted nextTick()')
             await this.fetchVesselTypes();
-            if (this.proposal && this.keep_current_vessel) {
+            // if (this.proposal && this.keep_current_vessel) {
+            if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
+
                 // fetches vessel data from proposal (saved as draft)
-                //await this.fetchVessel();
                 await this.fetchDraftData();
-                //} else if (!this.proposal && !this.creatingVessel) {
+
             } else if (!this.proposal) {
                 // route.params.vessel_id in this case is a vesselownership id
                 const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
@@ -884,11 +894,12 @@ export default {
             this.initialiseRegoNoSelect();
             this.initialiseCompanyNameSelect();
             this.addEventListeners();
+            
             // read in Renewal/Amendment vessel details
             //if (!this.keep_current_vessel && this.proposal.proposal_type.code !=='new' && this.proposal.application_type_code === 'mla') {
             if (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new') {
                 //await this.fetchVessel();
-                await this.fetchDraftData();
+                // await this.fetchDraftData();  // Combine this if statement with the above (line 879).  Due to the complexity of this if statements, not very sure if it is correct though it works.
             } else if (!this.keep_current_vessel) {
                 // pass
             } else if (this.proposal && this.proposal.pending_amendment_request) {
