@@ -22,8 +22,8 @@ def belongs_to(user, group_name):
     belongs_to_value = cache.get(
         "User-belongs_to" + str(user.id) + "group_name:" + group_name
     )
-    if belongs_to_value:
-        logger.info(f'From Cache - User-belongs_to: {str(user.id)}, group_name: {group_name}')
+    # if belongs_to_value:
+    #     logger.info(f'From Cache - User-belongs_to: {str(user.id)}, group_name: {group_name}')
     if belongs_to_value is None:
     #     belongs_to_value = user.groups().filter(name=group_name).exists()
         belongs_to_value = False
