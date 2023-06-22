@@ -94,8 +94,8 @@ from mooringlicensing.components.approvals.serializers import (
         LookupApprovalSerializer,
         )
 from mooringlicensing.components.main.process_document import (
-        process_generic_document, 
-        )
+    process_generic_document, delete_document, cancel_document,
+)
 from mooringlicensing.components.main.decorators import (
         basic_exception_handler, 
         timeit, 
@@ -792,7 +792,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         if action == 'list':
             pass
         elif action == 'delete':
-            pass
+            document_id = request.data.get('document_id')
+            document = VesselRegistrationDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                original_file_name = document.original_file_name
+                original_file_ext = document.original_file_ext
+                document.delete()
+                logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
         elif action == 'cancel':
             pass
         elif action == 'save':
