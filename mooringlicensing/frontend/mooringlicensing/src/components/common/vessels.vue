@@ -34,13 +34,18 @@
                                 :value="false" v-model="vessel.vessel_ownership.individual_owner" required="" />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
-                        <div v-show="companyOwner" class="col-sm-8">
-                            <select :disabled="readonly" id="company_name" ref="company_name" class="form-control"
-                                style="width: 40%" />
-                        </div>
                     </div>
                 </div>
             </div>
+            <transition>
+                <div v-show="companyOwner" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">Company</label>
+                    <div class="col-sm-8">
+                        <select :disabled="readonly" id="company_name" ref="company_name" class="form-control"
+                            style="width: 40%" />
+                    </div>
+                </div>  
+            </transition>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage *</label>
                 <div v-if="individualOwner" class="col-sm-2">
@@ -70,13 +75,15 @@
                 </div>
             </div>
             <!-- Start:new file field -->
-            <div v-if="showDotRegistrationPapers" class="row form-group">
-                <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
-                <div class="col-sm-9">
-                    <FileField :readonly="readonly" ref="vessel_rego_document" name="vessel_rego_document"
-                        :isRepeatable="true" :documentActionUrl="vesselRegoDocumentUrl" :replace_button_by_text="true" />
+            <transition>
+                <div v-if="showDotRegistrationPapers" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
+                    <div class="col-sm-9">
+                        <FileField :readonly="readonly" ref="vessel_rego_document" name="vessel_rego_document"
+                            :isRepeatable="true" :documentActionUrl="vesselRegoDocumentUrl" :replace_button_by_text="true" />
+                    </div>
                 </div>
-            </div>
+            </transition>
             <!-- End:new file field -->
 
             <!-- <div v-if="showDotRegistrationPapers" class="row form-group">
