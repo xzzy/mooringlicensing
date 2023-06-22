@@ -11,6 +11,11 @@
                 <form class="form-horizontal" name="personal_form" method="post">
                     <FormSection label="Apply for">
                         <div>
+                            <div class="col-sm-12" style="margin-bottom: 1em;">
+                                <strong>
+                                    Application for the current season: {{ season_text }}
+                                </strong>
+                            </div>
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
                                     <label>Annual Admission</label>
@@ -241,6 +246,8 @@ export default {
         creatingProposal: false,
         newWlaAllowed: false,
         //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
+
+        season_text: '',
     }
   },
   components: {
@@ -523,15 +530,21 @@ export default {
         const response = await this.$http.get(api_endpoints.wla_allowed);
         this.newWlaAllowed = response.body.wla_allowed;
     },
-
+    fetchCurrentSeason: async function(){
+        const response = await this.$http.get(api_endpoints.current_season);
+        console.log(response.body)
+        if (response.body.length){
+            this.season_text = response.body[0].start_date + ' to ' + response.body[0].end_date
+        }
+    }
   },
   mounted: async function() {
     this.applicationsLoading = true;
 
     await this.fetchApplicationTypes();
     await this.fetchExistingLicences();  // application_types_and_licences has all the application types and the existing licences
-
     await this.fetchWlaAllowed();
+    await this.fetchCurrentSeason();
 
     this.parseApprovals();  // wlaApprovals, aaaApprovals, auaApprovals and ml Approvals
     this.parseWla();

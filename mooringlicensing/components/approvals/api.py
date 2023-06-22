@@ -27,7 +27,7 @@ from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger, timeit
 from mooringlicensing.components.payments_ml.api import logger
-from mooringlicensing.components.payments_ml.models import FeeSeason
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring, \
@@ -60,7 +60,7 @@ from mooringlicensing.components.approvals.serializers import (
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
-from mooringlicensing.settings import PROPOSAL_TYPE_NEW
+from mooringlicensing.settings import PROPOSAL_TYPE_NEW, LOV_CACHE_TIMEOUT
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework import filters
@@ -149,7 +149,7 @@ class GetApprovalTypeDict(views.APIView):
             cache_title += '_' + code
         data = cache.get(cache_title)
         if not data:
-            cache.set(cache_title, Approval.approval_types_dict(include_codes), settings.LOV_CACHE_TIMEOUT)
+            cache.set(cache_title, Approval.approval_types_dict(include_codes), LOV_CACHE_TIMEOUT)
             data = cache.get(cache_title)
         return Response(data)
 
@@ -163,6 +163,28 @@ class GetApprovalStatusesDict(views.APIView):
             cache.set('approval_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
             data = cache.get('approval_statuses_dict')
         return Response(data)
+
+
+class GetCurrentSeason(views.APIView):
+    """
+    Return list of current seasons
+    """
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        cache_title = 'current_seasons'
+        fee_seasons = cache.get(cache_title)
+        fee_seasons = []
+
+        if not fee_seasons:
+            today = datetime.now(pytz.timezone(TIME_ZONE)).date()
+            fee_constructors = FeeConstructor.get_fee_constructor_by_date(today)
+            for fc in fee_constructors:
+                obj = {'start_date': fc.fee_season.start_date, 'end_date': fc.fee_season.end_date}
+                if obj not in fee_seasons:
+                    fee_seasons.append(obj)
+            cache.set(cache_title, fee_seasons, LOV_CACHE_TIMEOUT)
+        return Response(fee_seasons)
 
 
 class GetWlaAllowed(views.APIView):
