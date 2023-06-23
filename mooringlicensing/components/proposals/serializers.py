@@ -39,7 +39,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
     EmailUserSerializer
-from mooringlicensing.components.users.serializers import UserSerializer
+from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer
 from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
@@ -166,6 +166,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     # max_vessel_length_with_no_payment = serializers.SerializerMethodField()
     approval_reissued = serializers.SerializerMethodField()
     vessel_on_proposal = serializers.SerializerMethodField()
+    proposal_applicant = ProposalApplicantSerializer()
 
     class Meta:
         model = Proposal
@@ -246,6 +247,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'approval_reissued',
                 'vessel_on_proposal',
                 'null_vessel_on_create',
+                'proposal_applicant',
                 )
         read_only_fields=('documents',)
 
@@ -1045,6 +1047,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'approval_vessel_rego_no',
                 'vessel_on_proposal',
                 'null_vessel_on_create',
+                'proposal_applicant',
                 )
         read_only_fields = (
             'documents',
