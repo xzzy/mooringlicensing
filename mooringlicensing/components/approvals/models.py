@@ -2846,27 +2846,31 @@ class Sticker(models.Model):
 
     @property
     def postal_address_line1(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.line1
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.line1
+        # return '---'
+        return self.approval.postal_address_line1
 
     @property
     def postal_address_line2(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.line2
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.line2
+        # return '---'
+        return self.approval.postal_address_line2
 
     @property
     def postal_address_state(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.state
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.state
+        # return '---'
+        return self.approval.postal_address_state
 
     @property
     def postal_address_suburb(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.locality
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.locality
+        # return '---'
+        return self.approval.postal_address_suburb
 
     @property
     def vessel_registration_number(self):
@@ -2882,9 +2886,10 @@ class Sticker(models.Model):
 
     @property
     def postal_address_postcode(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.postcode
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.postcode
+        # return '---'
+        return self.approval.postal_address_postcode
 
 
 class StickerActionDetail(models.Model):
