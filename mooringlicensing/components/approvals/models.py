@@ -309,77 +309,67 @@ class Approval(RevisionedMixin):
 
     @property
     def postal_address_line1(self):
-        ret_value = ''
-        if self.submitter:
-            submitter = retrieve_email_userro(self.submitter)
-            if submitter.postal_same_as_residential:
-                ret_value = submitter.residential_address.line1
+        try:
+            if self.current_proposal.proposal_applicant.postal_same_as_residential:
+                ret_value = self.current_proposal.proposal_applicant.residential_line1
             else:
-                if submitter.postal_address:
-                    ret_value = submitter.postal_address.line1
-            if not ret_value:
-                # Shouldn't reach here, but if so, just return residential address
-                ret_value = submitter.residential_address.line1
+                ret_value = self.current_proposal.proposal_applicant.postal_line1
+        except:
+            logger.error(f'Postal address line1 cannot be retrieved for the approval [{self}]')
+            return ''
+
         return ret_value
 
     @property
     def postal_address_line2(self):
-        ret_value = ''
-        if self.submitter:
-            submitter = retrieve_email_userro(self.submitter)
-            if submitter.postal_same_as_residential:
-                ret_value = submitter.residential_address.line2
+        try:
+            if self.current_proposal.proposal_applicant.postal_same_as_residential:
+                ret_value = self.current_proposal.proposal_applicant.residential_line2
             else:
-                if submitter.postal_address:
-                    ret_value = submitter.postal_address.line2
-            if not ret_value:
-                # Shouldn't reach here, but if so, just return residential address
-                ret_value = submitter.residential_address.line2
+                ret_value = self.current_proposal.proposal_applicant.postal_line2
+        except:
+            logger.error(f'Postal address line2 cannot be retrieved for the approval [{self}]')
+            return ''
+
         return ret_value
 
     @property
     def postal_address_state(self):
-        ret_value = ''
-        if self.submitter:
-            submitter = retrieve_email_userro(self.submitter)
-            if submitter.postal_same_as_residential:
-                ret_value = submitter.residential_address.state
+        try:
+            if self.current_proposal.proposal_applicant.postal_same_as_residential:
+                ret_value = self.current_proposal.proposal_applicant.residential_state
             else:
-                if submitter.postal_address:
-                    ret_value = submitter.postal_address.state
-            if not ret_value:
-                # Shouldn't reach here, but if so, just return residential address
-                ret_value = submitter.residential_address.state
+                ret_value = self.current_proposal.proposal_applicant.postal_state
+        except:
+            logger.error(f'Postal address state cannot be retrieved for the approval [{self}]')
+            return ''
+
         return ret_value
 
     @property
     def postal_address_suburb(self):
-        ret_value = ''
-        if self.submitter:
-            submitter = retrieve_email_userro(self.submitter)
-            if submitter.postal_same_as_residential:
-                ret_value = submitter.residential_address.locality
+        try:
+            if self.current_proposal.proposal_applicant.postal_same_as_residential:
+                ret_value = self.current_proposal.proposal_applicant.residential_locality
             else:
-                if submitter.postal_address:
-                    ret_value = submitter.postal_address.locality
-            if not ret_value:
-                # Shouldn't reach here, but if so, just return residential address
-                ret_value = submitter.residential_address.locality
+                ret_value = self.current_proposal.proposal_applicant.postal_locality
+        except:
+            logger.error(f'Postal address locality cannot be retrieved for the approval [{self}]')
+            return ''
+
         return ret_value
 
     @property
     def postal_address_postcode(self):
-        ret_value = ''
-        if self.submitter:
-            submitter = retrieve_email_userro(self.submitter)
-            if submitter.postal_same_as_residential:
-                ret_value = submitter.residential_address.postcode
+        try:
+            if self.current_proposal.proposal_applicant.postal_same_as_residential:
+                ret_value = self.current_proposal.proposal_applicant.residential_postcode
             else:
-                if submitter.postal_address:
-                    ret_value = submitter.postal_address.postcode
-            if not ret_value:
-                # Shouldn't reach here, but if so, just return residential address
-                ret_value = submitter.residential_address.postcode
+                ret_value = self.current_proposal.proposal_applicant.postal_postcode
+        except:
+            logger.error(f'Postal address postcode cannot be retrieved for the approval [{self}]')
+            return ''
+
         return ret_value
 
     @property
@@ -2856,27 +2846,31 @@ class Sticker(models.Model):
 
     @property
     def postal_address_line1(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.line1
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.line1
+        # return '---'
+        return self.approval.postal_address_line1
 
     @property
     def postal_address_line2(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.line2
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.line2
+        # return '---'
+        return self.approval.postal_address_line2
 
     @property
     def postal_address_state(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.state
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.state
+        # return '---'
+        return self.approval.postal_address_state
 
     @property
     def postal_address_suburb(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.locality
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.locality
+        # return '---'
+        return self.approval.postal_address_suburb
 
     @property
     def vessel_registration_number(self):
@@ -2892,9 +2886,10 @@ class Sticker(models.Model):
 
     @property
     def postal_address_postcode(self):
-        if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-            return self.approval.submitter_obj.postal_address.postcode
-        return '---'
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.postcode
+        # return '---'
+        return self.approval.postal_address_postcode
 
 
 class StickerActionDetail(models.Model):

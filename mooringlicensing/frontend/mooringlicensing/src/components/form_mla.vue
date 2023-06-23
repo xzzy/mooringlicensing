@@ -57,6 +57,7 @@
                         :showElectoralRoll="showElectoralRoll"
                         :storedSilentElector="silentElector"
                         :proposalId="proposal.id"
+                        :proposal="proposal"
                     />
                   </div>
               </div>

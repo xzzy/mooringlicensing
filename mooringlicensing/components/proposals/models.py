@@ -3813,8 +3813,10 @@ class Vessel(RevisionedMixin):
 
     ## at submit
     def check_blocking_ownership(self, vessel_ownership, proposal_being_processed):
+        logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
-        # Requirement: If vessel is owned by multiple parties then there must be no other application
+
+        # 1. Requirement: If vessel is owned by multiple parties then there must be no other application
         #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q(
             vessel_ownership__vessel=self) & ~Q(
@@ -3830,7 +3832,7 @@ class Vessel(RevisionedMixin):
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel is already listed with RIA under another owner.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
 
-        # Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
+        # 2. Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
         ## ML Filter
         ml_filter = Q(
@@ -3855,7 +3857,7 @@ class Vessel(RevisionedMixin):
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  Another owner of this vessel holds a current Mooring Site Licence.')
             raise serializers.ValidationError("Another owner of this vessel holds a current Mooring Site Licence")
 
-        ## Other Approvals filter
+        ## 3. Other Approvals filter
         approval_filter = Q(
             Q(current_proposal__vessel_ownership__vessel=self) &
             ~Q(current_proposal__vessel_ownership=vessel_ownership) &

@@ -54,6 +54,7 @@
                         :applicantType="proposal.applicant_type" 
                         id="proposalStartApplicant"
                         :readonly="readonly"
+                        :proposal="proposal"
                     />
                   </div>
               </div>

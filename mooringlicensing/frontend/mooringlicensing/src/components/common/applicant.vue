@@ -120,7 +120,8 @@
                                         <label for="" class="col-sm-3 control-label">Residential Address</label>
                                         <div class="col-sm-6">
                                             <input :readonly="readonly" type="text" class="form-control" id="line1"
-                                                name="Street" placeholder="" v-model="email_user.residential_address.line1">
+                                                name="Street" placeholder="" 
+                                                v-model="residential_line1">
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -128,27 +129,28 @@
                                         <div class="col-sm-6">
                                             <input :readonly="readonly" type="text" class="form-control" id="locality"
                                                 name="Town/Suburb" placeholder=""
-                                                v-model="email_user.residential_address.locality">
+                                                v-model="residential_locality">
                                         </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">State</label>
                                         <div class="col-sm-3">
                                             <input :readonly="readonly" type="text" class="form-control" id="state"
-                                                name="State" placeholder="" v-model="email_user.residential_address.state">
+                                                name="State" placeholder="" 
+                                                v-model="residential_state">
                                         </div>
                                         <label for="" class="col-sm-1 control-label">Postcode</label>
                                         <div class="col-sm-2">
                                             <input :readonly="readonly" type="text" class="form-control" id="postcode"
                                                 name="Postcode" placeholder=""
-                                                v-model="email_user.residential_address.postcode">
+                                                v-model="residential_postcode">
                                         </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="" class="col-sm-3 control-label">Country</label>
                                         <div class="col-sm-4">
                                             <select :disabled="readonly" class="form-control" id="country" name="Country"
-                                                v-model="email_user.residential_address.country">
+                                                v-model="residential_country">
                                                 <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                             </select>
                                         </div>
@@ -162,7 +164,7 @@
                                         </div>
                                         <div class="col-sm-6">
                                             <input :disabled="readonly" type="checkbox" id="postal_same_as_residential"
-                                                v-model="email_user.postal_same_as_residential" />
+                                                v-model="postal_same_as_residential">
                                             <label for="postal_same_as_residential" class="control-label">Same as
                                                 residential address</label>
                                         </div>
@@ -172,7 +174,7 @@
                                         <div class="col-sm-6">
                                             <input :readonly="postalAddressReadonly" type="text" class="form-control"
                                                 id="postal_line1" name="Street" placeholder=""
-                                                v-model="email_user.postal_address.line1">
+                                                v-model="postal_line1" />
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -180,7 +182,7 @@
                                         <div class="col-sm-6">
                                             <input :readonly="postalAddressReadonly" type="text" class="form-control"
                                                 id="postal_locality" name="Town/Suburb" placeholder=""
-                                                v-model="email_user.postal_address.locality">
+                                                v-model="postal_locality" />
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -188,13 +190,13 @@
                                         <div class="col-sm-3">
                                             <input :readonly="postalAddressReadonly" type="text" class="form-control"
                                                 id="postal_state" name="State" placeholder=""
-                                                v-model="email_user.postal_address.state">
+                                                v-model="postal_state" />
                                         </div>
                                         <label for="" class="col-sm-1 control-label">Postcode</label>
                                         <div class="col-sm-2">
                                             <input :readonly="postalAddressReadonly" type="text" class="form-control"
                                                 id="postal_postcode" name="Postcode" placeholder=""
-                                                v-model="email_user.postal_address.postcode">
+                                                v-model="postal_postcode" />
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -202,7 +204,7 @@
                                         <div class="col-sm-4">
                                             <select :disabled="postalAddressReadonly" class="form-control"
                                                 id="postal_country" name="Country"
-                                                v-model="email_user.postal_address.country">
+                                                v-model="postal_country">
                                                 <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                             </select>
                                         </div>
@@ -359,6 +361,10 @@ export default {
         proposalId: {
             type: Number,
         },
+        proposal: {
+            type: Object,
+            default: {},
+        },
     },
     data: function () {
         let vm = this;
@@ -425,6 +431,83 @@ export default {
     //     }
     // },
     computed: {
+        residential_line1: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.residential_line1
+            } else {
+                return this.email_user.residential_address.line1
+            }
+        },
+        residential_locality: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.residential_locality
+            } else {
+                return this.email_user.residential_address.locality
+            }
+        },
+        residential_state: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.residential_state
+            } else {
+                return this.email_user.residential_address.state
+            }
+        },
+        residential_postcode: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.residential_postcode
+            } else {
+                return this.email_user.residential_address.postcode
+            }
+        },
+        residential_country: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.residential_country
+            } else {
+                return this.email_user.residential_address.country
+            }
+        },
+        postal_same_as_residential: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.postal_same_as_residential
+            } else {
+                return this.email_user.postal_same_as_residential
+            }
+        },
+        postal_line1: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.postal_line1
+            } else {
+                return this.email_user.postal_address.line1
+            }
+        },
+        postal_locality: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.postal_locality
+            } else {
+                return this.email_user.postal_address.locality
+            }
+        },
+        postal_state: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.postal_state
+            } else {
+                return this.email_user.postal_address.state
+            }
+        },
+        postal_postcode: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.postal_postcode
+            } else {
+                return this.email_user.postal_address.postcode
+            }
+        },
+        postal_country: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.postal_country
+            } else {
+                return this.email_user.postal_address.country
+            }
+        },
         electoralRollDocumentUrl: function () {
             let url = '';
             //if (this.profile && this.profile.id) {
