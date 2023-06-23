@@ -47,9 +47,16 @@
                             :submitterId="submitterId" />
                     </div>
                     <div v-else>
-                        <Applicant :email_user="proposal.submitter" :applicantType="proposal.applicant_type"
-                            id="proposalStartApplicant" :readonly="readonly" :showElectoralRoll="showElectoralRoll"
-                            :storedSilentElector="silentElector" :proposalId="proposal.id" />
+                        <Applicant 
+                            :email_user="proposal.submitter" 
+                            :applicantType="proposal.applicant_type"
+                            id="proposalStartApplicant" 
+                            :readonly="readonly" 
+                            :showElectoralRoll="showElectoralRoll"
+                            :storedSilentElector="silentElector" 
+                            :proposalId="proposal.id"
+                            :proposal="proposal"
+                            />
                     </div>
                 </div>
                 <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
