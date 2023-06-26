@@ -263,6 +263,7 @@ export default {
                     'Vessel',
                     'Action',
                     'Approval letter',
+                    'Sticker replacement',
                     //'Mooring Licence Vessels',
                     //'Authorised User Permit Moorings',
                 ]
@@ -299,6 +300,7 @@ export default {
                     'Start Date',
                     'Expiry Date',
                     'Approval letter',
+                    'Sticker replacement',
                     'Vessel Regos',
                     'Action',
                     //'Mooring Licence Vessels',
@@ -613,6 +615,27 @@ export default {
                         name: 'stickers__number',
                     }
         },
+        columnStickerReplacement: function(){
+            return {
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: true,
+                        'render': function(row, type, full){
+                            let ret_str = ''
+                            for (let sticker of full.stickers_historical){
+                                if (sticker.invoices.length){
+                                    for (let invoice of sticker.invoices){
+                                        // ret_str += invoice.invoice_url
+                                        ret_str += "<div><a href='" + invoice.invoice_url +"' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #" + invoice.reference + "</a></div>"
+                                    }
+                                }
+                            }
+                            return ret_str
+                        },
+
+            }
+        },
         columnStickerMailedDate: function() {
             return {
                         data: "id",
@@ -727,6 +750,7 @@ export default {
                     vm.columnVesselRegistration,
                     vm.columnAction,
                     vm.columnApprovalLetter,
+                    vm.columnStickerReplacement,
                     /*
                     vm.columnMooringLicenceVessels,
                     vm.columnAuthorisedUserMoorings,
@@ -764,6 +788,7 @@ export default {
                     vm.columnStartDate,
                     vm.columnExpiryDate,
                     vm.columnApprovalLetter,
+                    vm.columnStickerReplacement,
                     vm.columnVesselRegos,
                     vm.columnAction,
                     /*
