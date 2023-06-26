@@ -659,6 +659,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     amend_or_renew = serializers.SerializerMethodField()
     allowed_assessors_user = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
+    stickers_historical = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
     is_assessor = serializers.SerializerMethodField()
     vessel_regos = serializers.SerializerMethodField()
@@ -697,6 +698,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'renewal_document',
             'allowed_assessors_user',
             'stickers',
+            'stickers_historical',
             'licence_document',
             'authorised_user_summary_document',
             'is_assessor',
@@ -737,6 +739,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'renewal_document',
             'allowed_assessors_user',
             'stickers',
+            'stickers_historical',
             'licence_document',
             'authorised_user_summary_document',
             'is_assessor',
@@ -779,9 +782,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         else:
             return False
 
+    def get_stickers_historical(self, obj):
+        stickers = obj.stickers.all()
+        serializers = StickerSerializerSimple(stickers, many=True)
+        list_return = serializers.data
+        return list_return
+
     def get_stickers(self, obj):
-        stickers = obj.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING])
-        list_return = [{'number': sticker.number, 'mailing_date': sticker.mailing_date} for sticker in stickers]
+        stickers = obj.stickers.filter(status__in=[
+            Sticker.STICKER_STATUS_CURRENT,
+            Sticker.STICKER_STATUS_AWAITING_PRINTING]
+        )
+        serializers = StickerSerializerSimple(stickers, many=True)
+        list_return = serializers.data
         return list_return
 
     def get_renewal_document(self,obj):
@@ -1125,6 +1138,27 @@ class StickerForDcvSaveSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(non_field_errors)
 
         return data
+
+
+class StickerSerializerSimple(serializers.ModelSerializer):
+    invoices = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sticker
+        fields = (
+            'id',
+            'number',
+            'mailing_date',
+            'invoices',
+        )
+
+    def get_invoices(self, obj):
+        invoices = obj.get_invoices()
+        if not invoices:
+            return ''
+        else:
+            serializer = InvoiceSerializer(invoices, many=True)
+            return serializer.data
 
 
 class StickerSerializer(serializers.ModelSerializer):
