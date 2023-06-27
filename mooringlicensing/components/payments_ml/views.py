@@ -55,12 +55,7 @@ from mooringlicensing.components.approvals.email import send_dcv_permit_mail, se
     send_sticker_replacement_email
 from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
     DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement, FeeItemApplicationFee, FeeCalculation
-from mooringlicensing.components.payments_ml.utils import checkout, set_session_application_invoice, \
-    get_session_application_invoice, delete_session_application_invoice, set_session_dcv_permit_invoice, \
-    get_session_dcv_permit_invoice, delete_session_dcv_permit_invoice, set_session_dcv_admission_invoice, \
-    get_session_dcv_admission_invoice, delete_session_dcv_admission_invoice, \
-    checkout_existing_invoice, set_session_sticker_action_invoice, get_session_sticker_action_invoice, \
-    delete_session_sticker_action_invoice
+from mooringlicensing.components.payments_ml.utils import checkout, set_session_application_invoice, set_session_dcv_admission_invoice, get_session_sticker_action_invoice, delete_session_sticker_action_invoice
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
     AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication, \
     VesselDetails
@@ -309,6 +304,7 @@ class StickerReplacementFeeView(TemplateView):
                 sticker_action_fee.delete()
             raise
 
+
 class StickerReplacementFeeSuccessViewPreload(APIView):
 
     def get(self, request, uuid, format=None):
@@ -364,79 +360,28 @@ class StickerReplacementFeeSuccessView(TemplateView):
     template_name = 'mooringlicensing/payments_ml/success_sticker_action_fee.html'
     LAST_STICKER_ACTION_FEE_ID = 'mooringlicensing_last_dcv_admission_invoice'
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, uuid):
+        logger.info(f'{StickerReplacementFeeSuccessView.__name__} get method is called.')
 
         try:
-            sticker_action_fee = get_session_sticker_action_invoice(request.session)  # This raises an exception when accessed 2nd time?
-            sticker_action_details = sticker_action_fee.sticker_action_details
-
-            if self.request.user.is_authenticated:
-                owner = request.user
-            else:
-                owner = sticker_action_details.first().sticker.approval.submitter_obj
-            basket = Basket.objects.filter(status='Submitted', owner=owner).order_by('-id')[:1]
-
-            order = Order.objects.get(basket=basket[0])
-            invoice = Invoice.objects.get(order_number=order.number)
-
-            sticker_action_fee.invoice_reference = invoice.reference
-            sticker_action_fee.save()
-
-            if sticker_action_fee.payment_type == StickerActionFee.PAYMENT_TYPE_TEMPORARY:
-                try:
-                    inv = Invoice.objects.get(reference=invoice.reference)
-                    order = Order.objects.get(number=inv.order_number)
-                    order.user = request.user
-                    order.save()
-                except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an application fee with an incorrect invoice'.format(
-                        'User {} with id {}'.format(owner.get_full_name(), owner.id)
-                    ))
-                    return redirect('external')
-                if inv.system not in [LEDGER_SYSTEM_ID, ]:
-                    logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format(
-                        'User {} with id {}'.format(owner.get_full_name(), owner.id),
-                        inv.reference
-                    ))
-                    return redirect('external')
-
-                # if fee_inv:
-                sticker_action_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
-                sticker_action_fee.expiry_time = None
-                # update_payments(invoice.reference)
-
-                for sticker_action_detail in sticker_action_details.all():
-                    old_sticker = sticker_action_detail.sticker
-                    new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
-
-                sticker_action_fee.save()
-                request.session[self.LAST_STICKER_ACTION_FEE_ID] = sticker_action_fee.id
-                delete_session_sticker_action_invoice(request.session)  # This leads to raise an exception at the get_session_sticker_action_invoice() above
-
-                # Send email with the invoice
-                send_sticker_replacement_email(request, old_sticker, new_sticker, invoice)
-
-                context = {
-                    'submitter': owner,
-                    'fee_invoice': sticker_action_fee,
-                }
-                print('render1')
-                return render(request, self.template_name, context)
-
-        except Exception as e:
-            print('4')
-            if (self.LAST_STICKER_ACTION_FEE_ID in request.session) and StickerActionFee.objects.filter(id=request.session[self.LAST_STICKER_ACTION_FEE_ID]).exists():
-                sticker_action_fee = StickerActionFee.objects.get(id=request.session[self.LAST_STICKER_ACTION_FEE_ID])
-                owner = sticker_action_fee.sticker_action_details.first().sticker.approval.submitter_obj
-            else:
-                return redirect('home')
+            sticker_action_fee = StickerActionFee.objects.get(uuid=uuid)
+            invoice = Invoice.objects.get(reference=sticker_action_fee.invoice_reference)
+            invoice_url = get_invoice_url(invoice.reference, request)
+            submitter = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
 
             context = {
-                'submitter': owner,
+                'submitter': submitter,
                 'fee_invoice': sticker_action_fee,
+                'invoice': invoice,
+                'invoice_url': invoice_url,
             }
-            print('render2')
             return render(request, self.template_name, context)
+
+        except Exception as e:
+            # Should not reach here
+            msg = 'Failed to process the payment. {}'.format(str(e))
+            logger.error(msg)
+            raise Exception(msg)
 
 
 class ApplicationFeeView(TemplateView):
@@ -993,13 +938,8 @@ class ApplicationFeeSuccessView(TemplateView):
     def get(self, request, uuid, *args, **kwargs):
         logger.info(f'{ApplicationFeeSuccessView.__name__} get method is called.')
 
-        proposal = None
-        submitter = None
-        invoice = None
-
         try:
             application_fee = ApplicationFee.objects.get(uuid=uuid)
-            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             proposal = application_fee.proposal
             submitter = proposal.submitter_obj
             if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
@@ -1007,23 +947,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 if proposal.auto_approve:
                     proposal.final_approval_for_WLA_AAA(request, details={})
 
-            # if self.LASTrAPPLICATION_FEE_ID in request.session:
-            #     if ApplicationFee.objects.filter(id=request.session[self.LAST_APPLICATION_FEE_ID]).exists():
-            #         application_fee = ApplicationFee.objects.get(id=request.session[self.LAST_APPLICATION_FEE_ID])
-            #         proposal = application_fee.proposal
-            #         submitter = proposal.submitter
-            #         if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
-            #             #proposal.auto_approve_check(request)
-            #             if proposal.auto_approve:
-            #                 proposal.final_approval_for_WLA_AAA(request, details={})
-            #     else:
-            #         msg = 'ApplicationFee with id: {} does not exist in the database'.format(str(request.session[self.LAST_APPLICATION_FEE_ID]))
-            #         logger.error(msg)
-            #         return redirect('home')  # Should be 'raise' rather than redirect?
-            # else:
-            #     msg = '{} is not set in session'.format(self.LAST_APPLICATION_FEE_ID)
-            #     logger.error(msg)
-            #     return redirect('home')  # Should be 'raise' rather than redirect?
             wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             invoice_url = get_invoice_url(invoice.reference, request)
