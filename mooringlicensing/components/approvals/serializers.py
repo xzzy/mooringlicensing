@@ -1088,7 +1088,6 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_of_returned_sticker = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     date_created = serializers.DateTimeField(read_only=True)
     date_updated = serializers.DateTimeField(read_only=True)
-    # user_detail = EmailUserSerializer(source='user', read_only=True)
     user_detail = serializers.SerializerMethodField()
 
     class Meta:
