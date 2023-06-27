@@ -923,7 +923,7 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
             _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
-def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice):
+def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice_reference):
     # 36
     # email to licence/permit holder when sticker replacement request has been submitted (with payment)
     approval = new_sticker.approval
@@ -940,10 +940,16 @@ def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice):
     # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', invoice, )
     # attachment = ('invoice#{}.pdf'.format(invoice.reference), invoice_bytes, 'application/pdf')
     # attachments.append(attachment)
-    url = get_invoice_url(invoice.reference, request)
+
+    url = f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'
     invoice_pdf = requests.get(url=url)
     if invoice_pdf.status_code == 200:
-        attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
+        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_pdf.content, 'application/pdf')
+
+    # url = get_invoice_url(invoice.reference, request)
+    # invoice_pdf = requests.get(url=url)
+    # if invoice_pdf.status_code == 200:
+    #     attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
         attachments.append(attachment)
 
     context = {

@@ -345,7 +345,7 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
                 new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
 
                 # Send email with the invoice
-                send_sticker_replacement_email(request, old_sticker, new_sticker, invoice)
+                send_sticker_replacement_email(request, old_sticker, new_sticker, invoice.reference)
 
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
