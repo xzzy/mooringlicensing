@@ -1004,7 +1004,7 @@ class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
         qs = DcvPermit.objects.none()
 
         if is_internal(self.request):
-            qs = DcvPermit.objects.all()
+            qs = DcvPermit.objects.exclude(lodgement_number__isnull=True)
 
         return qs
 

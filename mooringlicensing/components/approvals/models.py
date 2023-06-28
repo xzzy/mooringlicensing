@@ -2308,18 +2308,18 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     submitter = models.IntegerField(blank=True, null=True)
-    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
-    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
-    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
-    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
-    # uuid = models.CharField(max_length=36, blank=True, null=True)
+
+    # Following fields are null unless payment success
+    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)  # lodgement_number is assigned only when payment success, which means if this is None, the permit has not been issued.
+    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime assigned on the success of payment
+    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date assigned on the success of payment
+    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date assigned on the success of payment
 
     @property
     def submitter_obj(self):
@@ -2554,7 +2554,8 @@ class DcvPermit(RevisionedMixin):
 
     def save(self, **kwargs):
         logger.info(f"Saving DcvPermit: {self}.")
-        if self.lodgement_number in ['', None]:
+        if self.lodgement_number in ['', None] and self.lodgement_datetime:  # start_date is null unless payment success
+            # Only when the fee has been paid, a lodgement number is assigned
             logger.info(f'DcvPermit has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
 
