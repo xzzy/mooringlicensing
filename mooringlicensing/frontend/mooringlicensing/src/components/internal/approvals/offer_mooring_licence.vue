@@ -12,7 +12,7 @@
                                     <label class="control-label pull-left" for="mooring_bay_lookup">Bay</label>
                                 </div>
                                 <div class="col-sm-6">
-                                    <select class="form-control" v-model="selectedMooringBayId" id="mooring_bay_lookup">
+                                    <select class="form-control" v-model="selectedMooringBayId" id="mooring_bay_lookup" disabled>
                                         <option v-for="bay in mooringBays" v-bind:value="bay.id">
                                         {{ bay.name }}
                                         </option>
@@ -82,7 +82,7 @@
 
             <div slot="footer">
                 <button type="button" v-if="savingOffer" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!ok_button_enabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -134,6 +134,12 @@ export default {
         }
     },
     computed: {
+        ok_button_enabled: function(){
+            if (this.selectedMooringBayId && this.selectedMooringId){
+                return true
+            }
+            return false
+        },
         waitingListOfferSubmitUrl: function() {
           return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application.json`;
           //return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application/`;
