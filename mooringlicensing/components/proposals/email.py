@@ -291,6 +291,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     days_setting_application_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
     days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+    details = request.data.get('message_details', '')
 
     context = {
         'public_url': get_public_url(request),
@@ -299,6 +300,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
         'application_period': days_setting_application_period.number_of_days,
         'documents_period': days_setting_documents_period.number_of_days,
         'proposal_external_url': url,
+        'details': details,
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
