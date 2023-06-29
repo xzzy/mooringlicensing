@@ -466,22 +466,6 @@ class Approval(RevisionedMixin):
                 logger.info('Mooring {} has been added to the approval {}'.format(mooring.name, self.lodgement_number))
         return mooring_on_approval, created
 
-    #def set_wla_order(self):
-    #    place = 1
-    #    # set wla order per bay for current allocations
-    #    if type(self) == WaitingListAllocation:
-    #        for w in WaitingListAllocation.objects.filter(
-    #                wla_queue_date__isnull=False,
-    #                current_proposal__preferred_bay=self.current_proposal.preferred_bay,
-    #                status__in=['current', 'suspended']).order_by(
-    #                #status='current').order_by(
-    #                        'wla_queue_date'):
-    #            w.wla_order = place
-    #            w.save()
-    #            place += 1
-    #    self.refresh_from_db()
-    #    return self
-
     @property
     def bpay_allowed(self):
         if self.org_applicant:

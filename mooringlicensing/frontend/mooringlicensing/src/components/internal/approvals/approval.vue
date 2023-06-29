@@ -55,6 +55,7 @@
                         id="approvalSubmitterDetails"
                         :readonly="true"
                         customerType="holder"
+                        :proposal="approval.current_proposal"
                     />
                 </div>
             </div>
