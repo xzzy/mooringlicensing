@@ -466,22 +466,6 @@ class Approval(RevisionedMixin):
                 logger.info('Mooring {} has been added to the approval {}'.format(mooring.name, self.lodgement_number))
         return mooring_on_approval, created
 
-    #def set_wla_order(self):
-    #    place = 1
-    #    # set wla order per bay for current allocations
-    #    if type(self) == WaitingListAllocation:
-    #        for w in WaitingListAllocation.objects.filter(
-    #                wla_queue_date__isnull=False,
-    #                current_proposal__preferred_bay=self.current_proposal.preferred_bay,
-    #                status__in=['current', 'suspended']).order_by(
-    #                #status='current').order_by(
-    #                        'wla_queue_date'):
-    #            w.wla_order = place
-    #            w.save()
-    #            place += 1
-    #    self.refresh_from_db()
-    #    return self
-
     @property
     def bpay_allowed(self):
         if self.org_applicant:
@@ -582,15 +566,15 @@ class Approval(RevisionedMixin):
 
     @property
     def can_external_action(self):
-        return self.status == 'current' or self.status == 'suspended'
+        return self.status == Approval.APPROVAL_STATUS_CURRENT or self.status == Approval.APPROVAL_STATUS_SUSPENDED
 
     @property
     def can_reissue(self):
-        return self.status == 'current' or self.status == 'suspended'
+        return self.status == Approval.APPROVAL_STATUS_CURRENT or self.status == Approval.APPROVAL_STATUS_SUSPENDED
 
     @property
     def can_reinstate(self):
-        return (self.status == 'cancelled' or self.status == 'suspended' or self.status == 'surrendered') and self.can_action
+        return (self.status == Approval.APPROVAL_STATUS_CANCELLED or self.status == Approval.APPROVAL_STATUS_SUSPENDED or self.status == Approval.APPROVAL_STATUS_SURRENDERED) and self.can_action
 
     @property
     def allowed_assessors(self):
@@ -627,7 +611,7 @@ class Approval(RevisionedMixin):
     @property
     def amend_or_renew(self):
         try:
-            if not self.status in ['current', 'suspended', 'fulfilled']:
+            if not self.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,]:
                 return None
             amend_renew = 'amend'
             ## test whether any renewal or amendment applications have been created
@@ -2308,18 +2292,18 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     submitter = models.IntegerField(blank=True, null=True)
-    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
-    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
-    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
-    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
     renewal_sent = models.BooleanField(default=False)
     migrated = models.BooleanField(default=False)
-    # uuid = models.CharField(max_length=36, blank=True, null=True)
+
+    # Following fields are null unless payment success
+    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)  # lodgement_number is assigned only when payment success, which means if this is None, the permit has not been issued.
+    lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime assigned on the success of payment
+    start_date = models.DateField(null=True, blank=True)  # This is the season.start_date assigned on the success of payment
+    end_date = models.DateField(null=True, blank=True)  # This is the season.end_date assigned on the success of payment
 
     @property
     def submitter_obj(self):
@@ -2554,7 +2538,8 @@ class DcvPermit(RevisionedMixin):
 
     def save(self, **kwargs):
         logger.info(f"Saving DcvPermit: {self}.")
-        if self.lodgement_number in ['', None]:
+        if self.lodgement_number in ['', None] and self.lodgement_datetime:  # start_date is null unless payment success
+            # Only when the fee has been paid, a lodgement number is assigned
             logger.info(f'DcvPermit has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
 

@@ -315,7 +315,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     vessel_id = models.IntegerField(null=True,blank=True)
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES, blank=True)
     vessel_name = models.CharField(max_length=400, blank=True)
-    # vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, null=True) # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2, null=True)
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, null=True)
@@ -370,6 +369,25 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def __str__(self):
         return str(self.lodgement_number)
+
+    def copy_vessel_details(self, proposal):
+        proposal.rego_no = self.rego_no
+        proposal.vessel_id = self.vessel_id
+        proposal.vessel_type = self.vessel_type
+        proposal.vessel_name = self.vessel_name
+        proposal.vessel_length = self.vessel_length
+        proposal.vessel_draft = self.vessel_draft
+        proposal.vessel_beam = self.vessel_beam
+        proposal.vessel_weight = self.vessel_weight
+        proposal.berth_mooring = self.berth_mooring
+
+        proposal.dot_name = self.dot_name
+        proposal.percentage = self.percentage
+        proposal.individual_owner = self.individual_owner
+        proposal.company_ownership_percentage = self.company_ownership_percentage
+        proposal.company_ownership_name = self.company_ownership_name
+
+        proposal.save()
 
     def get_previous_vessel_ownerships(self):
         vessel_ownerships = []
