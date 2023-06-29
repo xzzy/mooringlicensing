@@ -750,6 +750,8 @@ def store_vessel_data(request, vessel_data):
         raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
     rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
     vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+    if created:
+        logger.info(f'Vessel: [{vessel}] has been created.')
     
     vessel_details_data = vessel_data.get("vessel_details")
     # add vessel to vessel_details_data
@@ -763,19 +765,21 @@ def store_vessel_data(request, vessel_data):
     create_vessel_details = False
     for key in existing_vessel_details_data.keys():
         if key in vessel_details_data and existing_vessel_details_data[key] != vessel_details_data[key]:
+            # Value is different between the existing and new --> We create new vessel details rather than updating the existing
             create_vessel_details = True
-            print(existing_vessel_details_data[key])
-            print(vessel_details_data[key])
+            break
 
-    vessel_details = None
     if create_vessel_details:
         serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
         serializer.is_valid(raise_exception=True)
         vessel_details = serializer.save()
+        logger.info(f'VesselDetails: [{vessel_details}] has been created.')
     else:
         serializer = SaveVesselDetailsSerializer(existing_vessel_details, vessel_details_data)
         serializer.is_valid(raise_exception=True)
         vessel_details = serializer.save()
+        logger.info(f'VesselDetails: [{vessel_details}] has been updated.')
+
     return vessel, vessel_details
 
 def store_vessel_ownership(request, vessel, instance=None):
@@ -790,6 +794,7 @@ def store_vessel_ownership(request, vessel, instance=None):
             vessel_ownership_data.get("company_ownership", {}).get("company", {}).get("name")
             ):
         raise serializers.ValidationError({"Missing information": "You must supply the company name"})
+
     company_ownership = None
     company = None
     if not vessel_ownership_data.get('individual_owner'):
@@ -798,12 +803,14 @@ def store_vessel_ownership(request, vessel, instance=None):
         company, created = Company.objects.get_or_create(name=company_name)
         if created:
             logger.info(f'Company: {company} has been created.')
+
         ## CompanyOwnership
         company_ownership_data = vessel_ownership_data.get("company_ownership")
         company_ownership_set = CompanyOwnership.objects.filter(
-                company=company,
-                vessel=vessel,
-                )
+            company=company,
+            vessel=vessel,
+        )
+
         ## Do we need to create a new CO record?
         create_company_ownership = False
         edit_company_ownership = True
@@ -822,8 +829,10 @@ def store_vessel_ownership(request, vessel, instance=None):
                     print(company_ownership_data[key])
         else:
             create_company_ownership = True
+
         # update company key from dict to pk
         company_ownership_data.update({"company": company.id})
+
         # add vessel to company_ownership_data
         company_ownership_data.update({"vessel": vessel.id})
         if create_company_ownership:

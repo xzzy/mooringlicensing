@@ -877,16 +877,20 @@ export default {
         },
     },
     mounted: function () {
+        let consoleColour = 'color: #000099'
         this.$nextTick(async () => {
             console.log('in mounted nextTick()')
             await this.fetchVesselTypes();
             // if (this.proposal && this.keep_current_vessel) {
             if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
+                console.log('%cPerform fetchDraftData', consoleColour)
 
                 // fetches vessel data from proposal (saved as draft)
                 await this.fetchDraftData();
 
             } else if (!this.proposal) {
+                console.log('%cPerform fetchReadonlyVesselCommon', consoleColour)
+
                 // route.params.vessel_id in this case is a vesselownership id
                 const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                 this.fetchReadonlyVesselCommon(url);

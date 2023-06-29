@@ -566,15 +566,15 @@ class Approval(RevisionedMixin):
 
     @property
     def can_external_action(self):
-        return self.status == 'current' or self.status == 'suspended'
+        return self.status == Approval.APPROVAL_STATUS_CURRENT or self.status == Approval.APPROVAL_STATUS_SUSPENDED
 
     @property
     def can_reissue(self):
-        return self.status == 'current' or self.status == 'suspended'
+        return self.status == Approval.APPROVAL_STATUS_CURRENT or self.status == Approval.APPROVAL_STATUS_SUSPENDED
 
     @property
     def can_reinstate(self):
-        return (self.status == 'cancelled' or self.status == 'suspended' or self.status == 'surrendered') and self.can_action
+        return (self.status == Approval.APPROVAL_STATUS_CANCELLED or self.status == Approval.APPROVAL_STATUS_SUSPENDED or self.status == Approval.APPROVAL_STATUS_SURRENDERED) and self.can_action
 
     @property
     def allowed_assessors(self):
@@ -611,7 +611,7 @@ class Approval(RevisionedMixin):
     @property
     def amend_or_renew(self):
         try:
-            if not self.status in ['current', 'suspended', 'fulfilled']:
+            if not self.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,]:
                 return None
             amend_renew = 'amend'
             ## test whether any renewal or amendment applications have been created
