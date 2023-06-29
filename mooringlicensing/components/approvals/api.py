@@ -1004,7 +1004,7 @@ class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
         qs = DcvPermit.objects.none()
 
         if is_internal(self.request):
-            qs = DcvPermit.objects.all()
+            qs = DcvPermit.objects.exclude(lodgement_number__isnull=True)
 
         return qs
 
@@ -1314,14 +1314,24 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                     waiting_list_allocation=waiting_list_allocation,
                     date_invited=current_date,
                 )
+                logger.info(f'Mooring site licence application: [{new_proposal}] has been created from the waiting list allocation: [{waiting_list_allocation}].')
+
+                # Copy applicant details to the new proposal
                 proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
                 proposal_applicant.copy_self_to_proposal(new_proposal)
+                logger.info(f'ProposalApplicant: [{proposal_applicant}] has been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
+
+                # Copy vessel details to the new proposal
+                waiting_list_allocation.current_proposal.copy_vessel_details(new_proposal)
+                logger.info(f'Vessel details have been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
+
             if new_proposal:
                 # send email
                 send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)
                 # update waiting_list_allocation
                 waiting_list_allocation.internal_status = 'offered'
                 waiting_list_allocation.save()
+
             return Response({"proposal_created": new_proposal.lodgement_number})
 
 
