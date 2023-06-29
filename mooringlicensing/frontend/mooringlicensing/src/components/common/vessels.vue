@@ -356,7 +356,10 @@ export default {
             return this.fee_paid ? this.proposal.fee_invoice_url : '';
         },
         vesselRegoDocumentUrl: function () {
-            let url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+            let url = ''
+            if (this.proposal){
+                let url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+            }
             return url
         },
         vesselRegistrationDocumentUrl: function () {
@@ -969,12 +972,14 @@ export default {
         });
     },
     created: async function () {
-        let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`);
-        // this.max_vessel_length_for_main_component = res.body
-        // this.include_max_vessel_length_for_main_component = res.body.include_max_length
-        console.log('main component')
-        console.log(res.body)
-        this.max_vessel_length_tuple = res.body
+        if (this.proposal){
+            let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`);
+            // this.max_vessel_length_for_main_component = res.body
+            // this.include_max_vessel_length_for_main_component = res.body.include_max_length
+            console.log('main component')
+            console.log(res.body)
+            this.max_vessel_length_tuple = res.body
+        }
     },
 }
 </script>

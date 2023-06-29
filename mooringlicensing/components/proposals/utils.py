@@ -487,11 +487,13 @@ def save_vessel_data(instance, request, vessel_data):
     vessel_details_data = {}
     vessel_id = vessel_data.get('id')
     vessel_details_data = vessel_data.get("vessel_details")
-    # add vessel details to vessel_data
+
+    # update vessel details to vessel_data
     for key in vessel_details_data.keys():
         vessel_data.update({key: vessel_details_data.get(key)})
     if vessel_id:
         vessel_data.update({"vessel_id": vessel_id})
+
     vessel_ownership_data = vessel_data.get("vessel_ownership")
     if vessel_ownership_data.get('company_ownership'):
         company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
@@ -500,9 +502,11 @@ def save_vessel_data(instance, request, vessel_data):
         vessel_data.update({"company_ownership_name": company_ownership_name})
     if 'company_ownership' in vessel_ownership_data.keys():
         vessel_ownership_data.pop('company_ownership', None)
+
     # copy VesselOwnership fields to vessel_data
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
+
     # overwrite vessel_data.id with correct value
     if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'):
         # do not write vessel_data to proposal
@@ -512,6 +516,7 @@ def save_vessel_data(instance, request, vessel_data):
         serializer.is_valid(raise_exception=True)
         print(serializer.validated_data)
         serializer.save()
+        logger.info(f'Proposal: [{instance}] has been updated with the vessel data: [{vessel_data}]')
 
 def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     json_string = json.dumps(payload)
