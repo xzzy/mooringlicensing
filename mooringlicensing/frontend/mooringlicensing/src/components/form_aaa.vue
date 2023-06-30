@@ -78,6 +78,7 @@
                   :is_internal="is_internal"
                   @updateVesselLength="updateVesselLength"
                   @vesselChanged="vesselChanged"
+                  @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                   @noVessel="noVessel"
                   @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
                   @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
@@ -205,6 +206,9 @@
         methods:{
             noVessel: async function(noVessel) {
                 await this.$emit("noVessel", noVessel);
+            },
+            updateVesselOwnershipChanged: async function(changed){
+                await this.$emit("updateVesselOwnershipChanged", changed)
             },
             vesselChanged: async function(vesselChanged) {
                 await this.$emit("vesselChanged", vesselChanged);

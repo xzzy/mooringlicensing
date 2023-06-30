@@ -4043,7 +4043,7 @@ class VesselOwnership(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return f'id:{self.id}, owner: {self.owner}, vessel: {self.vessel}'
+        return f'id:{self.id}, owner: {self.owner}, company: {self.company_ownership}, vessel: {self.vessel}'
 
     def excludable(self, originated_proposal):
         # Return True if self is excludable from the percentage calculation
