@@ -1,4 +1,5 @@
 import re
+import pytz
 from decimal import Decimal
 
 from django.db import transaction
@@ -61,6 +62,7 @@ import time
 from rest_framework import serializers
 
 import logging
+from django.db.models import Q
 
 
 # logger = logging.getLogger('mooringlicensing')
@@ -487,11 +489,13 @@ def save_vessel_data(instance, request, vessel_data):
     vessel_details_data = {}
     vessel_id = vessel_data.get('id')
     vessel_details_data = vessel_data.get("vessel_details")
-    # add vessel details to vessel_data
+
+    # update vessel details to vessel_data
     for key in vessel_details_data.keys():
         vessel_data.update({key: vessel_details_data.get(key)})
     if vessel_id:
         vessel_data.update({"vessel_id": vessel_id})
+
     vessel_ownership_data = vessel_data.get("vessel_ownership")
     if vessel_ownership_data.get('company_ownership'):
         company_ownership_percentage = vessel_ownership_data.get('company_ownership', {}).get('percentage')
@@ -500,9 +504,11 @@ def save_vessel_data(instance, request, vessel_data):
         vessel_data.update({"company_ownership_name": company_ownership_name})
     if 'company_ownership' in vessel_ownership_data.keys():
         vessel_ownership_data.pop('company_ownership', None)
+
     # copy VesselOwnership fields to vessel_data
     for key in vessel_ownership_data.keys():
         vessel_data.update({key: vessel_ownership_data.get(key)})
+
     # overwrite vessel_data.id with correct value
     if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'):
         # do not write vessel_data to proposal
@@ -512,6 +518,7 @@ def save_vessel_data(instance, request, vessel_data):
         serializer.is_valid(raise_exception=True)
         print(serializer.validated_data)
         serializer.save()
+        logger.info(f'Proposal: [{instance}] has been updated with the vessel data: [{vessel_data}]')
 
 def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     json_string = json.dumps(payload)
@@ -751,7 +758,7 @@ def store_vessel_data(request, vessel_data):
     rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
     vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
     if created:
-        logger.info(f'Vessel: [{vessel}] has been created.')
+        logger.info(f'New Vessel: [{vessel}] has been created.')
     
     vessel_details_data = vessel_data.get("vessel_details")
     # add vessel to vessel_details_data
@@ -773,7 +780,7 @@ def store_vessel_data(request, vessel_data):
         serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
         serializer.is_valid(raise_exception=True)
         vessel_details = serializer.save()
-        logger.info(f'VesselDetails: [{vessel_details}] has been created.')
+        logger.info(f'New VesselDetails: [{vessel_details}] has been created.')
     else:
         serializer = SaveVesselDetailsSerializer(existing_vessel_details, vessel_details_data)
         serializer.is_valid(raise_exception=True)
@@ -795,14 +802,20 @@ def store_vessel_ownership(request, vessel, instance=None):
             ):
         raise serializers.ValidationError({"Missing information": "You must supply the company name"})
 
+    individual_owner = vessel_ownership_data.get('individual_owner')
+
     company_ownership = None
-    company = None
-    if not vessel_ownership_data.get('individual_owner'):
-        ## Company
+    if individual_owner:
+        # This proposal is for individual owner
+        logger.info(f'This proposal: [{instance}] is for individual owner.')
+    else:
+        # This proposal is for company owner
+        logger.info(f'This proposal: [{instance}] is for company owner.')
+
         company_name = vessel_ownership_data.get("company_ownership").get("company").get("name")
         company, created = Company.objects.get_or_create(name=company_name)
         if created:
-            logger.info(f'Company: {company} has been created.')
+            logger.info(f'New Company: [{company}] has been created.')
 
         ## CompanyOwnership
         company_ownership_data = vessel_ownership_data.get("company_ownership")
@@ -824,9 +837,8 @@ def store_vessel_ownership(request, vessel, instance=None):
             existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
             for key in existing_company_ownership_data.keys():
                 if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:
+                    # At least one field has a different value.
                     create_company_ownership = True
-                    print(existing_company_ownership_data[key])
-                    print(company_ownership_data[key])
         else:
             create_company_ownership = True
 
@@ -835,12 +847,13 @@ def store_vessel_ownership(request, vessel, instance=None):
 
         # add vessel to company_ownership_data
         company_ownership_data.update({"vessel": vessel.id})
+
         if create_company_ownership:
             serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
             serializer.is_valid(raise_exception=True)
             company_ownership = serializer.save()
 
-            logger.info(f'CompanyOwnership: [{company_ownership}] has been created')
+            logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
 
         elif edit_company_ownership:
             serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
@@ -863,21 +876,55 @@ def store_vessel_ownership(request, vessel, instance=None):
     vessel_ownership_data['vessel'] = vessel.id
     owner, created = Owner.objects.get_or_create(emailuser=request.user.id)
     if created:
-        logger.info(f'New Owner: {owner} has been created.')
+        logger.info(f'New Owner: [{owner}] has been created.')
     else:
-        logger.info(f'Existing Owner: {owner} has been retrieved.')
-
+        logger.info(f'Existing Owner: [{owner}] has been retrieved.')
 
     vessel_ownership_data['owner'] = owner.id
-    vessel_ownership, created = VesselOwnership.objects.get_or_create(
-            owner=owner, 
-            vessel=vessel, 
-            # company_ownership=company_ownership
-            )
-    if created:
-        logger.info(f'New VesselOwnership: {vessel_ownership} has been created.')
+
+    today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+
+    filter_query = Q()
+    filter_query &= Q(owner=owner)
+    filter_query &= Q(vessel=vessel)
+    filter_query &= Q(Q(end_date__isnull=True) | Q(end_date__gte=today))
+    vessel_ownership = VesselOwnership.objects.filter(filter_query)
+
+    if vessel_ownership:
+        if individual_owner:
+            if vessel_ownership.company_ownership:
+                approvals = Approval.objects.filter(
+                    Q(current_proposal__vessel_ownership=vessel_ownership) and
+                    Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,])
+                )
+                if approvals:
+                    vessel_ownership, created = VesselOwnership.objects.get_or_create(
+                        Q(owner=owner) and
+                        Q(vessel=vessel) and
+                        Q(Q(end_date__isnull=True) or Q(end_date__gte=today)) and
+                        Q(company_ownership__isnull=True))
+        else:
+            if not vessel_ownership.company_ownership:
+                approvals = Approval.objects.filter(
+                    Q(current_proposal__vessel_ownership=vessel_ownership) and
+                    Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,])
+                )
+                if approvals:
+                    vessel_ownership, created = VesselOwnership.objects.get_or_create(
+                        Q(owner=owner) and
+                        Q(vessel=vessel) and
+                        Q(Q(end_date__isnull=True) or Q(end_date__gte=today)) and
+                        Q(company_ownership__isnull=company_ownership))
     else:
-        logger.info(f'Existing VesselOwnership: {vessel_ownership} has been retrieved.')
+        vessel_ownership, created = VesselOwnership.objects.get_or_create(
+            owner=owner,
+            vessel=vessel,
+        )
+
+        # if created:
+        #     logger.info(f'New VesselOwnership: [{vessel_ownership}] has been created.')
+        # else:
+        #     logger.info(f'Existing VesselOwnership: [{vessel_ownership}] has been retrieved.')
 
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
@@ -977,7 +1024,7 @@ def ownership_percentage_validation(vessel_ownership, proposal):
             total_percent += vo.percentage
             logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
 
-    logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}')
+    logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}%')
 
     if total_percent > 100:
         raise serializers.ValidationError({
