@@ -882,61 +882,48 @@ def store_vessel_ownership(request, vessel, instance=None):
         logger.info(f'Existing Owner: [{owner}] has been retrieved.')
 
     vessel_ownership_data['owner'] = owner.id
-    vessel_ownership, created = VesselOwnership.objects.get_or_create(
-        # Owner is actually the accessing user (request.user) as above.
-        # Which means that when accessing user and vessel is the same, always same vessel_ownership object is retrieved... ---> That's not correct...
-        owner=owner,
-        vessel=vessel,
-        # company_ownership=company_ownership
-    )
-    if created:
+
+    # Create/Retrieve vessel_ownership
+    vo_created = False
+    q_for_approvals_check = Q()  # We want to check if there is a current approval which links to the vessel_ownership retrieved below
+    if instance.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+        vessel_ownership, vo_created = VesselOwnership.objects.get_or_create(
+            owner=owner,  # Owner is actually the accessing user (request.user) as above.
+            vessel=vessel,
+            company_ownership=company_ownership
+        )
+    elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
+        # Retrieve a vessel_ownership from the previous proposal
+        vessel_ownership = instance.previous_application.vessel_ownership
+        q_for_approvals_check &= ~Q(id=instance.approval.id)  # We want to exclude the approval we are currently processing for
+    else:
+        msg = f'Proposal: [{instance}] does not have correct proposal type.'
+        logger.error(msg)
+        raise Exception(msg)
+
+    q_for_approvals_check &= Q(current_proposal__vessel_ownership=vessel_ownership)
+    q_for_approvals_check &= Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,])
+
+    # Other approvals which have the link to the vessel_ownership
+    approvals = Approval.objects.filter(q_for_approvals_check)
+
+    if vo_created:
         logger.info(f'New VesselOwnership: [{vessel_ownership}] has been created.')
     else:
         logger.info(f'Existing VesselOwnership: [{vessel_ownership}] has been retrieved.')
 
-    # today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
-    #
-    # filter_query = Q()
-    # filter_query &= Q(owner=owner)
-    # filter_query &= Q(vessel=vessel)
-    # filter_query &= Q(Q(end_date__isnull=True) | Q(end_date__gte=today))
-    # vessel_ownership = VesselOwnership.objects.filter(filter_query)
-    #
-    # if vessel_ownership:
-    #     if individual_owner:
-    #         if vessel_ownership.company_ownership:
-    #             approvals = Approval.objects.filter(
-    #                 Q(current_proposal__vessel_ownership=vessel_ownership) and
-    #                 Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,])
-    #             )
-    #             if approvals:
-    #                 vessel_ownership, created = VesselOwnership.objects.get_or_create(
-    #                     Q(owner=owner) and
-    #                     Q(vessel=vessel) and
-    #                     Q(Q(end_date__isnull=True) or Q(end_date__gte=today)) and
-    #                     Q(company_ownership__isnull=True))
-    #     else:
-    #         if not vessel_ownership.company_ownership:
-    #             approvals = Approval.objects.filter(
-    #                 Q(current_proposal__vessel_ownership=vessel_ownership) and
-    #                 Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_FULFILLED,])
-    #             )
-    #             if approvals:
-    #                 vessel_ownership, created = VesselOwnership.objects.get_or_create(
-    #                     Q(owner=owner) and
-    #                     Q(vessel=vessel) and
-    #                     Q(Q(end_date__isnull=True) or Q(end_date__gte=today)) and
-    #                     Q(company_ownership__isnull=company_ownership))
-    # else:
-    #     vessel_ownership, created = VesselOwnership.objects.get_or_create(
-    #         owner=owner,
-    #         vessel=vessel,
-    #     )
+    if approvals.count() == 1:
+        logger.warning(f'This VesselOwnership: [{vessel_ownership}] is also used with another active approval: [{approvals[0]}].')
+    elif approvals:
+        logger.warning(f'This VesselOwnership: [{vessel_ownership}] is also used with other active approvals: [{approvals}].')
+    else:
+        logger.info(f'This VesselOwnership: [{vessel_ownership}] is not used with any other active approvals.')
 
-
+    # Update the vessel_ownership
     serializer = SaveVesselOwnershipSerializer(vessel_ownership, vessel_ownership_data)
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
+    logger.info(f'VesselOwnership: [{vessel_ownership}] has been updated with the data: [{vessel_ownership_data}].')
 
     # check and set blocking_owner
     if instance:
@@ -944,8 +931,6 @@ def store_vessel_ownership(request, vessel, instance=None):
 
     # save temp doc if exists
     handle_vessel_registrarion_documents_in_limbo(instance.id, vessel_ownership)
-    # if request.data.get('proposal', {}).get('temporary_document_collection_id'):
-    #     handle_document(instance, vessel_ownership, request.data)
 
     # Vessel docs
     if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
