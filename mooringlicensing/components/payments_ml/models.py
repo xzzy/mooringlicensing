@@ -18,7 +18,7 @@ from mooringlicensing.settings import TIME_ZONE
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
-    AuthorisedUserApplication, VesselDetails, WaitingListApplication, Proposal
+    AuthorisedUserApplication, VesselDetails, WaitingListApplication, Proposal, MooringLicenceApplication
 from smart_selects.db_fields import ChainedForeignKey
 
 # logger = logging.getLogger('mooringlicensing')
@@ -540,10 +540,12 @@ class FeeConstructor(models.Model):
                 for vessel_size_category in self.vessel_size_category_group.vessel_size_categories.all():
                     if self.application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
                         # For DcvPermit, no proposal type for-loop
-                        fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
-                                                                          fee_period=fee_period,
-                                                                          vessel_size_category=vessel_size_category,
-                                                                          proposal_type=None)
+                        fee_item, created = FeeItem.objects.get_or_create(
+                            fee_constructor=self,
+                            fee_period=fee_period,
+                            vessel_size_category=vessel_size_category,
+                            proposal_type=None
+                        )
                         valid_fee_item_ids.append(fee_item.id)
                         if created:
                             logger.info(
@@ -556,12 +558,14 @@ class FeeConstructor(models.Model):
                         for age_gruop in AgeGroup.objects.all():
                             from mooringlicensing.components.approvals.models import AdmissionType
                             for admission_type in AdmissionType.objects.all():
-                                fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
-                                                                                  fee_period=fee_period,
-                                                                                  vessel_size_category=vessel_size_category,
-                                                                                  age_group=age_gruop,
-                                                                                  admission_type=admission_type,
-                                                                                  proposal_type=None)
+                                fee_item, created = FeeItem.objects.get_or_create(
+                                    fee_constructor=self,
+                                    fee_period=fee_period,
+                                    vessel_size_category=vessel_size_category,
+                                    age_group=age_gruop,
+                                    admission_type=admission_type,
+                                    proposal_type=None
+                                )
                                 valid_fee_item_ids.append(fee_item.id)
                                 if created:
                                     logger.info(
@@ -571,18 +575,29 @@ class FeeConstructor(models.Model):
                                                                                     admission_type))
                     else:
                         for proposal_type in proposal_types:
-                            if vessel_size_category.null_vessel and \
-                                    ((self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
-                                     proposal_type.code in [settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_AMENDMENT,]):
-                                # When WLA/AAA and renewal application
-                                # When new/amendment application
-                                # No fee_items created
+                            # if vessel_size_category.null_vessel and \
+                            #         ((self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
+                            #          proposal_type.code in [settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_AMENDMENT,]):
+                            #     # When WLA/AAA and renewal application
+                            #     # When new/amendment application
+                            #     # No fee_items created
+                            #     continue
+                            if (
+                                    (vessel_size_category.null_vessel and proposal_type.code in [settings.PROPOSAL_TYPE_NEW,]) or
+                                    (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,])
+                                    # When null vessel and new proposal (any application type), OR
+                                    # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication
+                            ):
+                                # No need to create fee_items
                                 continue
+
                             else:
-                                fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
-                                                                                  fee_period=fee_period,
-                                                                                  vessel_size_category=vessel_size_category,
-                                                                                  proposal_type=proposal_type)
+                                fee_item, created = FeeItem.objects.get_or_create(
+                                    fee_constructor=self,
+                                    fee_period=fee_period,
+                                    vessel_size_category=vessel_size_category,
+                                    proposal_type=proposal_type
+                                )
                                 valid_fee_item_ids.append(fee_item.id)
                                 if created:
                                     logger.info('FeeItem created: {} - {} - {}'.format(fee_period.name,
