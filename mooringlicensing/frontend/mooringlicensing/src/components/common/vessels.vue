@@ -79,8 +79,14 @@
                 <div v-if="showDotRegistrationPapers" class="row form-group">
                     <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                     <div class="col-sm-9">
-                        <FileField :readonly="readonly" ref="vessel_rego_document" name="vessel_rego_document"
-                            :isRepeatable="true" :documentActionUrl="vesselRegoDocumentUrl" :replace_button_by_text="true" />
+                        <FileField 
+                            :readonly="readonly" 
+                            ref="vessel_rego_document" 
+                            name="vessel_rego_document"
+                            :isRepeatable="true" 
+                            :documentActionUrl="vesselRegoDocumentUrl" 
+                            :replace_button_by_text="true"
+                        />
                     </div>
                 </div>
             </transition>
@@ -358,7 +364,7 @@ export default {
         vesselRegoDocumentUrl: function () {
             let url = ''
             if (this.proposal){
-                let url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+                url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
             }
             return url
         },
