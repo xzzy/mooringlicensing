@@ -227,7 +227,7 @@ export default {
                       disable = true;
                   } else {
                       if (['aaa', 'mla'].includes(this.proposal.application_type_code)){
-                          if (!this.vesselChanged) {
+                          if (!this.vesselChanged && !this.vesselOwnershipChanged) {
                               disable = true;
                               console.log('%cSubmit button is disabled 1', 'color: #FF0000')
                           }
@@ -348,6 +348,7 @@ export default {
         //console.log("updateMooringPreference");
     },
     updateVesselOwnershipChanged: function(changed) {
+        console.log('updateVesselOwnershipChanged in proposal.vue:' + changed)
         this.vesselOwnershipChanged = changed
     },
     proposal_refs:function(){

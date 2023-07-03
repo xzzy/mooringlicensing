@@ -79,8 +79,14 @@
                 <div v-if="showDotRegistrationPapers" class="row form-group">
                     <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                     <div class="col-sm-9">
-                        <FileField :readonly="readonly" ref="vessel_rego_document" name="vessel_rego_document"
-                            :isRepeatable="true" :documentActionUrl="vesselRegoDocumentUrl" :replace_button_by_text="true" />
+                        <FileField 
+                            :readonly="readonly" 
+                            ref="vessel_rego_document" 
+                            name="vessel_rego_document"
+                            :isRepeatable="true" 
+                            :documentActionUrl="vesselRegoDocumentUrl" 
+                            :replace_button_by_text="true"
+                        />
                     </div>
                 </div>
             </transition>
@@ -356,7 +362,10 @@ export default {
             return this.fee_paid ? this.proposal.fee_invoice_url : '';
         },
         vesselRegoDocumentUrl: function () {
-            let url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+            let url = ''
+            if (this.proposal){
+                url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+            }
             return url
         },
         vesselRegistrationDocumentUrl: function () {
@@ -969,12 +978,14 @@ export default {
         });
     },
     created: async function () {
-        let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`);
-        // this.max_vessel_length_for_main_component = res.body
-        // this.include_max_vessel_length_for_main_component = res.body.include_max_length
-        console.log('main component')
-        console.log(res.body)
-        this.max_vessel_length_tuple = res.body
+        if (this.proposal){
+            let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`);
+            // this.max_vessel_length_for_main_component = res.body
+            // this.include_max_vessel_length_for_main_component = res.body.include_max_length
+            console.log('main component')
+            console.log(res.body)
+            this.max_vessel_length_tuple = res.body
+        }
     },
 }
 </script>

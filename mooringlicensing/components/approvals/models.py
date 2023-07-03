@@ -778,19 +778,19 @@ class Approval(RevisionedMixin):
                 today = timezone.now().date()
                 if not self.can_reinstate and self.expiry_date>= today:
                     raise ValidationError('You cannot reinstate approval at this stage')
-                if self.status == 'cancelled':
+                if self.status == Approval.APPROVAL_STATUS_CANCELLED:
                     self.cancellation_details =  ''
                     self.cancellation_date = None
-                if self.status == 'surrendered':
+                if self.status == Approval.APPROVAL_STATUS_SURRENDERED:
                     self.surrender_details = {}
-                if self.status == 'suspended':
+                if self.status == Approval.APPROVAL_STATUS_SUSPENDED:
                     self.suspension_details = {}
                 previous_status = self.status
-                self.status = 'current'
+                self.status = Approval.APPROVAL_STATUS_CURRENT
                 self.save()
-                if type(self.child_obj) == WaitingListAllocation and previous_status in ['cancelled', 'surrendered']:
+                if type(self.child_obj) == WaitingListAllocation and previous_status in [Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED]:
                     wla = self.child_obj
-                    wla.internal_status = 'waiting'
+                    wla.internal_status = Approval.INTERNAL_STATUS_WAITING
                     current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                     wla.wla_queue_date = current_datetime
                     wla.save()
@@ -809,9 +809,11 @@ class Approval(RevisionedMixin):
                 # Check if organisations the request.user belongs to include the organisation this application is for.
                 # if not request.user.mooringlicensing_organisations.filter(organisation_id = self.applicant_id):
                 orgs = Organisation.objects.filter(delegates__contains=[request.user.id,])  # These are the organisations request.user belongs to
-                if not self.org_applicant.id in [org.id for org in orgs]:
-                    if request.user not in self.allowed_assessors and not is_customer(request):
-                        raise ValidationError('You do not have access to surrender this approval')
+                if orgs:
+                    if self.org_applicant:
+                        if not self.org_applicant.id in [org.id for org in orgs]:
+                            if request.user not in self.allowed_assessors and not is_customer(request):
+                                raise ValidationError('You do not have access to surrender this approval')
                 if not self.can_reissue and self.can_action:
                     raise ValidationError('You cannot surrender approval if it is not current or suspended')
                 self.surrender_details = {
@@ -822,8 +824,8 @@ class Approval(RevisionedMixin):
                 surrender_date = datetime.datetime.strptime(self.surrender_details['surrender_date'],'%d/%m/%Y')
                 surrender_date = surrender_date.date()
                 if surrender_date <= today:
-                    if not self.status == 'surrendered':
-                        self.status = 'surrendered'
+                    if not self.status == Approval.APPROVAL_STATUS_SURRENDERED:
+                        self.status = Approval.APPROVAL_STATUS_SURRENDERED
                         self.set_to_surrender = False
                         self.save()
                         send_approval_surrender_email_notification(self)
