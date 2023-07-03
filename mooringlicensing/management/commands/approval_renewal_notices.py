@@ -74,12 +74,16 @@ class Command(BaseCommand):
                     if v_details and not v_ownership.end_date:
                         a.generate_renewal_doc()
                     else:
-                        if a.application_type.code == AuthorisedUserPermit.code:
-                            # When AU and no vessel, renewal would not be offered
+                        # if a.application_type.code == AuthorisedUserPermit.code:
+                        if a.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
                             continue
+                        else:
+                            a.generate_renewal_doc()
+
                 send_approval_renewal_email_notification(a)
                 a.renewal_sent = True
                 a.save()
+
                 a.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a),)
                 logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a))
                 updates.append(a.lodgement_number)
