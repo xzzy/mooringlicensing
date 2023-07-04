@@ -680,13 +680,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             # 20
             send_aua_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned)
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            payment_required = False
-            if proposal.application_fees.count():
-                application_fee = proposal.get_main_application_fee()
-                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-                # if invoice.payment_status not in ('paid', 'over_paid'):
-                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
-                    payment_required = True
+            payment_required = proposal.payment_required()
             if payment_required:
                 # 22 (22a, 22b, 22c)
                 send_aua_approved_or_declined_email_amendment_payment_required(proposal, decision, request, stickers_to_be_returned)

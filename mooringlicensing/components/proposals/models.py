@@ -483,6 +483,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return max_amount_paid_for_aa_component
 
+    def payment_required(self):
+        payment_required = False
+        if self.application_fees and self.application_fees.count():
+            application_fee = self.get_main_application_fee()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            # if invoice.payment_status not in ('paid', 'over_paid'):
+            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
+                payment_required = True
+        return payment_required
+
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         logger.info('Proposal.get_amount_paid_so_far_for_aa_through_this_proposal() is called.')
 
@@ -1703,53 +1713,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             invoice_text = 'Payment Invoice'
                             basket_params = {
                                 'products': line_items,
-                                # 'products': [{'ledger_description': 'test', 'oracle_code': 'T1 EXEMPT', 'price_incl_tax': 138.0, 'price_excl_tax': 125.454545454545, 'quantity': 1}],
                                 'vouchers': [],
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
                                 'booking_reference': reference,
-                                # 'booking_reference_link': str(old_booking_id),
                                 'no_payment': True,
-                                # 'organisation': 7,
                                 'tax_override': True,
                             }
-                            print(basket_params)
-                            # basket_user_id = customer_id
-                            # basket_hash = utils_ledger_api_client.create_basket_session(
-                            from ledger_api_client.utils import create_basket_session, process_create_future_invoice
-                            # basket_hash = create_basket_session(request, request.user.id, basket_params)
-                            basket_hash = create_basket_session(request, self.submitter, basket_params)
+                            logger.info(f'basket_params: {basket_params}')
 
-                            #checkouthash =  hashlib.sha256('TEST'.encode('utf-8')).hexdigest()
-                            #checkouthash = request.session.get('checkouthash','')
-                            #basket, basket_hash = use_existing_basket_from_invoice('00193349270')
-                            # notification url for when payment is received.
-                            # return_preload_url = settings.PARKSTAY_EXTERNAL_URL + '/api/complete_booking/9819873279821398732198737981298/' + str(booking_id) + '/'
+                            from ledger_api_client.utils import create_basket_session, process_create_future_invoice
+                            basket_hash = create_basket_session(request, self.submitter, basket_params)
 
                             application_fee = ApplicationFee.objects.create(
                                 proposal=self,
                                 # invoice_reference=invoice.reference,
                                 payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
                             )
-                            # return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
                             return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
 
-
                             basket_hash_split = basket_hash.split("|")
-                            pcfi = process_create_future_invoice(
-                                basket_hash_split[0], invoice_text, return_preload_url
-                                )
+                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url)
 
                             application_fee.invoice_reference = pcfi['data']['invoice']
                             application_fee.save()
                             ### END: Future Invoice ###
 
-
-                            # application_fee = ApplicationFee.objects.create(
-                            #     proposal=self,
-                            #     invoice_reference=invoice.reference,
-                            #     payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY,
-                            # )
                             logger.info('ApplicationFee.id: {} has been created for the Proposal: {}'.format(application_fee.id, self))
 
                             # Link between ApplicationFee and FeeItem(s)
@@ -1765,15 +1754,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                     amount_to_be_paid=amount_to_be_paid,
                                 )
 
+                            if not self.payment_required():
+                                self.approval.generate_doc()
                             send_application_approved_or_declined_email(self, 'approved', request)
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
 
                         except Exception as e:
                             err_msg = 'Failed to create invoice'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
-                # else:
-                #     system reissue
-                    # approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)))
 
                 # Reset flag
                 if self.approval:
@@ -2962,8 +2950,8 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        if mooring_preference.lower() != 'ria':
-            # When this application is AUA, and the mooring authorisation preference is not RIA
+        if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+            # When this application is new AUA application and the mooring authorisation preference is not RIA.
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.save()
             # Email to endorser

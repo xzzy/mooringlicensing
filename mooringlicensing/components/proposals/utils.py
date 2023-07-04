@@ -461,7 +461,7 @@ def save_proponent_data_aua(instance, request, viewset):
     if vessel_data:
         if viewset.action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == 'draft':
+        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
