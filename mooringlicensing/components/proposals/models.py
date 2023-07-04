@@ -2512,9 +2512,9 @@ class WaitingListApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        # if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
-        #     return True
-        return False
+        if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
+            return True
+        # return False
 
     def process_after_approval(self, request=None, total_amount=0):
         pass
@@ -3171,8 +3171,8 @@ class AuthorisedUserApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        if self.proposal_type.code in (PROPOSAL_TYPE_RENEWAL,):
-            return True
+        # if self.proposal_type.code in (PROPOSAL_TYPE_RENEWAL,):
+        #     return True
         return False
 
     def does_have_valid_associations(self):
@@ -3578,7 +3578,7 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        if self.proposal_type.code in (PROPOSAL_TYPE_RENEWAL,):
+        if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
             return True
         return False
 
