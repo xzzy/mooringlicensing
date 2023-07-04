@@ -2971,6 +2971,7 @@ class AuthorisedUserApplication(Proposal):
         created = None
 
         # Manage approval
+        approval_created = False
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # When new application
             approval, approval_created = self.approval_class.objects.update_or_create(
