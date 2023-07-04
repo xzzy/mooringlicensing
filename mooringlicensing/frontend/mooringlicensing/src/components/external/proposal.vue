@@ -237,7 +237,7 @@ export default {
                               console.log('%cSubmit button is disabled 2', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'aua'){
-                          if (!this.vesselChanged && !this.mooringOptionsChanged) {
+                          if (!this.vesselChanged && !this.mooringOptionsChanged && !this.vesselOwnershipChanged) {
                               disable = true;
                               console.log('%cSubmit button is disabled 3', 'color: #FF0000')
                           }
