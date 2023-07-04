@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
         expiry_notification_date = today + timedelta(days=days_setting.number_of_days)
 
-        logger.info('Running command {}'.format(__name__))
+        logger.info(f'Running command {__name__} for the approval type: {approval_class.description}.')
 
         # Construct queries
         queries = Q()
