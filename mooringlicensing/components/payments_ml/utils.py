@@ -91,7 +91,7 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
 
     proposal_type_text = '{}'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
 
-    if application_type.code == WaitingListApplication.code:
+    if application_type.code != WaitingListApplication.code:
         # Keep season dates on the Waiting List
         ledger_description = '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
             application_type_display,
