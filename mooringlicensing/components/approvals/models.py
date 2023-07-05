@@ -1256,11 +1256,13 @@ class AuthorisedUserPermit(Approval):
             v_details = self.current_proposal.latest_vessel_details
             v_ownership = self.current_proposal.vessel_ownership
             if v_details and not v_ownership.end_date:
+                logger.info(f'VesselDetails: [{v_details}] are to be used as the context for the AU permit: [{self}].')
                 vessel_rego_no = v_details.vessel.rego_no
                 vessel_name = v_details.vessel_name
                 vessel_length = v_details.vessel_applicable_length
                 vessel_draft = v_details.vessel_draft
             else:
+                logger.info(f'Null vessel is to be used as the context for the AU permit: [{self}].')
                 vessel_rego_no = ''
                 vessel_name = ''
                 vessel_length = ''
