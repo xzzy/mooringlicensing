@@ -471,24 +471,28 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 sticker_ids.append(sticker['id'])
 
         # TODO: Validation
-
-        sticker_action_details = []
-        stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids, status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
-        data = {}
-        today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
-        for sticker in stickers:
-            data['action'] = 'Request new sticker'
-            data['user'] = request.user.id
-            data['reason'] = details['reason']
-            data['date_of_lost_sticker'] = today.strftime('%d/%m/%Y')
-            serializer = StickerActionDetailSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            new_sticker_action_detail = serializer.save()
-            new_sticker_action_detail.sticker = sticker
-            new_sticker_action_detail.save()
-            sticker_action_details.append(new_sticker_action_detail.id)
-
-        return Response({'sticker_action_detail_ids': sticker_action_details})
+        v_details = approval.current_proposal.latest_vessel_details
+        v_ownership = approval.current_proposal.vessel_ownership
+        if v_details and not v_ownership.end_date:
+            # Licence/Permit has a vessel
+            sticker_action_details = []
+            stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids, status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
+            data = {}
+            today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+            for sticker in stickers:
+                data['action'] = 'Request new sticker'
+                data['user'] = request.user.id
+                data['reason'] = details['reason']
+                data['date_of_lost_sticker'] = today.strftime('%d/%m/%Y')
+                serializer = StickerActionDetailSerializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                new_sticker_action_detail = serializer.save()
+                new_sticker_action_detail.sticker = sticker
+                new_sticker_action_detail.save()
+                sticker_action_details.append(new_sticker_action_detail.id)
+            return Response({'sticker_action_detail_ids': sticker_action_details})
+        else:
+            raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
 
     @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
