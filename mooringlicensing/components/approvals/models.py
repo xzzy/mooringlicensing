@@ -648,7 +648,7 @@ class Approval(RevisionedMixin):
 
         self.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
         self.current_proposal.save(version_comment='Created Approval PDF: {}'.format(self.licence_document.name))
-        logger.debug('Licence document for the approval: {} has been created'.format(self.lodgement_number))
+        logger.info(f'Licence document: [{self.licence_document._file.url}] for the approval: [{self}] has been created.')
 
         if hasattr(self, 'approval') and self.approval:
             self.approval.licence_document = self.licence_document

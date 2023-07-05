@@ -1065,32 +1065,36 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
 
 
 def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summary_doc=False):
-    # from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
-
-    # proposal.refresh_from_db()
-    # if proposal.approval:  # For AU/ML new application, approval is not created yet before payments
-    #     proposal.approval.refresh_from_db()
+    logger.info(f'get_attachments() is called...')
 
     attachments = []
     if attach_invoice and proposal.invoice:
         # Attach invoice
-        # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', proposal.invoice, )
-        # url = get_invoice_url(proposal.invoice.reference)
+        logger.info(f'Attaching invoice...')
+
         url = f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{proposal.invoice.reference}'
         invoice_pdf = requests.get(url=url)
         if invoice_pdf.status_code == 200:
-            attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_pdf.content, 'application/pdf')
+            inv_name = 'invoice#{}.pdf'.format(proposal.invoice.reference)
+            attachment = (inv_name, invoice_pdf.content, 'application/pdf')
             attachments.append(attachment)
+            logger.info(f'Invoice: {inv_name} has been attached.')
         else:
             logger.error(f'Status code: {invoice_pdf.status_code}. Could not retrieve invoice_pdf for the invoice reference: {proposal.invoice.reference}')
 
     if attach_licence_doc and proposal.approval and proposal.approval.licence_document:
         # Attach licence document
+        logger.info(f'Attaching licence document...')
+
+        proposal.refresh_from_db()
+        proposal.approval.refresh_from_db()
+
         licence_document = proposal.approval.licence_document._file
         if licence_document is not None:
             file_name = proposal.approval.licence_document.name
             attachment = (file_name, licence_document.file.read(), 'application/pdf')
             attachments.append(attachment)
+            logger.info(f'Licence/Permit document: {file_name} has been attached.')
 
             # add requirement documents
             for requirement in proposal.requirements.exclude(is_deleted=True):
@@ -1098,12 +1102,16 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
                     file_name = doc._file.name
                     attachment = (file_name, doc._file.file.read())
                     attachments.append(attachment)
+                    logger.info(f'Requirement document: {file_name} has been attached.')
     if attach_au_summary_doc and proposal.approval and proposal.approval.authorised_user_summary_document:
+        logger.info(f'Attaching AU summary document...')
+
         au_summary_document = proposal.approval.authorised_user_summary_document._file
         if au_summary_document is not None:
             file_name = proposal.approval.authorised_user_summary_document.name
             attachment = (file_name, au_summary_document.file.read(), 'application/pdf')
             attachments.append(attachment)
+            logger.info(f'AU summary document: {file_name} has been attached.')
 
     return attachments
 
@@ -1137,7 +1145,7 @@ def send_au_summary_to_ml_holder(mooring_licence, request, au_proposal):
         'url_for_au_dashboard_page': get_public_url(request),  # Do we have AU dashboard page for external???
     }
 
-    to_address = retrieve_email_userro(mooring_licence.submitter).email
+    to_address = mooring_licence.submitter_obj.email
 
     # Send email
     msg = email.send(to_address, context=context, attachments=attachments, cc=[], bcc=[],)
