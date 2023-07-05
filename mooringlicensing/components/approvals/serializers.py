@@ -474,7 +474,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
                 #import ipdb; ipdb.set_trace()
                 if moa.mooring.mooring_licence is not None:
-                    licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+                    licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter_obj).data
                     moorings.append({
                         "id": moa.id,
                         "mooring_name": moa.mooring.name,

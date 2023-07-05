@@ -447,7 +447,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         for moa in instance.mooringonapproval_set.all():
             licence_holder_data = {}
             if moa.mooring.mooring_licence:
-                licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter).data
+                licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter_obj).data
             moorings.append({
                 "id": moa.id,
                 "mooring_name": moa.mooring.name,
