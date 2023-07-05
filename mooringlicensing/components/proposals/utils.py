@@ -896,6 +896,14 @@ def store_vessel_ownership(request, vessel, instance=None):
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
         # Retrieve a vessel_ownership from the previous proposal
         vessel_ownership = instance.previous_application.vessel_ownership
+        if vessel_ownership.end_date:
+            logger.info(f'Existing VesselOwnership: [{vessel_ownership}] has been retrieved, but the vessel is sold.  This vessel ownership cannot be used.')
+            vessel_ownership = VesselOwnership.objects.create(
+                owner=owner,  # Owner is actually the accessing user (request.user) as above.
+                vessel=vessel,
+                company_ownership=company_ownership
+            )
+            vo_created = True
         q_for_approvals_check &= ~Q(id=instance.approval.id)  # We want to exclude the approval we are currently processing for
     else:
         msg = f'Proposal: [{instance}] does not have correct proposal type.'
