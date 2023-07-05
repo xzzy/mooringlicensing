@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
         expiry_notification_date = today + timedelta(days=days_setting.number_of_days)
 
-        logger.info('Running command {}'.format(__name__))
+        logger.info(f'Running command {__name__} for the approval type: {approval_class.description}.')
 
         # Construct queries
         queries = Q()
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             queries &= Q(expiry_date__lte=expiry_notification_date)
             queries &= Q(renewal_sent=False)
             queries &= Q(replaced_by__isnull=True)
-            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
         approvals = approval_class.objects.filter(queries)
         for a in approvals:
@@ -71,15 +71,17 @@ class Command(BaseCommand):
                 else:
                     v_details = a.current_proposal.latest_vessel_details
                     v_ownership = a.current_proposal.vessel_ownership
-                    if v_details and not v_ownership.end_date:
-                        a.generate_renewal_doc()
+                    if (not v_details or v_ownership.end_date) and a.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
+                        # Null vessel is not allowed for both the annual admission permit application and authorised user permit application.
+                        continue
                     else:
-                        if a.application_type.code == AuthorisedUserPermit.code:
-                            # When AU and no vessel, renewal would not be offered
-                            continue
+                        a.generate_renewal_doc()
+                        logger.info(f'Renewal document has been generated for the approval: [{a}]')
+
                 send_approval_renewal_email_notification(a)
                 a.renewal_sent = True
                 a.save()
+
                 a.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a),)
                 logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a))
                 updates.append(a.lodgement_number)

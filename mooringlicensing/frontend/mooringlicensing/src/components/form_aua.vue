@@ -82,6 +82,7 @@
                   :is_internal="is_internal"
                   @updateVesselLength="updateVesselLength"
                   @vesselChanged="vesselChanged"
+                  @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                   @noVessel="noVessel"
                   @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
                   @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
@@ -258,6 +259,9 @@
             */
         },
         methods:{
+            updateVesselOwnershipChanged: async function(changed){
+                await this.$emit("updateVesselOwnershipChanged", changed)
+            },
             updateMaxVesselLength: function(max_length) {
                 console.log('updateMaxVesselLength')
                 //this.max_vessel_length_with_no_payment = max_length

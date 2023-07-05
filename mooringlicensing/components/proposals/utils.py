@@ -461,7 +461,7 @@ def save_proponent_data_aua(instance, request, viewset):
     if vessel_data:
         if viewset.action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == 'draft':
+        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -600,9 +600,9 @@ def submit_vessel_data(instance, request, vessel_data):
      #       type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication, AnnualAdmissionApplication]):
       #  return
     if not vessel_data.get('rego_no'):
-        if (instance.proposal_type.code == PROPOSAL_TYPE_RENEWAL and 
-        type(instance.child_obj) in [MooringLicenceApplication, AuthorisedUserApplication]):
-            return
+        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+            if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
+                return
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")
 
@@ -613,6 +613,7 @@ def submit_vessel_data(instance, request, vessel_data):
     # associate vessel_details with proposal
     instance.vessel_details = vessel_details
     instance.save()
+
     ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
     if type(instance.child_obj) == AnnualAdmissionApplication:
         if instance.vessel_details.vessel_applicable_length < min_vessel_size:

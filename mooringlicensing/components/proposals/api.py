@@ -190,9 +190,11 @@ class GetMooring(views.APIView):
         search_term = request.GET.get('term', '')
         if search_term:
             if private_moorings:
-                data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+                # data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+                data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')
             else:
-                data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+                # data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
+                data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')
             data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             return Response({"results": data_transform})
         return Response()
