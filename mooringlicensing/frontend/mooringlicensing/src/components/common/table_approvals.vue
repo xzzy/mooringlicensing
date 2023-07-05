@@ -870,6 +870,12 @@ export default {
                 },
                 err => {
                     console.log(err)
+                    vm.$refs.request_new_sticker_modal.isModalOpen = false
+                    swal({
+                        title: "Request New Sticker",
+                        text: err.body,
+                        type: "error",
+                    })
                 }
             )
         },
