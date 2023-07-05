@@ -1616,6 +1616,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
+    def refresh(self):
+        self.approval.refresh_from_db()
+        self.refresh_from_db()
+        self.child_obj.refresh_from_db()
+
     def final_approval_for_AUA_MLA(self, request=None, details=None):
         with transaction.atomic():
             try:
@@ -1662,9 +1667,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
 
                     #--- Reflect any changes made in the function above (update_or_create_approval) ---#
-                    self.approval.refresh_from_db()
-                    self.refresh_from_db()
-                    self.child_obj.refresh_from_db()
+                    # self.approval.refresh_from_db()
+                    # self.refresh_from_db()
+                    # self.child_obj.refresh_from_db()
+                    self.refresh()
                     #-------------------------------#
 
                     self.approval = approval.approval
@@ -2971,6 +2977,7 @@ class AuthorisedUserApplication(Proposal):
         created = None
 
         # Manage approval
+        approval_created = False
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
             # When new application
             approval, approval_created = self.approval_class.objects.update_or_create(
@@ -3117,6 +3124,7 @@ class AuthorisedUserApplication(Proposal):
         self.proposal.save()
 
         approval.generate_doc()
+        self.proposal.refresh()  # so that the approval doc field is updated by the doc generated above
 
         # Email
         # send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
