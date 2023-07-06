@@ -462,9 +462,9 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     "vessel_name": vessel.latest_vessel_details.vessel_name,
                     "rego_no": vessel.rego_no,
                     "sticker_numbers": sticker_numbers,
-                    "owner": vessel_ownership.owner.emailuser.get_full_name(),
-                    "mobile": vessel_ownership.owner.emailuser.mobile_number,
-                    "email": vessel_ownership.owner.emailuser.email,
+                    "owner": vessel_ownership.owner.emailuser_obj.get_full_name(),
+                    "mobile": vessel_ownership.owner.emailuser_obj.mobile_number,
+                    "email": vessel_ownership.owner.emailuser_obj.email,
                     })
         return vessel_details
 
