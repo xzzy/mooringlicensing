@@ -495,7 +495,7 @@ export default {
         },
 
         title: function(){
-            let title = this.processing_status == 'With Approver' ? 'Grant' : 'Propose a grant';
+            let title = this.processing_status == 'With Approver' ? 'Grant' : 'Propose grant';
             if (this.proposal && ['wla', 'aaa'].includes(this.proposal.application_type_code)) {
                 title = 'Grant';
             }
