@@ -177,8 +177,13 @@ class ComplianceActionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_who(self, obj):
-        who_obj = retrieve_email_userro(obj.who)
-        return who_obj.get_full_name()
+        ret_name = 'System'
+        if obj.who:
+            name = obj.who_obj.get_full_name()
+            name = name.strip()
+            if name:
+                ret_name = name
+        return ret_name
 
 class ComplianceCommsSerializer(serializers.ModelSerializer):
     documents = serializers.SerializerMethodField()

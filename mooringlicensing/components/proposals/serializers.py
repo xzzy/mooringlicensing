@@ -1232,7 +1232,7 @@ class ProposalUserActionSerializer(serializers.ModelSerializer):
     def get_who(self, obj):
         ret_name = 'System'
         if obj.who:
-            name = retrieve_email_userro(obj.who).get_full_name()
+            name = obj.who_obj.get_full_name()
             name = name.strip()
             if name:
                 ret_name = name
