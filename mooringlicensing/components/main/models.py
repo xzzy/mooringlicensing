@@ -11,6 +11,7 @@ from datetime import datetime
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 from mooringlicensing import settings
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
 
 class UserSystemSettings(models.Model):
@@ -35,6 +36,9 @@ class UserAction(models.Model):
             who=self.who,
             when=self.when
         )
+    @property
+    def who_obj(self):
+        return retrieve_email_userro(self.who)
 
     class Meta:
         abstract = True

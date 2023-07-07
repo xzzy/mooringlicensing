@@ -1,4 +1,6 @@
-from django.core.files.storage import default_storage 
+import logging
+
+from django.core.files.storage import default_storage
 import os
 from django.core.files.base import ContentFile
 import traceback
@@ -8,10 +10,10 @@ from mooringlicensing.components.proposals.models import (
         Proposal
         )
 
+logger = logging.getLogger(__name__)
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
-    print("process_generic_document")
-    print(request.data)
+    logger.info(f'Processing document... Data: {request.data}')
     try:
         action = request.data.get('action')
         input_name = request.data.get('input_name')
