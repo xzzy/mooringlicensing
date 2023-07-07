@@ -733,6 +733,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
     # @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         instance = self.get_object()
+        logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
 
         # Make sure the submitter is the same as the applicant.
         is_authorised_to_modify(request, instance)

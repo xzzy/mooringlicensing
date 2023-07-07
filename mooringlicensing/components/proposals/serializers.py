@@ -1232,7 +1232,7 @@ class ProposalUserActionSerializer(serializers.ModelSerializer):
     def get_who(self, obj):
         ret_name = 'System'
         if obj.who:
-            name = retrieve_email_userro(obj.who).get_full_name()
+            name = obj.who_obj.get_full_name()
             name = name.strip()
             if name:
                 ret_name = name
@@ -1570,7 +1570,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
 
     def get_owner_full_name(self, obj):
         # return obj.owner.emailuser.get_full_name()
-        owner = retrieve_email_userro(obj.owner.emailuser)
+        owner = obj.owner.emailuser_obj
         return owner.get_full_name()
 
     def get_applicable_percentage(self, obj):
@@ -1593,7 +1593,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
 
     def get_owner_phone_number(self, obj):
         # return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
-        owner = retrieve_email_userro(obj.owner.emailuser)
+        owner = obj.owner.emailuser_obj
         return owner.phone_number if owner.phone_number else owner.mobile_number
 
     def get_individual_owner(self, obj):

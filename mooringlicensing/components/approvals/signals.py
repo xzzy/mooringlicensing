@@ -49,7 +49,7 @@ class StickerListener(object):
                 # There are no stickers to be returned
                 stickers_not_ready_yet = sticker_saved.approval.stickers.filter(status=Sticker.STICKER_STATUS_NOT_READY_YET)
                 for sticker in stickers_not_ready_yet:
-                    # change 'Not ready yet' stickers to 'Ready' so that it is picked up for exporting.
+                    # change 'Not ready yet' stickers to 'Ready' so that it is picked up by cron for exporting.
                     sticker.status = Sticker.STICKER_STATUS_READY
                     sticker.save()  # This could make infinite loop
                     proposals_initiated.append(sticker.proposal_initiated)
