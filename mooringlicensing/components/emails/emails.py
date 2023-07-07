@@ -101,6 +101,7 @@ class TemplateEmailBase(object):
         try:
             if not settings.DISABLE_EMAIL:
                 msg.send(fail_silently=False)
+                logger.info(f'Email has been sent. Subject: [{msg.subject}], to: {msg.to}, cc: {msg.cc}, bcc: {msg.bcc}, attachments: {[attachment[0] for attachment in attachments]}')
             return msg
         except Exception as e:
             logger.exception("Error while sending email to {}: {}".format(to_addresses, e))

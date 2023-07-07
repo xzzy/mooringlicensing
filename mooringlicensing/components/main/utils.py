@@ -339,15 +339,13 @@ def email_stickers_document():
                 for sticker in stickers:
                     sticker.status = Sticker.STICKER_STATUS_AWAITING_PRINTING
                     sticker.save()
+                    logger.info(f'Status: [{Sticker.STICKER_STATUS_AWAITING_PRINTING}] has been set to the sticker: [{sticker}]')
                     if sticker.sticker_to_replace:
                         # new sticker has the old sticker here if it's created for renewal
-                        # When this sticker is created for renewal, set 'expiry' status to the old sticker.
+                        # When this sticker is created for renewal, set 'expired' status to the old sticker.
                         sticker.sticker_to_replace.status = Sticker.STICKER_STATUS_EXPIRED
                         sticker.sticker_to_replace.save()
-
-                    # Update approval history with this sticker
-                    # latest_approval_history = ApprovalHistory.objects.filter(approval=sticker.approval, end_data__isnull=True).order_by('-start_date').first()
-                    # latest_approval_history.stickers.add(sticker)
+                        logger.info(f'Status: [{Sticker.STICKER_STATUS_EXPIRED}] has been set to the sticker: [{sticker.sticker_to_replace}]')
 
     except Exception as e:
         err_msg = 'Error sending the sticker printing batch spreadsheet file(s): {}'.format(', '.join([batch.name for batch in batches]))

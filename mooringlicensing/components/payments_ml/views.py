@@ -187,7 +187,8 @@ class ApplicationFeeExistingView(APIView):
 
     def get(self, request, *args, **kwargs):
         invoice = self.get_object()
-        # application_fee = proposal.get_main_application_fee()
+        logger.info(f'Getting payment screen for the future invoice: [{invoice}] ...')
+
         application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
 
         # if application_fee.paid:
@@ -197,9 +198,6 @@ class ApplicationFeeExistingView(APIView):
 
         try:
             with transaction.atomic():
-                # set_session_application_invoice(request.session, application_fee)
-                # invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-                #
                 db_processes = {
                     'for_existing_invoice': True,
                     'fee_item_application_fee_ids': [],
@@ -210,23 +208,6 @@ class ApplicationFeeExistingView(APIView):
 
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes)
 
-                # request.session['db_processes'] = db_processes
-                #
-                # checkout_response = checkout_existing_invoice(
-                #     request,
-                #     invoice,
-                #     return_url_ns='fee_success',
-                # )
-
-                # logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format(
-                #     'User {} with id {}'.format(
-                #         request.user.get_full_name(), request.user.id
-                #     ), application_fee.proposal.lodgement_number
-                # ))
-                # return checkout_response
-
-                # return_url = 'test1'
-                # fallback_url = 'test2'
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 fallback_url = request.build_absolute_uri(reverse("external"))
                 payment_session = ledger_api_client.utils.generate_payment_session(request, invoice.reference, return_url, fallback_url)
@@ -901,6 +882,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
                         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                         proposal.save()
+                        logger.info(f'Processing status: [{Proposal.PROCESSING_STATUS_WITH_ASSESSOR}] has been set to the proposal: [{proposal}]')
 
                 else:
                     # msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, invoice.payment_status)

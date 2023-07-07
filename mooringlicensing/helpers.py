@@ -85,6 +85,7 @@ def is_authorised_to_modify(request, instance):
         authorised &= request.user.email == instance.applicant_email
 
     if not authorised:
+        logger.warning(f'User: [{request.user}] is not authorised to modify this proposal: [{instance}].  Raise an error.')
         raise serializers.ValidationError('You are not authorised to modify this application.')
 
 

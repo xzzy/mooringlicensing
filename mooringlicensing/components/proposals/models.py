@@ -660,6 +660,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             fee_item = fee_items[0]
             return fee_item.fee_period
 
+    # @property
+    # def different_sticker_colour(self):
+    #     from mooringlicensing.components.approvals.models import Sticker
+    #     next_colour = Sticker.get_vessel_size_colour_by_length(self.vessel_length)
+    #     current_colour = Sticker.get_vessel_size_colour_by_length(self.previous_application.vessel_length)
+    #     return True if next_colour == current_colour else False
+
     @property
     def vessel_removed(self):
         # for AUP, AAP manage_stickers
@@ -767,7 +774,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         kwargs.pop('version_comment', None)
         kwargs['no_revision'] = True
         self.update_customer_status()
-        super(Proposal, self).save(*args, **kwargs)
+        super(Proposal, self).save(**kwargs)
         if type(self) == Proposal:
             self.child_obj.refresh_from_db()
 
@@ -1284,6 +1291,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def proposed_decline(self,request,details):
         with transaction.atomic():
+            logger.info(f'Processing proposed decline... for the Proposal: [{self}]')
             try:
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
@@ -1396,6 +1404,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def proposed_approval(self, request, details):
         with transaction.atomic():
             try:
+                logger.info(f'Processing proposed approval... for the Proposal: [{self}]')
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
                 if self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
@@ -1471,7 +1480,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_WLA_AAA(self, request, details=None):
         with transaction.atomic():
             try:
-                logger.info(f'Proposal.final_approval_for_WLA_AAA() of [{self}] is called.')
+                logger.info(f'Processing final_approval...for the proposal: [{self}].')
 
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 self.proposed_decline_status = False
@@ -1624,10 +1633,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_AUA_MLA(self, request=None, details=None):
         with transaction.atomic():
             try:
-                logger.info(f'Proposal.final_approval_for_AUA_MLA() of the proposal: [{self}] is called.')
+                logger.info(f'Processing final_approval...for the proposal: [{self}].')
 
                 self.proposed_decline_status = False
-                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
 
                 # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -1700,12 +1708,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # proposal type must be awaiting payment
                         self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_PAYMENT
                         self.save()
+                        logger.info(f'Status: {Proposal.PROCESSING_STATUS_AWAITING_PAYMENT} has been set to the proposal: [{self}]')
 
                         from mooringlicensing.components.payments_ml.models import FeeItem
                         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
 
                         try:
-                            logger.info('Creating invoice for the application: {}'.format(self))
+                            logger.info(f'Creating invoice for the application: [{self}]...')
 
                             # Following two lines are for future invoicing.
                             # However because we need to segregate 'ledger' from this system, we cannot use these two functions.
@@ -1743,9 +1752,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             application_fee.invoice_reference = pcfi['data']['invoice']
                             application_fee.save()
+                            logger.info(f'ApplicationFee: [{application_fee}] has been created for the proposal: [{self}].')
                             ### END: Future Invoice ###
-
-                            logger.info('ApplicationFee.id: {} has been created for the Proposal: {}'.format(application_fee.id, self))
 
                             # Link between ApplicationFee and FeeItem(s)
                             for item in fee_items_to_store:
@@ -1753,12 +1761,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
                                 vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
                                 amount_to_be_paid = item['fee_amount_adjusted']
-                                FeeItemApplicationFee.objects.create(
+                                fiaf = FeeItemApplicationFee.objects.create(
                                     fee_item=fee_item,
                                     application_fee=application_fee,
                                     vessel_details=vessel_details,
                                     amount_to_be_paid=amount_to_be_paid,
                                 )
+                                logger.info(f'FeeItemApplicationFee: [{fiaf}] has been created.')
 
                             if not self.payment_required():
                                 self.approval.generate_doc()
