@@ -202,6 +202,7 @@
                 max_vessel_length_with_no_payment: 0,
                 max_vessel_length_for_main_component: 0,
                 max_vessel_length_for_aa_component: 0,
+                vesselOwnershipChanged: false,
             }
         },
         watch: {
@@ -261,6 +262,8 @@
         methods:{
             updateVesselOwnershipChanged: async function(changed){
                 await this.$emit("updateVesselOwnershipChanged", changed)
+                this.vesselOwnershipChanged = changed
+                this.updateAmendmentRenewalProperties();
             },
             updateMaxVesselLength: function(max_length) {
                 console.log('updateMaxVesselLength')
@@ -369,7 +372,7 @@
                             this.$emit("updateSubmitText", "Submit");
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
@@ -394,7 +397,7 @@
                             //this.$emit("updateAutoRenew", false);
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
