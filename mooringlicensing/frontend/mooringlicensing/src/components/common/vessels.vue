@@ -2,7 +2,7 @@
     <div id="vessels">
         <FormSection label="Registration Details" Index="registration_details">
             <div class="row form-group">
-                <label for="vessel_search" class="col-sm-3 control-label">Unique Vessel Identifier (UVI) *</label>
+                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration *</label>
                 <div class="col-sm-9">
                     <select :disabled="regoReadonly" id="vessel_search" ref="vessel_rego_nos" class="form-control"
                         style="width: 40%">
@@ -44,7 +44,7 @@
                         <select :disabled="readonly" id="company_name" ref="company_name" class="form-control"
                             style="width: 40%" />
                     </div>
-                </div>  
+                </div>
             </transition>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage *</label>
@@ -79,12 +79,12 @@
                 <div v-if="showDotRegistrationPapers" class="row form-group">
                     <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
                     <div class="col-sm-9">
-                        <FileField 
-                            :readonly="readonly" 
-                            ref="vessel_rego_document" 
+                        <FileField
+                            :readonly="readonly"
+                            ref="vessel_rego_document"
                             name="vessel_rego_document"
-                            :isRepeatable="true" 
-                            :documentActionUrl="vesselRegoDocumentUrl" 
+                            :isRepeatable="true"
+                            :documentActionUrl="vesselRegoDocumentUrl"
                             :replace_button_by_text="true"
                         />
                     </div>
@@ -907,7 +907,7 @@ export default {
             this.initialiseRegoNoSelect();
             this.initialiseCompanyNameSelect();
             this.addEventListeners();
-            
+
             // read in Renewal/Amendment vessel details
             //if (!this.keep_current_vessel && this.proposal.proposal_type.code !=='new' && this.proposal.application_type_code === 'mla') {
             if (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new') {
