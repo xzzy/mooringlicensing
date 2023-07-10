@@ -71,19 +71,20 @@
                           />
                   </div>
                   <Vessels
-                  :proposal="proposal"
-                  :profile="profileVar"
-                  :id="'proposalStartVessels' + uuid"
-                  :key="'proposalStartVessels' + uuid"
-                  :keep_current_vessel=keepCurrentVessel
-                  ref="vessels"
-                  :readonly="readonlyMLA"
-                  :is_internal="is_internal"
-                  @updateVesselLength="updateVesselLength"
-                  @vesselChanged="vesselChanged"
-                  @noVessel="noVessel"
-                  @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
-                  @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
+                    :proposal="proposal"
+                    :profile="profileVar"
+                    :id="'proposalStartVessels' + uuid"
+                    :key="'proposalStartVessels' + uuid"
+                    :keep_current_vessel=keepCurrentVessel
+                    ref="vessels"
+                    :readonly="readonlyMLA"
+                    :is_internal="is_internal"
+                    @updateVesselLength="updateVesselLength"
+                    @vesselChanged="vesselChanged"
+                    @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                    @noVessel="noVessel"
+                    @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
+                    @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -176,6 +177,7 @@
                 max_vessel_length_with_no_payment: 0,
                 max_vessel_length_for_main_component: 0,
                 max_vessel_length_for_aa_component: 0,
+                vesselOwnershipChanged: false,
             }
         },
         components: {
@@ -236,6 +238,11 @@
             */
         },
         methods:{
+            updateVesselOwnershipChanged: async function(changed){
+                await this.$emit("updateVesselOwnershipChanged", changed)
+                this.vesselOwnershipChanged = changed
+                this.updateAmendmentRenewalProperties();
+            },
             updateMaxVesselLength: function(max_length) {
                 console.log('updateMaxVesselLength')
                 //this.max_vessel_length_with_no_payment = max_length
@@ -337,7 +344,7 @@
                             this.$emit("updateSubmitText", "Submit");
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
@@ -363,7 +370,7 @@
                             this.$emit("updateAutoRenew", false);
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
