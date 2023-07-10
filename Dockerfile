@@ -1,11 +1,10 @@
 # Prepare the base environment.
-FROM ubuntu:20.04 as builder_base_mooringlicensing
+FROM ubuntu:22.04 as builder_base_mooringlicensing
 MAINTAINER asi@dbca.wa.gov.au
 
 ENV DEBIAN_FRONTEND=noninteractive
 #ENV DEBUG=True
 ENV TZ=Australia/Perth
-ENV EMAIL_HOST="smtp.corporateict.domain"
 ENV DEFAULT_FROM_EMAIL='no-reply@dbca.wa.gov.au'
 ENV NOTIFICATION_EMAIL='no-reply@dbca.wa.gov.au'
 ENV NON_PROD_EMAIL='none@none.com'
@@ -14,7 +13,7 @@ ENV EMAIL_INSTANCE='DEV'
 ENV SECRET_KEY="ThisisNotRealKey"
 ENV SITE_PREFIX='mls-dev'
 ENV SITE_DOMAIN='dbca.wa.gov.au'
-ENV OSCAR_SHOP_NAME='Parks & Wildlife'
+ENV OSCAR_SHOP_NAME='No Name'
 ENV BPAY_ALLOWED=False
 #ARG BRANCH_ARG
 #ARG REPO_ARG
@@ -78,7 +77,7 @@ RUN chmod 777 /app/tmp/
 COPY cron /etc/cron.d/dockercron
 COPY startup.sh /
 # Cron start
-RUN service rsyslog start
+#RUN service rsyslog start
 RUN chmod 0644 /etc/cron.d/dockercron
 RUN crontab /etc/cron.d/dockercron
 RUN touch /var/log/cron.log
