@@ -16,7 +16,7 @@ git+https://github.com/dbca-wa/dpaw-utils.git@0.4.2#egg=dpaw-utils
 coverage==4.3.1
 coveralls==1.1
 reportlab==3.5.55
-django_bootstrap3==11.1.0
+django_bootstrap3==23.4
 django-braces>=1.8.1
 django-datatables-view==1.13.0
 # django-reversion==3.0.0
