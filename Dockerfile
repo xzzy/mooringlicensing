@@ -88,8 +88,8 @@ COPY  --chown=oim:oim patch_for_admin_0001_initial.patch_revert ./patch_for_admi
 COPY  --chown=oim:oim patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
 COPY  --chown=oim:oim patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
 
-RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
-RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
+#RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
+#RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
 
 RUN python manage_ml.py collectstatic --noinput
 
@@ -113,7 +113,8 @@ COPY startup.sh pre_startup.sh /
 RUN mkdir /app/logs/.ipython
 RUN export IPYTHONDIR=/app/logs/.ipython/
 #RUN python profile create 
-
+RUN whoami
+RUN ls -al /
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
 CMD ["/pre_startup.sh"]
