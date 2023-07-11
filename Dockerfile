@@ -42,6 +42,25 @@ RUN chmod +x install_node.sh && ./install_node.sh
 RUN apt-get install -y nodejs
 # Install nodejs
 
+RUN chmod 0644 /etc/cron.d/dockercron && \
+    crontab /etc/cron.d/dockercron && \
+    touch /var/log/cron.log && \
+    service cron start && \
+    chmod 755 /startup.sh && \
+    chmod +s /startup.sh && \
+    chmod 755 /pre_startup.sh && \
+    chmod +s /pre_startup.sh && \
+    groupadd -g 5000 oim && \
+    useradd -g 5000 -u 5000 oim -s /bin/bash -d /app && \
+    usermod -a -G sudo oim && \
+    echo "oim  ALL=(ALL)  NOPASSWD: /startup.sh" > /etc/sudoers.d/oim && \
+    mkdir /app && \
+    chown -R oim.oim /app && \
+    mkdir /container-config/ && \
+    chown -R oim.oim /container-config/ && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    touch /app/rand_hash
+
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
@@ -75,7 +94,7 @@ RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
 
 COPY cron /etc/cron.d/dockercron
-COPY startup.sh /
+COPY startup.sh pre_startup.sh /
 # Cron start
 #RUN service rsyslog start
 RUN chmod 0644 /etc/cron.d/dockercron
