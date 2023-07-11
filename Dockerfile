@@ -102,7 +102,7 @@ COPY startup.sh pre_startup.sh /
 #RUN service rsyslog start
 #RUN chmod 0644 /etc/cron.d/dockercron
 #RUN crontab /etc/cron.d/dockercron
-RUN touch /var/log/cron.log
+
 #RUN service cron start
 #RUN chmod 755 /startup.sh
 # cron end
