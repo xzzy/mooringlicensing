@@ -99,7 +99,7 @@ RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
 
 #COPY cron /etc/cron.d/dockercron
-COPY startup.sh pre_startup.sh /
+# COPY startup.sh pre_startup.sh /
 # Cron start
 #RUN service rsyslog start
 #RUN chmod 0644 /etc/cron.d/dockercron
