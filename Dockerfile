@@ -70,7 +70,7 @@ USER oim
 RUN PATH=/app/.local/bin:$PATH
 COPY --chown=oim:oim requirements.txt ./
 
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install -r requirements.txt \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
 # Install the project (ensure that frontend projects have been built prior to this step).
