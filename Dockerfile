@@ -45,29 +45,26 @@ RUN apt-get install -y nodejs
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
-COPY requirements.txt ./
+USER oim
+COPY --chown=oim:oim requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 
-#COPY libgeos.py.patch /app/
-#RUN patch /usr/local/lib/python3.8/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
-#RUN rm /app/libgeos.py.patch
-
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_ml
-COPY gunicorn.ini manage_ml.py ./
+COPY  --chown=oim:oim gunicorn.ini manage_ml.py ./
 #COPY timezone /etc/timezone
 RUN echo "Australia/Perth" > /etc/timezone
 ENV TZ=Australia/Perth
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
-COPY .git ./.git
-COPY mooringlicensing ./mooringlicensing
-COPY patch_for_admin_0001_initial.patch ./patch_for_admin_0001_initial.patch
-COPY patch_for_admin_0001_initial.patch_revert ./patch_for_admin_0001_initial.patch_revert
-COPY patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
-COPY patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
+COPY  --chown=oim:oim .git ./.git
+COPY  --chown=oim:oim mooringlicensing ./mooringlicensing
+COPY  --chown=oim:oim patch_for_admin_0001_initial.patch ./patch_for_admin_0001_initial.patch
+COPY  --chown=oim:oim patch_for_admin_0001_initial.patch_revert ./patch_for_admin_0001_initial.patch_revert
+COPY  --chown=oim:oim patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
+COPY  --chown=oim:oim patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
 
 RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
 RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
@@ -97,5 +94,5 @@ RUN export IPYTHONDIR=/app/logs/.ipython/
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
-CMD ["/startup.sh"]
+CMD ["/pre_startup.sh"]
 
