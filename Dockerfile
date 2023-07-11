@@ -67,6 +67,7 @@ RUN chmod 0644 /etc/cron.d/dockercron && \
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
 USER oim
+RUN PATH=/app/.local/bin:$PATH
 COPY --chown=oim:oim requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt \
