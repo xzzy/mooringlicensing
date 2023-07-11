@@ -90,8 +90,8 @@ COPY  --chown=oim:oim patch_for_admin_0001_initial.patch_revert ./patch_for_admi
 COPY  --chown=oim:oim patch_for_reversion_0001.patch ./patch_for_reversion_0001.patch
 COPY  --chown=oim:oim patch_for_reversion_0001.patch_revert ./patch_for_reversion_0001.patch_revert
 
-#RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
-#RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
+RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm install
+RUN cd /app/mooringlicensing/frontend/mooringlicensing/; npm run build
 
 RUN python manage_ml.py collectstatic --noinput
 
