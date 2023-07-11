@@ -41,7 +41,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_16.x -o install_node.sh
 RUN chmod +x install_node.sh && ./install_node.sh
 RUN apt-get install -y nodejs
 # Install nodejs
-
+COPY cron /etc/cron.d/dockercron
+COPY startup.sh pre_startup.sh /
+COPY ./timezone /etc/timezone
 RUN chmod 0644 /etc/cron.d/dockercron && \
     crontab /etc/cron.d/dockercron && \
     touch /var/log/cron.log && \
@@ -74,9 +76,9 @@ RUN pip install --no-cache-dir -r requirements.txt \
 FROM python_libs_ml
 COPY  --chown=oim:oim gunicorn.ini manage_ml.py ./
 #COPY timezone /etc/timezone
-RUN echo "Australia/Perth" > /etc/timezone
-ENV TZ=Australia/Perth
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+#RUN echo "Australia/Perth" > /etc/timezone
+#ENV TZ=Australia/Perth
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
 COPY  --chown=oim:oim .git ./.git
 COPY  --chown=oim:oim mooringlicensing ./mooringlicensing
@@ -93,15 +95,15 @@ RUN python manage_ml.py collectstatic --noinput
 RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
 
-COPY cron /etc/cron.d/dockercron
+#COPY cron /etc/cron.d/dockercron
 COPY startup.sh pre_startup.sh /
 # Cron start
 #RUN service rsyslog start
-RUN chmod 0644 /etc/cron.d/dockercron
-RUN crontab /etc/cron.d/dockercron
+#RUN chmod 0644 /etc/cron.d/dockercron
+#RUN crontab /etc/cron.d/dockercron
 RUN touch /var/log/cron.log
-RUN service cron start
-RUN chmod 755 /startup.sh
+#RUN service cron start
+#RUN chmod 755 /startup.sh
 # cron end
 
 # IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
