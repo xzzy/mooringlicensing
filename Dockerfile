@@ -62,7 +62,9 @@ RUN chmod 0644 /etc/cron.d/dockercron && \
     chown -R oim.oim /container-config/ && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     touch /app/rand_hash
-
+    
+RUN chmod 755 /pre_startup.sh 
+RUN ls -la /
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
