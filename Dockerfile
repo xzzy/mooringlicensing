@@ -64,7 +64,6 @@ RUN chmod 0644 /etc/cron.d/dockercron && \
     touch /app/rand_hash
     
 RUN chmod 755 /pre_startup.sh 
-RUN ls -la /
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
@@ -115,8 +114,6 @@ RUN chmod 777 /app/tmp/
 RUN mkdir /app/logs/.ipython
 RUN export IPYTHONDIR=/app/logs/.ipython/
 #RUN python profile create 
-RUN whoami
-RUN ls -al /
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
 CMD ["/pre_startup.sh"]
