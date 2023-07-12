@@ -3227,8 +3227,8 @@ class MooringLicenceApplication(Proposal):
         fee_constructor_for_ml = FeeConstructor.get_fee_constructor_by_application_type_and_date(self.application_type, target_date)
         fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
 
-        logger.info(f'FeeConstructor (for main component(ML)): {fee_constructor_for_ml}')
-        logger.info(f'FeeConstructor (for AA component): {fee_constructor_for_aa}')
+        logger.info(f'FeeConstructor (for main component(ML)): [{fee_constructor_for_ml}] is retrieved for calculation.')
+        logger.info(f'FeeConstructor (for AA component): [{fee_constructor_for_aa}] is retrieved for calculation.')
 
         vessel_detais_list_to_be_processed = [self.vessel_details,]
         vessel_details_largest = self.vessel_details
