@@ -692,6 +692,8 @@ class FeeItem(models.Model):
             raise Exception('FeeItem for fee_period: {}, vessel_size_category: {}, proposal_type: {} not found.'.format(self.fee_period, self.vessel_size_category, self.proposal_type))
 
     def get_absolute_amount(self, vessel_size=None):
+        logger.info(f'Calculating the absolute amount of the FeeItem: [{self}].')
+
         if not self.incremental_amount or not vessel_size:
             return self.amount
         else:
