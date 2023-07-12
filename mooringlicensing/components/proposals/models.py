@@ -2500,8 +2500,13 @@ class WaitingListApplication(Proposal):
             # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
             # api_key = settings.LEDGER_API_KEY
             # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
-            url = get_invoice_url(self.invoice.reference, request)
+            # url = get_invoice_url(self.invoice.reference, request)
+            # invoice_pdf = requests.get(url=url)
+
+            api_key = settings.LEDGER_API_KEY
+            url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
             invoice_pdf = requests.get(url=url)
+
             if invoice_pdf.status_code == 200:
                 attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_pdf.content, 'application/pdf')
                 attachments.append(attachment)
