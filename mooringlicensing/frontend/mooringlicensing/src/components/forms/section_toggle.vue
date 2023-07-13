@@ -89,10 +89,10 @@ export default {
             */
         });
         $('#'+vm.section_id).on('show.bs.collapse', function(){
-            var datatables = $('[class*=" dataTable "]');
-            for(let i in datatables){
-                $(datatables[i]).trigger('drawDatatable');
-            }
+            $('#' + this.id + ' table').each(function(){ 
+                // Select the table inside the expander, then redraw it.
+                $(this).trigger('drawDatatable');
+            });
         })
     },
     updated:function () {
