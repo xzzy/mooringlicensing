@@ -3059,7 +3059,7 @@ class AuthorisedUserApplication(Proposal):
                         moa2.end_date = None
                         moa2.save()
         # set auto_approve renewal application ProposalRequirement due dates to those from previous application + 12 months
-        if self.auto_approve and self.proposal_type.code == 'renewal':
+        if self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             for req in self.requirements.filter(is_deleted=False):
                 if req.copied_from and req.copied_from.due_date:
                     req.due_date = req.copied_from.due_date + relativedelta(months=+12)
@@ -3068,7 +3068,7 @@ class AuthorisedUserApplication(Proposal):
         if request:
             # Generate compliances
             from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-            target_proposal = self.previous_application if self.proposal_type.code == 'amendment' else self.proposal
+            target_proposal = self.previous_application if self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT else self.proposal
             for compliance in Compliance.objects.filter(
                 approval=approval.approval,
                 proposal=target_proposal,
