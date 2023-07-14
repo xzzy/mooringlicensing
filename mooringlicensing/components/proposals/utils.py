@@ -894,9 +894,13 @@ def store_vessel_ownership(request, vessel, instance=None):
             vessel_ownership_to_be_created = True
 
         keep_existing_vessel = request.data.get('proposal', {}).get('keep_existing_vessel', True)
-        if instance.application_type.code == MooringLicenceApplication.code and not keep_existing_vessel:
-            logger.info(f'New vessel: [{vessel}] is going to be added to the ML application: [{instance}].')
-            vessel_ownership_to_be_created = True
+        if not keep_existing_vessel:
+            if instance.application_type.code in [MooringLicenceApplication.code,]:
+                logger.info(f'New vessel: [{vessel}] is going to be added to the ML application: [{instance}].')
+                vessel_ownership_to_be_created = True
+            if instance.application_type.code in [AuthorisedUserApplication.code,]:
+                logger.info(f'New vessel: [{vessel}] is going to replace the existing vessel of the AU application: [{instance}].')
+                vessel_ownership_to_be_created = True
 
         if vessel_ownership_to_be_created:
             vessel_ownership = VesselOwnership.objects.create(
