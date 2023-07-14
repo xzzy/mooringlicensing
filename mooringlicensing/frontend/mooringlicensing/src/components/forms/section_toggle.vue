@@ -69,10 +69,8 @@ export default {
         switchPanelChevronClass: function() {
             console.log(this.panel_chevron_class)
             if (this.panel_chevron_class == "glyphicon glyphicon-chevron-down pull-right") {
-                console.log('1')
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
             } else {
-                console.log('2')
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
             }
         },
