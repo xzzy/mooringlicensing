@@ -1583,7 +1583,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
 
                 # Update stickers
-                moas_to_be_reallocated, stickers_to_be_returned = self.approval.manage_stickers(self)
+                new_sticker, sticker_to_be_returned = self.approval.manage_stickers(self)
+
+                # Handle this proposal status
+                if self.approval and self.approval.reissued:
+                    # Can only change the conditions, so goes to Approved
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                else:
+                    if sticker_to_be_returned:
+                        self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
+                    elif new_sticker:
+                        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                self.save()
 
                 from mooringlicensing.components.approvals.models import Sticker
 
@@ -1601,7 +1612,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # send Proposal approval email with attachment
                 approval.generate_doc()
-                send_application_approved_or_declined_email(self, 'approved', request, stickers_to_be_returned)
+                send_application_approved_or_declined_email(self, 'approved', request, [sticker_to_be_returned,])
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.documents.all().update(can_delete=False)
 
