@@ -2858,12 +2858,16 @@ class Sticker(models.Model):
 
     @staticmethod
     def get_vessel_size_colour_by_length(vessel_length):
-        last_item = None
+        return_colour = ''
         for item in Sticker.colour_matrix:
-            last_item = item
             if vessel_length <= item['length']:
-                return item['colour']
-        return last_item['colour']  # This returns the last item when reached
+                return_colour = item['colour']
+                break
+        if not return_colour:
+            # Just in case there is no colour set, return the last colour configured in the list
+            item = Sticker.colour_matrix[-1]
+            return_colour = item['colour']
+        return return_colour
 
     def get_vessel_size_colour(self, vessel_length=None):
         if not vessel_length:
