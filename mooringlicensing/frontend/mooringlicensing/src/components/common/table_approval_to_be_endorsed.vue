@@ -86,7 +86,8 @@ export default {
                         d.filter_by_endorsement = vm.filter_by_endorsement
                     }
                 },
-                dom: 'lBfrtip',
+                // dom: 'lBfrtip',
+                dom: 'lBfrtp',
                 buttons: buttons,
                 columns: [
                     {
