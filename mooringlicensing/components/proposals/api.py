@@ -754,6 +754,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
+        logger.info(f'Getting queryset in the ProposalViewSet...')
         request_user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()
@@ -762,12 +763,25 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
             # queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
             user_orgs = []  # TODO array of organisations' id for this user
+            # uuid = self.kwargs.get('id') if not self.kwargs.get('id').isnumeric() else ''  # kwargs['id'] could be proposal.id OR proposal.uuid now.
             queryset = Proposal.objects.filter(
                 Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
             ).exclude(migrated=True)
+            # if uuid:
+            #     test = AuthorisedUserApplication.objects.filter(uuid=uuid)
+            #     queryset = queryset | test
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            temp = super(ProposalViewSet, self).retrieve(request, *args)
+            return temp
+        except Exception as e:
+            uuid = kwargs.get('id')
+            proposal = AuthorisedUserApplication.objects.get(uuid=uuid)
+            return Response(self.serializer_class(proposal.proposal).data)
 
     def internal_serializer_class(self):
        try:
