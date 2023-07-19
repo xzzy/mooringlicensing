@@ -86,7 +86,7 @@ export default {
                 headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
             }
             */
-            return ['Mooring', 'Bay', 'Type', 'Status', 'AU Permits [Total(RIA/Licensee)]', 'Max Vessel Length', 'Max Vessel Draft', 'Action'];
+            return ['Mooring', 'Bay', 'Type', 'Status', 'Authorised User Permits (RIA/LIC)', 'Max Vessel Length', 'Max Vessel Draft', 'Action'];
         },
         mooringNameColumn: function () {
             return {
