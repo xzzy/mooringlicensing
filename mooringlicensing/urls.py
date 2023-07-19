@@ -168,6 +168,7 @@ urlpatterns = [
     url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
     url(r'^sticker_replacement_fee_success/(?P<uuid>.+)/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^sticker_replacement_fee_success_preload/(?P<uuid>.+)/$', StickerReplacementFeeSuccessViewPreload.as_view(), name='sticker_replacement_fee_success_preload'),
+    url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/view/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'view'}, name='view-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
