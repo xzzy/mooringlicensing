@@ -214,7 +214,7 @@ def send_approver_approve_decline_email_notification(request, proposal):
         html_template='mooringlicensing/emails_2/email_3.html',
         txt_template='mooringlicensing/emails_2/email_3.txt',
     )
-
+    # test
     url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
     url = make_url_for_internal(url)
 
