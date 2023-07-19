@@ -876,7 +876,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
-                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), invoice.reference)
     elif decision == 'approved_paid':
         # after payment
         html_template += 'email_20b.html'
@@ -1015,7 +1015,8 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
-                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+                # payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), invoice.reference)
     elif decision == 'approved_paid':
         # after payment
         html_template += 'email_22b.html'
@@ -1188,7 +1189,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
-                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), invoice.reference)
     elif decision == 'approved_paid':
         html_template += 'email_23b.html'
         txt_template += 'email_23b.txt'
@@ -1332,7 +1333,7 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
                 # Payment required
-                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), proposal.id)
+                payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), invoice.reference)
     elif decision == 'approved_paid':
         # after payment
         html_template += 'email_25b.html'
