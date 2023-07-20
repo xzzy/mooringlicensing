@@ -773,16 +773,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
             # queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
-            user_orgs = []  # TODO array of organisations' id for this user
-            # uuid = self.kwargs.get('id') if not self.kwargs.get('id').isnumeric() else ''  # kwargs['id'] could be proposal.id OR proposal.uuid now.
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = Proposal.objects.filter(
                 Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
             ).exclude(migrated=True)
+
+            # For the endoser to view the endosee's proposal
             if 'uuid' in self.request.query_params:
                 uuid = self.request.query_params.get('uuid', '')
-                au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)
+                au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)  # ML also has a uuid field.
                 if au_obj:
                     pro = Proposal.objects.filter(id=au_obj.first().id)
+                    # Add the above proposal to the queryset the accessing user can access to
                     queryset = queryset | pro
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))

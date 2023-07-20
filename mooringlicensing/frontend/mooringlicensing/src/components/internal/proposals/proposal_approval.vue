@@ -122,18 +122,14 @@
                                 <template v-if="!proposal.proposed_decline_status">
                                     <template v-if="isFinalised">
                                         <p><strong>Decision: Issue</strong></p>
-                                        <!--p><strong>Start date: {{proposal.proposed_issuance_approval.start_date}}</strong></p>
-                                        <p><strong>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}</strong></p-->
                                         <p><strong>CC emails: {{ displayCCEmail }}</strong></p>
                                     </template>
                                     <template v-else>
                                         <p><strong>Proposed decision: Issue</strong></p>
-<!--
-                                        <p><strong>Proposed start date: {{proposal.proposed_issuance_approval.start_date}}</strong></p>
-                                        <p><strong>Proposed expiry date: {{proposal.proposed_issuance_approval.expiry_date}}</strong></p>
--->
                                         <p><strong>Proposed cc emails: {{ displayCCEmail }}</strong></p>
                                     </template>
+                                    <p><strong>Bay: {{ mooringBayName }}</strong></p>
+                                    <p><strong>Mooring Site ID: {{ proposal.proposed_issuance_approval.ria_mooring_name }}</strong></p>
                                 </template>
                                 <template v-else>
                                     <strong v-if="!isFinalised">Proposed decision: Decline</strong>
@@ -163,6 +159,7 @@ import { constants } from '@/utils/hooks'
 export default {
     name: 'InternalProposalApproval',
     props: {
+        mooringBays: Array,
         proposal: Object
     },
     data: function() {
@@ -181,6 +178,14 @@ export default {
         //ComponentSiteSelection,
     },
     computed:{
+        mooringBayName: function(){
+            console.log('mooringBayName called')
+            for (let mooringBay of this.mooringBays) {
+                if (mooringBay.id == this.proposal.proposed_issuance_approval.mooring_bay_id) {
+                    return mooringBay.name
+                }
+            }
+        },
         displayCCEmail: function() {
             let ccEmail = ''
             if (this.proposal && this.proposal.proposed_issuance_approval) {

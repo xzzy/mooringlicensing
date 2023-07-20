@@ -49,6 +49,8 @@
                     <ApprovalScreen
                         :proposal="proposal"
                         @refreshFromResponse="refreshFromResponse"
+                        ref="approval_screen"
+                        :mooringBays="mooringBays"
                     />
                 </template>
 
@@ -120,6 +122,7 @@
             :applicant_email="applicant_email"
             @refreshFromResponse="refreshFromResponse"
             :key="proposedApprovalKey"
+            :mooringBays="mooringBays"
         />
         <ProposedDecline
             ref="proposed_decline"
@@ -229,6 +232,7 @@ export default {
             panelClickersInitialised: false,
             //sendingReferral: false,
             uuid: 0,
+            mooringBays: [],
         }
     },
     components: {
@@ -393,6 +397,19 @@ export default {
         },
     },
     methods: {
+        fetchMooringBays: async function() {
+            console.log('%cin fetchMooringBays', 'color:#f33;')
+            //const res = await this.$http.get(api_endpoints.mooring_bays);
+            const res = await this.$http.get(api_endpoints.mooring_bays_lookup);
+            console.log(res.body)
+            for (let bay of res.body) {
+                this.mooringBays.push(bay)
+            }
+        },
+        // retrieve_mooring_details: function(){
+        //     console.log('%cin retrieve_mooring_details', 'color:#3b3')
+        //     this.$refs.approval_screen.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+        // },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
@@ -447,7 +464,7 @@ export default {
             });
         },
         issueProposal:function(){
-            console.log('in issueProposal')
+            console.log('%cin issueProposal', 'color:#3b3')
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
 
             //save approval level comment before opening 'issue approval' modal
@@ -788,7 +805,8 @@ export default {
     mounted: function() {
         let vm = this;
         //vm.fetchDeparmentUsers();
-
+        // vm.retrieve_mooring_details()
+        vm.fetchMooringBays()
     },
     updated: function(){
         let vm = this;
@@ -812,8 +830,6 @@ export default {
     },
     created: function() {
         Vue.http.get(`/api/proposal/${this.$route.params.proposal_id}/internal_proposal.json`).then(res => {
-            console.log('res.body: ')
-            console.log(res.body)
             this.proposal = res.body;
             this.original_proposal = helpers.copyObject(res.body);
             //this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
