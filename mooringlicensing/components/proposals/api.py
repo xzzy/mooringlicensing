@@ -753,6 +753,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
     serializer_class = ProposalSerializer
     lookup_field = 'id'
 
+    def get_object(self):
+        logger.info(f'Getting object in the ProposalViewSet...')
+        # obj = super(ProposalViewSet, self).get_object()
+        if self.kwargs.get('id').isnumeric():
+            obj = super(ProposalViewSet, self).get_object()
+        else:
+            uuid = self.kwargs.get('id')
+            obj = AuthorisedUserApplication.objects.get(uuid=uuid)
+            obj = obj.proposal
+        return obj
+
     def get_queryset(self):
         logger.info(f'Getting queryset in the ProposalViewSet...')
         request_user = self.request.user
@@ -767,21 +778,24 @@ class ProposalViewSet(viewsets.ModelViewSet):
             queryset = Proposal.objects.filter(
                 Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
             ).exclude(migrated=True)
-            # if uuid:
-            #     test = AuthorisedUserApplication.objects.filter(uuid=uuid)
-            #     queryset = queryset | test
+            if 'uuid' in self.request.query_params:
+                uuid = self.request.query_params.get('uuid', '')
+                au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)
+                if au_obj:
+                    pro = Proposal.objects.filter(id=au_obj.first().id)
+                    queryset = queryset | pro
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
 
-    def retrieve(self, request, *args, **kwargs):
-        try:
-            temp = super(ProposalViewSet, self).retrieve(request, *args)
-            return temp
-        except Exception as e:
-            uuid = kwargs.get('id')
-            proposal = AuthorisedUserApplication.objects.get(uuid=uuid)
-            return Response(self.serializer_class(proposal.proposal).data)
+    # def retrieve(self, request, *args, **kwargs):
+    #     try:
+    #         temp = super(ProposalViewSet, self).retrieve(request, *args)
+    #         return temp
+    #     except Exception as e:
+    #         uuid = kwargs.get('id')
+    #         proposal = AuthorisedUserApplication.objects.get(uuid=uuid)
+    #         return Response(self.serializer_class(proposal.proposal).data)
 
     def internal_serializer_class(self):
        try:

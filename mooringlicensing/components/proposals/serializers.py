@@ -167,6 +167,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     approval_reissued = serializers.SerializerMethodField()
     vessel_on_proposal = serializers.SerializerMethodField()
     proposal_applicant = ProposalApplicantSerializer()
+    uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -248,8 +249,15 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'vessel_on_proposal',
                 'null_vessel_on_create',
                 'proposal_applicant',
+                'uuid',
                 )
         read_only_fields=('documents',)
+
+    def get_uuid(self, obj):
+        if hasattr(obj.child_obj, 'uuid'):
+            return obj.child_obj.uuid
+        else:
+            return ''
 
     def get_allowed_assessors(self, obj):
         serializer = EmailUserSerializer(obj.allowed_assessors, many=True)
