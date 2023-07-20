@@ -117,26 +117,28 @@
                         </h3>
                     </div>
                     <div class="panel-body panel-collapse collapse in" :id="proposedDecision">
-                        <div class="row">
-                            <div class="col-sm-12">
+                        <!-- <div class="row"> -->
+                            <!-- <div class="col-sm-12"> -->
                                 <template v-if="!proposal.proposed_decline_status">
                                     <template v-if="isFinalised">
-                                        <p><strong>Decision: Issue</strong></p>
-                                        <p><strong>CC emails: {{ displayCCEmail }}</strong></p>
+                                        <div class="row"><div class="col-sm-3">Decision: </div><div class="col-sm-9">Issue</div></div>
+                                        <div class="row"><div class="col-sm-3">CC emails: </div><div class="col-sm-9">{{ displayCCEmail }}</div></div>
                                     </template>
                                     <template v-else>
-                                        <p><strong>Proposed decision: Issue</strong></p>
-                                        <p><strong>Proposed cc emails: {{ displayCCEmail }}</strong></p>
+                                        <div class="row"><div class="col-sm-3">Proposed decision: </div><div class="col-sm-9">Issue</div></div>
+                                        <div class="row"><div class="col-sm-3">Proposed cc emails: </div><div class="col-sm-9">{{ displayCCEmail }}</div></div>
                                     </template>
-                                    <p><strong>Bay: {{ mooringBayName }}</strong></p>
-                                    <p><strong>Mooring Site ID: {{ proposal.proposed_issuance_approval.ria_mooring_name }}</strong></p>
+                                    <div class="row"><div class="col-sm-3">Bay: </div><div class="col-sm-9">{{ mooringBayName }}</div></div>
+                                    <div class="row"><div class="col-sm-3">Mooring Site ID: </div><div class="col-sm-9">{{ proposal.proposed_issuance_approval.ria_mooring_name }}</div></div>
+                                    <div class="row"><div class="col-sm-3">Max vessel draft: </div><div class="col-sm-9">{{ mooring.vessel_draft_limit }}</div></div>
+                                    <div class="row"><div class="col-sm-3">Max vessel length: </div><div class="col-sm-9">{{ mooring.vessel_size_limit }}</div></div>
                                 </template>
                                 <template v-else>
                                     <strong v-if="!isFinalised">Proposed decision: Decline</strong>
                                     <strong v-else>Decision: Decline</strong>
                                 </template>
-                            </div>
-                        </div>
+                            <!-- </div> -->
+                        <!-- </div> -->
                     </div>
                 </div>
             <!--/div-->
@@ -169,6 +171,7 @@ export default {
             proposedLevel: "proposal-level-"+vm._uid,
             uploadedFile: null,
             component_site_selection_key: '',
+            mooring: {},
         }
     },
     watch:{
@@ -275,6 +278,12 @@ export default {
 
     },
     methods:{
+        retrieveMooringDetails: async function(){
+            console.log(this.proposal.proposed_issuance_approval.mooring_id)
+            const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.proposed_issuance_approval.mooring_id}`);
+            console.log(res.body)
+            this.mooring = res.body
+        },
         updateComponentSiteSelectionKey: function(){
             console.log('in updateComponentSiteSelectionKey')
             this.component_site_selection_key = uuid()
@@ -351,6 +360,7 @@ export default {
     mounted: function(){
         let vm = this;
         this.updateComponentSiteSelectionKey()
+        this.retrieveMooringDetails()
     }
 }
 </script>
