@@ -30,6 +30,7 @@
                     @toggleProposal="toggleProposal"
                     @toggleRequirements="toggleRequirements"
                     @switchStatus="switchStatus"
+                    @backToAssessorRequirements="backToAssessorRequirements"
                     @amendmentRequest="amendmentRequest"
                     @proposedDecline="proposedDecline"
                     @proposedApproval="proposedApproval"
@@ -137,6 +138,9 @@
             :proposal="proposal"
             @refreshFromResponse="refreshFromResponse"
         />
+        <BackToAssessor
+            ref="back_to_assessor"
+        />
     </div>
 </template>
 
@@ -147,6 +151,7 @@
 import Vue from 'vue'
 import ProposedDecline from '@/components/internal/proposals/proposal_proposed_decline.vue'
 import AmendmentRequest from '@/components/internal/proposals/amendment_request.vue'
+import BackToAssessor from '@/components/internal/proposals/back_to_assessor.vue'
 import datatable from '@vue-utils/datatable.vue'
 import Requirements from '@/components/internal/proposals/proposal_requirements.vue'
 import ProposedApproval from '@/components/internal/proposals/proposed_issuance.vue'
@@ -244,6 +249,7 @@ export default {
         datatable,
         ProposedDecline,
         AmendmentRequest,
+        BackToAssessor,
         Requirements,
         ProposedApproval,
         ApprovalScreen,
@@ -517,6 +523,10 @@ export default {
             console.log('in declineProposal')
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
+        },
+        backToAssessorRequirements: function(){
+            console.log('Open modal here!')
+            this.$refs.back_to_assessor.isModalOpen = true
         },
         amendmentRequest: function(){
             let values = '';

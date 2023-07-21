@@ -738,11 +738,19 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         # Make sure the submitter is the same as the applicant.
         is_authorised_to_modify(request, instance)
 
-        if not instance.mooring_report_documents.count() \
-                or not instance.written_proof_documents.count()\
-                or not instance.signed_licence_agreement_documents.count() \
-                or not instance.proof_of_identity_documents.count():  # Documents missing
-            raise
+        errors = []
+        if not instance.mooring_report_documents.count():
+            errors.append('Copy of current mooring report')
+        if not instance.written_proof_documents.count():
+            errors.append('Proof of finalized ownership of mooring apparatus')
+        if not instance.signed_licence_agreement_documents.count():
+            errors.append('Signed licence agreement')
+        if not instance.proof_of_identity_documents.count():
+            errors.append('Proof of identity')
+
+        if errors:
+            errors.insert(0, 'Please attach:')
+            raise serializers.ValidationError(errors)
 
         instance.process_after_submit_other_documents(request)
         return Response()
