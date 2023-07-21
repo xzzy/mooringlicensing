@@ -140,6 +140,7 @@
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_draft_limit }}</div></div>
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_size_limit }}</div></div>
                                     </template>
+                                    <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed details: </div><div class="col-sm-9 proposed-decision-value">{{ proposal.proposed_issuance_approval.details }}</div></div>
                                 </template>
                                 <template v-else>
                                     <strong v-if="!isFinalised">Proposed decision: Decline</strong>
