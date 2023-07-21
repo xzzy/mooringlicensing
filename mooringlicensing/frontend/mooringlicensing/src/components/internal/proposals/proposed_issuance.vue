@@ -169,6 +169,9 @@ export default {
         },
         mooringBays: {
             type: Array,
+        },
+        siteLicenseeMooring: {
+            type: Object,
         }
     },
     /*
@@ -213,7 +216,7 @@ export default {
                 allowInputToggle:true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
-            siteLicenseeMooring: {},
+            // siteLicenseeMooring: {},
             // mooringBays: [],
             mooringsTableId: 'moorings_table' + vm._uid,
             vesselsTableId: 'vessels_table' + vm._uid,
@@ -572,10 +575,10 @@ export default {
         //         this.mooringBays.push(bay)
         //     }
         // },
-        fetchSiteLicenseeMooring: async function() {
-            const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.mooring_id}`);
-            this.siteLicenseeMooring = Object.assign({}, res.body);
-        },
+        // fetchSiteLicenseeMooring: async function() {
+        //     const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.mooring_id}`);
+        //     this.siteLicenseeMooring = Object.assign({}, res.body);
+        // },
 
         fetchContact: function(id){
             let vm = this;
@@ -886,7 +889,7 @@ export default {
         this.$nextTick(()=>{
             // this.fetchMooringBays();
             if (this.siteLicensee) {
-                this.fetchSiteLicenseeMooring();
+                // this.fetchSiteLicenseeMooring();
             }
         });
     },

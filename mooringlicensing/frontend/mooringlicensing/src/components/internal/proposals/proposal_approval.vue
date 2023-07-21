@@ -121,17 +121,25 @@
                             <!-- <div class="col-sm-12"> -->
                                 <template v-if="!proposal.proposed_decline_status">
                                     <template v-if="isFinalised">
-                                        <div class="row"><div class="col-sm-3">Decision: </div><div class="col-sm-9">Issue</div></div>
-                                        <div class="row"><div class="col-sm-3">CC emails: </div><div class="col-sm-9">{{ displayCCEmail }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Decision: </div><div class="col-sm-9 proposed-decision-value">Issue</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">CC emails: </div><div class="col-sm-9 proposed-decision-value">{{ displayCCEmail }}</div></div>
                                     </template>
                                     <template v-else>
-                                        <div class="row"><div class="col-sm-3">Proposed decision: </div><div class="col-sm-9">Issue</div></div>
-                                        <div class="row"><div class="col-sm-3">Proposed cc emails: </div><div class="col-sm-9">{{ displayCCEmail }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed decision: </div><div class="col-sm-9 proposed-decision-value">Issue</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed cc emails: </div><div class="col-sm-9 proposed-decision-value">{{ displayCCEmail }}</div></div>
                                     </template>
-                                    <div class="row"><div class="col-sm-3">Bay: </div><div class="col-sm-9">{{ mooringBayName }}</div></div>
-                                    <div class="row"><div class="col-sm-3">Mooring Site ID: </div><div class="col-sm-9">{{ proposal.proposed_issuance_approval.ria_mooring_name }}</div></div>
-                                    <div class="row"><div class="col-sm-3">Max vessel draft: </div><div class="col-sm-9">{{ mooring.vessel_draft_limit }}</div></div>
-                                    <div class="row"><div class="col-sm-3">Max vessel length: </div><div class="col-sm-9">{{ mooring.vessel_size_limit }}</div></div>
+                                    <template v-if="proposal.mooring_authorisation_preference == 'ria'">
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ mooringBayName }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ proposal.proposed_issuance_approval.ria_mooring_name }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_draft_limit }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_size_limit }}</div></div>
+                                    </template>
+                                    <template v-else>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.mooring_bay_name }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.name }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_draft_limit }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_size_limit }}</div></div>
+                                    </template>
                                 </template>
                                 <template v-else>
                                     <strong v-if="!isFinalised">Proposed decision: Decline</strong>
@@ -162,7 +170,8 @@ export default {
     name: 'InternalProposalApproval',
     props: {
         mooringBays: Array,
-        proposal: Object
+        proposal: Object,
+        siteLicenseeMooring: Object,
     },
     data: function() {
         let vm = this;
@@ -250,32 +259,6 @@ export default {
         isApprovalLevel:function(){
             return this.proposal.approval_level != null ? true : false;
         },
-        apiary_sites: function() {
-            if (this.proposal && this.proposal.proposal_apiary) {
-                return this.proposal.proposal_apiary.apiary_sites;
-            }
-        },
-        apiary_sites_prop: function() {
-            let apiary_sites = [];
-            if (this.proposal.application_type === 'Site Transfer') {
-                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
-                    if (site.selected) {
-                        apiary_sites.push(site.apiary_site);
-                    }
-                }
-            } else {
-                apiary_sites = this.proposal.proposal_apiary.apiary_sites;
-            }
-            return apiary_sites;
-        },
-        showColCheckbox: function() {
-            let checked = true;
-            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
-                checked = false;
-            }
-            return checked;
-        },
-
     },
     methods:{
         retrieveMooringDetails: async function(){
@@ -365,4 +348,11 @@ export default {
 }
 </script>
 <style scoped>
+.proposed-decision-title {
+    font-weight: bold;
+    text-align: right;
+}
+.proposed-decision-value {
+    font-weight: bold;
+}
 </style>
