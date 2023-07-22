@@ -82,7 +82,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSerializer,
     VesselFullSerializer,
     VesselFullOwnershipSerializer,
-    ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer,
+    ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer
 )
 from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence, VesselOwnershipOnApproval, \
@@ -738,11 +738,19 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         # Make sure the submitter is the same as the applicant.
         is_authorised_to_modify(request, instance)
 
-        if not instance.mooring_report_documents.count() \
-                or not instance.written_proof_documents.count()\
-                or not instance.signed_licence_agreement_documents.count() \
-                or not instance.proof_of_identity_documents.count():  # Documents missing
-            raise
+        errors = []
+        if not instance.mooring_report_documents.count():
+            errors.append('Copy of current mooring report')
+        if not instance.written_proof_documents.count():
+            errors.append('Proof of finalized ownership of mooring apparatus')
+        if not instance.signed_licence_agreement_documents.count():
+            errors.append('Signed licence agreement')
+        if not instance.proof_of_identity_documents.count():
+            errors.append('Proof of identity')
+
+        if errors:
+            errors.insert(0, 'Please attach:')
+            raise serializers.ValidationError(errors)
 
         instance.process_after_submit_other_documents(request)
         return Response()
@@ -773,16 +781,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
             # queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
-            user_orgs = []  # TODO array of organisations' id for this user
-            # uuid = self.kwargs.get('id') if not self.kwargs.get('id').isnumeric() else ''  # kwargs['id'] could be proposal.id OR proposal.uuid now.
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = Proposal.objects.filter(
                 Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
             ).exclude(migrated=True)
+
+            # For the endoser to view the endosee's proposal
             if 'uuid' in self.request.query_params:
                 uuid = self.request.query_params.get('uuid', '')
-                au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)
+                au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)  # ML also has a uuid field.
                 if au_obj:
                     pro = Proposal.objects.filter(id=au_obj.first().id)
+                    # Add the above proposal to the queryset the accessing user can access to
                     queryset = queryset | pro
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
@@ -1678,6 +1688,27 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+
+# class BackToAssessorViewSet(viewsets.ModelViewSet):
+#     queryset = BackToAssessor.objects.all()
+#     serializer_class = BackToAssessorSerializer
+#
+#     @basic_exception_handler
+#     def create(self, request, *args, **kwargs):
+#         data = request.data
+#         details = request.data.get('details')
+#         proposal = request.data.get('proposal')
+#         data['details'] = details
+#         data['proposal'] = proposal['id']
+#
+#         serializer = self.get_serializer(data=data)
+#         serializer.is_valid(raise_exception = True)
+#         instance = serializer.save()
+#
+#         instance.generate_amendment(request)
+#         serializer = self.get_serializer(instance)
+#
+#         return Response(serializer.data)
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()

@@ -1370,6 +1370,13 @@ class AmendmentRequestSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+# class BackToAssessorSerializer(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = BackToAssessor
+#         fields = '__all__'
+
+
 class AmendmentRequestDisplaySerializer(serializers.ModelSerializer):
     reason = serializers.SerializerMethodField()
 
