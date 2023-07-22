@@ -140,6 +140,7 @@
         />
         <BackToAssessor
             ref="back_to_assessor"
+            :proposal="proposal"
         />
     </div>
 </template>

@@ -1234,6 +1234,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     send_proposal_approver_sendback_email_notification(request, self)
             self.processing_status = status
             self.save()
+            logger.info(f'Status:[{status}] has been set to the proposal: [{self}]')
             if status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
                 self.add_default_requirements()
 
@@ -4317,6 +4318,17 @@ class AmendmentReason(models.Model):
 
     def __str__(self):
         return self.reason
+
+
+# class BackToAssessor(models.Model):
+#     details = models.TextField(blank=True)
+#     proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE)
+#
+#     class Meta:
+#         app_label = 'mooringlicensing'
+#
+#     def __str__(self):
+#         return self.details
 
 
 class AmendmentRequest(ProposalRequest):
