@@ -1,5 +1,6 @@
 <template lang="html">
     <div class="row">
+        applicant.vue
         <div class="col-sm-12">
             <div class="col-md-12">
                 <div class="row">
@@ -41,20 +42,19 @@
                                     <label for="" class="col-sm-3 control-label">Given Name(s)</label>
                                     <div class="col-sm-6">
                                         <input disabled type="text" class="form-control" name="applicantName" placeholder=""
-                                            v-model="email_user.first_name">
+                                            v-model="applicant_first_name">
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 control-label">Surname</label>
                                     <div class="col-sm-6">
                                         <input disabled type="text" class="form-control" name="applicantName" placeholder=""
-                                            v-model="email_user.last_name">
+                                            v-model="applicant_last_name">
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 control-label">Date of Birth</label>
                                     <div class="col-sm-3 input-group date" ref="dobDatePicker">
-                                        <!-- <input type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="email_user.dob"/> -->
                                         <input disabled type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" />
                                         <span class="input-group-addon">
                                             <span class="glyphicon glyphicon-calendar ml-1"></span>
@@ -246,14 +246,14 @@
                                     <label for="" class="col-sm-3 control-label">Phone (work)</label>
                                     <div class="col-sm-6">
                                         <input disabled type="text" class="form-control" name="applicantPhoneNumber"
-                                            placeholder="" v-model="email_user.phone_number">
+                                            placeholder="" v-model="contact_phone_number">
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 control-label">Mobile</label>
                                     <div class="col-sm-6">
                                         <input disabled type="text" class="form-control" name="applicantMobileNumber"
-                                            placeholder="" v-model="email_user.mobile_number">
+                                            placeholder="" v-model="contact_mobile_number">
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -431,6 +431,41 @@ export default {
     //     }
     // },
     computed: {
+        applicant_first_name: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.first_name
+            } else {
+                return this.email_user.first_name
+            }
+        },
+        applicant_last_name: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.last_name
+            } else {
+                return this.email_user.last_name
+            }
+        },
+        applicant_dob: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.dob
+            } else {
+                return this.email_user.dob
+            }
+        },
+        contact_mobile_number: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.mobile_number
+            } else {
+                return this.email_user.mobile_number
+            }
+        },
+        contact_phone_number: function(){
+            if (this.proposal){
+                return this.proposal.proposal_applicant.phone_number
+            } else {
+                return this.email_user.phone_number
+            }
+        },
         residential_line1: function(){
             if (this.proposal){
                 return this.proposal.proposal_applicant.residential_line1
@@ -558,7 +593,8 @@ export default {
                 showClear: true,
                 useCurrent: false,
                 maxDate: moment(),
-                defaultDate: moment(vm.email_user.dob, 'YYYY-MM-DD'),
+                // defaultDate: moment(vm.email_user.dob, 'YYYY-MM-DD'),
+                defaultDate: moment(vm.applicant_dob, 'YYYY-MM-DD'),
             };
 
             elDob.datetimepicker(options);
