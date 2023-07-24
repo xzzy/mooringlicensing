@@ -772,7 +772,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                         if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                             links.append({
                                 'id': moa.mooring.id,
-                                'name': moa.mooring.name,
+                                'bay_name': moa.mooring.mooring_bay.name,
+                                'mooring_name': moa.mooring.name,
                             })
                     except Exception as e:
                         pass

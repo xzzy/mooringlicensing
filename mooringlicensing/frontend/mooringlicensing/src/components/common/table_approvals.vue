@@ -373,7 +373,7 @@ export default {
                 'render': function(row, type, full){
                     let links = ''
                     for (let mooring of full.moorings){
-                        links +=  `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.name}</a><br/>`;
+                        links +=  `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.mooring_name}</a><br/>`;
                     }
                     return links
                 },
