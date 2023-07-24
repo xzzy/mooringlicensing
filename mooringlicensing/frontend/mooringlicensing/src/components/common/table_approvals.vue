@@ -286,6 +286,7 @@ export default {
                     'Vessel draft',
                     'Vessel Rego',
                     'Mooring Site Licence Applications',
+                    'Mooring Offered',
                 ]
             } else if (this.is_internal) {
                 return [
@@ -525,18 +526,34 @@ export default {
                         }
                     }
         },
+        columnMooringOffered: function(){
+            let vm = this;
+            return {
+                // 10. Action
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.mooring_offered.id){
+                        return `<a href='/internal/moorings/${full.mooring_offered.id}' target='_blank'>${full.mooring_offered.name}</a>`
+                    }
+                    return '---'
+                }
+            }
+        },
         columnRiaGeneratedProposals: function() {
             let vm = this;
             return {
-                        // 10. Action
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.ria_generated_proposals;
-                        }
-                    }
+                // 10. Action
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.ria_generated_proposals
+                }
+            }
         },
         columnHolder: function() {
             return {
@@ -793,6 +810,7 @@ export default {
                     vm.columnVesselDraft,
                     vm.columnVesselRegos,
                     vm.columnRiaGeneratedProposals,
+                    vm.columnMooringOffered,
                 ]
             } else if (vm.is_internal) {
                 selectedColumns = [

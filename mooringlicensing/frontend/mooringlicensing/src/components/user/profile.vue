@@ -1,6 +1,5 @@
 <template>
     <div :class="classCompute" id="userInfo">
-      profile.vue
       <div class="col-sm-12">
         <div v-if="showCompletion" class="row">
             <div class="col-sm-12">

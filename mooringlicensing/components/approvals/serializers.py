@@ -664,6 +664,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     is_assessor = serializers.SerializerMethodField()
     vessel_regos = serializers.SerializerMethodField()
     moorings = serializers.SerializerMethodField()
+    mooring_offered = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -706,6 +707,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
             'vessel_regos',
             'moorings',
+            'mooring_offered',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -748,6 +750,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
             'vessel_regos',
             'moorings',
+            'mooring_offered',
         )
 
     # def get_mooring_licence_mooring(self, obj):
@@ -761,6 +764,20 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     #             return None
     #     else:
     #         return None
+    def get_mooring_offered(self, obj):
+        mooring = {}
+        if type(obj.child_obj) == WaitingListAllocation:
+            try:
+                proposals = obj.child_obj.ria_generated_proposal.all()
+                if proposals:
+                    proposal = proposals[0]
+                    mooring = {
+                        'id': proposal.allocated_mooring.id,
+                        'name': proposal.allocated_mooring.name,
+                    }
+            except Exception as e:
+                pass
+        return mooring
 
     def get_moorings(self, obj):
         links = []
