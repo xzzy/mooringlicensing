@@ -687,6 +687,8 @@ export default {
                                 approval_letter_name = 'Annual Admission Permit'
                             } else if (full.approval_type_dict.code === 'ml'){
                                 approval_letter_name = 'Mooring Site Licence'
+                            } else if (full.approval_type_dict.code === 'wla'){
+                                approval_letter_name = 'Waiting List Allocation'
                             }
                             let ret_elems = `<div><a href='${full.licence_document}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> ${approval_letter_name}</a></div>`;
                             if (full.authorised_user_summary_document){
