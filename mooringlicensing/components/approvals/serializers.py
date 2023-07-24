@@ -663,6 +663,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     is_approver = serializers.SerializerMethodField()
     is_assessor = serializers.SerializerMethodField()
     vessel_regos = serializers.SerializerMethodField()
+    moorings = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -704,6 +705,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_assessor',
             'is_approver',
             'vessel_regos',
+            'moorings',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -745,7 +747,47 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'is_assessor',
             'is_approver',
             'vessel_regos',
+            'moorings',
         )
+
+    # def get_mooring_licence_mooring(self, obj):
+    #     if type(obj.child_obj) == MooringLicence:
+    #         try:
+    #             return {
+    #                 'id': obj.child_obj.mooring.id,
+    #                 'name': obj.child_obj.mooring.name,
+    #             }
+    #         except Exception as e:
+    #             return None
+    #     else:
+    #         return None
+
+    def get_moorings(self, obj):
+        links = []
+        try:
+            request = self.context.get('request')
+            if type(obj.child_obj) == AuthorisedUserPermit:
+                for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                    try:
+                        if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+                            links.append({
+                                'id': moa.mooring.id,
+                                'name': moa.mooring.name,
+                            })
+                    except Exception as e:
+                        pass
+            elif type(obj.child_obj) == MooringLicence:
+                try:
+                    links.append({
+                        'id': obj.child_obj.mooring.id,
+                        'name': obj.child_obj.mooring.name,
+                    })
+                except Exception as e:
+                    pass
+        except Exception as e:
+            pass
+
+        return links
 
     def get_licence_document(self, obj):
         if obj.licence_document and obj.licence_document._file:
@@ -840,19 +882,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                     links += '{}\n'.format(vessel_details.vessel.rego_no)
         return links
 
-    def get_authorised_user_moorings(self, obj):
-        links = ''
-        request = self.context.get('request')
-        if type(obj.child_obj) == AuthorisedUserPermit:
-            for mooring in obj.moorings.all():
-                if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
-                    links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
-                            mooring.id,
-                            str(mooring),
-                            )
-                else:
-                    links += '{}\n'.format(str(mooring))
-        return links
+    # def get_authorised_user_moorings(self, obj):
+    #     links = ''
+    #     request = self.context.get('request')
+    #     if type(obj.child_obj) == AuthorisedUserPermit:
+    #         for mooring in obj.moorings.all():
+    #             if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
+    #                 links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
+    #                         mooring.id,
+    #                         str(mooring),
+    #                         )
+    #             else:
+    #                 links += '{}\n'.format(str(mooring))
+    #     return links
 
     def get_ria_generated_proposals(self, obj):
         links = '<br/>'

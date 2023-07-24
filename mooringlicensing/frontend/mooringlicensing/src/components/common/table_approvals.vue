@@ -296,6 +296,7 @@ export default {
                     'Sticker mailed date',
                     'Holder',
                     'Status',
+                    'Mooring',
                     'Issue Date',
                     'Start Date',
                     'Expiry Date',
@@ -362,6 +363,22 @@ export default {
                         },
                         name: "status",
                     }
+        },
+        columnMooring: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    let links = ''
+                    for (let mooring of full.moorings){
+                        links +=  `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.name}</a><br/>`;
+                    }
+                    return links
+                },
+                name: "status",
+            }
         },
         columnStatusInternal: function() {
             return {
@@ -784,6 +801,7 @@ export default {
                     vm.columnStickerMailedDate,
                     vm.columnHolder,
                     vm.columnStatus,
+                    vm.columnMooring,
                     vm.columnIssueDate,
                     vm.columnStartDate,
                     vm.columnExpiryDate,
