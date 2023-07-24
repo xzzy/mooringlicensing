@@ -286,6 +286,7 @@ export default {
                     'Vessel draft',
                     'Vessel Rego',
                     'Mooring Site Licence Applications',
+                    'Mooring Offered',
                 ]
             } else if (this.is_internal) {
                 return [
@@ -296,6 +297,7 @@ export default {
                     'Sticker mailed date',
                     'Holder',
                     'Status',
+                    'Mooring',
                     'Issue Date',
                     'Start Date',
                     'Expiry Date',
@@ -362,6 +364,22 @@ export default {
                         },
                         name: "status",
                     }
+        },
+        columnMooring: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    let links = ''
+                    for (let mooring of full.moorings){
+                        links +=  `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.mooring_name}</a><br/>`;
+                    }
+                    return links
+                },
+                name: "status",
+            }
         },
         columnStatusInternal: function() {
             return {
@@ -508,18 +526,34 @@ export default {
                         }
                     }
         },
+        columnMooringOffered: function(){
+            let vm = this;
+            return {
+                // 10. Action
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.mooring_offered.id){
+                        return `<a href='/internal/moorings/${full.mooring_offered.id}' target='_blank'>${full.mooring_offered.name}</a>`
+                    }
+                    return '---'
+                }
+            }
+        },
         columnRiaGeneratedProposals: function() {
             let vm = this;
             return {
-                        // 10. Action
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.ria_generated_proposals;
-                        }
-                    }
+                // 10. Action
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.ria_generated_proposals
+                }
+            }
         },
         columnHolder: function() {
             return {
@@ -670,6 +704,8 @@ export default {
                                 approval_letter_name = 'Annual Admission Permit'
                             } else if (full.approval_type_dict.code === 'ml'){
                                 approval_letter_name = 'Mooring Site Licence'
+                            } else if (full.approval_type_dict.code === 'wla'){
+                                approval_letter_name = 'Waiting List Allocation'
                             }
                             let ret_elems = `<div><a href='${full.licence_document}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> ${approval_letter_name}</a></div>`;
                             if (full.authorised_user_summary_document){
@@ -774,6 +810,7 @@ export default {
                     vm.columnVesselDraft,
                     vm.columnVesselRegos,
                     vm.columnRiaGeneratedProposals,
+                    vm.columnMooringOffered,
                 ]
             } else if (vm.is_internal) {
                 selectedColumns = [
@@ -784,6 +821,7 @@ export default {
                     vm.columnStickerMailedDate,
                     vm.columnHolder,
                     vm.columnStatus,
+                    vm.columnMooring,
                     vm.columnIssueDate,
                     vm.columnStartDate,
                     vm.columnExpiryDate,
