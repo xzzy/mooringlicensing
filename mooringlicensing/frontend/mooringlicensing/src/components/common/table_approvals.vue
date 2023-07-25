@@ -318,6 +318,7 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.id
                         }
                     }
@@ -485,7 +486,7 @@ export default {
                                     if(full.amend_or_renew === 'renew' || vm.debug){
                                         links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                     }
-                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
                                 }
 
                                 if (full.approval_type_dict.code != 'wla') {
@@ -507,7 +508,7 @@ export default {
                                 //if (true) {
                                     if(full.can_reissue && full.can_action){
                                         links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
-                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
                                     }
                                     if(full.status == 'Current' && full.can_action){
                                         links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`;
@@ -679,7 +680,6 @@ export default {
                         'render': function(row, type, full){
                             let ret_str = ''
                             for (let sticker of full.stickers){
-                                console.log(sticker.mailing_date)
                                 if (sticker.mailing_date){
                                     ret_str += moment(sticker.mailing_date).format('DD/MM/YYYY') + '<br />'
                                 } else {
@@ -1052,7 +1052,8 @@ export default {
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-surrender-approval]', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-surrender-approval');
-                vm.surrenderApproval(id);
+                let approval_type_name = $(this).attr('data-approval-type-name');
+                vm.surrenderApproval(id, approval_type_name);  //TODO: pass approval type name
             });
 
             //External Request New Sticker listener
@@ -1195,8 +1196,9 @@ export default {
             this.$refs.approval_suspension.isModalOpen = true;
         },
 
-        surrenderApproval: function(approval_id){
+        surrenderApproval: function(approval_id, approval_type_name){
             this.$refs.approval_surrender.approval_id = approval_id;
+            this.$refs.approval_surrender.approval_type_name = approval_type_name
             this.$refs.approval_surrender.isModalOpen = true;
         },
         requestNewSticker: function(approval_id){

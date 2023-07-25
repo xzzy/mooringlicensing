@@ -567,154 +567,78 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete) for d in instance.qaofficer_documents.filter(input_name=section, visible=True) if d._file] )
 
     @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
     def approval_cancellation(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = ApprovalCancellationSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.approval_cancellation(request,serializer.validated_data)
-            return Response()
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = ApprovalCancellationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.approval_cancellation(request,serializer.validated_data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
     def approval_suspension(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = ApprovalSuspensionSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.approval_suspension(request,serializer.validated_data)
-            return Response()
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
+        instance = self.get_object()
+        serializer = ApprovalSuspensionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.approval_suspension(request,serializer.validated_data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
     def approval_reinstate(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.reinstate_approval(request)
-            return Response()
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.reinstate_approval(request)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
     def approval_surrender(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = ApprovalSurrenderSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance.approval_surrender(request,serializer.validated_data)
-            return Response()
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = ApprovalSurrenderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.approval_surrender(request,serializer.validated_data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.action_logs.all()
-            serializer = ApprovalUserActionSerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.action_logs.all()
+        serializer = ApprovalUserActionSerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.comms_logs.all()
-            serializer = ApprovalLogEntrySerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = ApprovalLogEntrySerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                mutable=request.data._mutable
-                request.data._mutable=True
-                request.data['approval'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data._mutable=mutable
-                serializer = ApprovalLogEntrySerializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                comms = serializer.save()
-                # Save the files
-                for f in request.FILES:
-                    document = comms.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
-                # End Save Documents
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            request.data['approval'] = u'{}'.format(instance.id)
+            request.data['staff'] = u'{}'.format(request.user.id)
+            request.data._mutable=mutable
+            serializer = ApprovalLogEntrySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
 
-                return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            return Response(serializer.data)
 
 
 class DcvAdmissionViewSet(viewsets.ModelViewSet):

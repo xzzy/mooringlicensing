@@ -789,11 +789,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # For the endoser to view the endosee's proposal
             if 'uuid' in self.request.query_params:
                 uuid = self.request.query_params.get('uuid', '')
-                au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)  # ML also has a uuid field.
-                if au_obj:
-                    pro = Proposal.objects.filter(id=au_obj.first().id)
-                    # Add the above proposal to the queryset the accessing user can access to
-                    queryset = queryset | pro
+                if uuid:
+                    au_obj = AuthorisedUserApplication.objects.filter(uuid=uuid)  # ML also has a uuid field.
+                    if au_obj:
+                        pro = Proposal.objects.filter(id=au_obj.first().id)
+                        # Add the above proposal to the queryset the accessing user can access to
+                        queryset = queryset | pro
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
@@ -1419,11 +1420,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         instance.save()
         ## ML
         if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
-            instance.waiting_list_allocation.internal_status = 'waiting'
-            current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-            instance.waiting_list_allocation.wla_queue_date = current_datetime
-            instance.waiting_list_allocation.save()
-            instance.waiting_list_allocation.set_wla_order()
+            pass
+            # instance.waiting_list_allocation.internal_status = 'waiting'
+            # current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
+            # instance.waiting_list_allocation.wla_queue_date = current_datetime
+            # instance.waiting_list_allocation.save()
+            # instance.waiting_list_allocation.set_wla_order()
         return Response()
 
     @detail_route(methods=['POST',], detail=True)

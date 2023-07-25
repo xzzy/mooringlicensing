@@ -515,7 +515,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         link = ''
         if (
                 type(obj.child_obj) == WaitingListAllocation and 
-                obj.status == 'current' and
+                obj.status == Approval.APPROVAL_STATUS_CURRENT and
                 obj.current_proposal.preferred_bay and
                 obj.internal_status == 'waiting'
                 ):
@@ -798,7 +798,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                 try:
                     links.append({
                         'id': obj.child_obj.mooring.id,
-                        'name': obj.child_obj.mooring.name,
+                        'bay_name': obj.child_obj.mooring.mooring_bay.name,
+                        'mooring_name': obj.child_obj.mooring.name,
                     })
                 except Exception as e:
                     pass

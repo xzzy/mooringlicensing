@@ -256,7 +256,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         read_only_fields=('documents',)
 
     def get_amendment_requests(self, obj):
-        data = {}
+        data = None
         if obj.proposalrequest_set.count():
             amendment_requests = obj.proposalrequest_set.all()
             serializer = AmendmentRequestSerializer(amendment_requests, many=True)
