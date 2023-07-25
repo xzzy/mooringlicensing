@@ -296,7 +296,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     context = {
         'public_url': get_public_url(request),
         'wla': waiting_list_allocation,
-        'recipient': mooring_licence_application.submitter,
+        'recipient': mooring_licence_application.submitter_obj,
         'application_period': days_setting_application_period.number_of_days,
         'documents_period': days_setting_documents_period.number_of_days,
         'proposal_external_url': url,
@@ -380,7 +380,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
         'public_url': get_public_url(),
         'approval': approval,
         'compliance': compliance,
-        'recipient': compliance.submitter,
+        'recipient': compliance.submitter_obj,
         'compliance_external_url': make_http_https(url),
     }
     to_address = retrieve_email_userro(compliance.submitter).email
@@ -413,7 +413,7 @@ def send_comliance_overdue_notification(request, approval, compliance,):
         'public_url': get_public_url(request),
         'approval': approval,
         'compliance': compliance,
-        'recipient': compliance.submitter,
+        'recipient': compliance.submitter_obj,
         'compliance_external_url': make_http_https(url),
     }
     to_address = retrieve_email_userro(compliance.submitter).email

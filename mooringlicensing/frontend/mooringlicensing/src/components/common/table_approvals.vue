@@ -286,6 +286,7 @@ export default {
                     'Vessel draft',
                     'Vessel Rego',
                     'Mooring Site Licence Applications',
+                    'Mooring Offered',
                 ]
             } else if (this.is_internal) {
                 return [
@@ -296,6 +297,7 @@ export default {
                     'Sticker mailed date',
                     'Holder',
                     'Status',
+                    'Mooring',
                     'Issue Date',
                     'Start Date',
                     'Expiry Date',
@@ -316,6 +318,7 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
+                            console.log(full)
                             return full.id
                         }
                     }
@@ -362,6 +365,22 @@ export default {
                         },
                         name: "status",
                     }
+        },
+        columnMooring: function(){
+            return {
+                data: "id",
+                orderable: true,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    let links = ''
+                    for (let mooring of full.moorings){
+                        links +=  `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.mooring_name}</a><br/>`;
+                    }
+                    return links
+                },
+                name: "status",
+            }
         },
         columnStatusInternal: function() {
             return {
@@ -467,7 +486,7 @@ export default {
                                     if(full.amend_or_renew === 'renew' || vm.debug){
                                         links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
                                     }
-                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                    links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
                                 }
 
                                 if (full.approval_type_dict.code != 'wla') {
@@ -489,7 +508,7 @@ export default {
                                 //if (true) {
                                     if(full.can_reissue && full.can_action){
                                         links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
-                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}'>Surrender</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
                                     }
                                     if(full.status == 'Current' && full.can_action){
                                         links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`;
@@ -508,18 +527,34 @@ export default {
                         }
                     }
         },
+        columnMooringOffered: function(){
+            let vm = this;
+            return {
+                // 10. Action
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.mooring_offered.id){
+                        return `<a href='/internal/moorings/${full.mooring_offered.id}' target='_blank'>${full.mooring_offered.name}</a>`
+                    }
+                    return '---'
+                }
+            }
+        },
         columnRiaGeneratedProposals: function() {
             let vm = this;
             return {
-                        // 10. Action
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.ria_generated_proposals;
-                        }
-                    }
+                // 10. Action
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.ria_generated_proposals
+                }
+            }
         },
         columnHolder: function() {
             return {
@@ -645,7 +680,6 @@ export default {
                         'render': function(row, type, full){
                             let ret_str = ''
                             for (let sticker of full.stickers){
-                                console.log(sticker.mailing_date)
                                 if (sticker.mailing_date){
                                     ret_str += moment(sticker.mailing_date).format('DD/MM/YYYY') + '<br />'
                                 } else {
@@ -670,6 +704,8 @@ export default {
                                 approval_letter_name = 'Annual Admission Permit'
                             } else if (full.approval_type_dict.code === 'ml'){
                                 approval_letter_name = 'Mooring Site Licence'
+                            } else if (full.approval_type_dict.code === 'wla'){
+                                approval_letter_name = 'Waiting List Allocation'
                             }
                             let ret_elems = `<div><a href='${full.licence_document}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> ${approval_letter_name}</a></div>`;
                             if (full.authorised_user_summary_document){
@@ -774,6 +810,7 @@ export default {
                     vm.columnVesselDraft,
                     vm.columnVesselRegos,
                     vm.columnRiaGeneratedProposals,
+                    vm.columnMooringOffered,
                 ]
             } else if (vm.is_internal) {
                 selectedColumns = [
@@ -784,6 +821,7 @@ export default {
                     vm.columnStickerMailedDate,
                     vm.columnHolder,
                     vm.columnStatus,
+                    vm.columnMooring,
                     vm.columnIssueDate,
                     vm.columnStartDate,
                     vm.columnExpiryDate,
@@ -1014,7 +1052,8 @@ export default {
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-surrender-approval]', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-surrender-approval');
-                vm.surrenderApproval(id);
+                let approval_type_name = $(this).attr('data-approval-type-name');
+                vm.surrenderApproval(id, approval_type_name);  //TODO: pass approval type name
             });
 
             //External Request New Sticker listener
@@ -1157,8 +1196,9 @@ export default {
             this.$refs.approval_suspension.isModalOpen = true;
         },
 
-        surrenderApproval: function(approval_id){
+        surrenderApproval: function(approval_id, approval_type_name){
             this.$refs.approval_surrender.approval_id = approval_id;
+            this.$refs.approval_surrender.approval_type_name = approval_type_name
             this.$refs.approval_surrender.isModalOpen = true;
         },
         requestNewSticker: function(approval_id){
