@@ -103,6 +103,7 @@
                 <MooringSiteLicenceDocumentsUpload
                     :uuid_props="proposal.uuid"
                     :readonly="readonly"
+                    :wrapping_class_name="''"
                 />
               </div>
               <div class="tab-pane fade" id="pills-confirm" role="tabpanel" aria-labelledby="pills-confirm-tab">
