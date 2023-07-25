@@ -102,7 +102,7 @@ export default {
         },
         readonly: {
             type: Boolean,
-            default: true,
+            default: false,
         },
         wrapping_class_name: {
             type: String,

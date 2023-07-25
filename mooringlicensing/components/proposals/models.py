@@ -1355,11 +1355,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # update WLA internal_status
                 ## ML
                 if type(self.child_obj) == MooringLicenceApplication and self.waiting_list_allocation:
-                    self.waiting_list_allocation.internal_status = 'waiting'
-                    current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                    self.waiting_list_allocation.wla_queue_date = current_datetime
-                    self.waiting_list_allocation.save()
-                    self.waiting_list_allocation.set_wla_order()
+                    pass
+                    # self.waiting_list_allocation.internal_status = 'waiting'
+                    # current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                    # self.waiting_list_allocation.wla_queue_date = current_datetime
+                    # self.waiting_list_allocation.save()
+                    # self.waiting_list_allocation.set_wla_order()
                 send_application_approved_or_declined_email(self, 'declined', request)
             except:
                 raise

@@ -203,7 +203,9 @@
         },
         computed:{
             showDocumentsTab: function(){
-                if (this.proposal.amendment_requests){
+                if (this.is_internal){
+                    return true
+                } else if (this.proposal.amendment_requests){
                     return true
                 } else {
                     return false

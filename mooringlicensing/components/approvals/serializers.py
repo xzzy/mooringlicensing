@@ -515,7 +515,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         link = ''
         if (
                 type(obj.child_obj) == WaitingListAllocation and 
-                obj.status == 'current' and
+                obj.status == Approval.APPROVAL_STATUS_CURRENT and
                 obj.current_proposal.preferred_bay and
                 obj.internal_status == 'waiting'
                 ):
