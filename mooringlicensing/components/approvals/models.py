@@ -2705,11 +2705,11 @@ class Sticker(models.Model):
 
     colour_default = 'green'
     colour_matrix = [
-        {'length': 10, 'colour': 'green'},
-        {'length': 12, 'colour': 'grey'},
-        {'length': 14, 'colour': 'purple'},
-        {'length': 16, 'colour': 'blue'},
-        {'length': 1000, 'colour': 'white'},  # This is returned whenever any of the previous doesn't fit the requirement.
+        {'length': 10, 'colour': 'Green'},
+        {'length': 12, 'colour': 'Grey'},
+        {'length': 14, 'colour': 'Purple'},
+        {'length': 16, 'colour': 'Blue'},
+        {'length': 1000, 'colour': 'White'},  # This is returned whenever any of the previous doesn't fit the requirement.
     ]
     number = models.CharField(max_length=9, blank=True, default='')
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
@@ -2834,8 +2834,11 @@ class Sticker(models.Model):
         return new_sticker
 
     def get_sticker_colour(self):
-        colour = self.approval.child_obj.sticker_colour
-        colour += '/' + self.get_vessel_size_colour()
+        # colour = self.approval.child_obj.sticker_colour
+        # colour += '/' + self.get_vessel_size_colour()
+        colour = ''
+        if type(self.approval.child_obj) not in [AnnualAdmissionPermit,]:
+            colour = self.get_vessel_size_colour()
         return colour
 
     def get_white_info(self):
