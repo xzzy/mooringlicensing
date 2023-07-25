@@ -3426,11 +3426,10 @@ class MooringLicenceApplication(Proposal):
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            self.save()
         else:
             if self.amendment_requests.count():
                 self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
@@ -3438,7 +3437,9 @@ class MooringLicenceApplication(Proposal):
             else:
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
                 send_documents_upload_for_mooring_licence_application_email(request, self)
-            self.save()
+
+        self.save()
+        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
@@ -3449,7 +3450,6 @@ class MooringLicenceApplication(Proposal):
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
-            existing_mooring_licence_vessel_count = existing_mooring_licence.vesselownershiponapproval_set.count() if existing_mooring_licence else None
             created = None
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:

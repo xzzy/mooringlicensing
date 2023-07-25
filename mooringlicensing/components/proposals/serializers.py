@@ -1066,6 +1066,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'vessel_on_proposal',
                 'null_vessel_on_create',
                 'proposal_applicant',
+                'amendment_requests',
+                'uuid',
                 )
         read_only_fields = (
             'documents',

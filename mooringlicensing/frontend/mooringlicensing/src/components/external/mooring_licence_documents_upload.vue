@@ -5,7 +5,7 @@
             label="Other documents"
             Index="other_documents"
         >
-            <div class="row form-group">
+            <div class="row form-group" v-if="!readonly">
                 <label for="" class="col-sm-12 control-label">Attach the following documents and submit them to the Rottnest Island Authority</label>
             </div>
 

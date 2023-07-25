@@ -1,6 +1,5 @@
 <template lang="html">
     <div class="">
-
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
             <h4>Mooring Site Licence {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
         </div>
