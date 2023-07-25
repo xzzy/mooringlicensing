@@ -1,5 +1,5 @@
 <template>
-    <div class="container">
+    <div :class="wrapping_class_name">
         <FormSection
             :formCollapse="false"
             label="Other documents"
@@ -103,6 +103,10 @@ export default {
         readonly: {
             type: Boolean,
             default: true,
+        },
+        wrapping_class_name: {
+            type: String,
+            default: 'container',
         }
     },
     data() {
