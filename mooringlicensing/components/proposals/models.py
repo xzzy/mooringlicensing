@@ -3432,9 +3432,13 @@ class MooringLicenceApplication(Proposal):
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             self.save()
         else:
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+            if self.amendment_requests.count():
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                # TODO:
+            else:
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+                send_documents_upload_for_mooring_licence_application_email(request, self)
             self.save()
-            send_documents_upload_for_mooring_licence_application_email(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
@@ -4347,9 +4351,10 @@ class AmendmentRequest(ProposalRequest):
                     raise exceptions.ProposalNotAuthorized()
                 if self.status == 'requested':
                     proposal = self.proposal
-                    if proposal.processing_status != 'draft':
-                        proposal.processing_status = 'draft'
+                    if proposal.processing_status != Proposal.PROCESSING_STATUS_DRAFT:
+                        proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
                         proposal.save()
+                        logger.info(f'Status: [{Proposal.PROCESSING_STATUS_DRAFT}] has been set to the proposal: [{proposal}]')
                     # Create a log entry for the proposal
                     proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
