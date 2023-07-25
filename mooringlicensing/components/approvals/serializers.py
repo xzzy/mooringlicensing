@@ -798,7 +798,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                 try:
                     links.append({
                         'id': obj.child_obj.mooring.id,
-                        'name': obj.child_obj.mooring.name,
+                        'bay_name': obj.child_obj.mooring.mooring_bay.name,
+                        'mooring_name': obj.child_obj.mooring.name,
                     })
                 except Exception as e:
                     pass

@@ -851,6 +851,7 @@ class Approval(RevisionedMixin):
                         send_approval_surrender_email_notification(self)
                 else:
                     self.set_to_surrender = True
+                    send_approval_surrender_email_notification(self, already_surrendered=False)
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
                     self.child_obj.processes_after_cancel()

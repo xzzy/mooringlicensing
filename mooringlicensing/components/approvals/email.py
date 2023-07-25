@@ -655,16 +655,21 @@ def send_approval_suspend_email_notification(approval, request=None):
             _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
-def send_approval_surrender_email_notification(approval, request=None):
+def send_approval_surrender_email_notification(approval, request=None, already_surrendered=True):
     # 30 Surrendered
     # email to licence/permit holder when licence/permit is surrendered
-    email = TemplateEmailBase(
-        subject='Surrendered: Rottnest Island {} {} - Effective {}'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
-        # html_template='mooringlicensing/emails/approval_surrender_notification.html',
-        # txt_template='mooringlicensing/emails/approval_surrender_notification.txt',
-        html_template='mooringlicensing/emails_2/email_30.html',
-        txt_template='mooringlicensing/emails_2/email_30.txt',
-    )
+    if already_surrendered:
+        email = TemplateEmailBase(
+            subject='Surrendered: Rottnest Island {} {} - Effective {}'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
+            html_template='mooringlicensing/emails_2/email_30.html',
+            txt_template='mooringlicensing/emails_2/email_30.txt',
+        )
+    else:
+        email = TemplateEmailBase(
+            subject='Surrendered: Rottnest Island {} {} - Effective {}'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
+            html_template='mooringlicensing/emails_2/email_30_future.html',
+            txt_template='mooringlicensing/emails_2/email_30_future.txt',
+        )
     proposal = approval.current_proposal
 
     if request and 'test-emails' in request.path_info:
@@ -692,7 +697,10 @@ def send_approval_surrender_email_notification(approval, request=None):
         cc_list = proposal.org_applicant.email
         if cc_list:
             all_ccs = [cc_list]
-    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
+
+    bccs = proposal.assessor_recipients
+
+    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, bcc=bccs)
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         _log_approval_email(msg, approval, sender=sender_user)
