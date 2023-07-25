@@ -1231,7 +1231,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
 
-            logger.info(f'Proposal: {instance} has been submitted by the user: {request.user}.')
+            logger.info(f'Proposal: [{instance}] has been submitted by the user: [{request.user}].')
 
             # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
@@ -1718,14 +1718,15 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data
         reason_id = request.data.get('reason_id')
-        # proposal = request.data.get('proposal', None)
         proposal = request.data.get('proposal')
         data['reason'] = reason_id
         data['proposal'] = proposal['id']
-        # data['proposal'] = proposal_id
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception = True)
         instance = serializer.save()
+        logger.info(f'New AmendmentRequest: [{instance}] has been created.')
+
         instance.generate_amendment(request)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)

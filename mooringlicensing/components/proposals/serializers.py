@@ -168,6 +168,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     vessel_on_proposal = serializers.SerializerMethodField()
     proposal_applicant = ProposalApplicantSerializer()
     uuid = serializers.SerializerMethodField()
+    amendment_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -250,8 +251,17 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'null_vessel_on_create',
                 'proposal_applicant',
                 'uuid',
+                'amendment_requests',
                 )
         read_only_fields=('documents',)
+
+    def get_amendment_requests(self, obj):
+        data = {}
+        if obj.proposalrequest_set.count():
+            amendment_requests = obj.proposalrequest_set.all()
+            serializer = AmendmentRequestSerializer(amendment_requests, many=True)
+            data = serializer.data
+        return data
 
     def get_uuid(self, obj):
         if hasattr(obj.child_obj, 'uuid'):
@@ -1056,6 +1066,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'vessel_on_proposal',
                 'null_vessel_on_create',
                 'proposal_applicant',
+                'amendment_requests',
+                'uuid',
                 )
         read_only_fields = (
             'documents',

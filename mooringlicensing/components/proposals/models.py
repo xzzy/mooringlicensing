@@ -3426,15 +3426,20 @@ class MooringLicenceApplication(Proposal):
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.save()
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+
         if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            self.save()
         else:
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-            self.save()
-            send_documents_upload_for_mooring_licence_application_email(request, self)
+            if self.amendment_requests.count():
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                # TODO:
+            else:
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+                send_documents_upload_for_mooring_licence_application_email(request, self)
+
+        self.save()
+        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
@@ -3445,7 +3450,6 @@ class MooringLicenceApplication(Proposal):
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
-            existing_mooring_licence_vessel_count = existing_mooring_licence.vesselownershiponapproval_set.count() if existing_mooring_licence else None
             created = None
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
@@ -4347,9 +4351,10 @@ class AmendmentRequest(ProposalRequest):
                     raise exceptions.ProposalNotAuthorized()
                 if self.status == 'requested':
                     proposal = self.proposal
-                    if proposal.processing_status != 'draft':
-                        proposal.processing_status = 'draft'
+                    if proposal.processing_status != Proposal.PROCESSING_STATUS_DRAFT:
+                        proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
                         proposal.save()
+                        logger.info(f'Status: [{Proposal.PROCESSING_STATUS_DRAFT}] has been set to the proposal: [{proposal}]')
                     # Create a log entry for the proposal
                     proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
                     # Create a log entry for the organisation
