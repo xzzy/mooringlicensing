@@ -1,5 +1,6 @@
 <template id="proposal_approval">
     <div>
+        proposal_approval.vue
         <div v-if="displayApprovedMsg" class="col-md-12 alert alert-success">
             <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
             <p>Expiry date: {{ approvalExpiryDate }}</p>
@@ -134,11 +135,17 @@
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_draft_limit }}</div></div>
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_size_limit }}</div></div>
                                     </template>
-                                    <template v-else>
+                                    <template v-else-if="proposal.mooring_authorisation_preference == 'site_licensee'">
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.mooring_bay_name }}</div></div>
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.name }}</div></div>
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_draft_limit }}</div></div>
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_size_limit }}</div></div>
+                                    </template>
+                                    <template v-else>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.mooring_bay_name }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.name }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_draft_limit }}</div></div>
+                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_size_limit }}</div></div>
                                     </template>
                                     <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed details: </div><div class="col-sm-9 proposed-decision-value">{{ proposal.proposed_issuance_approval.details }}</div></div>
                                 </template>
@@ -263,10 +270,16 @@ export default {
     },
     methods:{
         retrieveMooringDetails: async function(){
-            console.log(this.proposal.proposed_issuance_approval.mooring_id)
-            const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.proposed_issuance_approval.mooring_id}`);
-            console.log(res.body)
-            this.mooring = res.body
+            let mooring_id = null
+            if (this.proposal.proposed_issuance_approval.mooring_id){
+                mooring_id = this.proposal.proposed_issuance_approval.mooring_id
+            } else if (this.proposal.allocated_mooring){
+                mooring_id = this.proposal.allocated_mooring
+            }
+            if (mooring_id){
+                const res = await this.$http.get(`${api_endpoints.mooring}${mooring_id}`);
+                this.mooring = res.body
+            }
         },
         updateComponentSiteSelectionKey: function(){
             console.log('in updateComponentSiteSelectionKey')

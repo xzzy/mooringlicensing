@@ -1068,6 +1068,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'proposal_applicant',
                 'amendment_requests',
                 'uuid',
+                'allocated_mooring',
                 )
         read_only_fields = (
             'documents',
