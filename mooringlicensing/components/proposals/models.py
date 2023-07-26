@@ -521,12 +521,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             if target_vessel != vessel:
                                 from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit
 
-                                if proposal.approval and type(proposal.approval) == MooringLicence:
+                                if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
                                     # When ML, customer is adding a new vessel to the ML
                                     # We have to charge full amount  --> Go to next loop
                                     logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
                                     continue
-                                if proposal.approval and type(proposal.approval) == AuthorisedUserPermit:
+                                if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == AuthorisedUserPermit:
                                     # When AU, customer is replacing the current vessel
                                     for key, qs in current_approvals.items():
                                         # We want to exclude the approval being amended(modified) because the target_vessel is being removed from it.
