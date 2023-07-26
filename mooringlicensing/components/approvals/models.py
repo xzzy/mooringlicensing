@@ -676,11 +676,13 @@ class Approval(RevisionedMixin):
 
     def generate_au_summary_doc(self, user):
         from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
+        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
                 mooring=self.mooring,
-                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
+                end_date__gt=target_date,
             )
             if moa_set.count() > 0:
                 # Authorised User exists
@@ -1437,7 +1439,7 @@ class AuthorisedUserPermit(Approval):
         _stickers_to_be_replaced_for_renewal = []  # Stickers in this list get 'expired' status.  When replaced for renewal, sticker doesn't need 'to be returned'.  This is used for that.
 
         # 1. Find all the moorings which should be assigned to the new stickers
-        new_moas = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True)  # New moa doesn't have stickers.
+        new_moas = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True, end_date__isnull=True)  # New moa doesn't have stickers.
         for moa in new_moas:
             if moa not in moas_to_be_reallocated:
                 if moa.approval and moa.approval.current_proposal and moa.approval.current_proposal.vessel_details:
@@ -1782,7 +1784,6 @@ class MooringLicence(Approval):
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
                 mooring=self.mooring,
-                # approval__status='current'
                 approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
             )
             for moa in moa_set:

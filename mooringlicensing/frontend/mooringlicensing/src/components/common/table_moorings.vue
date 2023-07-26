@@ -96,7 +96,8 @@ export default {
                 visible: true,
                 'render': function (row, type, full) {
                     return full.name;
-                }
+                },
+                name: 'name',
             }
         },
         mooringBayColumn: function () {
@@ -107,7 +108,8 @@ export default {
                 visible: true,
                 'render': function (row, type, full) {
                     return full.mooring_bay_name;
-                }
+                },
+                name: 'mooring_bay__name',
             }
         },
         mooringTypeColumn: function () {

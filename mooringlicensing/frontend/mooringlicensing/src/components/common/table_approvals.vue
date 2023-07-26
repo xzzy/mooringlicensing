@@ -481,10 +481,10 @@ export default {
                             if (vm.is_external && full.can_reissue) {
                                 if(full.can_action || vm.debug){
                                     if(full.amend_or_renew === 'amend' || vm.debug){
-                                       links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}'>Amend</a><br/>`;
+                                       links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}' data-approval-type-name='${full.approval_type_dict.description}'>Amend</a><br/>`;
                                     }
                                     if(full.amend_or_renew === 'renew' || vm.debug){
-                                        links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}'>Renew</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}' data-approval-type-name='${full.approval_type_dict.description}'>Renew</a><br/>`;
                                     }
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
                                 }
@@ -1074,7 +1074,8 @@ export default {
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-amend-approval]', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-amend-approval');
-                vm.amendApproval(id);
+                let approval_type_name = $(this).attr('data-approval-type-name');
+                vm.amendApproval(id, approval_type_name);
             });
 
             // Internal history listener
@@ -1249,14 +1250,14 @@ export default {
             });
         },
 
-        amendApproval:function (proposal_id) {
+        amendApproval:function (proposal_id, approval_type_name) {
             let vm = this;
             swal({
-                title: "Amend waiting list alloction",
-                text: "Are you sure you want to amend this allocation?",
+                title: "Amend " + approval_type_name,
+                text: "Are you sure you want to amend this " + approval_type_name + "?",
                 type: "warning",
                 showCancelButton: true,
-                confirmButtonText: 'Amend Allocation',
+                confirmButtonText: 'Amend',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')),{

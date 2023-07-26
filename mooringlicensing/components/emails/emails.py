@@ -104,7 +104,7 @@ class TemplateEmailBase(object):
                 logger.info(f'Email has been sent. Subject: [{msg.subject}], to: {msg.to}, cc: {msg.cc}, bcc: {msg.bcc}, attachments: {[attachment[0] for attachment in attachments]}')
             return msg
         except Exception as e:
-            logger.exception("Error while sending email to {}: {}".format(to_addresses, e))
+            logger.exception("Error while sending email: To {} with Subject: {}: {}".format(to_addresses, self.subject, e))
             return None
 
 
