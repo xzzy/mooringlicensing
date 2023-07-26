@@ -1,4 +1,5 @@
 import logging
+from django.db.models import Q
 # from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE
 import pytz
@@ -36,7 +37,7 @@ from mooringlicensing.components.proposals.models import (
     Mooring, MooringLicenceApplication, AuthorisedUserApplication
 )
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
-from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
+from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
     EmailUserSerializer
 from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
@@ -1068,6 +1069,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'proposal_applicant',
                 'amendment_requests',
                 'uuid',
+                'allocated_mooring',
                 )
         read_only_fields = (
             'documents',
@@ -1732,8 +1734,24 @@ class ListMooringSerializer(serializers.ModelSerializer):
         return obj.mooring_bay.name
 
     def get_authorised_user_permits(self, obj):
-        preference_count_ria = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=False).count()
-        preference_count_site_licensee = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=True).count()
+        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+
+        query = Q()
+        query &= Q(mooring=obj)
+        query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+        query &= Q(end_date__gt=target_date)
+
+        preference_count_ria = MooringOnApproval.objects.filter(
+            query,
+            site_licensee=False,
+        ).count()
+
+        preference_count_site_licensee = MooringOnApproval.objects.filter(
+            query,
+            site_licensee=True,
+        ).count()
+
         return {
             'ria': preference_count_ria,
             'site_licensee': preference_count_site_licensee
