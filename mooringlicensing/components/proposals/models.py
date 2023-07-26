@@ -461,7 +461,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_main_component
 
     def get_max_amount_paid_for_aa_component(self, target_date, vessel):
-        logger.info('Proposal.get_max_amount_paid_for_aa_component() is called.')
+        logger.info(f'Calculating the max amount paid for the AA component for the vessel: [{vessel}]...')
 
         max_amount_paid_for_aa_component = 0
 
@@ -513,19 +513,29 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
 
                             target_vessel = fee_item_application_fee.vessel_details.vessel
+
                             # Retrieve the current approvals of the target_vessel
                             current_approvals = target_vessel.get_current_approvals(target_date)
-                            for key, qs in current_approvals.items():
-                                # We want to exclude the approval being amended(modified)
-                                current_approvals[key] = qs.exclude(id=self.approval.id)
                             logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
 
                             if target_vessel != vessel:
-                                # This fee_item_application_fee is not for the vessel we are looking at.
-                                if current_approvals['aaps'] or current_approvals['aups'] or current_approvals['mls']:
-                                    # This fee_item_application_fee is still used for other approval(s)
-                                    logger.info(f'Vessel: [{target_vessel}] still has current approval(s): [{current_approvals}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
+                                from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit
+
+                                if proposal.approval and type(proposal.approval) == MooringLicence:
+                                    # When ML, customer is adding a new vessel to the ML
+                                    # We have to charge full amount  --> Go to next loop
+                                    logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
                                     continue
+                                if proposal.approval and type(proposal.approval) == AuthorisedUserPermit:
+                                    # When AU, customer is replacing the current vessel
+                                    for key, qs in current_approvals.items():
+                                        # We want to exclude the approval being amended(modified) because the target_vessel is being removed from it.
+                                        current_approvals[key] = qs.exclude(id=self.approval.id)
+                                    if current_approvals['aaps'] or current_approvals['aups'] or current_approvals['mls']:
+                                        # When the current vessel is still used for other approvals --> Go to next loop
+                                        # But this fee_item_application_fee is still used for other approval(s)
+                                        logger.info(f'Existing Vessel: [{target_vessel}] still has current approval(s): [{current_approvals}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
+                                        continue
 
                             # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
                             # In this case, we can transfer this amount
@@ -2366,7 +2376,7 @@ class WaitingListApplication(Proposal):
         """
         Create the ledger lines - line item for application fee sent to payment system
         """
-        logger.info('WaitingListApplication.create_fee_lines() is called')
+        logger.info(f'Creating fee lines for the WaitingListApplication: [{self}]...')
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
@@ -2579,7 +2589,7 @@ class AnnualAdmissionApplication(Proposal):
         """
         Create the ledger lines - line item for application fee sent to payment system
         """
-        logger.info('AnnualAdmissionApplication.create_fee_lines() is called')
+        logger.info(f'Creating fee lines for the AnnualAdmissionApplication: [{self}]...')
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
@@ -2780,7 +2790,7 @@ class AuthorisedUserApplication(Proposal):
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
-        logger.info('AuthorisedUserApplication.create_fee_lines() is called')
+        logger.info(f'Creating fee lines for the AuthorisedUserApplication: [{self}]...')
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
@@ -3229,7 +3239,7 @@ class MooringLicenceApplication(Proposal):
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
-        logger.info('MooringLicenceApplication.create_fee_lines() is called')
+        logger.info(f'Creating fee lines for the MooringLicenceApplication: [{self}]...')
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
