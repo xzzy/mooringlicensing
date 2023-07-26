@@ -96,6 +96,7 @@ class MooringBayAdmin(admin.ModelAdmin):
 class MooringAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'mooring_bay', 'active', 'vessel_size_limit', 'vessel_draft_limit', 'mooring_licence',]
     list_filter = ('active',)
+    search_fields = ['name',]
 
 
 class GlobalSettingsForm(django.forms.ModelForm):

@@ -3107,7 +3107,7 @@ class AuthorisedUserApplication(Proposal):
         # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
         mls_to_be_emailed = []
         from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
-        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True)  # New moa doesn't have stickers.
+        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True)  # New moa doesn't have stickers.
         for new_moa in new_moas:
             mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
