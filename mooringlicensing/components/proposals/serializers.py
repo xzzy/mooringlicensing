@@ -1740,7 +1740,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
         query = Q()
         query &= Q(mooring=obj)
         query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
-        query &= Q(end_date__gt=target_date)
+        query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))
 
         preference_count_ria = MooringOnApproval.objects.filter(
             query,

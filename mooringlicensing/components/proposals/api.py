@@ -1246,7 +1246,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             from mooringlicensing.components.payments_ml.models import FeeConstructor
 
             proposal = self.get_object()
-            max_length = 0
+            logger.info(f'Calculating the max vessel length for the main component without any additional cost for the Proposal: [{proposal}]...')
 
             ### test
             max_vessel_length = (0, True)  # (length, include_length)
@@ -1280,7 +1280,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         get_out_of_loop = True
 
             res = {'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]}
-            logger.info(f'max_vessel_length_for_main_component: {res}')
+            logger.info(f'Max vessel length for the main component without any additional cost is [{res}].')
 
             return Response(res)
             ###
@@ -1308,6 +1308,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             from mooringlicensing.components.main.models import ApplicationType
 
             proposal = self.get_object()
+            logger.info(f'Calculating the max vessel length for the AA component without any additional cost for the Proposal: [{proposal}]...')
+
             current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
             target_date = proposal.get_target_date(current_datetime.date())
 
@@ -1320,10 +1322,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             application_type_aa = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
             fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type_aa, target_date)
             max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
+            res = {'max_length': max_length}
 
-            logger.info(f'max_vessel_length_for_aa_component: {max_length}')
+            logger.info(f'Max vessel length for the AA component without any additional cost is [{res}].')
 
-            return Response({'max_length': max_length})
+            return Response(res)
 
         except Exception as e:
             print(traceback.print_exc())

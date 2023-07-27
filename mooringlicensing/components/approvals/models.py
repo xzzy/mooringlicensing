@@ -676,7 +676,7 @@ class Approval(RevisionedMixin):
 
     def generate_au_summary_doc(self, user):
         from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
-        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
+        target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
@@ -1276,29 +1276,29 @@ class AnnualAdmissionPermit(Approval):
         for current_sticker in current_stickers:
             current_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
             current_sticker.save()
-            logger.info(f'Status: {Sticker.STICKER_STATUS_TO_BE_RETURNED} has been set to the sticker {current_sticker}.')
+            logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker {current_sticker}.')
         if current_stickers:
             if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
                 # When the application does not change to new vessel,
                 # it gets 'printing_sticker' status
                 proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 proposal.save()
-                logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
+                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal {proposal}.')
             else:
                 # When the application changes to new vessel
                 # it gets 'sticker_to_be_returned' status
                 new_sticker.status = Sticker.STICKER_STATUS_NOT_READY_YET
                 new_sticker.save()
-                logger.info(f'Status: {Sticker.STICKER_STATUS_NOT_READY_YET} has been set to the sticker {new_sticker}.')
+                logger.info(f'Status: [{Sticker.STICKER_STATUS_NOT_READY_YET}] has been set to the sticker {new_sticker}.')
 
                 proposal.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
                 proposal.save()
-                logger.info(f'Status: {Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED} has been set to the proposal {proposal}.')
+                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED}] has been set to the proposal {proposal}.')
         else:
             # Even when 'amendment' application, there might be no current stickers because of sticker-lost, etc
             proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             proposal.save()
-            logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
+            logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal {proposal}.')
         return [], list(current_stickers)
 
 
@@ -1902,7 +1902,7 @@ class MooringLicence(Approval):
                 new_proposal_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             proposal.processing_status = new_proposal_status
             proposal.save()
-            logger.info(f'Status: {new_proposal_status} has been set to the proposal: [{proposal}]')
+            logger.info(f'Status: [{new_proposal_status}] has been set to the proposal: [{proposal}]')
 
             return [], stickers_to_be_returned
 

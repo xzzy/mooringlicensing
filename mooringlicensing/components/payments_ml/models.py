@@ -379,9 +379,7 @@ class FeeConstructor(models.Model):
         return fee_item
 
     def get_fee_item_for_adjustment(self, vessel_size_category, fee_period, proposal_type=None, age_group=None, admission_type=None):
-        logger.info('Getting fee_item for the fee_constructor: {}, fee_period: {}, vessel_size_category: {}, proposal_type: {}, age_group: {}, admission_type: {}'.format(
-            self, fee_period, vessel_size_category, proposal_type, age_group, admission_type,
-        ))
+        logger.info(f'Getting fee_item for the fee_constructor: [{self}], fee_period: [{fee_period}], vessel_size_category: [{vessel_size_category}], proposal_type: [{proposal_type}], age_group: [{age_group}], admission_type: [{admission_type}]')
 
         fee_item = FeeItem.objects.filter(
             fee_constructor=self,
@@ -695,6 +693,7 @@ class FeeItem(models.Model):
         logger.info(f'Calculating the absolute amount of the FeeItem: [{self}].')
 
         if not self.incremental_amount or not vessel_size:
+            logger.info(f'Absolute amount calculated: $[{self.amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
             return self.amount
         else:
             # This self.amount is the incremental amount.  Therefore the absolute amount must be calculated based on the fee_item of one smaller vessel size category
@@ -712,6 +711,7 @@ class FeeItem(models.Model):
                         # In this case, 'vessel_size' is at the first step of this fee_item object.
                         number_of_increment += 1
                     absolute_amount = smaller_fee_item.get_absolute_amount(self.vessel_size_category.start_size) + number_of_increment * self.amount
+                    logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
                     return absolute_amount
                 else:
                     # Should not reach here
@@ -729,6 +729,7 @@ class FeeItem(models.Model):
                     number_of_increment = ceil(vessel_size - float(self.vessel_size_category.start_size))
 
                 absolute_amount = self.amount * number_of_increment
+                logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
                 return absolute_amount
 
     @property
