@@ -1,6 +1,5 @@
 <template id="proposal_approval">
     <div>
-        proposal_approval.vue
         <div v-if="displayApprovedMsg" class="col-md-12 alert alert-success">
             <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
             <p>Expiry date: {{ approvalExpiryDate }}</p>

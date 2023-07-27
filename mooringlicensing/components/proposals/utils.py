@@ -384,6 +384,8 @@ def save_proponent_data_aaa(instance, request, viewset):
     )
     serializer.is_valid(raise_exception=True)
     instance = serializer.save()
+    logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
+
     if viewset.action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
@@ -415,6 +417,8 @@ def save_proponent_data_wla(instance, request, viewset):
     )
     serializer.is_valid(raise_exception=True)
     instance = serializer.save()
+    logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
+
     if viewset.action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
@@ -448,6 +452,7 @@ def save_proponent_data_mla(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     #instance = serializer.save()
     serializer.save()
+    logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
@@ -477,6 +482,8 @@ def save_proponent_data_aua(instance, request, viewset):
     serializer.is_valid(raise_exception=True)
     #instance = serializer.save()
     serializer.save()
+    logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
+
     if viewset.action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
@@ -1086,8 +1093,9 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
 
                         # Applicant already partially paid for this fee item.  Deduct it.
                         if fee_item_considered_paid:
+                            logger.info(f'Deduct fee item: [{fee_item_considered_paid}] from [{fee_amount_adjusted}].')
                             fee_amount_adjusted -= fee_item_considered_paid.get_absolute_amount(vessel_length)
-                            logger.info('Deduct fee item: {}'.format(fee_item_considered_paid))
+                            logger.info(f'Result amount: $[{fee_amount_adjusted}].')
 
         fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
     else:

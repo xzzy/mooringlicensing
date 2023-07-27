@@ -16,7 +16,6 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
     logger.info(f'Processing document... Data: {request.data}')
     try:
         action = request.data.get('action')
-        logger.info(f'action is [{action}]')
 
         input_name = request.data.get('input_name')
         comms_log_id = request.data.get('comms_log_id')
@@ -125,7 +124,7 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 
     if document:
         document.delete()
-        logger.info(f'Document: [{document}] has been removed from the application.')
+        logger.info(f'Document: [{document}] has been removed from the application: [{instance}].')
 
 
 def cancel_document(request, instance, comms_instance, document_type, input_name=None):
@@ -220,7 +219,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
     if document and path:
         document._file = path
         document.save()
-        logger.info(f'Document: [{document}] has been saved.')
+        logger.info(f'Document: [{document}] has been saved for the proposal: [{instance}].')
 
 # For transferring files from temp doc objs to default doc objs
 def save_default_document_obj(instance, temp_document):

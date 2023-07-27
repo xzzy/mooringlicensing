@@ -40,7 +40,7 @@ from mooringlicensing.components.approvals.email import (
     send_approval_suspend_email_notification,
     send_approval_reinstate_email_notification,
     send_approval_surrender_email_notification,
-    send_auth_user_no_moorings_notification,
+    # send_auth_user_no_moorings_notification,
     send_auth_user_mooring_removed_notification,
 )
 from mooringlicensing.helpers import is_customer
@@ -574,7 +574,7 @@ class Approval(RevisionedMixin):
         kwargs['no_revision'] = True
         super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
-        if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled', 'surrendered']:
+        if type(self.child_obj) == MooringLicence and self.status in [Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED,]:
             self.child_obj.update_auth_user_permits()
 
     def __str__(self):
@@ -676,7 +676,7 @@ class Approval(RevisionedMixin):
 
     def generate_au_summary_doc(self, user):
         from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes
-        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
+        target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         if hasattr(self, 'mooring'):
             moa_set = MooringOnApproval.objects.filter(
@@ -773,8 +773,8 @@ class Approval(RevisionedMixin):
                 from_date = datetime.datetime.strptime(self.suspension_details['from_date'],'%d/%m/%Y')
                 from_date = from_date.date()
                 if from_date <= today:
-                    if not self.status == 'suspended':
-                        self.status = 'suspended'
+                    if not self.status == Approval.APPROVAL_STATUS_SUSPENDED:
+                        self.status = Approval.APPROVAL_STATUS_SUSPENDED
                         self.set_to_suspend = False
                         self.save()
                         send_approval_suspend_email_notification(self)
@@ -1276,29 +1276,29 @@ class AnnualAdmissionPermit(Approval):
         for current_sticker in current_stickers:
             current_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
             current_sticker.save()
-            logger.info(f'Status: {Sticker.STICKER_STATUS_TO_BE_RETURNED} has been set to the sticker {current_sticker}.')
+            logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker {current_sticker}.')
         if current_stickers:
             if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
                 # When the application does not change to new vessel,
                 # it gets 'printing_sticker' status
                 proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 proposal.save()
-                logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
+                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal {proposal}.')
             else:
                 # When the application changes to new vessel
                 # it gets 'sticker_to_be_returned' status
                 new_sticker.status = Sticker.STICKER_STATUS_NOT_READY_YET
                 new_sticker.save()
-                logger.info(f'Status: {Sticker.STICKER_STATUS_NOT_READY_YET} has been set to the sticker {new_sticker}.')
+                logger.info(f'Status: [{Sticker.STICKER_STATUS_NOT_READY_YET}] has been set to the sticker {new_sticker}.')
 
                 proposal.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
                 proposal.save()
-                logger.info(f'Status: {Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED} has been set to the proposal {proposal}.')
+                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED}] has been set to the proposal {proposal}.')
         else:
             # Even when 'amendment' application, there might be no current stickers because of sticker-lost, etc
             proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             proposal.save()
-            logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
+            logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal {proposal}.')
         return [], list(current_stickers)
 
 
@@ -1403,19 +1403,28 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.final_approval()
 
     def update_moorings(self, mooring_licence):
-        if mooring_licence.status not in ['current', 'suspended']:
-            # end date relationship between aup and mooring attached to mooring_licence
+        # The status of the mooring_licence passed as a parameter should be in ['expired', 'cancelled', 'surrendered', 'suspended']
+        if mooring_licence.status not in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
+            # Set end_date to the moa because the mooring on it is no longer available.
             moa = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence)
-            moa.end_date = datetime.datetime.now().date()
-            moa.save()
-        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-            ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
-            send_auth_user_no_moorings_notification(self.approval)
-        for moa in self.mooringonapproval_set.all():
-            ## notify authorised user permit holder that the mooring is no longer available
-            if moa.mooring == mooring_licence.mooring:
-                ## send email to auth user
-                send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+            if not moa.end_date:
+                moa.end_date = datetime.datetime.now().date()
+                moa.save()
+                logger.info(f'Set end_date: [{moa.end_date}] to the MooringOnApproval: [{moa}] because the Mooring: [{moa.mooring}] is no longer available.')
+
+        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]):
+            ## No moorings left on this AU permit, include information that permit holder can amend and apply for new mooring up to expiry date.
+            # send_auth_user_no_moorings_notification(self.approval)
+            logger.info(f'There are no mooring left on the AU approval: [{self}].')
+            send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+        else:
+            for moa in self.mooringonapproval_set.all():
+                # There is at lease one mooring on this AU permit with 'current'/'suspended' status
+                ## notify authorised user permit holder that the mooring is no longer available
+                logger.info(f'There is still at least one mooring on this AU Permit: [{self}] with current/suspended status.')
+                if moa.mooring == mooring_licence.mooring:
+                    ## send email to auth user
+                    send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         self.internal_reissue(mooring_licence)
 
     @property
@@ -1902,7 +1911,7 @@ class MooringLicence(Approval):
                 new_proposal_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
             proposal.processing_status = new_proposal_status
             proposal.save()
-            logger.info(f'Status: {new_proposal_status} has been set to the proposal: [{proposal}]')
+            logger.info(f'Status: [{new_proposal_status}] has been set to the proposal: [{proposal}]')
 
             return [], stickers_to_be_returned
 

@@ -14,7 +14,7 @@ class StickerListener(object):
     @staticmethod
     @receiver(post_save, sender=Sticker)
     def _post_save(sender, instance, **kwargs):
-        logger.info(f'Post saving process for the sticker: {instance}...')
+        logger.info(f'Post saving process for the sticker: [{instance}]...')
 
         sticker_saved = instance
         if sticker_saved.status == Sticker.STICKER_STATUS_CURRENT:
@@ -32,7 +32,7 @@ class StickerListener(object):
                     # When a sticker gets 'current' status and there are no stickers with being-printed statuses, update related proposal.status
                     sticker_saved.proposal_initiated.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                     sticker_saved.proposal_initiated.save()
-                    logger.info(f'Status: {Proposal.PROCESSING_STATUS_APPROVED} has been set to the proposal: [{sticker_saved.proposal_initiated}]')
+                    logger.info(f'Status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{sticker_saved.proposal_initiated}]')
                 else:
                     logger.info(f'Proposal: [{sticker_saved.proposal_initiated}] still has sticker(s) being printed.')
         elif sticker_saved.status in [Sticker.STICKER_STATUS_LOST, Sticker.STICKER_STATUS_RETURNED,]:
@@ -89,7 +89,7 @@ class StickerListener(object):
                             # this proposal should get the status 'Printing Sticker'
                             proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                             proposal.save()
-                            logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal: [{proposal}]')
+                            logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal: [{proposal}]')
 
         # Update the latest approval history for the approval this sticker is for
         latest_approval_history = ApprovalHistory.objects.filter(approval=sticker_saved.approval, end_date__isnull=True).order_by('-start_date')

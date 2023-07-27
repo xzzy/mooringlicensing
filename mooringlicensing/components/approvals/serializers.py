@@ -648,7 +648,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     preferred_mooring_bay_id = serializers.SerializerMethodField()
     current_proposal_number = serializers.SerializerMethodField()
     current_proposal_approved = serializers.SerializerMethodField()
-    vessel_registration = serializers.SerializerMethodField()
+    # vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
@@ -687,7 +687,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'current_proposal_approved',
             'current_proposal_id',
-            'vessel_registration',
+            # 'vessel_registration',
             'vessel_name',
             'wla_order',
             'offer_link',
@@ -730,7 +730,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'current_proposal_approved',
             'current_proposal_id',
-            'vessel_registration',
+            # 'vessel_registration',
             'vessel_name',
             'wla_order',
             'offer_link',
@@ -878,15 +878,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_amend_or_renew(self,obj):
         return obj.amend_or_renew
 
-    def get_vessel_regos(self, obj):
-        regos = ''
-        if type(obj.child_obj) == MooringLicence:
-            for vessel_details in obj.child_obj.vessel_details_list:
-                regos += '{}\n'.format(vessel_details.vessel.rego_no)
-        else:
-            regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
-        return regos
-
     def get_mooring_licence_vessels(self, obj):
         links = ''
         request = self.context.get('request')
@@ -958,16 +949,36 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             vessel_length = obj.current_proposal.vessel_details.vessel_applicable_length
         return vessel_length
 
-    def get_vessel_registration(self, obj):
-        vessel_rego = ''
-        if (
-                obj.current_proposal and
-                obj.current_proposal.vessel_details and
-                obj.current_proposal.vessel_ownership and
-                not obj.current_proposal.vessel_ownership.end_date
-                ):
-            vessel_rego = obj.current_proposal.vessel_details.vessel.rego_no
-        return vessel_rego
+    def get_vessel_regos(self, obj):
+        regos = []
+        if type(obj.child_obj) == MooringLicence:
+            for vessel_details in obj.child_obj.vessel_details_list:
+                regos.append(vessel_details.vessel.rego_no)
+        else:
+            # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
+            if obj.current_proposal.vessel_details:
+                regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
+        return regos
+
+    # def get_vessel_registration(self, obj):
+    #     vessel_rego = ''
+    #     if (
+    #             obj.current_proposal and
+    #             obj.current_proposal.vessel_details and
+    #             obj.current_proposal.vessel_ownership and
+    #             not obj.current_proposal.vessel_ownership.end_date
+    #             ):
+    #         vessel_rego = obj.current_proposal.vessel_details.vessel.rego_no
+    #     return vessel_rego
+
+    # def get_vessel_regos(self, obj):
+    #     regos = ''
+    #     if type(obj.child_obj) == MooringLicence:
+    #         for vessel_details in obj.child_obj.vessel_details_list:
+    #             regos += '{}\n'.format(vessel_details.vessel.rego_no)
+    #     else:
+    #         regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
+    #     return regos
 
     def get_vessel_name(self, obj):
         vessel_name = ''
@@ -1114,12 +1125,14 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
         vessel_data = []
         if type(obj.child_obj) != MooringLicence:
             vessel_data.append({
+                "id": obj.current_proposal.vessel_details.vessel.id,
                 "rego_no": obj.current_proposal.vessel_details.vessel.rego_no,
                 "vessel_name": obj.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name,
                 })
         else:
             for vessel_details in obj.child_obj.vessel_details_list:
                 vessel_data.append({
+                    "id": vessel_details.vessel.id,
                     "rego_no": vessel_details.vessel.rego_no,
                     "vessel_name": vessel_details.vessel.latest_vessel_details.vessel_name,
                     })
