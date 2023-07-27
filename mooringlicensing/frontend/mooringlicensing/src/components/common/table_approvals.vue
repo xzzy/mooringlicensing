@@ -238,10 +238,9 @@ export default {
                     'Id',
                     'Number',
                     'Bay',
-                    //'Application number in Bay',
                     'Allocation number in bay',
                     'Status',
-                    'Vessel Registration',
+                    'Vessel Rego',
                     'Vessel Name',
                     'Issue Date',
                     'Start Date',
@@ -260,12 +259,10 @@ export default {
                     'Issue Date',
                     'Start Date',
                     'Expiry Date',
-                    'Vessel',
+                    'Vessel Rego',
                     'Action',
                     'Approval letter',
                     'Sticker replacement',
-                    //'Mooring Licence Vessels',
-                    //'Authorised User Permit Moorings',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -303,7 +300,7 @@ export default {
                     'Expiry Date',
                     'Approval letter',
                     'Sticker replacement',
-                    'Vessel Regos',
+                    'Vessel Rego',
                     'Action',
                     //'Mooring Licence Vessels',
                     //'Authorised User Permit Moorings',
@@ -395,19 +392,20 @@ export default {
                         name: "internal_status",
                     }
         },
-        columnVesselRegistration: function() {
-            return {
-                        // 6. Vessel Registration
-                        data: "id",
-                        orderable: true,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.vessel_registration;
-                        },
-                        name: "current_proposal__vessel_details__vessel__rego_no"
-                    }
-        },
+        // columnVesselRegistration: function() {
+        //     return {
+        //                 // 6. Vessel Registration
+        //                 data: "id",
+        //                 orderable: true,
+        //                 searchable: false,
+        //                 visible: true,
+        //                 'render': function(row, type, full){
+        //                     console.log('columnVesselRegistration')
+        //                     return full.vessel_registration;
+        //                 },
+        //                 name: "current_proposal__vessel_details__vessel__rego_no"
+        //             }
+        // },
         columnVesselName: function() {
             return {
                         // 7. Vessel Name
@@ -643,6 +641,8 @@ export default {
                         'render': function(row, type, full){
                             let ret_str = ''
                             for (let sticker of full.stickers){
+                                console.log('sticker')
+                                console.log(sticker)
                                 ret_str += sticker.number + '<br />'
                             }
                             return ret_str
@@ -747,7 +747,11 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.vessel_regos;
+                            let ret = ''
+                            for (let rego of full.vessel_regos){
+                                ret += rego + '<br/>'
+                            }
+                            return ret
                             //return '';
                         }
                     }
@@ -764,7 +768,8 @@ export default {
                     //vm.columnApplicationNumberInBay,
                     vm.columnAllocationNumberInBay,
                     vm.columnStatus,
-                    vm.columnVesselRegistration,
+                    // vm.columnVesselRegistration,
+                    vm.columnVesselRegos,
                     vm.columnVesselName,
                     vm.columnIssueDate,
                     vm.columnStartDate,
@@ -783,7 +788,8 @@ export default {
                     vm.columnIssueDate,
                     vm.columnStartDate,
                     vm.columnExpiryDate,
-                    vm.columnVesselRegistration,
+                    // vm.columnVesselRegistration,
+                    vm.columnVesselRegos,
                     vm.columnAction,
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,

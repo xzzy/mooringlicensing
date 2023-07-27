@@ -40,7 +40,7 @@ from mooringlicensing.components.approvals.email import (
     send_approval_suspend_email_notification,
     send_approval_reinstate_email_notification,
     send_approval_surrender_email_notification,
-    send_auth_user_no_moorings_notification,
+    # send_auth_user_no_moorings_notification,
     send_auth_user_mooring_removed_notification,
 )
 from mooringlicensing.helpers import is_customer
@@ -574,7 +574,7 @@ class Approval(RevisionedMixin):
         kwargs['no_revision'] = True
         super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
-        if type(self.child_obj) == MooringLicence and self.status in ['expired', 'cancelled', 'surrendered']:
+        if type(self.child_obj) == MooringLicence and self.status in [Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED,]:
             self.child_obj.update_auth_user_permits()
 
     def __str__(self):
@@ -773,8 +773,8 @@ class Approval(RevisionedMixin):
                 from_date = datetime.datetime.strptime(self.suspension_details['from_date'],'%d/%m/%Y')
                 from_date = from_date.date()
                 if from_date <= today:
-                    if not self.status == 'suspended':
-                        self.status = 'suspended'
+                    if not self.status == Approval.APPROVAL_STATUS_SUSPENDED:
+                        self.status = Approval.APPROVAL_STATUS_SUSPENDED
                         self.set_to_suspend = False
                         self.save()
                         send_approval_suspend_email_notification(self)
@@ -1403,19 +1403,28 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.final_approval()
 
     def update_moorings(self, mooring_licence):
-        if mooring_licence.status not in ['current', 'suspended']:
-            # end date relationship between aup and mooring attached to mooring_licence
+        # The status of the mooring_licence passed as a parameter should be in ['expired', 'cancelled', 'surrendered', 'suspended']
+        if mooring_licence.status not in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
+            # Set end_date to the moa because the mooring on it is no longer available.
             moa = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence)
-            moa.end_date = datetime.datetime.now().date()
-            moa.save()
-        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-            ## When no moorings left on authorised user permit, include information that permit holder can amend and apply for new mooring up to expiry date.
-            send_auth_user_no_moorings_notification(self.approval)
-        for moa in self.mooringonapproval_set.all():
-            ## notify authorised user permit holder that the mooring is no longer available
-            if moa.mooring == mooring_licence.mooring:
-                ## send email to auth user
-                send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+            if not moa.end_date:
+                moa.end_date = datetime.datetime.now().date()
+                moa.save()
+                logger.info(f'Set end_date: [{moa.end_date}] to the MooringOnApproval: [{moa}] because the Mooring: [{moa.mooring}] is no longer available.')
+
+        if not self.mooringonapproval_set.filter(mooring__mooring_licence__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]):
+            ## No moorings left on this AU permit, include information that permit holder can amend and apply for new mooring up to expiry date.
+            # send_auth_user_no_moorings_notification(self.approval)
+            logger.info(f'There are no mooring left on the AU approval: [{self}].')
+            send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+        else:
+            for moa in self.mooringonapproval_set.all():
+                # There is at lease one mooring on this AU permit with 'current'/'suspended' status
+                ## notify authorised user permit holder that the mooring is no longer available
+                logger.info(f'There is still at least one mooring on this AU Permit: [{self}] with current/suspended status.')
+                if moa.mooring == mooring_licence.mooring:
+                    ## send email to auth user
+                    send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         self.internal_reissue(mooring_licence)
 
     @property
