@@ -1242,7 +1242,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                     waiting_list_allocation=waiting_list_allocation,
                     date_invited=current_date,
                 )
-                logger.info(f'Mooring site licence application: [{new_proposal}] has been created from the waiting list allocation: [{waiting_list_allocation}].')
+                logger.info(f'New Mooring Site Licence application: [{new_proposal}] has been created from the waiting list allocation: [{waiting_list_allocation}].')
 
                 # Copy applicant details to the new proposal
                 proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
