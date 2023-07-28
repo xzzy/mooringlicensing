@@ -693,6 +693,7 @@ class Approval(RevisionedMixin):
 
                 # Save the bytes to the disk
                 document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+                logger.info(f'Authorised User Summary document: [{filename}] has been created.')
 
                 self.authorised_user_summary_document = document  # Update to the latest doc
                 self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))

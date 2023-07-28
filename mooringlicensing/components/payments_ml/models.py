@@ -490,6 +490,8 @@ class FeeConstructor(models.Model):
                     except:
                         logger.warning(f'FeeConstructor of the ApplicationType: {myType[0]} for the time: {target_date} may not have been configured yet.')
         for app_type in settings.APPLICATION_TYPES:
+            if not app_type['fee_by_fee_constructor']:
+                continue
             myType = ApplicationType.objects.filter(code=app_type['code'])
             if myType:
                 try:

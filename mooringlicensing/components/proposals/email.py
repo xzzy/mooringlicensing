@@ -1481,9 +1481,10 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
         txt_template='mooringlicensing/emails/send_endorsement_of_aua.txt',
     )
     url = settings.SITE_URL if settings.SITE_URL else ''
-    endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.uuid})
-    decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
-    proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
+    # endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.uuid})
+    # decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
+    # proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
+    login_url = MOORING_LICENSING_EXTERNAL_URL + reverse('external')
 
     try:
         endorser = EmailUser.objects.get(email=proposal.site_licensee_email)
@@ -1501,11 +1502,12 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
         'recipient': proposal.submitter_obj,
         'endorser': endorser,
         'applicant': proposal.submitter_obj,
-        'endorse_url': make_http_https(endorse_url),
-        'decline_url': make_http_https(decline_url),
-        'proposal_url': make_http_https(proposal_url),
+        # 'endorse_url': make_http_https(endorse_url),
+        # 'decline_url': make_http_https(decline_url),
+        # 'proposal_url': make_http_https(proposal_url),
         'mooring_name': mooring_name,
         'due_date': due_date,
+        'login_url': login_url,
     }
 
     to_address = proposal.site_licensee_email

@@ -1107,7 +1107,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return False
 
     def has_assessor_mode(self,user):
-        status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
+        # status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
+        if isinstance(user, EmailUserRO):
+            user = user.id
+
+        status_without_assessor = [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DRAFT]
         if self.processing_status in status_without_assessor:
             return False
         else:
@@ -3115,8 +3119,12 @@ class AuthorisedUserApplication(Proposal):
         mls_to_be_emailed = []
         from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
         new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True)  # New moa doesn't have stickers.
-        for new_moa in new_moas:
-            mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+        if self.mooring_authorisation_preference == 'ria':
+            # Do we send an authorised user mooring summary doc to someone?
+            pass
+        else:
+            for new_moa in new_moas:
+                mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
@@ -3679,19 +3687,24 @@ class PrivateMooringManager(models.Manager):
 
 class AuthorisedUserMooringManager(models.Manager):
     def get_queryset(self):
-        return super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status='current')
+        # from mooringlicensing.components.approvals.models import Approval
+        # ret = super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status=Approval.APPROVAL_STATUS_CURRENT)
+        ret = super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2,)  # Can any mooring be an authorised user mooring, can't it?
+        return ret
 
 
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
+        from mooringlicensing.components.approvals.models import Approval
+
         available_ids = []
         for mooring in Mooring.private_moorings.all():
             # first check mooring_licence status
-            if not mooring.mooring_licence or mooring.mooring_licence.status != 'current':
+            if not mooring.mooring_licence or mooring.mooring_licence.status != Approval.APPROVAL_STATUS_CURRENT:
                 # now check whether there are any blocking proposals
                 blocking_proposal = False
                 for proposal in mooring.ria_generated_proposal.all():
-                    if proposal.processing_status not in ['approved', 'declined', 'discarded']:
+                    if proposal.processing_status not in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]:
                         blocking_proposal = True
                 if not blocking_proposal:
                     available_ids.append(mooring.id)
