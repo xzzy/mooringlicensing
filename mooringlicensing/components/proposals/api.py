@@ -230,11 +230,11 @@ class GetMooringPerBay(views.APIView):
                                 Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) & 
                                 Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
                                 )
-                        data = Mooring.available_moorings.filter(mooring_filter).values('id', 'name')[:10]
+                        data = Mooring.available_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:10]
                     else:
-                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name')[:10]
+                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id).values('id', 'name', 'mooring_licence')[:10]
                 else:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
+                    data = Mooring.available_moorings.filter(name__icontains=search_term).values('id', 'name', 'mooring_licence')[:10]
             else:
                 # aup
                 if mooring_bay_id:
@@ -251,12 +251,18 @@ class GetMooringPerBay(views.APIView):
                                 Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
                                 ~Q(id__in=aup_mooring_ids)
                                 )
-                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name')[:10]
+                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:10]
                     else:
                         data = []
                 else:
-                    data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
-            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
+                    data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name', 'mooring_licence')[:10]
+            # data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
+            data_transform = []
+            for mooring in data:
+                if 'mooring_licence' in mooring and mooring['mooring_licence']:
+                    data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (licenced)'})
+                else:
+                    data_transform.append({'id': mooring['id'], 'text': mooring['name']})
             return Response({"results": data_transform})
         return Response()
 
