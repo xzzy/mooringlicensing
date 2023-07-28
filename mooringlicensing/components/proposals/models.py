@@ -3683,19 +3683,22 @@ class PrivateMooringManager(models.Manager):
 
 class AuthorisedUserMooringManager(models.Manager):
     def get_queryset(self):
-        return super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status='current')
+        from mooringlicensing.components.approvals.models import Approval
+        return super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status=Approval.APPROVAL_STATUS_CURRENT)
 
 
 class AvailableMooringManager(models.Manager):
     def get_queryset(self):
+        from mooringlicensing.components.approvals.models import Approval
+
         available_ids = []
         for mooring in Mooring.private_moorings.all():
             # first check mooring_licence status
-            if not mooring.mooring_licence or mooring.mooring_licence.status != 'current':
+            if not mooring.mooring_licence or mooring.mooring_licence.status != Approval.APPROVAL_STATUS_CURRENT:
                 # now check whether there are any blocking proposals
                 blocking_proposal = False
                 for proposal in mooring.ria_generated_proposal.all():
-                    if proposal.processing_status not in ['approved', 'declined', 'discarded']:
+                    if proposal.processing_status not in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]:
                         blocking_proposal = True
                 if not blocking_proposal:
                     available_ids.append(mooring.id)
