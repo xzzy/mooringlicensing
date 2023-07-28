@@ -1107,7 +1107,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return False
 
     def has_assessor_mode(self,user):
-        status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
+        # status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
+        if isinstance(user, EmailUserRO):
+            user = user.id
+
+        status_without_assessor = [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DRAFT]
         if self.processing_status in status_without_assessor:
             return False
         else:
