@@ -225,13 +225,13 @@ LOGGING['formatters']['msg_only'] = {
 
 # Add a handler
 CRON_EMAIL_FILE_NAME = 'cron_email.log'
-LOGGING['handlers']['file_mooringlicensing'] = {
-    'level': 'INFO',
-    'class': 'logging.handlers.RotatingFileHandler',
-    'filename': os.path.join(BASE_DIR, 'logs', 'mooringlicensing.log'),
-    'formatter': 'verbose',
-    'maxBytes': 5242880
-}
+# LOGGING['handlers']['file_mooringlicensing'] = {
+#     'level': 'INFO',
+#     'class': 'logging.handlers.RotatingFileHandler',
+#     'filename': os.path.join(BASE_DIR, 'logs', 'mooringlicensing.log'),
+#     'formatter': 'verbose',
+#     'maxBytes': 5242880
+# }
 # logs/run_cron_tasks.log file is temporarily used in cron_tasks.py, and it's cleared whenever cron runs.
 # Therefore we need persistent log files for cron job
 LOGGING['handlers']['file_cron_tasks'] = {
@@ -258,7 +258,9 @@ LOGGING['handlers']['file_cron_email'] = {
 
 # Define loggers
 LOGGING['loggers']['mooringlicensing'] = {
-    'handlers': ['file_mooringlicensing',],
+    # This logger name 'mooringlicensing' is the topmost logger of this mooringlicensing application.
+    # Therefore the logs written in the logger retrieved by getLogger(__name__) are also propagated and caught at this logger.
+    'handlers': ['file', 'console'],
     'level': 'DEBUG',
 }
 LOGGING['loggers']['cron_tasks'] = {
@@ -272,7 +274,7 @@ LOGGING['loggers']['cron_email'] = {
 }
 
 # Logging all to mooringlicensing.log file
-LOGGING['loggers']['']['handlers'].append('file_mooringlicensing')
+# LOGGING['loggers']['']['handlers'].append('file_mooringlicensing')
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
