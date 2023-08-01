@@ -347,7 +347,10 @@ class StickerReplacementFeeSuccessView(TemplateView):
         try:
             sticker_action_fee = StickerActionFee.objects.get(uuid=uuid)
             invoice = Invoice.objects.get(reference=sticker_action_fee.invoice_reference)
-            invoice_url = get_invoice_url(invoice.reference, request)
+            # invoice_url = get_invoice_url(invoice.reference, request)
+            api_key = settings.LEDGER_API_KEY
+            invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
+            # invoice_pdf = requests.get(url=url)
             submitter = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
 
             context = {
@@ -631,7 +634,10 @@ class DcvPermitFeeSuccessView(TemplateView):
             dcv_permit_fee = DcvPermitFee.objects.get(uuid=uuid)
 
             dcv_permit = dcv_permit_fee.dcv_permit
-            invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference, request)
+            # invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference, request)
+            api_key = settings.LEDGER_API_KEY
+            invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + dcv_permit_fee.invoice_reference
+            # invoice_pdf = requests.get(url=url)
 
             context = {
                 'dcv_permit': dcv_permit,
@@ -931,7 +937,10 @@ class ApplicationFeeSuccessView(TemplateView):
 
             wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            invoice_url = get_invoice_url(invoice.reference, request)
+            # invoice_url = get_invoice_url(invoice.reference, request)
+            api_key = settings.LEDGER_API_KEY
+            invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + invoice.reference
+            # invoice_pdf = requests.get(url=url)
             context = {
                 'proposal': proposal,
                 'submitter': submitter,

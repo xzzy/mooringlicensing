@@ -679,11 +679,11 @@ class Approval(RevisionedMixin):
         target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         if hasattr(self, 'mooring'):
-            moa_set = MooringOnApproval.objects.filter(
-                mooring=self.mooring,
-                approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
-                end_date__gt=target_date,
-            )
+            query = Q()
+            query &= Q(mooring=self.mooring)
+            query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,])
+            query &= Q(Q(end_date__gt=target_date) | Q(end_date__isnull=True))
+            moa_set = MooringOnApproval.objects.filter(query)
             if moa_set.count() > 0:
                 # Authorised User exists
                 contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
