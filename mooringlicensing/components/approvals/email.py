@@ -1,4 +1,5 @@
 import logging
+import ledger_api_client
 import mimetypes
 import requests
 from dateutil.relativedelta import relativedelta
@@ -13,7 +14,7 @@ from datetime import timedelta
 from mooringlicensing import settings
 from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
 # from ledger.accounts.models import EmailUser
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 from mooringlicensing.components.emails.utils import get_user_as_email_user, get_public_url, make_http_https
 from mooringlicensing.components.users.models import EmailUserLogEntry
 # from mooringlicensing.components.main.utils import _log_user_email
@@ -493,8 +494,12 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     bcc = []
 
     # Update bcc if
-    dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
-    users = dcv_group.user_set.all()
+    # dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
+    # users = dcv_group.user_set.all()
+    dcv_group = ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - DCV Permit Admin")
+    ids = dcv_group.get_system_group_member_ids()
+    users = EmailUserRO.objects.filter(id__in=ids)
+
     if users:
         bcc = [user.email for user in users]
 
