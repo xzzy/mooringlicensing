@@ -115,7 +115,6 @@ from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT
     PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
 
 logger = logging.getLogger(__name__)
-# logger = logging.getLogger()
 
 class GetDcvOrganisations(views.APIView):
     renderer_classes = [JSONRenderer, ]
