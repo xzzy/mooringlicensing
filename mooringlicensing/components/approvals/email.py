@@ -472,7 +472,10 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     # attach invoice
     # contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
     # attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
-    url = get_invoice_url(invoice.reference, request)
+    # url = get_invoice_url(invoice.reference, request)
+    # invoice_pdf = requests.get(url=url)
+    api_key = settings.LEDGER_API_KEY
+    url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + invoice.reference
     invoice_pdf = requests.get(url=url)
     if invoice_pdf.status_code == 200:
         attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
@@ -532,7 +535,10 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     if invoice:
         # contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
         # attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
-        url = get_invoice_url(invoice.reference, request)
+        # url = get_invoice_url(invoice.reference, request)
+        # invoice_pdf = requests.get(url=url)
+        api_key = settings.LEDGER_API_KEY
+        url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + invoice.reference
         invoice_pdf = requests.get(url=url)
         if invoice_pdf.status_code == 200:
             attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
