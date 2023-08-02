@@ -88,6 +88,7 @@
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                :add_vessel="add_vessel"
             />
 
             <div>
@@ -189,6 +190,7 @@ export default {
       submitText: "Submit",
       autoApprove: false,
       missingVessel: false,
+      add_vessel: false,
     }
   },
   components: {
@@ -836,10 +838,16 @@ export default {
     window.addEventListener('beforeunload', vm.leaving);
     window.addEventListener('onblur', vm.leaving);
     */
+    if (this.$route.params.add_vessel){
+      this.add_vessel = true  // This is used only for ML.
+    }
   },
 
 
   beforeRouteEnter: function(to, from, next) {
+    // if (to.params.add_vessel){
+    //   this.add_vessel = true  // This is used only for ML.
+    // }
     if (to.params.proposal_id) {
       let vm = this;
       Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {

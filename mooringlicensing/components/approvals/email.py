@@ -23,7 +23,6 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.users.utils import _log_user_email
-from mooringlicensing.ledger_api_utils import get_invoice_url
 
 logger = logging.getLogger(__name__)
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'

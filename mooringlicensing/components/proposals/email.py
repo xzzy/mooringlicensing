@@ -886,7 +886,8 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
-        attachments = get_attachments(False, True, proposal)
+        # attachments = get_attachments(False, True, proposal)
+        attachments = get_attachments(True, True, proposal)
     elif decision == 'declined':
         # declined
         html_template += 'email_20c.html'
@@ -1200,7 +1201,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
             all_ccs = cc_list.split(',')
 
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
-        attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
+        attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
 
     elif decision == 'declined':
         html_template += 'email_23c.html'
