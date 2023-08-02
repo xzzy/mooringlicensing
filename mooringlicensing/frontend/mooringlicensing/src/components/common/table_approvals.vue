@@ -870,13 +870,12 @@ export default {
                 //searching: false,
                 searching: true,
                 ajax: {
-                    "url": api_endpoints.approvals_paginated_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
-                    //"url": api_endpoints.approvals,
+                    "url": api_endpoints.approvals_paginated_list + '/list2/?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
+                    "type": 'POST',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        //d.filter_approval_type = vm.approvalTypesToDisplay.join(',');
                         d.filter_approval_type = vm.approvalTypeFilter.join(',');
                         d.show_expired_surrendered = vm.show_expired_surrendered;
                         d.external_waiting_list = vm.externalWaitingList;
@@ -886,7 +885,7 @@ export default {
                         d.filter_holder_id = vm.filterHolder;
                         d.max_vessel_length = vm.maxVesselLength;
                         d.max_vessel_draft = vm.maxVesselDraft;
-                        d.is_internal = vm.is_internal;
+                        d.csrfmiddlewaretoken = vm.csrf_token
                     }
                 },
                 //dom: 'frt', //'lBfrtip',

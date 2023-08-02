@@ -113,27 +113,67 @@
                                 <div v-if="mlApprovals.length" class="form-group">
                                     <label>Mooring Site Licence</label>
                                     <div v-if="mlApprovals.length <= 1">
+                                        <!-- Approvals <= 1 -->
                                         <div v-for="(application_type, index) in mlChoices">
-                                            <input type="radio" name="applicationType"
-                                                :id="application_type.code + '_' + index" value="application_type"
-                                                @change="selectApplication(application_type)" />
-                                            <label :for="application_type.code + '_' + index" style="font-weight:normal">{{
-                                                application_type.new_application_text }}</label>
+                                            <div class="row">
+                                                <div class="col-sm-7">
+                                                    <input
+                                                        type="radio"
+                                                        name="applicationType"
+                                                        :id="application_type.code + '_' + index"
+                                                        value="application_type"
+                                                        @change="selectApplication(application_type)"
+                                                    />
+                                                    <label
+                                                        :for="application_type.code + '_' + index"
+                                                        style="font-weight:normal"
+                                                    >
+                                                        {{ application_type.new_application_text }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-sm-7">
+                                                    <input
+                                                        type="radio"
+                                                        name="applicationType"
+                                                        :id="application_type.code + '_' + index + '_add_vessel'"
+                                                        value="application_type"
+                                                        @change="selectApplication(application_type, true)"
+                                                    />
+                                                    <label
+                                                        :for="application_type.code + '_' + index + '_add_vessel'"
+                                                        style="font-weight:normal"
+                                                    >
+                                                        {{ application_type.new_application_text_add_vessel }}
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div v-else>
+                                        <!-- Approvals >= 2 -->
                                         <div class="row" v-for="application_type in mlMultiple">
                                             <div class="col-sm-5">
-                                                <input type="radio" name="applicationType" :id="application_type.code"
+                                                <input
+                                                    type="radio"
+                                                    name="applicationType"
+                                                    :id="application_type.code"
                                                     value="application_type"
-                                                    @change="selectApplication(application_type)" />
-                                                <label :for="application_type.code" style="font-weight:normal">{{
-                                                    application_type.new_application_text }}</label>
+                                                    @change="selectApplication(application_type)"
+                                                />
+                                                <label
+                                                    :for="application_type.code"
+                                                    style="font-weight:normal"
+                                                >
+                                                    {{ application_type.new_application_text }}
+                                                </label>
                                             </div>
                                             <span class="pull-left col-sm-2" v-if="application_type.multiple">
                                                 <select class="form-control" v-model="selectedCurrentProposal">
                                                     <option v-for="approval in mlApprovals"
-                                                        :value="approval.current_proposal_id">
+                                                        :value="approval.current_proposal_id"
+                                                    >
                                                         {{ approval.lodgement_number }}
                                                     </option>
                                                 </select>
@@ -154,34 +194,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!--div class="form-group">
-                                    <label>Authorised User</label>
-                                    <div v-for="application_type in auaChoices">
-                                        <input
-                                        type="radio"
-                                        name="applicationType"
-                                        :id="application_type.code"
-                                        value="application_type"
-                                        @change="selectApplication(application_type)"
-                                        />
-                                        <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Mooring Site Licence</label>
-                                    <div v-for="application_type in mlChoices">
-                                        <input
-                                        type="radio"
-                                        name="applicationType"
-                                        :id="application_type.code"
-                                        value="application_type"
-                                        @change="selectApplication(application_type)"
-                                        />
-                                        <label :for="application_type.code" style="font-weight:normal">{{ application_type.new_application_text }}</label>
-                                    </div>
-                                </div-->
-
-
                             </div>
                         </div>
                     </FormSection>
@@ -222,6 +234,7 @@ export default {
             "loading": [],
             form: null,
             selectedApplication: {},
+            add_vessel: false,
             selectedCurrentProposal: null,
             //selected_application_name: '',
             application_types_and_licences: [],
@@ -420,9 +433,12 @@ export default {
                 }
             }
         },
-        selectApplication(applicationType) {
+        selectApplication(applicationType, add_vessel=false) {
+            console.log({applicationType})
+            console.log({add_vessel})
             this.selectedCurrentProposal = null;
             this.selectedApplication = Object.assign({}, applicationType)
+            this.add_vessel = add_vessel
             if (this.selectedApplication.current_proposal_id) {
                 this.selectedCurrentProposal = this.selectedApplication.current_proposal_id;
             }
@@ -435,9 +451,10 @@ export default {
                 title_verb = 'Amend or renew'
                 text_verb = 'amend or renew'
             }
+            if (this.add_vessel){
+                text_verb = 'add another vessel to'
+            }
             swal({
-                // title: "Create " + this.selectedApplication.description,
-                // text: "Are you sure you want to create " + this.alertText + "?",
                 title: title_verb + " " + this.selectedApplication.description.toLowerCase(),
                 text: "Are you sure you want to " + text_verb + " " + this.alertText.toLowerCase() + "?",
                 type: "question",
@@ -445,26 +462,11 @@ export default {
                 confirmButtonText: 'Accept'
             }).then(() => {
                 this.createProposal();
-                /*
-                if (!vm.has_active_proposals()) {
-                      vm.createProposal();
-                }
-                */
             }, (error) => {
             });
         },
-        /*
-      createML: async function() {
-          const res = await this.$http.post(api_endpoints.mooringlicenceapplication);
-          const proposal = res.body;
-          this.$router.push({
-              name:"draft_proposal",
-              params:{proposal_id:proposal.id}
-          });
-          this.creatingProposal = false;
-      },
-      */
         createProposal: async function () {
+            let vm = this
             this.$nextTick(async () => {
                 let res = null;
                 try {
@@ -499,7 +501,7 @@ export default {
                     const proposal = res.body;
                     this.$router.push({
                         name: "draft_proposal",
-                        params: { proposal_id: proposal.id }
+                        params: { proposal_id: proposal.id, add_vessel: vm.add_vessel }
                     });
                     this.creatingProposal = false;
                 } catch (error) {
