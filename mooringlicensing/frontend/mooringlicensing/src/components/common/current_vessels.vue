@@ -103,6 +103,10 @@ from '@/utils/hooks'
               type: Boolean,
               default: false
             },
+            add_vessel: {
+                type: Boolean,
+                default: false,
+            },
         },
         computed: {
             vesselExists: function() {
@@ -140,7 +144,8 @@ from '@/utils/hooks'
         },
         created: function() {
             if (this.proposal && !this.proposal.keep_existing_vessel) {
-                this.keep_current_vessel = false;
+                // this.keep_current_vessel = false;
+                this.keep_current_vessel = !this.add_vessel
                 this.resetCurrentVessel();
             }
         },

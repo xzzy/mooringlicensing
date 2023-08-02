@@ -399,10 +399,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def existing_licences(self, request, *args, **kwargs):
         existing_licences = []
         l_list = Approval.objects.filter(
-                submitter=request.user.id,
-                #status__in=['current', 'fulfilled'],
-                status__in=['current'],
-                )
+            submitter=request.user.id,
+            status__in=[Approval.APPROVAL_STATUS_CURRENT,],
+        )
         for l in l_list:
             lchild = l.child_obj
             if type(lchild) == MooringLicence:
@@ -415,7 +414,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         "mooring_id": mooring.id,
                         "code": lchild.code,
                         "description": lchild.description,
-                        "new_application_text": "I want to amend or renew my current mooring site licence {}".format(lchild.lodgement_number)
+                        "new_application_text": "I want to amend or renew my current mooring site licence {}".format(lchild.lodgement_number),
+                        "new_application_text_add_vessel": "I want to add another vessel to my current mooring site licence {}".format(lchild.lodgement_number),
                         })
             else:
                 if lchild.approval.amend_or_renew:
