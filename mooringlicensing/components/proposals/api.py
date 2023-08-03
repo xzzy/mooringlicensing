@@ -1141,24 +1141,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
         }
         existing_proposal_qs=Proposal.objects.filter(**renew_amend_conditions)
         if (existing_proposal_qs and 
-                existing_proposal_qs[0].customer_status in ['under_review', 'with_assessor', 'draft'] and
-                existing_proposal_qs[0].proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL])
-                ):
+            existing_proposal_qs[0].customer_status in [Proposal.CUSTOMER_STATUS_WITH_ASSESSOR, Proposal.CUSTOMER_STATUS_DRAFT,] and
+            existing_proposal_qs[0].proposal_type in ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,])
+        ):
             raise ValidationError('A renewal/amendment for this licence has already been lodged.')
         elif not approval or not approval.amend_or_renew:
             raise ValidationError('No licence available for renewal/amendment.')
         ## create renewal or amendment
-        if settings.DEBUG and request.GET.get('debug', '') == 'true' and request.GET.get('type', '') == 'renew':
-            # This is used just for debug
+        if approval and approval.amend_or_renew == 'renew':
             instance = instance.renew_approval(request)
-        elif settings.DEBUG and request.GET.get('debug', '') == 'true' and request.GET.get('type', '') == 'amend':
-            # This is used just for debug
+        elif approval and approval.amend_or_renew == 'amend':
             instance = instance.amend_approval(request)
-        else:
-            if approval and approval.amend_or_renew == 'renew':
-                instance = instance.renew_approval(request)
-            elif approval and approval.amend_or_renew == 'amend':
-                instance = instance.amend_approval(request)
         ## return new application
         #serializer = ProposalSerializer(instance,context={'request':request})
         #serializer_class = self.internal_serializer_class()

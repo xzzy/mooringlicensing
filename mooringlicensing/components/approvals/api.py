@@ -194,11 +194,18 @@ class GetWlaAllowed(views.APIView):
         from mooringlicensing.components.proposals.models import WaitingListApplication
         wla_allowed = True
         # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
-        if (WaitingListApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-            WaitingListAllocation.objects.filter(submitter=request.user.id).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
-            MooringLicenceApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
-            MooringLicence.objects.filter(submitter=request.user.id).filter(status__in=['current', 'suspended'])):
+        # if (WaitingListApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+        #         WaitingListAllocation.objects.filter(submitter=request.user.id).exclude(status__in=['cancelled', 'expired', 'surrendered']) or
+        #         MooringLicenceApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=['approved', 'declined', 'discarded']) or
+        #         MooringLicence.objects.filter(submitter=request.user.id).filter(status__in=['current', 'suspended'])):
+        rule1 = WaitingListApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,])
+        rule2 = WaitingListAllocation.objects.filter(submitter=request.user.id).exclude(status__in=[Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED, Approval.APPROVAL_STATUS_FULFILLED,])
+        rule3 = MooringLicenceApplication.objects.filter(submitter=request.user.id).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,])
+        rule4 = MooringLicence.objects.filter(submitter=request.user.id).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+
+        if rule1 or rule2 or rule3 or rule4:
             wla_allowed = False
+
         return Response({"wla_allowed": wla_allowed})
 
 

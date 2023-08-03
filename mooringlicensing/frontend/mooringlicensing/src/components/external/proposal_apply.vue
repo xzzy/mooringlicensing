@@ -330,7 +330,9 @@ export default {
             });
         },
         parseWla: function () {
+            console.log('in parseWla')
             if (this.wlaApprovals.length > 1) {
+                console.log('wlaApprovals > 1')
                 for (let app of this.application_types_and_licences) {
                     if (app.code === 'wla' && !app.approval_id) {
                         // new app
@@ -345,6 +347,7 @@ export default {
                     multiple: true
                 })
             } else {
+                console.log('wlaApprovals = 0 or 1')
                 // add wla approval to wlaChoices
                 for (let app of this.application_types_and_licences) {
                     if (app.code === 'wla' && (this.newWlaAllowed || app.approval_id)) {
