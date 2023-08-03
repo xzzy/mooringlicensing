@@ -330,7 +330,9 @@ export default {
             });
         },
         parseWla: function () {
+            console.log('in parseWla')
             if (this.wlaApprovals.length > 1) {
+                console.log('wlaApprovals > 1')
                 for (let app of this.application_types_and_licences) {
                     if (app.code === 'wla' && !app.approval_id) {
                         // new app
@@ -345,6 +347,7 @@ export default {
                     multiple: true
                 })
             } else {
+                console.log('wlaApprovals = 0 or 1')
                 // add wla approval to wlaChoices
                 for (let app of this.application_types_and_licences) {
                     if (app.code === 'wla' && (this.newWlaAllowed || app.approval_id)) {
@@ -434,8 +437,6 @@ export default {
             }
         },
         selectApplication(applicationType, add_vessel=false) {
-            console.log({applicationType})
-            console.log({add_vessel})
             this.selectedCurrentProposal = null;
             this.selectedApplication = Object.assign({}, applicationType)
             this.add_vessel = add_vessel
@@ -493,7 +494,7 @@ export default {
                             res = await this.$http.post(api_endpoints.authoriseduserapplication);
                         }
                     } else if (this.selectedApplication && ['ml', 'ml_multiple'].includes(this.selectedApplication.code)) {
-                        res = await this.$http.post(url);
+                        res = await this.$http.post(url, {'add_vessel': vm.add_vessel});
                     } else if (this.selectedApplication && ['dcvp',].includes(this.selectedApplication.code)) {
                         this.$router.push('/external/dcv_permit')
                         return
@@ -501,7 +502,8 @@ export default {
                     const proposal = res.body;
                     this.$router.push({
                         name: "draft_proposal",
-                        params: { proposal_id: proposal.id, add_vessel: vm.add_vessel }
+                        // params: { proposal_id: proposal.id, add_vessel: vm.add_vessel }
+                        params: { proposal_id: proposal.id }
                     });
                     this.creatingProposal = false;
                 } catch (error) {

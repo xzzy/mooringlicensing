@@ -711,6 +711,12 @@ def submit_vessel_data(instance, request, vessel_data):
                 approvals_aap.append(approval)
             if type(approval.child_obj) == AuthorisedUserPermit:
                 approvals_aup.append(approval)
+
+    wl_applications = WaitingListApplication.get_intermediate_proposals(instance.submitter).exclude(id=instance.id)
+    wl_allocations = WaitingListAllocation.get_intermediate_approvals(instance.submitter).exclude(approval=instance.approval)
+    ml_applications = MooringLicenceApplication.get_intermediate_proposals(instance.submitter)
+    ml_approvals = MooringLicence.get_valid_approvals(instance.submitter)
+
     # apply rules
     if type(instance.child_obj) == WaitingListApplication and (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
         raise serializers.ValidationError("The vessel in the application is already listed in " +
@@ -719,10 +725,10 @@ def submit_vessel_data(instance, request, vessel_data):
         )
     # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
     elif (type(instance.child_obj) == WaitingListApplication and (
-        WaitingListApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]).exclude(id=instance.id) or
-        WaitingListAllocation.objects.filter(submitter=instance.submitter).exclude(status__in=[Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_SURRENDERED,]).exclude(approval=instance.approval) or
-        MooringLicenceApplication.objects.filter(submitter=instance.submitter).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]) or
-        MooringLicence.objects.filter(submitter=instance.submitter).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]))
+            WaitingListApplication.get_intermediate_proposals(instance.submitter).exclude(id=instance.id) or
+            WaitingListAllocation.get_intermediate_approvals(instance.submitter).exclude(approval=instance.approval) or
+            MooringLicenceApplication.get_intermediate_proposals(instance.submitter) or
+            MooringLicence.get_valid_approvals(instance.submitter))
         ):
         raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application")
     elif (type(instance.child_obj) == AnnualAdmissionApplication and (proposals_aaa or approvals_aap or
