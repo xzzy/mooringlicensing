@@ -144,8 +144,7 @@ from '@/utils/hooks'
         },
         created: function() {
             if (this.proposal && !this.proposal.keep_existing_vessel) {
-                // this.keep_current_vessel = false;
-                this.keep_current_vessel = !this.add_vessel
+                this.keep_current_vessel = false;
                 this.resetCurrentVessel();
             }
         },

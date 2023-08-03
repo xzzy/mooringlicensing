@@ -72,7 +72,6 @@
                           :readonly=readonly
                           :is_internal=is_internal
                           @resetCurrentVessel=resetCurrentVessel
-                          :add_vessel="add_vessel"
                           />
                   </div>
                   <Vessels
@@ -177,10 +176,10 @@
                 type: Boolean,
                 default: true,
             },
-            add_vessel: {
-                type: Boolean,
-                default: false,
-            },
+            // add_vessel: {
+            //     type: Boolean,
+            //     default: false,
+            // },
         },
         data:function () {
             return{

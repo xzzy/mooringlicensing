@@ -128,6 +128,7 @@
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed decision: </div><div class="col-sm-9 proposed-decision-value">Issue</div></div>
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed cc emails: </div><div class="col-sm-9 proposed-decision-value">{{ displayCCEmail }}</div></div>
                                     </template>
+
                                     <template v-if="proposal.mooring_authorisation_preference == 'ria'">
                                         <!-- When AU RIA -->
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ mooringBayName }}</div></div>
@@ -272,6 +273,7 @@ export default {
     },
     methods:{
         retrieveMooringDetails: async function(){
+            console.log('%cAHO', 'color: #370;')
             let mooring_id = null
             if (this.proposal.proposed_issuance_approval.mooring_id){
                 mooring_id = this.proposal.proposed_issuance_approval.mooring_id

@@ -989,6 +989,15 @@ class WaitingListAllocation(Approval):
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
 
+    @staticmethod
+    def get_intermediate_approvals(email_user_id):
+        approvals = WaitingListAllocation.objects.filter(submitter=email_user_id).exclude(status__in=[
+            Approval.APPROVAL_STATUS_CANCELLED,
+            Approval.APPROVAL_STATUS_EXPIRED,
+            Approval.APPROVAL_STATUS_SURRENDERED,
+            Approval.APPROVAL_STATUS_FULFILLED,])
+        return approvals
+
     def get_context_for_licence_permit(self):
         try:
             # v_details = self.current_proposal.vessel_details
@@ -1673,6 +1682,13 @@ class MooringLicence(Approval):
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
+
+    @staticmethod
+    def get_valid_approvals(email_user_id):
+        approvals = MooringLicence.objects.filter(submitter=email_user_id).filter(status__in=[
+            Approval.APPROVAL_STATUS_CURRENT,
+            Approval.APPROVAL_STATUS_SUSPENDED,])
+        return approvals
 
     def get_context_for_au_summary(self):
         if not hasattr(self, 'mooring'):
