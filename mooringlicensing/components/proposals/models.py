@@ -1997,6 +1997,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.submitter = request.user.id
                 proposal.previous_application = self
                 proposal.keep_existing_vessel = not add_vessel
+
+                from mooringlicensing.components.approvals.models import MooringLicence
+                if self.approval.child_obj.code == MooringLicence.code:
+                    proposal.allocated_mooring = self.approval.child_obj.mooring
+
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
                 if req:
