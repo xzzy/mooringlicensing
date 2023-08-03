@@ -2380,6 +2380,15 @@ class WaitingListApplication(Proposal):
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
 
+    @staticmethod
+    def get_intermediate_proposals(email_user_id):
+        proposals = WaitingListApplication.objects.filter(submitter=email_user_id).exclude(processing_status__in=[
+            Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_DISCARDED,
+        ])
+        return proposals
+
     def create_fee_lines(self):
         """
         Create the ledger lines - line item for application fee sent to payment system
@@ -3248,6 +3257,14 @@ class MooringLicenceApplication(Proposal):
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
+
+    @staticmethod
+    def get_intermediate_proposals(email_user_id):
+        proposals = MooringLicenceApplication.objects.filter(submitter=email_user_id).exclude(processing_status__in=[
+            Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_DISCARDED,])
+        return proposals
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
