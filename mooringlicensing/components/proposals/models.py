@@ -1921,7 +1921,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 proposal = type(self.child_obj).objects.create()
-                proposal.processing_status = 'draft'
+                proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
                 proposal.previous_application = self
                 proposal.approval = self.approval
                 proposal.null_vessel_on_create = not self.vessel_on_proposal()
@@ -1989,11 +1989,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             try:
                 logger.info(f'Amending approval: [{self.approval}]...')
 
+                add_vessel = request.data.get('add_vessel', False)  # This value comes from the radio button implemented on the proposal_apply.vue
+
                 # proposal = clone_proposal_with_status_reset(self)
                 proposal = self.clone_proposal_with_status_reset()
                 proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
                 proposal.submitter = request.user.id
                 proposal.previous_application = self
+                proposal.keep_existing_vessel = not add_vessel
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
                 if req:
@@ -2060,7 +2063,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def previous_application_status_filter(self):
         prev_application = self.previous_application
-        while prev_application and prev_application.processing_status in ['discarded', 'declined'] and prev_application.previous_application:
+        while prev_application and prev_application.processing_status in [Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DECLINED,] and prev_application.previous_application:
             prev_application = prev_application.previous_application
         return prev_application
 
