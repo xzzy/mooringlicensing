@@ -1,0 +1,7 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.txt" %}
+Your application {{ proposal.lodgement_number }} has been discarded.
+{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+{% endblock %}

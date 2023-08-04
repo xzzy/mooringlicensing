@@ -995,7 +995,10 @@ class WaitingListAllocation(Approval):
             Approval.APPROVAL_STATUS_CANCELLED,
             Approval.APPROVAL_STATUS_EXPIRED,
             Approval.APPROVAL_STATUS_SURRENDERED,
-            Approval.APPROVAL_STATUS_FULFILLED,])
+            Approval.APPROVAL_STATUS_FULFILLED,]).exclude(internal_status__in=[
+            Approval.INTERNAL_STATUS_OFFERED,
+            Approval.INTERNAL_STATUS_SUBMITTED,
+        ])
         return approvals
 
     def get_context_for_licence_permit(self):
@@ -1078,6 +1081,7 @@ class WaitingListAllocation(Approval):
         self.wla_order = None
         self.save()
         self.set_wla_order()
+
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)

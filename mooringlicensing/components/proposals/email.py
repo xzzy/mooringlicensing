@@ -1524,6 +1524,34 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
 
     return msg
 
+def send_application_discarded_email(proposal, request):
+    email = TemplateEmailBase(
+        subject='An Application has been discarded.',
+        html_template='mooringlicensing/emails_2/application_discarded.html',
+        txt_template='mooringlicensing/emails_2/application_discarded.txt',
+    )
+
+    # url = request.build_absolute_uri(reverse('internal-proposal-detail', kwargs={'proposal_pk': proposal.id}))
+    # url = make_url_for_internal(url)
+
+    context = {
+        # 'public_url': get_public_url(request),
+        'proposal': proposal,
+        # 'recipient': proposal.submitter_obj,
+        # 'url': url,
+    }
+
+    to_address = proposal.submitter_obj.email
+    cc = []
+    bcc = proposal.assessor_recipients
+
+    # Send email
+    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+    if msg:
+        # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        sender = get_user_as_email_user(msg.from_email)
+        log_proposal_email(msg, proposal, sender)
+    return msg
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
     email = TemplateEmailBase(
