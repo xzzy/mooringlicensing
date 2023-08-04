@@ -557,8 +557,8 @@ export default {
         columnHolder: function() {
             return {
                         data: "id",
-                        orderable: true,
-                        searchable: true,
+                        orderable: false,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             return full.holder;

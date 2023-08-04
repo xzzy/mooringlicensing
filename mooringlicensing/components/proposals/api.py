@@ -496,7 +496,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         try:
             queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
         except Exception as e:
-            print(e)
+            logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
