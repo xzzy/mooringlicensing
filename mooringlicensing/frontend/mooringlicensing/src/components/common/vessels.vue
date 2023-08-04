@@ -80,7 +80,7 @@
                     <label for="" class="col-sm-3 control-label">Copy of registration papers</label>
                     <div class="col-sm-9">
                         <FileField
-                            :readonly="readonly"
+                            :readonly="hinReadonly"
                             ref="vessel_rego_document"
                             name="vessel_rego_document"
                             :isRepeatable="true"
@@ -95,9 +95,14 @@
             <div v-if="applicationTypeCodeMLA" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Proof of vessel ownership</label>
                 <div class="col-sm-9">
-                    <FileField :readonly="hinReadonly" ref="hull_identification_number_documents"
-                        name="hull-identification-number-documents" :isRepeatable="true"
-                        :documentActionUrl="hullIdentificationNumberDocumentUrl" :replace_button_by_text="true" />
+                    <FileField 
+                        :readonly="hinReadonly"
+                        ref="hull_identification_number_documents"
+                        name="hull-identification-number-documents"
+                        :isRepeatable="true"
+                        :documentActionUrl="hullIdentificationNumberDocumentUrl"
+                        :replace_button_by_text="true"
+                    />
                 </div>
             </div>
 
