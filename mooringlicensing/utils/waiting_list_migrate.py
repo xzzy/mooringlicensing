@@ -228,8 +228,8 @@ class WaitingListMigration(object):
                         start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
 
                     approval = WaitingListAllocation.objects.create(
-                        status='current',
-                        internal_status='waiting',
+                        status=Approval.APPROVAL_STATUS_CURRENT,
+                        internal_status=Approval.INTERNAL_STATUS_WAITING,
                         current_proposal=proposal,
                         issue_date = datetime.datetime.now(datetime.timezone.utc),
                         #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),

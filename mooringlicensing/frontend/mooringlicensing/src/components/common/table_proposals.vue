@@ -302,8 +302,8 @@ export default {
         column_applicant: function(){
             return {
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.submitter){
@@ -317,8 +317,8 @@ export default {
         column_assigned_to: function(){
             return {
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     let ret_str = ''

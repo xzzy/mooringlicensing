@@ -64,7 +64,7 @@ from mooringlicensing.components.proposals.email import (
     send_proposal_approver_sendback_email_notification, send_endorsement_of_authorised_user_application_email,
     send_documents_upload_for_mooring_licence_application_email,
     send_other_documents_submitted_notification_email, send_notification_email_upon_submit_to_assessor,
-    send_au_summary_to_ml_holder,
+    send_au_summary_to_ml_holder, send_application_discarded_email,
 )
 from mooringlicensing.ordered_model import OrderedModel
 import copy
@@ -369,6 +369,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def __str__(self):
         return str(self.lodgement_number)
+
+    def destroy(self, request, *args, **kwargs):
+        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+        self.save()
+
+        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number, request))
+        send_application_discarded_email(self, request)
+
+        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
     def copy_vessel_details(self, proposal):
         proposal.rego_no = self.rego_no
@@ -1622,7 +1631,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             (self.previous_application.preferred_bay != self.preferred_bay)
                             )
                         ):
-                    approval.internal_status = 'waiting'
+                    from mooringlicensing.components.approvals.models import Approval
+                    approval.internal_status = Approval.INTERNAL_STATUS_WAITING
                     approval.wla_queue_date = current_datetime
                     approval.save()
                     approval = approval.set_wla_order()
