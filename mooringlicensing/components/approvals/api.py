@@ -435,6 +435,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         "new_application_text_add_vessel": "I want to add another vessel to my current mooring site licence {}".format(lchild.lodgement_number),
                         })
             else:
+                if type(lchild) == WaitingListAllocation:
+                    if lchild.internal_status not in [Approval.INTERNAL_STATUS_WAITING,]:
+                        continue
                 if lchild.approval.amend_or_renew:
                     existing_licences.append({
                         "approval_id": lchild.id,

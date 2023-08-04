@@ -77,7 +77,7 @@
             <!-- Start:new file field -->
             <transition>
                 <div v-if="showDotRegistrationPapers" class="row form-group">
-                    <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
+                    <label for="" class="col-sm-3 control-label">Copy of registration papers</label>
                     <div class="col-sm-9">
                         <FileField
                             :readonly="readonly"
@@ -92,35 +92,8 @@
             </transition>
             <!-- End:new file field -->
 
-            <!-- <div v-if="showDotRegistrationPapers" class="row form-group">
-                <label for="" class="col-sm-3 control-label">Copy of DoT registration papers</label>
-                <div v-if="!existingVesselOwnership" class="col-sm-9">
-                    <FileField
-                        :readonly="readonly"
-                        ref="temp_document"
-                        name="temp_document"
-                        :isRepeatable="true"
-                        :documentActionUrl="vesselRegistrationDocumentUrl"
-                        :replace_button_by_text="true"
-                        :temporaryDocumentCollectionId="temporary_document_collection_id"
-                        @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
-                    />
-                </div>
-                <div v-else class="col-sm-9">
-                    <FileField
-                        :readonly="readonly"
-                        ref="vessel_registration_document"
-                        name="vessel_registration_document"
-                        :isRepeatable="true"
-                        :documentActionUrl="vesselRegistrationDocumentUrl"
-                        :replace_button_by_text="true"
-                    />
-                </div>
-            </div> -->
-
             <div v-if="applicationTypeCodeMLA" class="row form-group">
-                <label for="" class="col-sm-3 control-label">Certified Hull Identification Number (HIN), if not already
-                    provided on the registration papers</label>
+                <label for="" class="col-sm-3 control-label">Proof of vessel ownership</label>
                 <div class="col-sm-9">
                     <FileField :readonly="hinReadonly" ref="hull_identification_number_documents"
                         name="hull-identification-number-documents" :isRepeatable="true"

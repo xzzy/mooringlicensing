@@ -1622,7 +1622,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             (self.previous_application.preferred_bay != self.preferred_bay)
                             )
                         ):
-                    approval.internal_status = 'waiting'
+                    from mooringlicensing.components.approvals.models import Approval
+                    approval.internal_status = Approval.INTERNAL_STATUS_WAITING
                     approval.wla_queue_date = current_datetime
                     approval.save()
                     approval = approval.set_wla_order()
