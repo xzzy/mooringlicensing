@@ -1,0 +1,7 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>Your application {{ proposal.lodgement_number }} has been discarded.</p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}

@@ -1416,12 +1416,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        instance.previous_application = None
-        instance.save()
+        # instance.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+        # instance.previous_application = None
+        # instance.save()
+        logger.info(f'Proposal: [{instance}] is being deleted by the user: [{request.user}].')
+
+        instance.destroy(request, *args, **kwargs)
+
         ## ML
-        if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
-            pass
+        # if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
+        #     pass
             # instance.waiting_list_allocation.internal_status = 'waiting'
             # current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
             # instance.waiting_list_allocation.wla_queue_date = current_datetime
@@ -1567,105 +1571,54 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         return qs
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def move_up(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.up()
-            instance.save()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.up()
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def move_down(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.down()
-            instance.save()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.down()
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def discard(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.is_deleted = True
-            instance.save()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.is_deleted = True
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def delete_document(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            RequirementDocument.objects.get(id=request.data.get('id')).delete()
-            return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        RequirementDocument.objects.get(id=request.data.get('id')).delete()
+        return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
 
+    @basic_exception_handler
     def update(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data= request.data)
-            serializer.is_valid(raise_exception = True)
-            instance = serializer.save()
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        serializer = self.get_serializer(data= request.data)
+        serializer.is_valid(raise_exception = True)
+        instance = serializer.save()
+        return Response(serializer.data)
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
