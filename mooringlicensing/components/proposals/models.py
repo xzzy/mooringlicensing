@@ -373,11 +373,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def destroy(self, request, *args, **kwargs):
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
-
-        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number, request))
-        send_application_discarded_email(self, request)
-
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number, request))
+
+        # Perform post-processing for each application type after discarding.
+        self.child_obj.process_after_discarded()
+
+        # Send email
+        send_application_discarded_email(self, request)
 
     def copy_vessel_details(self, proposal):
         proposal.rego_no = self.rego_no
@@ -2391,6 +2394,9 @@ class WaitingListApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
 
+    def process_after_discarded(self):
+        logger.debug(f'called in [{self}]')
+
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
@@ -2609,6 +2615,9 @@ class AnnualAdmissionApplication(Proposal):
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
+    def process_after_discarded(self):
+        logger.debug(f'called in [{self}]')
+
     class Meta:
         app_label = 'mooringlicensing'
 
@@ -2814,6 +2823,9 @@ class AuthorisedUserApplication(Proposal):
 
     # This uuid is used to generate the URL for the AUA endorsement link
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+
+    def process_after_discarded(self):
+        logger.debug(f'called in [{self}]')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -3266,6 +3278,9 @@ class MooringLicenceApplication(Proposal):
     # This uuid is used to generate the URL for the ML document upload page
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
+    def process_after_discarded(self):
+        self.waiting_list_allocation.process_after_discarded()
+
     class Meta:
         app_label = 'mooringlicensing'
 
@@ -3547,11 +3562,7 @@ class MooringLicenceApplication(Proposal):
                     self.save()
                 # Move WLA to status approved
                 if self.waiting_list_allocation:
-                    self.waiting_list_allocation.internal_status = 'approved'
-                    self.waiting_list_allocation.status = 'fulfilled'
-                    self.waiting_list_allocation.wla_order = None
-                    self.waiting_list_allocation.save()
-                    self.waiting_list_allocation.set_wla_order()
+                    self.waiting_list_allocation.process_after_approval()
 
             # update proposed_issuance_approval and MooringOnApproval if not system reissue (no request) or auto_approve
             if request and not self.auto_approve:
