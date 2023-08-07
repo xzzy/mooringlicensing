@@ -747,7 +747,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         if not instance.mooring_report_documents.count():
             errors.append('Copy of current mooring report')
         if not instance.written_proof_documents.count():
-            errors.append('Proof of finalized ownership of mooring apparatus')
+            errors.append('Proof of finalised ownership of mooring apparatus')
         if not instance.signed_licence_agreement_documents.count():
             errors.append('Signed licence agreement')
         if not instance.proof_of_identity_documents.count():
