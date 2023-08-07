@@ -1262,7 +1262,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                     waiting_list_allocation=waiting_list_allocation,
                     date_invited=current_date,
                 )
-                logger.info(f'New Mooring Site Licence application: [{new_proposal}] has been created from the waiting list allocation: [{waiting_list_allocation}].')
+                logger.info(f'Offering new Mooring Site Licence application: [{new_proposal}] created from the waiting list allocation: [{waiting_list_allocation}].')
 
                 # Copy applicant details to the new proposal
                 proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
@@ -1277,7 +1277,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 # send email
                 send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)
                 # update waiting_list_allocation
-                waiting_list_allocation.internal_status = 'offered'
+                waiting_list_allocation.internal_status = Approval.INTERNAL_STATUS_OFFERED
                 waiting_list_allocation.save()
 
             return Response({"proposal_created": new_proposal.lodgement_number})

@@ -20,7 +20,7 @@
                                 <td>{{ sticker.vessel_rego_no }}</td>
                                 <td>
                                     <span v-for="mooring in sticker.moorings">
-                                        {{ mooring.name }}
+                                        {{ mooring.name }} ({{ mooring.mooring_bay_name }})
                                     </span>
                                 </td>
                             </tr>

@@ -747,7 +747,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         if not instance.mooring_report_documents.count():
             errors.append('Copy of current mooring report')
         if not instance.written_proof_documents.count():
-            errors.append('Proof of finalized ownership of mooring apparatus')
+            errors.append('Proof of finalised ownership of mooring apparatus')
         if not instance.signed_licence_agreement_documents.count():
             errors.append('Signed licence agreement')
         if not instance.proof_of_identity_documents.count():
@@ -1330,39 +1330,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             if hasattr(e,'message'):
                 raise serializers.ValidationError(e.message)
-
-#    @detail_route(methods=['GET',])
-#    def get_max_vessel_length_with_no_payments(self, request, *args, **kwargs):
-#        try:
-#            from mooringlicensing.components.payments_ml.models import FeeConstructor
-#            from mooringlicensing.components.main.models import ApplicationType
-#
-#            proposal = self.get_object()
-#
-#            # Retrieve vessel
-#            vid = request.GET.get('vid', None)
-#            vessel = Vessel.objects.get(id=int(vid)) if vid else None
-#
-#            current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-#            target_date = proposal.get_target_date(current_datetime.date())
-#            max_amounts_paid = proposal.get_max_amounts_paid_in_this_season(target_date, vessel)
-#
-#            # FeeConstructor to use
-#            fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, target_date)
-#            max_length = calculate_max_length(fee_constructor, max_amounts_paid[fee_constructor.application_type])
-#
-#            if proposal.application_type.code in [MooringLicenceApplication.code, AuthorisedUserApplication.code,]:
-#                # When AU/ML, we have to take account into AA component, too
-#                application_type_aa = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
-#                fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type_aa, target_date)
-#                max_length_aa = calculate_max_length(fee_constructor, max_amounts_paid[application_type_aa])
-#                max_length = max_length if max_length < max_length_aa else max_length_aa  # Note: we are trying to find MINIMUM max length, which don't require payment.
-#
-#            return Response({'max_length': max_length})
-#        except Exception as e:
-#            print(traceback.print_exc())
-#            if hasattr(e,'message'):
-#                raise serializers.ValidationError(e.message)
 
     @detail_route(methods=['GET',], detail=True)
     def fetch_vessel(self, request, *args, **kwargs):
