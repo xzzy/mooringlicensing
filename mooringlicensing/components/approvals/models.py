@@ -2797,10 +2797,7 @@ class Sticker(models.Model):
     def get_moorings(self):
         moorings = []
 
-        if self.approval.code == AnnualAdmissionPermit.code:
-            # No associated moorings
-            pass
-        elif self.approval.code == AuthorisedUserPermit.code:
+        if self.approval.code == AuthorisedUserPermit.code:
             valid_moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True))
             for moa in valid_moas:
                 moorings.append(moa.mooring)
