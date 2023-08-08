@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
-    MooringLicence, Approval
+    MooringLicence, Approval, WaitingListAllocation
 from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
@@ -501,3 +501,24 @@ def calculate_max_length(fee_constructor, max_amount_paid, proposal_type):
     fee_items_interested = fee_constructor.feeitem_set.filter(proposal_type=proposal_type).order_by('vessel_size_category__start_size')
     max_length = calculate_minimum_max_length(fee_items_interested, max_amount_paid)
     return max_length
+
+
+def reorder_wla(target_bay):
+    logger.info(f'Ordering WLAs for the bay: [{target_bay}]...')
+    place = 1
+    # set wla order per bay for current allocations
+    for w in WaitingListAllocation.objects.filter(
+        wla_queue_date__isnull=False,
+        current_proposal__preferred_bay=target_bay,
+        status__in=[
+            Approval.APPROVAL_STATUS_CURRENT,
+            Approval.APPROVAL_STATUS_SUSPENDED,
+        ],
+        internal_status__in=[
+            Approval.INTERNAL_STATUS_WAITING,
+        ]
+    ).order_by('wla_queue_date'):
+        w.wla_order = place
+        w.save()
+        place += 1
+

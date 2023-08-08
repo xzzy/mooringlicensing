@@ -162,7 +162,7 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
     }
     to_address = proposal.submitter_obj.email
     cc = []
-    bcc = []
+    bcc = proposal.assessor_recipients
 
     # Send email
     # in send() method, self.html_template is rendered by context and attached as alternative

@@ -576,6 +576,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
+        logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
 
         make_proposal_applicant_ready(obj, request)
 
@@ -606,6 +607,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
+        logger.info(f'Authorised User Application: [{obj}] has been created by the user: [{request.user}].')
 
         make_proposal_applicant_ready(obj, request)
 
@@ -641,6 +643,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type,
                 allocated_mooring=mooring,
                 )
+        logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
 
         make_proposal_applicant_ready(obj, request)
 
@@ -672,6 +675,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
+
+        logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
 
         make_proposal_applicant_ready(obj, request)
 
