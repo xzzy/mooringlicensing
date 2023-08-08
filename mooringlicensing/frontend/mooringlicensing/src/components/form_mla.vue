@@ -207,6 +207,7 @@
         },
         computed:{
             showDocumentsTab: function(){
+                // return true
                 if (this.is_internal){
                     return true
                 } else if (this.proposal.amendment_requests){

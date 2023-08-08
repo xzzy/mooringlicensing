@@ -1244,6 +1244,7 @@ class StickerSerializer(serializers.ModelSerializer):
     fee_season = serializers.SerializerMethodField()
     # vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
     vessel_rego_no = serializers.SerializerMethodField()
+    vessel = serializers.SerializerMethodField()
     moorings = serializers.SerializerMethodField()
     dcv_permit = DcvPermitSimpleSerializer()
     invoices = serializers.SerializerMethodField()
@@ -1262,6 +1263,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'sticker_action_details',
             'fee_constructor',
             'vessel_rego_no',
+            'vessel',
             'moorings',
             'dcv_permit',
             'fee_season',
@@ -1279,6 +1281,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'sticker_action_details',
             'fee_constructor',
             'vessel_rego_no',
+            'vessel',
             'moorings',
             'dcv_permit',
             'fee_season',
@@ -1296,6 +1299,18 @@ class StickerSerializer(serializers.ModelSerializer):
             return obj.vessel_ownership.vessel.rego_no
         else:
             return ''
+
+    def get_vessel(self, obj):
+        if obj.vessel_ownership and obj.vessel_ownership.vessel:
+            return {
+                'id': obj.vessel_ownership.vessel.id,
+                'rego_no': obj.vessel_ownership.vessel.rego_no,
+            }
+        else:
+            return {
+                'id': '',
+                'rego_no': '',
+            }
 
     def get_can_view_payment_details(self, proposal):
         if 'request' in self.context:

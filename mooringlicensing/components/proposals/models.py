@@ -3496,16 +3496,22 @@ class MooringLicenceApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
-        if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+        if self.proposal_type in (ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,])):
+            # Renewal
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            send_confirmation_email_upon_submit(request, self, False)
+            send_notification_email_upon_submit_to_assessor(request, self)
         else:
+            # New
             if self.amendment_requests.count():
+                # Amendment request
                 self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-                # TODO:
+                send_confirmation_email_upon_submit(request, self, False)
+                send_notification_email_upon_submit_to_assessor(request, self)
             else:
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
                 send_documents_upload_for_mooring_licence_application_email(request, self)
-
+                send_notification_email_upon_submit_to_assessor(request, self)
         self.save()
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
