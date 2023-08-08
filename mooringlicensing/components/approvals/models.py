@@ -227,6 +227,7 @@ class Approval(RevisionedMixin):
     INTERNAL_STATUS_WAITING = 'waiting' #b #y
     INTERNAL_STATUS_OFFERED = 'offered' #b - no change to queue #y
     INTERNAL_STATUS_SUBMITTED = 'submitted' #c - no change to queue #y
+    INTERNAL_STATUS_APPROVED = 'approved'
     INTERNAL_STATUS_CHOICES = (
         (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
         (INTERNAL_STATUS_OFFERED, 'Mooring Site Licence offered'),
@@ -738,8 +739,8 @@ class Approval(RevisionedMixin):
                 self.cancellation_date = cancellation_date # test hack
                 today = timezone.now().date()
                 if cancellation_date <= today:
-                    if not self.status == 'cancelled':
-                        self.status = 'cancelled'
+                    if not self.status == Approval.APPROVAL_STATUS_CANCELLED:
+                        self.status = Approval.APPROVAL_STATUS_CANCELLED
                         self.set_to_cancel = False
                         send_approval_cancel_email_notification(self)
                 else:
@@ -1061,14 +1062,13 @@ class WaitingListAllocation(Approval):
         """
         Renumber all the related allocations with 'current'/'suspended' status from #1 to #n
         """
+        logger.info(f'Ordering the WLA for the allocation: [{self}], bay: [{self.current_proposal.preferred_bay}]...')
         place = 1
         # set wla order per bay for current allocations
         for w in WaitingListAllocation.objects.filter(
                 wla_queue_date__isnull=False,
                 current_proposal__preferred_bay=self.current_proposal.preferred_bay,
-                status__in=['current', 'suspended']).order_by(
-                #status='current').order_by(
-                        'wla_queue_date'):
+                status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED]).order_by('wla_queue_date'):
             w.wla_order = place
             w.save()
             place += 1
@@ -1077,8 +1077,24 @@ class WaitingListAllocation(Approval):
 
     def processes_after_cancel(self):
         self.internal_status = None
-        self.wla_queue_date = None
+        self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
+        # self.wla_queue_date = None
         self.wla_order = None
+        self.save()
+        logger.info(f'Set None to the internal_status, wla_queue_date and wla_order of the WL Allocation: [{self}].')
+        self.set_wla_order()
+
+    def process_after_approval(self):
+        # self.internal_status = 'approved'
+        self.internal_status = Approval.INTERNAL_STATUS_APPROVED
+        self.status = Approval.APPROVAL_STATUS_FULFILLED
+        self.wla_order = None
+        self.save()
+        self.set_wla_order()
+
+    def process_after_discarded(self):
+        self.wla_order = None
+        self.status = Approval.APPROVAL_STATUS_FULFILLED  # ML application has been discarded, but in terms of WLAllocation perspective, it's regarded as 'fulfilled'.
         self.save()
         self.set_wla_order()
 
@@ -1093,6 +1109,9 @@ class AnnualAdmissionPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def process_after_discarded(self):
+        logger.debug(f'in AAP called.')
 
     @property
     def child_obj(self):
@@ -1326,6 +1345,9 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def process_after_discarded(self):
+        logger.debug(f'in AUP called.')
 
     def get_authorised_by(self):
         preference = self.current_proposal.child_obj.get_mooring_authorisation_preference()
@@ -1679,6 +1701,9 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_CURRENT,
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
+
+    def process_after_discarded(self):
+        logger.debug(f'in ML called.')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2772,10 +2797,7 @@ class Sticker(models.Model):
     def get_moorings(self):
         moorings = []
 
-        if self.approval.code == AnnualAdmissionPermit.code:
-            # No associated moorings
-            pass
-        elif self.approval.code == AuthorisedUserPermit.code:
+        if self.approval.code == AuthorisedUserPermit.code:
             valid_moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True))
             for moa in valid_moas:
                 moorings.append(moa.mooring)

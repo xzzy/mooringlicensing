@@ -1311,10 +1311,7 @@ class StickerSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def get_moorings(self, obj):
-        moas = obj.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT))
-        moorings = []
-        for moa in moas:
-            moorings.append(moa.mooring)
+        moorings = obj.get_moorings()
         serializers = MooringSimpleSerializer(moorings, many=True)
         return serializers.data
 
