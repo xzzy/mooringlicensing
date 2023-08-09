@@ -2585,6 +2585,7 @@ class DcvPermit(RevisionedMixin):
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),
             'public_url': get_public_url(),
+            'submitter_fullname': self.submitter_obj.get_full_name(),
         }
         return context
 
