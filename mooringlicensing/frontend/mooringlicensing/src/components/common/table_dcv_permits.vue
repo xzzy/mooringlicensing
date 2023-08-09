@@ -137,7 +137,7 @@ export default {
             return {
                 data: "id",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     let links = ''
@@ -175,7 +175,7 @@ export default {
             return {
                 data: "id",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     return full.status;
@@ -187,7 +187,7 @@ export default {
             return {
                 data: "id",
                 orderable: true,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     return full.fee_season;
@@ -209,7 +209,7 @@ export default {
                     }
                     return ret_str
                 },
-                name: 'sticker_number',
+                name: 'stickers__number',
             }
         },
         column_action: function(){
@@ -218,7 +218,7 @@ export default {
                 // 8. Action
                 data: "id",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     let links = '';

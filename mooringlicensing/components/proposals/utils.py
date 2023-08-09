@@ -363,7 +363,7 @@ def save_proponent_data(instance, request, viewset):
 
 
 def save_proponent_data_aaa(instance, request, viewset):
-    print(request.data)
+    logger.info(f'Saving proponent data of the proposal: [{instance}]')
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
@@ -397,7 +397,7 @@ def save_proponent_data_aaa(instance, request, viewset):
 
 
 def save_proponent_data_wla(instance, request, viewset):
-    print(request.data)
+    logger.info(f'Saving proponent data of the proposal: [{instance}]')
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
@@ -430,7 +430,8 @@ def save_proponent_data_wla(instance, request, viewset):
 
 
 def save_proponent_data_mla(instance, request, viewset):
-    print(request.data)
+    logger.info(f'Saving proponent data of the proposal: [{instance}]')
+
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
@@ -460,7 +461,7 @@ def save_proponent_data_mla(instance, request, viewset):
 
 
 def save_proponent_data_aua(instance, request, viewset):
-    print(request.data)
+    logger.info(f'Saving proponent data of the proposal: [{instance}]')
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:

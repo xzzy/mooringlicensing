@@ -140,7 +140,8 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    return full.vessel_rego_no
+                    // return full.vessel.rego_no
+                    return '<a href="/internal/vessel/' + full.vessel.id + '" target="_blank">' + full.vessel.rego_no + '</a>'
                 },
                 name: 'vessel_rego_number',
             }
@@ -166,7 +167,7 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     if (full.approval){
-                        return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
+                        return '<a href="/internal/approval/' + full.approval.id + '" target="_blank">' + full.approval.lodgement_number + '</a>'
                     } else if (full.dcv_permit) {
                         return '<span class="dcv_permit_lodgement_number">' + full.dcv_permit.lodgement_number + '</span>'
                     } else {

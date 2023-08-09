@@ -232,7 +232,7 @@ class Approval(RevisionedMixin):
         (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
         (INTERNAL_STATUS_OFFERED, 'Mooring Site Licence offered'),
         (INTERNAL_STATUS_SUBMITTED, 'Mooring Site Licence application submitted'),
-        )
+    )
     lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])
@@ -1059,19 +1059,12 @@ class WaitingListAllocation(Approval):
         return None, None
 
     def set_wla_order(self):
+        from mooringlicensing.components.main.utils import reorder_wla
         """
         Renumber all the related allocations with 'current'/'suspended' status from #1 to #n
         """
-        logger.info(f'Ordering the WLA for the allocation: [{self}], bay: [{self.current_proposal.preferred_bay}]...')
-        place = 1
-        # set wla order per bay for current allocations
-        for w in WaitingListAllocation.objects.filter(
-                wla_queue_date__isnull=False,
-                current_proposal__preferred_bay=self.current_proposal.preferred_bay,
-                status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED]).order_by('wla_queue_date'):
-            w.wla_order = place
-            w.save()
-            place += 1
+        logger.info(f'Ordering the allocations for the Waiting List Allocation: [{self}], bay: [{self.current_proposal.preferred_bay}]...')
+        reorder_wla(self.current_proposal.preferred_bay)
         self.refresh_from_db()  # Should be self.proposal.refresh_from_db()???
         return self
 
@@ -1081,7 +1074,7 @@ class WaitingListAllocation(Approval):
         # self.wla_queue_date = None
         self.wla_order = None
         self.save()
-        logger.info(f'Set None to the internal_status, wla_queue_date and wla_order of the WL Allocation: [{self}].')
+        logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
     def process_after_approval(self):
@@ -1090,12 +1083,14 @@ class WaitingListAllocation(Approval):
         self.status = Approval.APPROVAL_STATUS_FULFILLED
         self.wla_order = None
         self.save()
+        logger.info(f'Set attributes as follows: [internal_status=approved, status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
     def process_after_discarded(self):
         self.wla_order = None
         self.status = Approval.APPROVAL_STATUS_FULFILLED  # ML application has been discarded, but in terms of WLAllocation perspective, it's regarded as 'fulfilled'.
         self.save()
+        logger.info(f'Set attributes as follows: [status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
 
@@ -2590,6 +2585,7 @@ class DcvPermit(RevisionedMixin):
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),
             'public_url': get_public_url(),
+            'submitter_fullname': self.submitter_obj.get_full_name(),
         }
         return context
 
@@ -2797,17 +2793,18 @@ class Sticker(models.Model):
     def get_moorings(self):
         moorings = []
 
-        if self.approval.code == AuthorisedUserPermit.code:
-            valid_moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True))
-            for moa in valid_moas:
-                moorings.append(moa.mooring)
-        elif self.approval.code == MooringLicence.code:
-            if hasattr(self.approval.child_obj, 'mooring'):
-                moorings.append(self.approval.child_obj.mooring)
-            else:
-                logger.error(
-                    'Failed to retrieve the mooring for the sticker {} because the associated MooringLicence {} does not have a mooring'.format(
-                        self.number, self.approval.lodgement_number))
+        if self.approval:
+            if self.approval.code == AuthorisedUserPermit.code:
+                valid_moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True))
+                for moa in valid_moas:
+                    moorings.append(moa.mooring)
+            elif self.approval.code == MooringLicence.code:
+                if hasattr(self.approval.child_obj, 'mooring'):
+                    moorings.append(self.approval.child_obj.mooring)
+                else:
+                    logger.error(
+                        'Failed to retrieve the mooring for the sticker {} because the associated MooringLicence {} does not have a mooring'.format(
+                            self.number, self.approval.lodgement_number))
 
         return moorings
 
@@ -2826,52 +2823,6 @@ class Sticker(models.Model):
         self.status = Sticker.STICKER_STATUS_RETURNED
         self.save()
         # self.update_other_stickers()
-
-#    def update_other_stickers(self):
-#        stickers_to_be_returned = self.approval.stickers.filter(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
-#        proposals_initiated = []
-#
-#        if stickers_to_be_returned:
-#            # There is still a sticker to be returned
-#            # Make sure current proposal with 'sticker_to_be_returned'. However, it should be already with 'sticker_to_be_returned' status set at the final approval.
-#            self.approval.current_proposal.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
-#            self.approval.current_proposal.save()
-#        else:
-#            # There are no stickers to be returned
-#            stickers_not_ready_yet = self.approval.stickers.filter(status=Sticker.STICKER_STATUS_NOT_READY_YET)
-#            for sticker in stickers_not_ready_yet:
-#                # change 'Not ready yet' stickers to 'Ready' so that it is picked up for exporting.
-#                sticker.status = Sticker.STICKER_STATUS_READY
-#                sticker.save()
-#                proposals_initiated.append(sticker.proposal_initiated)
-#                proposals_initiated = list(set(proposals_initiated))
-#
-#            stickers_being_printed = self.approval.stickers.filter(status__in=[
-#                Sticker.STICKER_STATUS_READY,
-#                Sticker.STICKER_STATUS_AWAITING_PRINTING,]
-#            )
-#
-#            # Update current proposal's status if needed
-#            if stickers_being_printed:
-#                # There is a sticker being printed
-#                if self.approval.current_proposal.processing_status in [Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED,]:
-#                    self.approval.current_proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-#                    self.approval.current_proposal.save()
-#            else:
-#                # There are not stickers to be printed
-#                if self.approval.current_proposal.processing_status in [Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED,]:
-#                    self.approval.current_proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-#                    self.approval.current_proposal.save()
-
-            # Update initiated proposal's status if needed.  initiated proposal may not be the current proposal now.
-#            for proposal in proposals_initiated:
-#                if proposal.processing_status == Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED:
-#                    stickers_to_be_returned = Sticker.objects.filter(status=Sticker.STICKER_STATUS_TO_BE_RETURNED, proposal_initiated=proposal)
-#                    if not stickers_to_be_returned.count():
-#                        # If proposal is in 'Sticker to be Returned' status and there are no stickers with 'To be returned' status,
-#                        # this proposal should get the status 'Printing Sticker'
-#                        proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-#                        proposal.save()
 
     def request_replacement(self, new_status):
         self.status = new_status
@@ -2930,13 +2881,6 @@ class Sticker(models.Model):
         if not vessel_length:
             vessel_length = self.vessel_applicable_length
         return Sticker.get_vessel_size_colour_by_length(vessel_length)
-
-        # last_item = None
-        # for item in self.colour_matrix:
-        #     last_item = item
-        #     if vessel_length <= item['length']:
-        #         return item['colour']
-        # return last_item['colour']  # This returns the last item when reached
 
     @property
     def next_number(self):

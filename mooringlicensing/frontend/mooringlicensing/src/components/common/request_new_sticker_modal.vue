@@ -17,7 +17,7 @@
                             <tr v-for="sticker in stickers" :key="sticker.id">
                                 <td><input type="checkbox" v-model="sticker.checked" /></td>
                                 <td>{{ sticker.number }}</td>
-                                <td>{{ sticker.vessel_rego_no }}</td>
+                                <td>{{ sticker.vessel.rego_no }}</td>
                                 <td>
                                     <span v-for="mooring in sticker.moorings">
                                         {{ mooring.name }} ({{ mooring.mooring_bay_name }})

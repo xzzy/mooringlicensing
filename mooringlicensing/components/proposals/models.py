@@ -3052,7 +3052,7 @@ class AuthorisedUserApplication(Proposal):
                 send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
-        logger.info(f'AuthorisedUserApplication.update_or_create_approval() is called')
+        logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
         # This function is called after payment success for new/amendment/renewal application
 
         created = None
@@ -3496,21 +3496,27 @@ class MooringLicenceApplication(Proposal):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
 
-        if self.proposal_type in (ProposalType.objects.filter(code__in=(PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT))):
+        if self.proposal_type in (ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,])):
+            # Renewal
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            send_confirmation_email_upon_submit(request, self, False)
+            send_notification_email_upon_submit_to_assessor(request, self)
         else:
+            # New
             if self.amendment_requests.count():
+                # Amendment request
                 self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-                # TODO:
+                send_confirmation_email_upon_submit(request, self, False)
+                send_notification_email_upon_submit_to_assessor(request, self)
             else:
                 self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
                 send_documents_upload_for_mooring_licence_application_email(request, self)
-
+                send_notification_email_upon_submit_to_assessor(request, self)
         self.save()
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
     def update_or_create_approval(self, current_datetime, request=None):
-        logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
+        logger.info(f'Updating/Creating Mooring Site Licence from the application: [{self}]...')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
             if self.approval and self.approval.child_obj.mooring:

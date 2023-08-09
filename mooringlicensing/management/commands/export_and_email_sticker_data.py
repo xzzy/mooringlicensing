@@ -1,6 +1,6 @@
 import logging
 from django.core.management.base import BaseCommand
-from mooringlicensing.components.main.utils import sticker_export, email_stickers_document
+from mooringlicensing.components.main.utils import sticker_export, email_stickers_document, reorder_wla
 from mooringlicensing.management.commands.utils import construct_email_message
 
 logger = logging.getLogger('cron_tasks')
@@ -11,6 +11,15 @@ class Command(BaseCommand):
     help = 'Export and email sticker data'
 
     def handle(self, *args, **options):
+        # from mooringlicensing.components.approvals.models import WaitingListAllocation
+        # wla = WaitingListAllocation.objects.all()
+        # wla.update(wla_order=None)
+
+        # from mooringlicensing.components.proposals.models import MooringBay
+        # bays = MooringBay.objects.all()
+        # for bay in bays:
+        #     reorder_wla(bay)
+
         # 1. Export sticker details as a spreadsheet file
         updates, errors = sticker_export()
 
