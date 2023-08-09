@@ -3052,7 +3052,7 @@ class AuthorisedUserApplication(Proposal):
                 send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
-        logger.info(f'AuthorisedUserApplication.update_or_create_approval() is called')
+        logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
         # This function is called after payment success for new/amendment/renewal application
 
         created = None
@@ -3516,7 +3516,7 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
     def update_or_create_approval(self, current_datetime, request=None):
-        logger.info(f'MooringLicenceApplication.update_or_create_approval() is called')
+        logger.info(f'Updating/Creating Mooring Site Licence from the application: [{self}]...')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
             if self.approval and self.approval.child_obj.mooring:
