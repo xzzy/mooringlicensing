@@ -883,33 +883,34 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
         # status property
         status = None
         target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
-        if search_text.strip().lower() in 'current':
-            status = 'current'
-        elif search_text.strip().lower() in 'expired':
-            status = 'expired'
+        if search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_CURRENT:
+            status = DcvPermit.DCV_PERMIT_STATUS_CURRENT
+        elif search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_EXPIRED:
+            status = DcvPermit.DCV_PERMIT_STATUS_EXPIRED
         
-        common_search_criteria = (Q(lodgement_number__icontains=search_text) |
-                Q(dcv_organisation__name__icontains=search_text) |
-                Q(dcv_permit_fees__invoice_reference__icontains=search_text) |
-                Q(fee_season__name__icontains=search_text) |
-                Q(stickers__number__icontains=search_text)
-                )
-        # search_text
-        if search_text:
-            if status == 'current':
-                queryset = queryset.filter(
-                        (Q(start_date__lte=target_date) & Q(end_date__gte=target_date)) |
-                        common_search_criteria
-                        )
-            elif status == 'expired':
-                queryset = queryset.filter(
-                       ~Q(Q(start_date__lte=target_date) & Q(end_date__gte=target_date)) |
-                       common_search_criteria
-                        )
-            else:
-                queryset = queryset.filter(
-                        common_search_criteria
-                        )
+        # common_search_criteria = (
+        #     Q(lodgement_number__icontains=search_text) |
+        #     Q(dcv_organisation__name__icontains=search_text) |
+        #     Q(dcv_permit_fees__invoice_reference__icontains=search_text) |
+        #     Q(fee_season__name__icontains=search_text) |
+        #     Q(stickers__number__icontains=search_text)
+        # )
+        # # search_text
+        # if search_text:
+        #     if status == DcvPermit.DCV_PERMIT_STATUS_CURRENT:
+        #         queryset = queryset.filter(
+        #             (Q(start_date__lte=target_date) & Q(end_date__gte=target_date)) |
+        #             common_search_criteria
+        #         )
+        #     elif status == DcvPermit.DCV_PERMIT_STATUS_EXPIRED:
+        #         queryset = queryset.filter(
+        #             ~Q(Q(start_date__lte=target_date) & Q(end_date__gte=target_date)) |
+        #             common_search_criteria
+        #         )
+        #     else:
+        #         queryset = queryset.filter(
+        #             common_search_criteria
+        #         )
 
         # getter = request.query_params.get
         # fields = self.get_fields(getter)
@@ -922,10 +923,10 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
         else:
             queryset = queryset.order_by('-lodgement_number')
 
-        #try:
-        #    queryset = super(DcvPermitFilterBackend, self).filter_queryset(request, queryset, view)
-        #except Exception as e:
-        #    print(e)
+        try:
+           queryset = super(DcvPermitFilterBackend, self).filter_queryset(request, queryset, view)
+        except Exception as e:
+           logger.exception(f'Failed to filter the queryset.  Error: [{e}].')
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -948,7 +949,6 @@ class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
     ordering = ['-id']
 
     def get_queryset(self):
-        request_user = self.request.user
         qs = DcvPermit.objects.none()
 
         if is_internal(self.request):
