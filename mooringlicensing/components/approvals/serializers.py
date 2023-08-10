@@ -1,4 +1,7 @@
 import logging
+import pytz
+from datetime import datetime
+from mooringlicensing.settings import TIME_ZONE
 
 from django.conf import settings
 # from ledger.accounts.models import EmailUser
@@ -950,14 +953,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return vessel_length
 
     def get_vessel_regos(self, obj):
+        today = datetime.now(pytz.timezone(TIME_ZONE)).date()
         regos = []
         if type(obj.child_obj) == MooringLicence:
             for vessel_details in obj.child_obj.vessel_details_list:
                 regos.append(vessel_details.vessel.rego_no)
         else:
             # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
-            if obj.current_proposal.vessel_details:
-                regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
+            # if obj.current_proposal.vessel_details:
+            #     regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
+            if obj.current_proposal.vessel_ownership.end_date >= today or obj.current_proposal.vessel_ownership.end_date is None:
+                # We don't want to include the sold vessel
+                regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
+
         return regos
 
     # def get_vessel_registration(self, obj):
