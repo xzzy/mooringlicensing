@@ -962,7 +962,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
             # if obj.current_proposal.vessel_details:
             #     regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
-            if obj.current_proposal.vessel_ownership.end_date >= today or obj.current_proposal.vessel_ownership.end_date is None:
+            if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
                 # We don't want to include the sold vessel
                 regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
 
