@@ -99,7 +99,7 @@ export default {
         },
         datatable_headers: function(){
             if (this.is_internal){
-                return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Season', 'Sticker', 'Action']
+                return ['id', 'Number', 'Invoice / Permit', 'Organisation', 'Status', 'Payment Status', 'Season', 'Sticker', 'Vessel Rego', 'Action']
             }
         },
         column_id: function(){
@@ -145,13 +145,13 @@ export default {
                         for (let invoice of full.invoices){
                             links +=  `<div><a href='${invoice.invoice_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a><br/>`;
+                                links +=  `<div><a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a></div>`;
                             }
                         }
                     }
                     if (full.permits){
                         for (let permit_url of full.permits){
-                            links +=  `<div><a href='${permit_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Permit</a></div>`;
+                            links +=  `<div><a href='${permit_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Dcv Permit</a></div>`;
                         }
                     }
                     return links
@@ -183,6 +183,17 @@ export default {
                 name: 'status',
             }
         },
+        column_payment_status: function(){
+            return {
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.payment_status;
+                },
+            }
+        },
         column_year: function(){
             return {
                 data: "id",
@@ -210,6 +221,19 @@ export default {
                     return ret_str
                 },
                 name: 'stickers__number',
+            }
+        },
+        column_vessel_rego: function(){
+            return {
+                data: "id",
+                orderable: false,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    console.log({full})
+                    return full.vessel_rego
+                },
+                name: 'dcv_vessel__rego_no',
             }
         },
         column_action: function(){
@@ -240,8 +264,10 @@ export default {
                 vm.column_invoice_approval,
                 vm.column_organisation,
                 vm.column_status,
+                vm.column_payment_status,
                 vm.column_year,
                 vm.column_sticker,
+                vm.column_vessel_rego,
                 vm.column_action,
             ]
             let search = true

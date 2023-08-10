@@ -157,7 +157,7 @@ export default {
                         for (let invoice of full.invoices){
                             links +=  `<div><a href='${invoice.invoice_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a><br/>`;
+                                links +=  `<div><a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a></div>`;
                             }
                         }
                     }

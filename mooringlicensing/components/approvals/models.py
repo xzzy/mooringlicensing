@@ -2235,7 +2235,7 @@ class DcvAdmission(RevisionedMixin):
         return urls
 
     def create_fee_lines(self):
-        logger.info('DcvAdmission.create_fee_lines() is called')
+        logger.info(f'Creating fee lines for the DcvAdmission: [{self}]...')
 
         db_processes_after_success = {}
 
@@ -2424,7 +2424,7 @@ class DcvPermit(RevisionedMixin):
 
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
-        logger.info('DcvPermit.create_fee_lines() is called')
+        logger.info(f'Creating fee lines for the DcvPermit: [{self}]...')
 
         # Any changes to the DB should be made after the success of payment process
         db_processes_after_success = {}

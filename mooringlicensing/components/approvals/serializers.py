@@ -1,4 +1,7 @@
 import logging
+import pytz
+from datetime import datetime
+from mooringlicensing.settings import TIME_ZONE
 
 from django.conf import settings
 # from ledger.accounts.models import EmailUser
@@ -33,7 +36,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -950,14 +953,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return vessel_length
 
     def get_vessel_regos(self, obj):
+        today = datetime.now(pytz.timezone(TIME_ZONE)).date()
         regos = []
         if type(obj.child_obj) == MooringLicence:
             for vessel_details in obj.child_obj.vessel_details_list:
                 regos.append(vessel_details.vessel.rego_no)
         else:
             # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
-            if obj.current_proposal.vessel_details:
-                regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
+            # if obj.current_proposal.vessel_details:
+            #     regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
+            if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
+                # We don't want to include the sold vessel
+                regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
+
         return regos
 
     # def get_vessel_registration(self, obj):
@@ -1349,6 +1357,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     permits = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     display_create_sticker_action = serializers.SerializerMethodField()
+    vessel_rego = serializers.CharField(source='dcv_vessel.rego_no')
+    payment_status = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
@@ -1367,7 +1377,9 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'permits',
             'stickers',
             'display_create_sticker_action',
-            )
+            'vessel_rego',
+            'payment_status',
+        )
         datatables_always_serialize = (
             'id',
             'migrated',
@@ -1383,7 +1395,33 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'permits',
             'stickers',
             'display_create_sticker_action',
-            )
+            'vessel_rego',
+            'payment_status',
+        )
+    def get_payment_status(self, obj):
+        try:
+            dcv_permit_fee = obj.dcv_permit_fees.order_by('-id').first()
+            if dcv_permit_fee:
+                invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
+                invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
+                if invoice_payment_status == 'unpaid':
+                    return 'Unpaid'
+                elif invoice_payment_status == 'partially_paid':
+                    return 'Partially Paid'
+                elif invoice_payment_status == 'paid':
+                    return 'Paid'
+                else:
+                    return 'Over Paid'
+            else:
+                return 'Unpaid'
+        except Exception as e:
+            logger.warning(f'Payment status of the DcvPermit: [{obj}] is unsure...')
+            return 'Unsure...'
+
+        # invoice_references = [item.invoice_reference for item in obj.dcv_permit_fees.all()]
+        # invoices = Invoice.objects.filter(reference__in=invoice_references)
+        # invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
+
 
     def get_stickers(self, obj):
         stickers = []

@@ -634,10 +634,7 @@ class DcvPermitFeeSuccessView(TemplateView):
             dcv_permit_fee = DcvPermitFee.objects.get(uuid=uuid)
 
             dcv_permit = dcv_permit_fee.dcv_permit
-            # invoice_url = get_invoice_url(dcv_permit_fee.invoice_reference, request)
-            api_key = settings.LEDGER_API_KEY
-            invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + dcv_permit_fee.invoice_reference
-            # invoice_pdf = requests.get(url=url)
+            invoice_url = f'/ledger-toolkit-api/invoice-pdf/{dcv_permit_fee.invoice_reference}/'
 
             context = {
                 'dcv_permit': dcv_permit,
