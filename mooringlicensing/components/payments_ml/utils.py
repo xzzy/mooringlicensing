@@ -30,9 +30,8 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
         'booking_reference': booking_reference,
     }
 
-    # basket, basket_hash = create_basket_session(request, basket_params)
-    # basket, basket_hash = create_basket_session(request, request.user.id, basket_params)
-    basket_hash = create_basket_session(request, request.user.id, basket_params)
+    email_user_id = email_user.id if request.user.is_anonymous else request.user.id
+    basket_hash = create_basket_session(request, email_user_id, basket_params)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
