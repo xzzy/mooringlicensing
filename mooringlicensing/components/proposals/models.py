@@ -442,6 +442,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         Retrieve all the fee_items for this vessel
         """
         logger.info(f'Adjusting the fee amount for proposal: [{self}], fee_item: [{fee_item_being_applied}], vessel_length: [{vessel_length}]')
+        if not fee_item_being_applied:
+            msg = f'FeeItem is None.  Cannot proceed to calculate the fee_amount_adjusted for the proposal: [{self}]...'
+            logger.exception(msg)
+            raise ValidationError(msg)
 
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 

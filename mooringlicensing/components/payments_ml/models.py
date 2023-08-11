@@ -363,19 +363,26 @@ class FeeConstructor(models.Model):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
     def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date(), age_group=None, admission_type=None, accept_null_vessel=False):
+        logger.info(f'Getting FeeItem for vessel_length:[{vessel_length}], proposal_type: [{proposal_type}], target_date: [{target_date}], accept_null_vessel: [{accept_null_vessel}], age_group: [{age_group}], admission_type: [{admission_type}]...')
         fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
         if accept_null_vessel:
             vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(null_vessel=True)
             if vessel_size_category.count() == 1:
                 vessel_size_category = vessel_size_category[0]
             else:
-                raise ValueError('Null vessel size category not found under the vessel size category group: {}'.format(self.vessel_size_category_group))
+                msg = f'Null vessel size category not found under the vessel size category group: {self.vessel_size_category_group}'
+                logger.error(msg)
+                raise ValueError(msg)
         else:
             vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length, null_vessel=False).order_by('start_size').last()
             if float(vessel_size_category.start_size) == vessel_length and not vessel_size_category.include_start_size:
                 vessel_size_category = vessel_size_category.get_one_smaller_category()
         fee_item = self.get_fee_item_for_adjustment(vessel_size_category, fee_period, proposal_type=proposal_type, age_group=age_group, admission_type=admission_type)
 
+        if fee_item:
+            logger.info(f'FeeItem: [{fee_item}] has been retrieved.')
+        else:
+            logger.exception(f'FeeItem not found for  vessel_length:[{vessel_length}], proposal_type: [{proposal_type}], target_date: [{target_date}], accept_null_vessel: [{accept_null_vessel}], age_group: [{age_group}], admission_type: [{admission_type}]...')
         return fee_item
 
     def get_fee_item_for_adjustment(self, vessel_size_category, fee_period, proposal_type=None, age_group=None, admission_type=None):
@@ -394,6 +401,7 @@ class FeeConstructor(models.Model):
             return fee_item[0]
         else:
             # Fees are probably not configured yet...
+            logger.info(f'FeeItem not found for the fee_constructor: [{self}], fee_period: [{fee_period}], vessel_size_category: [{vessel_size_category}], proposal_type: [{proposal_type}], age_group: [{age_group}], admission_type: [{admission_type}]')
             return None
 
     @property
