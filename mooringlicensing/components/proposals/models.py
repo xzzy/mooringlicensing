@@ -1941,6 +1941,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
                 proposal.previous_application = self
                 proposal.approval = self.approval
+                proposal.mooring_authorisation_preference = self.mooring_authorisation_preference
                 proposal.null_vessel_on_create = not self.vessel_on_proposal()
 
                 logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')

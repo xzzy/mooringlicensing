@@ -151,6 +151,18 @@
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_size_limit }}</div></div>
                                     </template>
                                     <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed details: </div><div class="col-sm-9 proposed-decision-value">{{ proposal.proposed_issuance_approval.details }}</div></div>
+                                    <template v-if="proposal.authorised_user_moorings">
+                                        <div class="currently_listed_moorings">Currently listed moorings</div>
+                                        <template v-for="item in proposal.authorised_user_moorings">
+                                            <div class="row">
+                                                <div class="col-sm-3 proposed-decision-title">Mooring Site ID (Bay): </div>
+                                                <div class="col-sm-9 proposed-decision-value">
+                                                    <input type="checkbox" v-model="item.checked" />{{ item.checked }}
+                                                    {{ stripHtmlTag(item.mooring_name) + ' (' + stripHtmlTag(item.bay) + ')' }}
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
                                 </template>
                                 <template v-else>
                                     <strong v-if="!isFinalised">Proposed decision: Decline</strong>
@@ -272,6 +284,13 @@ export default {
         },
     },
     methods:{
+        stripHtmlTag: function(myString){
+            let html = myString
+            let div = document.createElement("div")
+            div.innerHTML = html
+            let text = div.textContent || div.innerText || ''
+            return text
+        },
         retrieveMooringDetails: async function(){
             console.log('%cAHO', 'color: #370;')
             let mooring_id = null
@@ -372,5 +391,8 @@ export default {
 }
 .proposed-decision-value {
     font-weight: bold;
+}
+.currently_listed_moorings {
+    margin: 1em 0 0 0;
 }
 </style>

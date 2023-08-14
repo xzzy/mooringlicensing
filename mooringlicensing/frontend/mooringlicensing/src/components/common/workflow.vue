@@ -371,6 +371,7 @@ export default {
             this.$emit('proposedDecline')
         },
         proposedApproval: function(){
+            console.log('in proposedApproval')
             this.$emit('proposedApproval')
         },
         issueProposal: function(){
