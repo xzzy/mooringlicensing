@@ -716,30 +716,6 @@ export default {
                         }
                     }
         },
-        /*
-        columnMooringLicenceVessels: function() {
-            return {
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.mooring_licence_vessels;
-                        }
-                    }
-        },
-        columnAuthorisedUserMoorings: function() {
-            return {
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.authorised_user_moorings;
-                        }
-                    }
-        },
-        */
         columnVesselRegos: function() {
             return {
                         data: "id",
