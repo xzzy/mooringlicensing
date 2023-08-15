@@ -275,10 +275,22 @@ export default {
             console.log('%cproposal has been changed.', 'color: #33f;')
             if (this.proposal){
                 this.fetchSiteLicenseeMooring()
+                // this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             }
+        },
+        test: function(){
+            console.log('test changed???')
         }
+
     },
     computed: {
+        test: function(){
+            if (this.proposal){
+                return this.proposal.proposed_issuance_approval
+            } else {
+                return null
+            }
+        },
         proposedApprovalKey: function() {
             return "proposed_approval_" + this.uuid;
         },
@@ -489,7 +501,9 @@ export default {
 
             //save approval level comment before opening 'issue approval' modal
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
+                console.log('%cin issueProposal 1', 'color:#f33;')
                 if (this.proposal.approval_level_comment!=''){
+                    console.log('%cin issueProposal 2', 'color:#f33;')
                     let vm = this;
                     let data = new FormData();
                     data.append('approval_level_comment', vm.proposal.approval_level_comment)
@@ -512,7 +526,12 @@ export default {
             } else {
                 this.uuid++;
                 this.$nextTick(() => {
-                    this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                    if (this.proposal.proposed_issuance_approval != null){
+                        console.log('Here!!!')
+                        this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval)
+                    } else {
+                        this.$refs.proposed_approval.approval = {}
+                    }
                     this.$refs.proposed_approval.state = 'final_approval';
                     this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
                     this.$refs.proposed_approval.isModalOpen = true;
@@ -831,6 +850,7 @@ export default {
         //vm.fetchDeparmentUsers();
         // vm.retrieve_mooring_details()
         vm.fetchMooringBays()
+        console.log('AAA')
     },
     updated: function(){
         let vm = this;
