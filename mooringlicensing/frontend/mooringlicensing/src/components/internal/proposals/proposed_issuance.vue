@@ -165,16 +165,6 @@ export default {
             type: Object,
         }
     },
-    /*
-    watch: {
-        authorisedUserMoorings: function() {
-            console.log("watch")
-            if (this.authorisedUserMoorings.length > 0) {
-                this.constructMooringsTable();
-            }
-        },
-    },
-    */
     data: function () {
         let vm = this;
         return {
@@ -438,9 +428,9 @@ export default {
         },
         authorisedUserMoorings: function () {
             if (this.proposal.authorised_user_moorings.length > 0) {
-                console.log('in authorisedUserMoorings()')
                 return this.proposal.authorised_user_moorings;
             }
+            return []
         },
         mooringLicenceVessels: function () {
             if (this.proposal.mooring_licence_vessels.length > 0) {
@@ -677,8 +667,6 @@ export default {
         constructMooringsTable: function () {
             console.log('in constructMooringsTable()')
             // update checkboxes
-            console.log(this.authorisedUserMoorings)
-            console.log(this.approval.mooring_on_approval)
             if (this.authorisedUserMoorings && this.approval.mooring_on_approval && this.approval.mooring_on_approval.length > 0) {
                 console.log('construct 1')
                 for (let moa1 of this.approval.mooring_on_approval) {
@@ -716,20 +704,13 @@ export default {
         },
         mooringsCheckboxClicked: function (e) {
             let vm = this;
-            //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
             let mooringOnApprovalId = this.getMooringOnApprovalIdFromEvent(e);
-            //console.log(mooringOnApprovalId);
             let checked_status = e.target.checked;
-            //for (let i=0; i<this.apiary_sites_local.length; i++) {
             for (let mooring of this.authorisedUserMoorings) {
                 if (mooring.id == mooringOnApprovalId) {
-                    //console.log(e.target.checked)
                     mooring.checked = checked_status;
                 }
             }
-            //this.$emit('authorised_user_moorings_updated', this.authorisedUserMoorings)
-            //this.$emit('authorised_user_moorings_updated');
-            //this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
             e.stopPropagation();
         },
         constructVesselsTable: function () {
@@ -779,9 +760,6 @@ export default {
                     vo.checked = checked_status;
                 }
             }
-            //this.$emit('authorised_user_moorings_updated', this.authorisedUserMoorings)
-            //this.$emit('mooring_licence_vessels_updated');
-            //this.$refs.component_map.setApiarySiteSelectedStatus(apiary_site_id, checked_status)
             e.stopPropagation();
         },
 

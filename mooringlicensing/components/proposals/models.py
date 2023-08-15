@@ -3666,7 +3666,7 @@ class Mooring(RevisionedMixin):
     mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring", on_delete=models.SET_NULL)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} (Bay: {self.mooring_bay.name})'
 
     class Meta:
         verbose_name_plural = "Moorings"
