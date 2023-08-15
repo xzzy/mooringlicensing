@@ -918,7 +918,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
         )
 
     def get_proposed_issuance_approval(self, obj):
-        if obj.proposed_issuance_approval:
+        if obj.proposed_issuance_approval and obj.proposed_issuance_approval.get('mooring_bay_id', None):
             # Add bay_name when possible to display on the frontend
             bay = MooringBay.objects.get(id=obj.proposed_issuance_approval.get('mooring_bay_id'))
             obj.proposed_issuance_approval['bay_name'] = bay.name
