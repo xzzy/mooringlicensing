@@ -1023,17 +1023,27 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 # only do check if vessel details exist
                 if obj.vessel_details:
                     suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
-                color = '#000000' if suitable_for_mooring else '#FF0000'
+                # color = '#000000' if suitable_for_mooring else '#FF0000'
                 #import ipdb; ipdb.set_trace()
+
+                # Retrieve checkbox status for this mooring (moa.mooring)
+                checked = True
+                if obj.proposed_issuance_approval and 'mooring_on_approval' in obj.proposed_issuance_approval:
+                    for item in obj.proposed_issuance_approval['mooring_on_approval']:
+                        if  moa.id == item['id']:
+                            checked = item['checked']
+
                 moorings.append({
                     "id": moa.id,
                     "mooring_name": moa.mooring.name,
                     "bay": str(moa.mooring.mooring_bay),
                     "site_licensee": 'RIA Allocated' if not moa.site_licensee else 'User Requested',
                     "status": 'Current' if not moa.end_date else 'Historical',
-                    "checked": True if suitable_for_mooring and not moa.end_date else False,
+                    "checked": checked,
+                    'vessel_size_limit': str(moa.mooring.vessel_size_limit),
+                    'vessel_draft_limit': str(moa.mooring.vessel_draft_limit),
                     "suitable_for_mooring": suitable_for_mooring,
-                    "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'] if moa.mooring.mooring_licence else None,
+                    "mooring_licence_current": moa.mooring.mooring_licence.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED] if moa.mooring.mooring_licence else None,
                 })
         return moorings
 
