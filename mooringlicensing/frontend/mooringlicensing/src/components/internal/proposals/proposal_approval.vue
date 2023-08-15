@@ -129,27 +129,11 @@
                                         <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed cc emails: </div><div class="col-sm-9 proposed-decision-value">{{ displayCCEmail }}</div></div>
                                     </template>
 
-                                    <template v-if="proposal.mooring_authorisation_preference == 'ria'">
-                                        <!-- When AU RIA -->
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ mooringBayName }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ proposal.proposed_issuance_approval.ria_mooring_name }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_draft_limit }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_size_limit }}</div></div>
-                                    </template>
-                                    <template v-else-if="proposal.mooring_authorisation_preference == 'site_licensee'">
-                                        <!-- When AU SiteLicensee -->
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.mooring_bay_name }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.name }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_draft_limit }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ siteLicenseeMooring.vessel_size_limit }}</div></div>
-                                    </template>
-                                    <template v-else>
-                                        <!-- When ML -->
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.mooring_bay_name }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.name }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_draft_limit }}</div></div>
-                                        <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ mooring.vessel_size_limit }}</div></div>
-                                    </template>
+                                    <div class="row"><div class="col-sm-3 proposed-decision-title">Bay: </div><div class="col-sm-9 proposed-decision-value">{{ targetMooringBayDetails.bay_name }}</div></div>
+                                    <div class="row"><div class="col-sm-3 proposed-decision-title">Mooring Site ID: </div><div class="col-sm-9 proposed-decision-value">{{ targetMooringBayDetails.mooring_name }}</div></div>
+                                    <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel draft: </div><div class="col-sm-9 proposed-decision-value">{{ targetMooringBayDetails.vessel_draft_limit }}</div></div>
+                                    <div class="row"><div class="col-sm-3 proposed-decision-title">Max vessel length: </div><div class="col-sm-9 proposed-decision-value">{{ targetMooringBayDetails.vessel_size_limit }}</div></div>
+
                                     <div class="row"><div class="col-sm-3 proposed-decision-title">Proposed details: </div><div class="col-sm-9 proposed-decision-value">{{ proposal.proposed_issuance_approval.details }}</div></div>
                                     <template v-if="proposal.authorised_user_moorings">
                                         <div class="currently_listed_moorings">Currently listed moorings</div>
@@ -157,8 +141,8 @@
                                             <div class="row">
                                                 <div class="col-sm-3 proposed-decision-title">Mooring Site ID (Bay): </div>
                                                 <div class="col-sm-9 proposed-decision-value">
-                                                    <input type="checkbox" v-model="item.checked" />{{ item.checked }}
-                                                    {{ stripHtmlTag(item.mooring_name) + ' (' + stripHtmlTag(item.bay) + ')' }}
+                                                    <!-- <input type="checkbox" v-model="item.checked" />{{ item.checked }} -->
+                                                    <input type="checkbox" v-model="item.checked" /> {{ stripHtmlTag(item.mooring_name) + ' (' + stripHtmlTag(item.bay) + ')' }}
                                                 </div>
                                             </div>
                                         </template>
@@ -213,13 +197,34 @@ export default {
         //ComponentSiteSelection,
     },
     computed:{
-        mooringBayName: function(){
-            console.log('mooringBayName called')
-            for (let mooringBay of this.mooringBays) {
-                if (mooringBay.id == this.proposal.proposed_issuance_approval.mooring_bay_id) {
-                    return mooringBay.name
+        targetMooringBayDetails: function(){
+            let mooringBayDetail = {}
+            if (this.proposal.mooring_authorisation_preference == 'ria'){
+                console.log('RIA')
+                mooringBayDetail = {
+                    'bay_name': this.proposal.proposed_issuance_approval.bay_name,
+                    'mooring_name': this.proposal.proposed_issuance_approval.ria_mooring_name,
+                    'vessel_draft_limit': this.mooring.vessel_draft_limit,
+                    'vessel_size_limit': this.mooring.vessel_size_limit
+                }
+            } else if (this.proposal.mooring_authorisation_preference == 'site_licensee'){
+                console.log('SITE LICENSEE')
+                mooringBayDetail = {
+                    'vessel_bay_name': this.siteLicenseeMooring.mooring_bay_name,
+                    'vessel_mooring_name': this.siteLicenseeMooring.name,
+                    'vessel_draft_limit': this.siteLicenseeMooring.vessel_draft_limit,
+                    'vessel_size_limit': this.siteLicenseeMooring.vessel_size_limit
+                }                       
+            } else {                    
+                console.log('ELSE')
+                mooringBayDetail = {
+                    'vessel_bay_name': this.mooring.mooring_bay_name,
+                    'vessel_mooring_name': this.mooring.name,
+                    'vessel_draft_limit': this.mooring.vessel_draft_limit,
+                    'vessel_size_limit': this.mooring.vessel_size_limit
                 }
             }
+            return mooringBayDetail
         },
         displayCCEmail: function() {
             let ccEmail = ''

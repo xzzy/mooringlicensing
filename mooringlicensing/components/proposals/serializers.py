@@ -809,6 +809,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_vessel_rego_no = serializers.SerializerMethodField()
     vessel_on_proposal = serializers.SerializerMethodField()
+    proposed_issuance_approval = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -847,6 +848,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'comment_data',
                 'allowed_assessors',
                 'proposed_issuance_approval',
+                # 'proposed_issuance_approval2',
                 'proposed_decline_status',
                 'proposaldeclineddetails',
                 'permit',
@@ -915,6 +917,13 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'requirements',
         )
 
+    def get_proposed_issuance_approval(self, obj):
+        if obj.proposed_issuance_approval:
+            # Add bay_name when possible to display on the frontend
+            bay = MooringBay.objects.get(id=obj.proposed_issuance_approval.get('mooring_bay_id'))
+            obj.proposed_issuance_approval['bay_name'] = bay.name
+        return obj.proposed_issuance_approval
+
     def get_submitter(self, obj):
         if obj.submitter:
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
@@ -923,7 +932,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
             return UserSerializer(email_user).data
         else:
             return ""
-
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
