@@ -442,6 +442,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         Retrieve all the fee_items for this vessel
         """
         logger.info(f'Adjusting the fee amount for proposal: [{self}], fee_item: [{fee_item_being_applied}], vessel_length: [{vessel_length}]')
+        if not fee_item_being_applied:
+            msg = f'FeeItem is None.  Cannot proceed to calculate the fee_amount_adjusted for the proposal: [{self}]...'
+            logger.exception(msg)
+            raise ValidationError(msg)
 
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
@@ -1937,6 +1941,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
                 proposal.previous_application = self
                 proposal.approval = self.approval
+                proposal.mooring_authorisation_preference = self.mooring_authorisation_preference
                 proposal.null_vessel_on_create = not self.vessel_on_proposal()
 
                 logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')
@@ -3661,7 +3666,7 @@ class Mooring(RevisionedMixin):
     mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring", on_delete=models.SET_NULL)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} (Bay: {self.mooring_bay.name})'
 
     class Meta:
         verbose_name_plural = "Moorings"
