@@ -482,21 +482,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         max_amount_paid_for_aa_component = 0
 
-        # Get max amount for AA from this proposal history
-        max_amount_paid = self.get_amount_paid_so_far_for_aa_through_this_proposal(self.previous_application, vessel)  # TODO: Fix, this amount might be paid for another vessel.
-        if max_amount_paid_for_aa_component < max_amount_paid:
-            max_amount_paid_for_aa_component = max_amount_paid
-
-        # Get max amount for this vessel from other current/suspended approvals
-        current_approvals = vessel.get_current_aaps(target_date)
-        for approval in current_approvals:
-            # Current approval exists
-            max_amount_paid = self.get_amounts_paid_so_far_for_aa_through_other_approvals(approval.current_proposal, vessel)  # We mind vessel for AA component
-            # if annual_admission_type in max_amounts_paid:
-            # When there is an AAP component
+        if self.proposal_type.code not in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL]:
+            # Get max amount for AA from this proposal history
+            max_amount_paid = self.get_amount_paid_so_far_for_aa_through_this_proposal(self.previous_application, vessel)  # TODO: Fix, this amount might be paid for another vessel.
             if max_amount_paid_for_aa_component < max_amount_paid:
-                # Update variable
                 max_amount_paid_for_aa_component = max_amount_paid
+
+            # Get max amount for this vessel from other current/suspended approvals
+            current_approvals = vessel.get_current_aaps(target_date)
+            for approval in current_approvals:
+                # Current approval exists
+                max_amount_paid = self.get_amounts_paid_so_far_for_aa_through_other_approvals(approval.current_proposal, vessel)  # We mind vessel for AA component
+                # if annual_admission_type in max_amounts_paid:
+                # When there is an AAP component
+                if max_amount_paid_for_aa_component < max_amount_paid:
+                    # Update variable
+                    max_amount_paid_for_aa_component = max_amount_paid
 
         return max_amount_paid_for_aa_component
 
@@ -2944,7 +2945,8 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+        # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+        if mooring_preference.lower() != 'ria':
             # When this application is new AUA application and the mooring authorisation preference is not RIA.
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.save()

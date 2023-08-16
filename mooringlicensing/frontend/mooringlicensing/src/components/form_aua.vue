@@ -72,20 +72,20 @@
                           />
                   </div>
                   <Vessels
-                  :proposal="proposal"
-                  :profile="profileVar"
-                  :id="'proposalStartVessels' + uuid"
-                  :key="'proposalStartVessels' + uuid"
-                  :keep_current_vessel=keepCurrentVessel
-                  ref="vessels"
-                  :readonly="readonly"
-                  :is_internal="is_internal"
-                  @updateVesselLength="updateVesselLength"
-                  @vesselChanged="vesselChanged"
-                  @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
-                  @noVessel="noVessel"
-                  @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
-                  @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
+                    :proposal="proposal"
+                    :profile="profileVar"
+                    :id="'proposalStartVessels' + uuid"
+                    :key="'proposalStartVessels' + uuid"
+                    :keep_current_vessel=keepCurrentVessel
+                    ref="vessels"
+                    :readonly="readonly"
+                    :is_internal="is_internal"
+                    @updateVesselLength="updateVesselLength"
+                    @vesselChanged="vesselChanged"
+                    @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                    @noVessel="noVessel"
+                    @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
+                    @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -223,6 +223,7 @@
             Profile,
         },
         computed:{
+
             profileVar: function() {
                 if (this.is_external) {
                     return this.profile;
@@ -247,17 +248,6 @@
                 }
                 return newApp;
             },
-            /*
-            showInsuranceTab: function(){
-                let show=true;
-                if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !=='new' && this.keep_current_vessel)
-                {
-                    show=false;
-                }
-                return show;
-
-            },
-            */
         },
         methods:{
             updateVesselOwnershipChanged: async function(changed){
@@ -371,6 +361,10 @@
                             this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
                         }
+                        if (this.proposal.null_vessel_on_create && this.$refs.vessels.vessel.rego_no){
+                            // NullVessel when this application was created.  But now it has a value in the vessel-registration field.
+                            this.showInsuranceTab = true;
+                        }
                         // auto approve
                         if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
@@ -384,17 +378,14 @@
                             this.showPaymentTab = true;
                             this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Pay / Submit");
-                            //this.$emit("updateAutoRenew", true);
                         } else if (!this.keepCurrentVessel) {
                             this.showPaymentTab = false;
                             this.showInsuranceTab = true;
                             this.$emit("updateSubmitText", "Submit");
-                            //this.$emit("updateAutoRenew", false);
                         } else {
                             this.showPaymentTab = false;
                             this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
-                            //this.$emit("updateAutoRenew", false);
                         }
                         // auto approve
                         if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring || this.vesselOwnershipChanged) {
