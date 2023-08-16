@@ -2944,7 +2944,8 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+        # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+        if mooring_preference.lower() != 'ria':
             # When this application is new AUA application and the mooring authorisation preference is not RIA.
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.save()
