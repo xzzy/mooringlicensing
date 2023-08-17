@@ -478,7 +478,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_main_component
 
     def get_max_amount_paid_for_aa_component(self, target_date, vessel):
-        logger.info(f'Calculating the max amount paid for the AA component for the vessel: [{vessel}]...')
+        logger.info(f'Calculating the max amount paid for the AA component, which can be transferred for the vessel: [{vessel}]...')
 
         max_amount_paid_for_aa_component = 0
 
@@ -512,7 +512,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return payment_required
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
-        logger.info('Proposal.get_amount_paid_so_far_for_aa_through_this_proposal() is called.')
+        logger.info(f'Calculating the amount paid so far for the AA component through the proposal(s) which leads to the proposal: [{self}]...')
 
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
@@ -541,9 +541,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                                 if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
                                     # When ML, customer is adding a new vessel to the ML
-                                    # We have to charge full amount  --> Go to next loop
-                                    logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
-                                    continue
+                                    if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
+                                        # However, old vessel (target vessel) is no longer on any licence/permit.
+                                        logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
+                                    else:
+                                        # We have to charge full amount  --> Go to next loop
+                                        logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}] and the vessel: [{target_vessel}] is still on another licence/permit.  We cannot transfer the amount paid: [{fee_item_application_fee}] for the vessel: [{vessel}].')
+                                        continue
                                 if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == AuthorisedUserPermit:
                                     # When AU, customer is replacing the current vessel
                                     for key, qs in current_approvals.items():

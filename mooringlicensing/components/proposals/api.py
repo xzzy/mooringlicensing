@@ -1901,6 +1901,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
+        return Response({})
         vessel = self.get_object()
         booking_date_str = request.data.get("selected_date")
         booking_date = None
