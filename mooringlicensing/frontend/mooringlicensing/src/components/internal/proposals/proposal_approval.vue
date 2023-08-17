@@ -125,16 +125,16 @@ export default {
             } else if (this.proposal.mooring_authorisation_preference == 'site_licensee'){
                 console.log('SITE LICENSEE')
                 mooringBayDetail = {
-                    'vessel_bay_name': this.siteLicenseeMooring.mooring_bay_name,
-                    'vessel_mooring_name': this.siteLicenseeMooring.name,
+                    'bay_name': this.siteLicenseeMooring.mooring_bay_name,
+                    'mooring_name': this.siteLicenseeMooring.name,
                     'vessel_draft_limit': this.siteLicenseeMooring.vessel_draft_limit,
                     'vessel_size_limit': this.siteLicenseeMooring.vessel_size_limit
                 }                       
             } else {                    
                 console.log('ELSE')
                 mooringBayDetail = {
-                    'vessel_bay_name': this.mooring.mooring_bay_name,
-                    'vessel_mooring_name': this.mooring.name,
+                    'bay_name': this.mooring.mooring_bay_name,
+                    'mooring_name': this.mooring.name,
                     'vessel_draft_limit': this.mooring.vessel_draft_limit,
                     'vessel_size_limit': this.mooring.vessel_size_limit
                 }
