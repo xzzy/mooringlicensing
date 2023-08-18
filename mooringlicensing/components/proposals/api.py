@@ -1772,6 +1772,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                 serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+                logger.info(f'VesselOwnership: [{instance}] has been updated with the end_date: [{sale_date}].')
 
                 ## collect impacted Approvals
                 approval_list = []
