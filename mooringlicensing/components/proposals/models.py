@@ -2837,8 +2837,9 @@ class AuthorisedUserApplication(Proposal):
                 self.save()
 
                 logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
+                fee_lines = [generate_line_item(self.application_type, 0, fee_constructor, self, current_datetime),]
 
-                return [], {}  # no line items, no db process
+                return fee_lines, {}  # no line items, no db process
             else:
                 logger.info(f'ML for the vessel: {self.vessel_details.vessel} does not exist.')
 
