@@ -1056,13 +1056,21 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 vessels.append(vessel)
                 status = 'Current' if not vooa.end_date else 'Historical'
 
+                # Retrieve checkbox status for this mooring (moa.mooring)
+                checked = True
+                if obj.proposed_issuance_approval and 'vessel_ownership' in obj.proposed_issuance_approval:
+                    for item in obj.proposed_issuance_approval['vessel_ownership']:
+                        if  vooa.vessel_ownership.id == item['id']:
+                            checked = item['checked']
+
                 vessel_details.append({
                     "id": vooa.vessel_ownership.id,
                     "rego": vooa.vessel_ownership.vessel.rego_no,
                     "vessel_name": vooa.vessel_ownership.vessel.latest_vessel_details.vessel_name,
                     "status": status,
-                    "checked": True if not vooa.end_date else False,
-                    })
+                    # "checked": True if not vooa.end_date else False,
+                    'checked': checked,
+                })
         return vessel_details
 
     def get_previous_application_vessel_details_id(self, obj):
