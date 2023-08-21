@@ -731,6 +731,8 @@ export default {
                 // Construct table
                 if (this.mooringLicenceVessels.length > 0) {
                     for (let vo of this.mooringLicenceVessels) {
+                        console.log('addVesselToTable')
+                        console.log({vo})
                         this.addVesselToTable(vo);
                     }
                 }

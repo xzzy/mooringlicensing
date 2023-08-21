@@ -478,7 +478,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return max_amount_paid_for_main_component
 
     def get_max_amount_paid_for_aa_component(self, target_date, vessel):
-        logger.info(f'Calculating the max amount paid for the AA component for the vessel: [{vessel}]...')
+        logger.info(f'Calculating the max amount paid for the AA component, which can be transferred for the vessel: [{vessel}]...')
 
         max_amount_paid_for_aa_component = 0
 
@@ -512,7 +512,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return payment_required
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
-        logger.info('Proposal.get_amount_paid_so_far_for_aa_through_this_proposal() is called.')
+        logger.info(f'Calculating the amount paid so far for the AA component through the proposal(s) which leads to the proposal: [{self}]...')
 
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
@@ -541,9 +541,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                                 if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
                                     # When ML, customer is adding a new vessel to the ML
-                                    # We have to charge full amount  --> Go to next loop
-                                    logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}].  We don\'t transfer the amount paid: [{fee_item_application_fee}].')
-                                    continue
+                                    if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
+                                        # However, old vessel (target vessel) is no longer on any licence/permit.
+                                        logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
+                                    else:
+                                        # We have to charge full amount  --> Go to next loop
+                                        logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}] and the vessel: [{target_vessel}] is still on another licence/permit.  We cannot transfer the amount paid: [{fee_item_application_fee}] for the vessel: [{vessel}].')
+                                        continue
                                 if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == AuthorisedUserPermit:
                                     # When AU, customer is replacing the current vessel
                                     for key, qs in current_approvals.items():
@@ -2833,8 +2837,9 @@ class AuthorisedUserApplication(Proposal):
                 self.save()
 
                 logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
+                fee_lines = [generate_line_item(self.application_type, 0, fee_constructor, self, current_datetime),]
 
-                return [], {}  # no line items, no db process
+                return fee_lines, {}  # no line items, no db process
             else:
                 logger.info(f'ML for the vessel: {self.vessel_details.vessel} does not exist.')
 
@@ -3227,9 +3232,9 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'FeeConstructor (for AA component): [{fee_constructor_for_aa}] has been retrieved for calculation.')
 
         vessel_detais_list_to_be_processed = [self.vessel_details,]
-        vessel_details_largest = self.vessel_details
+        vessel_details_largest = self.vessel_details  # As a default value
         if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-            # Only when 'Renewal' application, we are interested in the existing vessels on the ML
+            # Only when 'Renewal' application, we are interested in the existing vessels
             vessel_list = self.approval.child_obj.vessel_list_for_payment
             for vessel in vessel_list:
                 if vessel != self.vessel_details.vessel:
@@ -3239,6 +3244,8 @@ class MooringLicenceApplication(Proposal):
 
         line_items = []  # Store all the line items
         fee_items_to_store = []  # Store all the fee_items
+
+        logger.info(f'Largest vessel details are [{vessel_details_largest}] for the application: [{self}].')
 
         # For Mooring Licence component
         if vessel_details_largest:
@@ -3274,8 +3281,10 @@ class MooringLicenceApplication(Proposal):
 
         # For Annual Admission component
         for vessel_details in vessel_detais_list_to_be_processed:
+            # Annual admission fee is applied to each vessel.
+            if not vessel_details:
+                continue  # When the application was submitted with null-vessel and there are no existing vessels, process reaches this line.
             vessel_length = vessel_details.vessel_applicable_length
-
             max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
             logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
             # Check if there is already an AA component paid for this vessel
@@ -3530,13 +3539,7 @@ class MooringLicenceApplication(Proposal):
             else:
                 approval.write_approval_history()
 
-            #if existing_mooring_licence_vessel_count and existing_mooring_licence_vessel_count < approval.vesselownershiponapproval_set.count():
-            #    approval.write_approval_history('vessel_add')
-            #elif created:
-            #    approval.write_approval_history('new')
-            #else:
-            #    approval.write_approval_history()
-            return approval, created
+            return approval, approval_created
         except Exception as e:
             print(e)
             msg = 'Payment taken for Proposal: {}, but approval creation has failed\n{}'.format(self.lodgement_number, str(e))

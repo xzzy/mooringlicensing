@@ -190,6 +190,8 @@ export default {
             initialisedSelects: false,
             showingProposal:false,
             showingRequirements:false,
+            showingProposal:true,
+            showingRequirements:true,
             hasAmendmentRequest: false,
             requirementsComplete:true,
             state_options: ['requirements','processing'],
@@ -277,20 +279,9 @@ export default {
                 this.fetchSiteLicenseeMooring()
                 // this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             }
-        },
-        test: function(){
-            console.log('test changed???')
         }
-
     },
     computed: {
-        test: function(){
-            if (this.proposal){
-                return this.proposal.proposed_issuance_approval
-            } else {
-                return null
-            }
-        },
         proposedApprovalKey: function() {
             return "proposed_approval_" + this.uuid;
         },

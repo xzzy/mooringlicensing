@@ -870,7 +870,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
                     if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
                         # For AUA or MLA, as payment has been done, create approval
-                        approval, created = proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                        proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
                     else:
                         # When WLA / AAA
                         if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code]:
@@ -878,9 +878,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
                             proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id), request)
 
                             proposal.child_obj.send_emails_after_payment_success(request)
-                            # ret1 = proposal.child_obj.send_emails_after_payment_success(request)
-                            # if not ret1:
-                            #     raise ValidationError('An error occurred while submitting proposal (Submit email notifications failed)')
                             proposal.save()
 
                         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
@@ -894,18 +891,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
                     raise Exception(msg)
 
                 application_fee.save()
-                # request.session[self.LAST_APPLICATION_FEE_ID] = application_fee.id
-                # delete_session_application_invoice(request.session)
-                #
-                # wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
-                # context = {
-                #     'proposal': proposal,
-                #     'submitter': submitter,
-                #     'fee_invoice': application_fee,
-                #     'is_wla_or_aaa': wla_or_aaa,
-                #     'invoice': invoice,
-                # }
-                # return render(request, self.template_name, context)
 
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",

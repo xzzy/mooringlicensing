@@ -141,18 +141,19 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             dcv_permit_qs = DcvPermit.objects.filter(
                 dcv_vessel_id=data.get('dcv_vessel_id', 0),
                 fee_season_id=data.get('fee_season_id', 0),
-                dcv_organisation_id=data.get('dcv_organisation_id', 0)  # TODO <== check if works
+                # dcv_organisation_id=data.get('dcv_organisation_id', 0)  # TODO <== check if works
             )
             if dcv_permit_qs:
-                dcv_organisation = DcvOrganisation.objects.get(id=data.get('dcv_organisation_id'))
+                # dcv_organisation = DcvOrganisation.objects.get(id=data.get('dcv_organisation_id'))
                 dcv_vessel = DcvVessel.objects.get(id=data.get('dcv_vessel_id'))
                 fee_season = FeeSeason.objects.get(id=data.get('fee_season_id'))
-                non_field_errors.append('{} already is the holder of DCV Permit: {} for the vessel: {} for the year: {}'.format(
-                    dcv_organisation,
-                    dcv_permit_qs.first().lodgement_number,
-                    dcv_vessel,
-                    fee_season.name,
-                ))
+                # non_field_errors.append('{} already is the holder of DCV Permit: {} for the vessel: {} for the year: {}'.format(
+                #     dcv_organisation,
+                #     dcv_permit_qs.first().lodgement_number,
+                #     dcv_vessel,
+                #     fee_season.name,
+                # ))
+                non_field_errors.append(f'DcvPermit for the vessel: {dcv_vessel} for the season: {fee_season.name} has been already issued.')
 
             # Raise errors
             if field_errors:

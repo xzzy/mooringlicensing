@@ -461,6 +461,11 @@ class Approval(RevisionedMixin):
         return new_approval_history_entry
 
     def add_vessel_ownership(self, vessel_ownership):
+        logger.info(f'Adding a vessel_ownership: [{vessel_ownership}]...')
+
+        if not vessel_ownership:
+            return None, False
+
         # do not add if this vessel_ownership already exists for the approval 
         vessel_ownership_on_approval = None
         created = None
