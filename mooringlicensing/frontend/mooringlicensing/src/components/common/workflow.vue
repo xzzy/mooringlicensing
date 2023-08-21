@@ -42,25 +42,28 @@
                             </div>
 
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
+                                <!-- <div class="col-sm-12">
                                     <strong>Proposal</strong><br/>
                                     <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Application</a>
                                     <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Application</a>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
-                                </div>
+                                </div> -->
                             </template>
                             <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
+                                <!-- <div class="col-sm-12">
                                     <strong>Requirements</strong><br/>
                                     <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
                                     <a class="actionBtn" v-else @click.prevent="toggleRequirements()">Hide Requirements</a>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
-                                </div>
+                                </div> -->
                             </template>
+                                <div class="col-sm-12">
+                                    <div class="separator"></div>
+                                </div>
                             <div class="col-sm-12 top-buffer-s" v-if="display_actions">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -371,7 +374,6 @@ export default {
             this.$emit('proposedDecline')
         },
         proposedApproval: function(){
-            console.log('in proposedApproval')
             this.$emit('proposedApproval')
         },
         issueProposal: function(){

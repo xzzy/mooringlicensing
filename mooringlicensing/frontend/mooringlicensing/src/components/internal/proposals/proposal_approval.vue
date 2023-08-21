@@ -53,6 +53,17 @@
                             </div>
                         </template>
                     </template>
+                    <template v-if="proposal.mooring_licence_vessels.length > 0">
+                        <div class="currently_listed_moorings"><strong>Currently listed vessels</strong></div>
+                        <template v-for="item in proposal.mooring_licence_vessels">
+                            <div class="mooring_box">
+                                <div class="row"><div :class="title_class_name">Selected: </div><div :class="value_class_name"><input type="checkbox" v-model="item.checked" disabled /></div></div>
+                                <div class="row"><div :class="title_class_name">Vessel rego: </div><div :class="value_class_name">{{ item.rego }}</div></div>
+                                <div class="row"><div :class="title_class_name">Vessel name: </div><div :class="value_class_name">{{ item.vessel_name }}</div></div>
+                            </div>
+                        </template>
+                    </template>
+                    
                 </template>
                 <template v-else>
                     <strong v-if="!isFinalised">Proposed decision: Decline</strong>
