@@ -154,13 +154,13 @@ export default {
                         adults: {
                             landing: 0,
                             extended_stay: 0,
-                            not_landing: 0,
+                            water_based: 0,
                             approved_events: 0,
                         },
                         children: {
                             landing: 0,
                             extended_stay: 0,
-                            not_landing: 0,
+                            water_based: 0,
                             approved_events: 0,
                         }
                     },
@@ -477,13 +477,13 @@ export default {
                     adults: {
                         landing: 0,
                         extended_stay: 0,
-                        not_landing: 0,
+                        water_based: 0,
                         approved_events: 0,
                     },
                     children: {
                         landing: 0,
                         extended_stay: 0,
-                        not_landing: 0,
+                        water_based: 0,
                         approved_events: 0,
                     }
                 }

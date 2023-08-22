@@ -2365,13 +2365,13 @@ class AgeGroup(models.Model):
 class AdmissionType(models.Model):
     ADMISSION_TYPE_LANDING = 'landing'
     ADMISSION_TYPE_EXTENDED_STAY = 'extended_stay'
-    ADMISSION_TYPE_NOT_LANDING = 'not_landing'
+    ADMISSION_TYPE_WATER_BASED = 'water_based'
     ADMISSION_TYPE_APPROVED_EVENTS = 'approved_events'
 
     TYPE_CHOICES = (
         (ADMISSION_TYPE_LANDING, 'Landing'),
         (ADMISSION_TYPE_EXTENDED_STAY, 'Extended stay'),
-        (ADMISSION_TYPE_NOT_LANDING, 'Not landing'),
+        (ADMISSION_TYPE_WATER_BASED, 'Water based'),
         (ADMISSION_TYPE_APPROVED_EVENTS, 'Approved events'),
     )
     code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])

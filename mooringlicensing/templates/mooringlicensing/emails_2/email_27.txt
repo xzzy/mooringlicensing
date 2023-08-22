@@ -8,14 +8,14 @@ Arrival date: {{ arrival.arrival_date }}
 Number of adults (12 and over):
 - Landing: {{ arrival.adult.landing }}
 - Extended stay: {{ arrival.adult.extended_stay }}
-- Not landing: {{ arrival.adult.not_landing }}
+- Water based: {{ arrival.adult.water_based }}
 {% comment "Hide for now" %}
 - Approved events: {{ arrival.adult.approved_events }}
 {% endcomment %}
 Number of children (4-12)
 - Landing: {{ arrival.child.landing }}
 - Extended stay: {{ arrival.child.extended_stay }}
-- Not landing: {{ arrival.child.not_landing }}
+- Water based: {{ arrival.child.water_based }}
 {% comment "Hide for now" %}
 - Approved events: {{ arrival.child.approved_events }}
 {% endcomment %}
