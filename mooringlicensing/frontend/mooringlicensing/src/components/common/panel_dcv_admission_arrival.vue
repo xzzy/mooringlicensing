@@ -65,7 +65,7 @@
                             <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-landing" placeholder="" v-model="arrival.adults.landing">
                         </div>
                         <div class="col-sm-2">
-                            <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
+                            <input :disabled="!col_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-extended-stay" placeholder="" v-model="arrival.adults.extended_stay">
                         </div>
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="adults-not-landing" placeholder="" v-model="arrival.adults.not_landing">
@@ -84,8 +84,8 @@
                         <div class="col-sm-2">
                             <input :disabled="!column_landing_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-landing" placeholder="" v-model="arrival.children.landing">
                         </div>
-                        <div v-show="column_extended_stay_enabled" class="col-sm-2">
-                            <input :disabled="!column_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
+                        <div class="col-sm-2">
+                            <input :disabled="!col_extended_stay_enabled" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-extended-stay" placeholder="" v-model="arrival.children.extended_stay">
                         </div>
                         <div class="col-sm-2">
                             <input :disabled="!has_dcv_permit" type="number" min="0" max="100" step="1" class="form-control text-center" name="children-not-landing" placeholder="" v-model="arrival.children.not_landing">
@@ -159,13 +159,13 @@ export default {
             shown: false,  // Hidden first to make fade-in work
             paySubmitting: false,
             daily_admission_url: '',
+            col_extended_stay_enabled: false,
         }
     },
     components:{
         FormSection,
     },
     watch: {
-
     },
     computed: {
         radio_buttons_name: function() {
@@ -228,8 +228,6 @@ export default {
                 } else {
                     for(let key in this.arrival.adults) {
                         if(this.arrival.adults.hasOwnProperty(key) ) {
-                            console.log(key + ': ' + this.arrival.adults[key] );
-                            console.log(target_fee_configuration.fee_items.adult[key])
                             total_fee += this.arrival.adults[key] * target_fee_configuration.fee_items.adult[key]
                         }
                     }
@@ -257,8 +255,6 @@ export default {
                 } else {
                     for(let key in this.arrival.children) {
                         if(this.arrival.children.hasOwnProperty(key) ) {
-                            console.log(key + ': ' + this.arrival.children[key] );
-                            console.log(target_fee_configuration.fee_items.child[key])
                             total_fee += this.arrival.children[key] * target_fee_configuration.fee_items.child[key]
                         }
                     }
@@ -270,10 +266,21 @@ export default {
         },
     },
     methods: {
+        calculate_column_extended_stay_inputability: function(){
+            this.col_extended_stay_enabled = false
+            if (this.arrival.hasOwnProperty('arrival_date') && this.arrival.hasOwnProperty('departure_date')){
+                if (this.arrival.arrival_date && this.arrival.departure_date){
+                    if (this.arrival.arrival_date !== this.arrival.departure_date){
+                        this.col_extended_stay_enabled = true
+                    }
+                }
+            }
+            this.arrival.adults.extended_stay = 0
+            this.arrival.children.extended_stay = 0
+        },
         fetchData: async function(){
             // Status values
             const res = await this.$http.get(api_endpoints.daily_admission_url);
-            console.log(res.body.daily_admission_url)
             this.daily_admission_url = res.body.daily_admission_url
         },
         delete_arrival_icon_clicked: function() {
@@ -306,6 +313,7 @@ export default {
                     vm.arrival.arrival_date = selected_date;
                     el_to.data('DateTimePicker').minDate(false)
                 }
+                vm.calculate_column_extended_stay_inputability()
             })
 
             el_to.on("dp.change", function(e){
@@ -313,6 +321,7 @@ export default {
                 if (e.date){
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    console.log({selected_date})
                     vm.arrival.departure_date = selected_date;
                     el_fr.data('DateTimePicker').maxDate(selected_date)
                 } else {
@@ -320,6 +329,7 @@ export default {
                     vm.arrival.departure_date = selected_date;
                     el_fr.data('DateTimePicker').maxDate(false)
                 }
+                vm.calculate_column_extended_stay_inputability()
             })
         },
     },
