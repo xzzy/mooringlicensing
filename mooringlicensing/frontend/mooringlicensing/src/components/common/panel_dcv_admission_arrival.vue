@@ -323,7 +323,6 @@ export default {
                 if (e.date){
                     // Date selected
                     selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
-                    console.log({selected_date})
                     vm.arrival.departure_date = selected_date;
                     el_fr.data('DateTimePicker').maxDate(selected_date)
                 } else {

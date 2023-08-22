@@ -209,18 +209,14 @@ export default {
         },
         is_valid_email_address: function(){
             if(this.validateEmail(this.dcv_admission.email_address)){
-                console.log('email_address: true')
                 return true
             }
-            console.log('email_address: false')
             return false
         },
         is_valid_email_address_confirmation: function(){
             if(this.validateEmail(this.dcv_admission.email_address_confirmation)){
-                console.log('email_address_confirmation: true')
                 return true
             }
-            console.log('email_address_confirmation: false')
             return false
         },
         is_valid_email_addresses: function(){
@@ -237,7 +233,6 @@ export default {
             return false
         },
         valid_form: function(){
-            console.log('start validate')
             let enabled = true
             if(this.paySubmitting)
                 enabled = false
@@ -262,7 +257,6 @@ export default {
                         enabled = false
                 }
             }
-            console.log('end validate')
             return enabled
         },
         is_authenticated: function() {
@@ -277,7 +271,7 @@ export default {
             return false
         },
         show_dcv_organisation_fields: function(){
-            if (!this.does_dcv_permit_exist)
+            if (this.does_dcv_permit_exist)
                 return true
             return false
         },
@@ -302,22 +296,17 @@ export default {
     },
     methods: {
         validateEmail: function(email) {
-            console.log('in validateEmail')
             const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
             return re.test(email)
         },
         lookupDcvVessel: async function(id) {
-            console.log('in lookupDcvVessel')
             const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
             const vesselData = res.body;
-            console.log('existing dcv_vessel: ')
-            console.log(vesselData);
             if (vesselData && vesselData.rego_no) {
                 this.dcv_admission.dcv_vessel = Object.assign({}, vesselData);
             }
         },
         validateRegoNo: function(data) {
-            console.log('in validateRegoNo')
             // force uppercase and no whitespace
             data = data.toUpperCase();
             data = data.replace(/\s/g,"");
@@ -326,7 +315,6 @@ export default {
         },
 
         initialiseSelects: function(){
-            console.log('in initialiseSelects')
             let vm = this;
             $(vm.$refs.dcv_vessel_rego_nos).select2({
                 minimumInputLength: 2,
@@ -351,14 +339,11 @@ export default {
                 },
             }).
             on('select2:clear', function(e){
-                console.log('clear')
             }).
             on("select2:select",function (e) {
-                console.log('in select')
                 if (!e.params.data.selected) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log("No selection");
                     return false;
                 }
                 var selected = $(e.currentTarget);
@@ -368,7 +353,6 @@ export default {
                     //if (!isNew) {
                     if (e.params.data.isNew) {
                         // fetch the selected vessel from the backend
-                        console.log("new");
                         id = vm.validateRegoNo(id);
                         vm.dcv_admission.dcv_vessel =
                         {
@@ -382,13 +366,11 @@ export default {
                         //    });
                     } else {
                         // fetch the selected vessel from the backend
-                        console.log('existing')
                         vm.lookupDcvVessel(id);
                     }
                 });
             }).
             on("select2:unselect",function (e) {
-                console.log('select2:unselect')
                 var selected = $(e.currentTarget);
                 vm.dcv_admission.dcv_vessel.rego_no = '';
                 vm.dcv_admission.dcv_vessel = Object.assign({},
@@ -408,7 +390,6 @@ export default {
                 searchField[0].focus();
                 // prevent spacebar from being used
                 searchField.on("keydown",function (e) {
-                    //console.log(e.which);
                     if ([32,].includes(e.which)) {
                         e.preventDefault();
                         return false;
@@ -442,8 +423,6 @@ export default {
         save_and_pay: async function() {
             try{
                 const res = await this.save(false, '/api/dcv_admission/')
-                console.log('res: ')
-                console.log(res)
                 this.dcv_admission.id = res.body.id
                 await helpers.post_and_redirect(this.dcv_admission_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
                 //this.paySubmitting = false
@@ -498,15 +477,12 @@ export default {
         },
     },
     mounted: function () {
-        console.log('in mounted')
         this.$nextTick(() => {
             this.initialiseSelects()
         });
     },
     created: async function() {
-        console.log('in created')
         const res = await this.$http.get(api_endpoints.fee_configurations)
-        console.log(res.body)
         this.fee_configurations = res.body
     },
 }

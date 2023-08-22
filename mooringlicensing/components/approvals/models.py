@@ -2279,12 +2279,14 @@ class DcvAdmission(RevisionedMixin):
 
             db_processes_after_success['fee_item_ids'] = [item.id for item in fee_items]
 
+            private_visit = 'YES' if dcv_admission_arrival.private_visit else 'NO'
+
             line_item = {
                 'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
                     fee_constructor.application_type.description,
                     self.lodgement_number,
                     dcv_admission_arrival.arrival_date,
-                    dcv_admission_arrival.private_visit,
+                    private_visit,
                     ', '.join(number_of_people_str),
                 ),
                 'oracle_code': oracle_code,
@@ -2365,7 +2367,7 @@ class AgeGroup(models.Model):
 class AdmissionType(models.Model):
     ADMISSION_TYPE_LANDING = 'landing'
     ADMISSION_TYPE_EXTENDED_STAY = 'extended_stay'
-    ADMISSION_TYPE_WATER_BASED = 'water_based'
+    ADMISSION_TYPE_WATER_BASED = 'water_based'  # Replace 'not_landing'
     ADMISSION_TYPE_APPROVED_EVENTS = 'approved_events'
 
     TYPE_CHOICES = (
