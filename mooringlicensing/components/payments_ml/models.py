@@ -339,6 +339,13 @@ class FeePeriod(models.Model):
             return self.fee_season.is_editable
         return True
 
+    @property
+    def is_first_period(self):
+        first_period = self.fee_season.get_first_period()
+        if self == first_period:
+            return True
+        return False
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['start_date']
@@ -542,7 +549,7 @@ class FeeConstructor(models.Model):
 
     def reconstruct_fees(self):
         # When fee_constructor object is created/updated, all the fee_items are recreated unless
-        proposal_types = ProposalType.objects.all()
+        proposal_types = ProposalType.objects.all()  # New/Amendment/Renewal
         valid_fee_item_ids = []  # We want to keep these fee items under this fee constructor object.
 
         try:
@@ -594,9 +601,11 @@ class FeeConstructor(models.Model):
                             #     continue
                             if (
                                     (vessel_size_category.null_vessel and proposal_type.code in [settings.PROPOSAL_TYPE_NEW,]) or
-                                    (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,])
+                                    (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,]) or
+                                    (not fee_period.is_first_period and proposal_type.code in [settings.PROPOSAL_TYPE_RENEWAL,])
                                     # When null vessel and new proposal (any application type), OR
                                     # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication <== When renew the ML with null vessel, do we need nul vessel AA fee_item...???
+                                    # When first period and renewal proposal
                             ):
                                 # No need to create fee_items
                                 continue

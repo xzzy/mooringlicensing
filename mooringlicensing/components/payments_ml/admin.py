@@ -43,6 +43,12 @@ class FeePeriodFormSet(forms.models.BaseInlineFormSet):
                     raise forms.ValidationError('Period\'s start date must be unique, but {} is duplicated.'.format(item['start_date']))
 
 
+
+# @admin.register(FeePeriod)
+# class FeePeriodAdmin(admin.ModelAdmin):
+#     list_display = ['id', 'name', 'start_date', 'is_first_period',]
+
+
 class FeePeriodForm(forms.ModelForm):
     class Meta:
         model = FeePeriod
