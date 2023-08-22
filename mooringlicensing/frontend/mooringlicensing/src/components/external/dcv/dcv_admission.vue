@@ -76,6 +76,13 @@
                 />
             </template>
 
+            <ul class="">
+                <li>Private visit: your vessel is not operating under charter and/or carrying non-commercial passengers (admission fees apply).</li>
+                <li>Landing passengers are disembarking the vessel onto the island.<br/>Note, if a single passenger "lands" a landing fee is required for all passengers.</li>
+                <li>Extended stay is for a person travelling to and from the island on different days and is valid for the duration of that visit.</li>
+                <li>Water based passengers are not landing or disembarking the vessel onto the island.<br/>For example, you're there for fishing, dive charters or water-based tour.</li>
+            </ul>
+
             <div class="row">
                 <div class="col-sm-12">
                     <div class="pull-right">
