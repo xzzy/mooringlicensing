@@ -1,13 +1,13 @@
 <template>
     <div class="container" id="externalDash">
-        <FormSection :formCollapse="false" label="DCV Admission Fees" Index="dcv_admission">
+        <FormSection :formCollapse="false" label="Register your visit and pay admission fees" Index="dcv_admission">
             <div class="row mb-2">
                 <div class="col-sm-12">
-                    <strong>Collection and remittance of admission fees is required prior to entering the Rottnest Island Reserve.  Penalties do apply for non compliance.</strong>
+                    <strong>Admission fees must be paid on or before the date of entry to Rottnest Island Reserve</strong>
                 </div>
             </div>
             <div class="row form-group">
-                <label for="vessel_search" class="col-sm-3 control-label">Vessel registration</label>
+                <label for="vessel_search" class="col-sm-3 control-label">Unique vessel identifier</label>
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
                         <option></option>
