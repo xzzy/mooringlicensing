@@ -2151,8 +2151,8 @@ class DcvOrganisation(RevisionedMixin):
 class DcvVessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
-    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
-    # dcv_organisations = models.ManyToManyField(DcvOrganisation, related_name='dcv_vessels')
+    # dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
+    dcv_organisations = models.ManyToManyField(DcvOrganisation, related_name='dcv_vessels')
 
     def __str__(self):
         return self.rego_no
@@ -2164,14 +2164,13 @@ class DcvVessel(RevisionedMixin):
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
-    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
     submitter = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     skipper = models.CharField(max_length=50, blank=True, null=True)
     contact_number = models.CharField(max_length=50, blank=True, null=True)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
-    # uuid = models.CharField(max_length=36, blank=True, null=True)
+    dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2304,8 +2303,8 @@ class DcvAdmissionArrival(RevisionedMixin):
         today = timezone.localtime(timezone.now()).date()
         context = {
             'lodgement_number': self.dcv_admission.lodgement_number,
-            'organisation_name': self.dcv_admission.dcv_vessel.dcv_organisation.name if self.dcv_admission.dcv_vessel.dcv_organisation else '',
-            'organisation_abn': self.dcv_admission.dcv_vessel.dcv_organisation.abn if self.dcv_admission.dcv_vessel.dcv_organisation else '',
+            'organisation_name': self.dcv_admission.dcv_organisation.name,
+            'organisation_abn': self.dcv_admission.dcv_organisation.abn if self.dcv_admission.dcv_organisation.abn else '',
             'issue_date': today.strftime('%d/%m/%Y'),
             'vessel_rego_no': self.dcv_admission.dcv_vessel.rego_no,
             'vessel_name': self.dcv_admission.dcv_vessel.vessel_name,
@@ -3001,7 +3000,7 @@ reversion.register(PreviewTempApproval, follow=['proposal_set', 'waiting_list_of
 reversion.register(ApprovalLogEntry, follow=['documents'])
 reversion.register(ApprovalLogDocument, follow=[])
 reversion.register(ApprovalUserAction, follow=[])
-reversion.register(DcvOrganisation, follow=['dcvvessel_set', 'dcvpermit_set'])
+reversion.register(DcvOrganisation, follow=['dcv_vessels', 'dcvpermit_set'])
 reversion.register(DcvVessel, follow=['dcv_admissions', 'dcv_permits'])
 reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'admissions'])
 reversion.register(DcvAdmissionArrival, follow=['numberofpeople_set'])

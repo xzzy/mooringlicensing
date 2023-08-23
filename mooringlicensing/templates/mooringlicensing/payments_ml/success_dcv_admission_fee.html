@@ -42,7 +42,7 @@
                             <div><strong>Invoice: </strong><a href="{{ invoice_url }}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
                             <div><strong>DCV Admission: </strong>
                                 {% for url in admission_urls %}
-                                    <a href="{{ url }}"><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation </a>
+                                    <a href="{{ url }}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation </a>
                                 {% endfor %}
 
                                 <!-- a href="{% url 'dcv-admission-pdf' dcv_admission.id %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ dcv_admission.lodgement_number }}</a -->

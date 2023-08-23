@@ -1517,19 +1517,25 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
         return admission_urls
 
     def get_invoices(self, obj):
-        invoice_references = [item.invoice_reference for item in obj.dcv_admission_fees.all()]
-        invoices = Invoice.objects.filter(reference__in=invoice_references)
-        if not invoices:
+        try:
+            invoice_references = [item.invoice_reference for item in obj.dcv_admission_fees.all()]
+            invoices = Invoice.objects.filter(reference__in=invoice_references)
+            if not invoices:
+                return ''
+            else:
+                serializer = InvoiceSerializer(invoices, many=True)
+                return serializer.data
+        except Exception as e:
+            logger.warning(f'Exception raised when retrieving the invoice of the item : [{obj}].')
             return ''
-        else:
-            serializer = InvoiceSerializer(invoices, many=True)
-            return serializer.data
 
     def get_fee_invoice_url(self, obj):
-        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
-        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
-        url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
-        return url
+        try:
+            url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
+            return url
+        except Exception as e:
+            logger.warning(f'Exception raised when retrieving the invoice reference of the item: [{obj}].')
+            return '---'
 
     def get_lodgement_date(self, obj):
         lodgement_datetime = ''
