@@ -6,7 +6,7 @@
         <div class="well">
             <div class="row"><div class="col-sm-12">
                 <h2>Success!</h2>
-                <strong>A confirmation email has been sent to {{ dcv_admission.submitter.email }}. </strong>
+                <strong>A confirmation email has been sent to {{ submitter.email }}. </strong>
             </div></div>
             <br/>
 
@@ -71,7 +71,7 @@
                     <a href="{% url 'home' %}" class="btn btn-info btn-lg">Log in</a><p>You must be logged in to see your invoice online.</p>
                 {% endif %}
             {% else %}
-                <p style="font-size: 1.5rem; font-weight: bold;">The DCV Admission and the invoice have been emailed to {{ dcv_admission.submitter.email }}.</p>
+                <p style="font-size: 1.5rem; font-weight: bold;">The DCV Admission and the invoice have been emailed to {{ submitter.email }}.</p>
             {% endif %}
         </div>
     </div>
