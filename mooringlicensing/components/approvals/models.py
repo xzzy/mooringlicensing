@@ -2152,6 +2152,7 @@ class DcvVessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
+    # dcv_organisations = models.ManyToManyField(DcvOrganisation, related_name='dcv_vessels')
 
     def __str__(self):
         return self.rego_no
@@ -2196,20 +2197,6 @@ class DcvAdmission(RevisionedMixin):
             if dcv_admission_fee.fee_items.count():
                 invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
         return invoice
-
-        # if self.dcv_admission_fees.count() < 1:
-        #     return None
-        # elif self.dcv_admission_fees.count() == 1:
-        #     dcv_admission_fee = self.dcv_admission_fees.first()
-        #     try:
-        #         invoice = Invoice.objects.get(reference=dcv_admission_fee.invoice_reference)
-        #     except:
-        #         invoice = None
-        #     return invoice
-        # else:
-        #     msg = 'DcvAdmission: {} has {} DcvAdmissionFees.  There should be 0 or 1.'.format(self, self.dcv_admission_fees.count())
-        #     logger.error(msg)
-        #     raise ValidationError(msg)
 
     @classmethod
     def get_next_id(cls):

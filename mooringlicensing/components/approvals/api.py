@@ -699,7 +699,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                 my_data = {}
                 my_data['organisation'] = request.data.get('organisation_name')
                 my_data['abn_acn'] = request.data.get('organisation_abn')
-                dcv_organisation = DcvPermitViewSet.handle_dcv_organisation(my_data)
+                dcv_organisation = DcvPermitViewSet.handle_dcv_organisation(my_data, False)
                 dcv_vessel.dcv_organisation = dcv_organisation
                 dcv_vessel.save()
 
@@ -735,7 +735,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                 my_data = {}
                 my_data['organisation'] = request.data.get('organisation_name')
                 my_data['abn_acn'] = request.data.get('organisation_abn')
-                dcv_organisation = DcvPermitViewSet.handle_dcv_organisation(my_data)
+                dcv_organisation = DcvPermitViewSet.handle_dcv_organisation(my_data, False)
                 dcv_vessel.dcv_organisation = dcv_organisation
                 dcv_vessel.save()
 
@@ -787,17 +787,25 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     serializer_class = DcvPermitSerializer
 
     @staticmethod
-    def handle_dcv_organisation(data):
+    def handle_dcv_organisation(data, abn_required=True):
         abn_requested = data.get('abn_acn', '')
         name_requested = data.get('organisation', '')
         try:
-            dcv_organisation = DcvOrganisation.objects.get(abn=abn_requested)
+            if abn_required:
+                dcv_organisation = DcvOrganisation.objects.get(abn=abn_requested)
+            else:
+                data['name'] = name_requested
+                serializer = DcvOrganisationSerializer(data=data, context={'abn_required': abn_required})
+                serializer.is_valid(raise_exception=True)
+                dcv_organisation = serializer.save()
+                logger.info(f'Create DcvOrganisation: [{dcv_organisation}].')
         except DcvOrganisation.DoesNotExist:
             data['name'] = name_requested
             data['abn'] = abn_requested
-            serializer = DcvOrganisationSerializer(data=data)
+            serializer = DcvOrganisationSerializer(data=data, context={'abn_required': abn_required})
             serializer.is_valid(raise_exception=True)
             dcv_organisation = serializer.save()
+            logger.info(f'Create DcvOrganisation: [{dcv_organisation}].')
         except Exception as e:
             logger.error(e)
             raise
@@ -818,6 +826,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
+            logger.info(f'Create DcvVessel: [{dcv_vessel}].')
         except Exception as e:
             logger.error(e)
             raise
@@ -845,6 +854,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         serializer = StickerForDcvSaveSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         sticker = serializer.save()
+        logger.info(f'Create Sticker: [{sticker}].')
 
         return Response(serializer.data)
 
@@ -862,6 +872,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()
+        logger.info(f'Create DcvPermit: [{dcv_permit}].')
 
         return Response(serializer.data)
 

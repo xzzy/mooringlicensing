@@ -128,9 +128,11 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
         field_errors = {}
         non_field_errors = []
 
+        abn_required = self.context.get('abn_required')
+
         if not data['name']:
             field_errors['name'] = ['Please enter organisation name.',]
-        if not data['abn']:
+        if abn_required and not data['abn']:
             field_errors['abn'] = ['Please enter ABN / ACN.',]
 
         # Raise errors

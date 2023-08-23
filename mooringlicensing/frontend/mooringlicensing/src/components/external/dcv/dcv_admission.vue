@@ -36,7 +36,8 @@
                 </div>
             </div>
 
-            <div v-if="show_dcv_organisation_fields" class="row form-group">
+            <!-- <div v-if="show_dcv_organisation_fields" class="row form-group"> -->
+            <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Organisation</label>
                 <div class="col-sm-6">
                     <input type="text" class="form-control" name="organisation" placeholder="" v-model="dcv_admission.organisation_name">
