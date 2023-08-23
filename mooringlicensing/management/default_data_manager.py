@@ -99,6 +99,12 @@ class DefaultDataManager(object):
                 logger.error('{}, AgeGroup: {}'.format(e, item[1]))
 
         # AdmissionType for the DcvAdmission fees
+        # Change 'not_landing' to 'water_based' for the existing data
+        types = AdmissionType.objects.filter(code='not_landing')
+        for type in types:
+            type.code = AdmissionType.ADMISSION_TYPE_WATER_BASED
+            type.save()
+
         for item in AdmissionType.TYPE_CHOICES:
             try:
                 myType, created = AdmissionType.objects.get_or_create(code=item[0])
@@ -184,11 +190,5 @@ class DefaultDataManager(object):
             except Exception as e:
                 logger.error('{}, failed to create fee item sticker replacement'.format(fee_item))
 
-        # AdmissionType
-        # Change 'not_landing' to 'water_based' for the existing data
-        types = AdmissionType.objects.filter(code='not_landing')
-        for type in types:
-            type.code = AdmissionType.ADMISSION_TYPE_WATER_BASED
-            type.save()
 
 
