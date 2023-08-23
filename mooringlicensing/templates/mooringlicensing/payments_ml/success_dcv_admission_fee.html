@@ -6,7 +6,7 @@
         <div class="well">
             <div class="row"><div class="col-sm-12">
                 <h2>Success!</h2>
-                <strong>A confirmation email has been sent to {{ dcv_admission.submitter.email }}. </strong>
+                <strong>A confirmation email has been sent to {{ submitter.email }}. </strong>
             </div></div>
             <br/>
 
@@ -42,7 +42,7 @@
                             <div><strong>Invoice: </strong><a href="{{ invoice_url }}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
                             <div><strong>DCV Admission: </strong>
                                 {% for url in admission_urls %}
-                                    <a href="{{ url }}"><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation </a>
+                                    <a href="{{ url }}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> Confirmation </a>
                                 {% endfor %}
 
                                 <!-- a href="{% url 'dcv-admission-pdf' dcv_admission.id %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ dcv_admission.lodgement_number }}</a -->
@@ -71,7 +71,7 @@
                     <a href="{% url 'home' %}" class="btn btn-info btn-lg">Log in</a><p>You must be logged in to see your invoice online.</p>
                 {% endif %}
             {% else %}
-                <p style="font-size: 1.5rem; font-weight: bold;">The DCV Admission and the invoice have been emailed to {{ dcv_admission.submitter.email }}.</p>
+                <p style="font-size: 1.5rem; font-weight: bold;">The DCV Admission and the invoice have been emailed to {{ submitter.email }}.</p>
             {% endif %}
         </div>
     </div>
