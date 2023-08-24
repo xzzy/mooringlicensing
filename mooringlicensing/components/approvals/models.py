@@ -21,7 +21,7 @@ from django.db.models import Q
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE, GROUP_DCV_PERMIT_ADMIN
 # from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, EmailUserRO
@@ -2171,6 +2171,15 @@ class DcvAdmission(RevisionedMixin):
     contact_number = models.CharField(max_length=50, blank=True, null=True)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
+
+    @property
+    def admin_group(self):
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_DCV_PERMIT_ADMIN)
+
+    @property
+    def admin_recipients(self):
+        return [retrieve_email_userro(i).email for i in self.admin_group.get_system_group_member_ids()]
+
 
     class Meta:
         app_label = 'mooringlicensing'
