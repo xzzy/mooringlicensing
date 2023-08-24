@@ -21,7 +21,7 @@ from django.db.models import Q
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE
+from mooringlicensing.settings import TIME_ZONE, GROUP_DCV_PERMIT_ADMIN
 # from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, EmailUserRO
@@ -2142,7 +2142,7 @@ class DcvOrganisation(RevisionedMixin):
     abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN', unique=True)
 
     def __str__(self):
-        return self.name
+        return self.name + f'(id: {self.id})'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2155,7 +2155,7 @@ class DcvVessel(RevisionedMixin):
     dcv_organisations = models.ManyToManyField(DcvOrganisation, related_name='dcv_vessels')
 
     def __str__(self):
-        return self.rego_no
+        return self.rego_no + f'(id: {self.id})'
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2172,6 +2172,15 @@ class DcvAdmission(RevisionedMixin):
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
 
+    @property
+    def admin_group(self):
+        return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_DCV_PERMIT_ADMIN)
+
+    @property
+    def admin_recipients(self):
+        return [retrieve_email_userro(i).email for i in self.admin_group.get_system_group_member_ids()]
+
+
     class Meta:
         app_label = 'mooringlicensing'
 
@@ -2180,7 +2189,10 @@ class DcvAdmission(RevisionedMixin):
         return retrieve_email_userro(self.submitter) if self.submitter else None
 
     def __str__(self):
-        return self.lodgement_number
+        lodgement_number = '---'
+        if self.lodgement_number:
+            lodgement_number = self.lodgement_number
+        return f'{lodgement_number} (id: {self.id})'
 
     @property
     def fee_paid(self):
@@ -2406,7 +2418,7 @@ class DcvPermit(RevisionedMixin):
     migrated = models.BooleanField(default=False)
 
     # Following fields are null unless payment success
-    lodgement_number = models.CharField(max_length=10, blank=True, unique=True)  # lodgement_number is assigned only when payment success, which means if this is None, the permit has not been issued.
+    lodgement_number = models.CharField(max_length=10, blank=True,)  # lodgement_number is assigned only when payment success, which means if this is None, the permit has not been issued.
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime assigned on the success of payment
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date assigned on the success of payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date assigned on the success of payment
@@ -2644,14 +2656,14 @@ class DcvPermit(RevisionedMixin):
             return None
 
     def save(self, **kwargs):
-        logger.info(f"Saving DcvPermit: {self}.")
+        logger.info(f"Saving DcvPermit: {self}...")
         if self.lodgement_number in ['', None] and self.lodgement_datetime:  # start_date is null unless payment success
             # Only when the fee has been paid, a lodgement number is assigned
-            logger.info(f'DcvPermit has no lodgement number.')
+            logger.info(f'DcvPermit: [{self}] has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
 
         super(DcvPermit, self).save(**kwargs)
-        logger.info("DcvPermit Saved.")
+        logger.info(f"DcvPermit: [{self}] has been updated with the lodgement_number: [{self.lodgement_number}].")
 
     def generate_dcv_permit_doc(self):
         permit_document = create_dcv_permit_document(self)
@@ -2665,7 +2677,12 @@ class DcvPermit(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return f'{self.lodgement_number} (M)' if self.migrated else f'{self.lodgement_number}'
+        # return f'{self.lodgement_number} (M)' if self.migrated else f'{self.lodgement_number}'
+        lodgement_number = '---'
+        if self.lodgement_number:
+            lodgement_number = self.lodgement_number
+        lodgement_number = f'{lodgement_number} (M)' if self.migrated else lodgement_number
+        return f'{lodgement_number} (id: {self.id})'
 
 def update_dcv_admission_doc_filename(instance, filename):
     return '{}/dcv_admissions/{}/admissions/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)

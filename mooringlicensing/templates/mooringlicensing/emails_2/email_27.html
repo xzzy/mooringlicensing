@@ -5,6 +5,7 @@
 <p>The following admission fees have been paid:</p>
 {% for arrival in summary %}
 <p>Arrival date: {{ arrival.arrival_date }}</p>
+<p>Departure date: {{ arrival.departure_date }}</p>
 <p>Number of adults (12 and over):</p>
 <p>- Landing: {{ arrival.adult.landing }}</p>
 <p>- Extended stay: {{ arrival.adult.extended_stay }}</p>
