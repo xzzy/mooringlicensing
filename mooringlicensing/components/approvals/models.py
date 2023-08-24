@@ -2434,14 +2434,6 @@ class DcvPermit(RevisionedMixin):
         # Any changes to the DB should be made after the success of payment process
         db_processes_after_success = {}
 
-        # if isinstance(instance, Proposal):
-        #     application_type = instance.application_type
-        #     vessel_length = instance.vessel_details.vessel_applicable_length
-        #     proposal_type = instance.proposal_type
-        # elif isinstance(instance, DcvPermit):
-        #     application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
-        #     vessel_length = 1  # any number greater than 0
-        #     proposal_type = None
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
         # vessel_length = 1  # any number greater than 0
         vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
@@ -2451,29 +2443,22 @@ class DcvPermit(RevisionedMixin):
         target_date = target_datetime.date()
         target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
 
-        # Retrieve FeeItem object from FeeConstructor object
-        # if isinstance(instance, Proposal):
-        #     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
-        #     if not fee_constructor:
-        #         # Fees have not been configured for this application type and date
-        #         raise Exception('FeeConstructor object for the ApplicationType: {} not found for the date: {}'.format(application_type, target_date))
-        # elif isinstance(instance, DcvPermit):
-        #     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(application_type, instance.fee_season)
-        #     if not fee_constructor:
-        #         # Fees have not been configured for this application type and date
-        #         raise Exception('FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(application_type, instance.fee_season))
-        # else:
-        #     raise Exception('Something went wrong when calculating the fee')
         fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_season(
             application_type, self.fee_season
         )
         if not fee_constructor:
             # Fees have not been configured for this application type and date
-            raise Exception(
-                'FeeConstructor object for the ApplicationType: {} and the Season: {}'.format(
-                    application_type, self.fee_season
-                )
-            )
+            logger.error(f'FeeConstructor object for the ApplicationType: {application_type} and the Season: {self.fee_season} has not been configured yet.')
+            raise Exception(f'No fees are configured for the season: {self.fee_season} for the ApplicationType: {application_type}.')
+
+        if target_date > fee_constructor.end_date:
+            logger.error(f'Somehow, fee_constructor retrieved for fee calculation is ended on {fee_constructor.end_date}, which is before the target_date: {target_date}')
+            raise Exception(f'Something wrong with fee configurations...')
+
+        if target_date < fee_constructor.start_date:
+            # Customer is applying for the future permit.
+            target_date = fee_constructor.start_date
+
 
         fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
 
