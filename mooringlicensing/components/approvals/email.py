@@ -455,8 +455,6 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     # email to applicant upon successful payment of dcv permit application with details of issued dcv permit
     email = TemplateEmailBase(
         subject='Dcv Permit.',
-        # html_template='mooringlicensing/emails/dcv_permit_mail.html',
-        # txt_template='mooringlicensing/emails/dcv_permit_mail.txt',
         html_template='mooringlicensing/emails_2/email_26.html',
         txt_template='mooringlicensing/emails_2/email_26.txt',
     )
@@ -519,8 +517,6 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     # email to external user upon payment of dcv admission fees
     email = TemplateEmailBase(
         subject='DCV Admission fees',
-        # html_template='mooringlicensing/emails/dcv_admission_mail.html',
-        # txt_template='mooringlicensing/emails/dcv_admission_mail.txt',
         html_template='mooringlicensing/emails_2/email_27.html',
         txt_template='mooringlicensing/emails_2/email_27.txt',
     )
@@ -529,7 +525,7 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     context = {
         'public_url': get_public_url(request),
         'dcv_admission': dcv_admission,
-        'recipient': dcv_admission.submitter,
+        'recipient': dcv_admission.submitter_obj if dcv_admission.submitter_obj else dcv_admission.dcv_organisation.name,
         'summary': summary,
     }
 
@@ -537,10 +533,6 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
 
     # attach invoice
     if invoice:
-        # contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
-        # attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
-        # url = get_invoice_url(invoice.reference, request)
-        # invoice_pdf = requests.get(url=url)
         api_key = settings.LEDGER_API_KEY
         url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + invoice.reference
         invoice_pdf = requests.get(url=url)
@@ -557,9 +549,9 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
             mime = mimetypes.guess_type(dcv_admission_doc.filename)[0]
             attachments.append((filename, content, mime))
 
-    to = dcv_admission.submitter_obj.email
+    to = dcv_admission.submitter_obj.email  # TODO: When anonymous, this doesn't work...?
     cc = []
-    bcc = []
+    bcc = dcv_admission.admin_recipients
 
     msg = email.send(
         to,

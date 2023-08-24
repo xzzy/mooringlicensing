@@ -2896,22 +2896,18 @@ class AuthorisedUserApplication(Proposal):
 
     @property
     def assessor_group(self):
-        # return Group.objects.get(name="Mooring Licensing - Assessors: Authorised User")
         return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Authorised User")
 
     @property
     def approver_group(self):
-        # return Group.objects.get(name="Mooring Licensing - Approvers: Authorised User")
         return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Approvers: Authorised User")
 
     @property
     def assessor_recipients(self):
-        # return [i.email for i in self.assessor_group.user_set.all()]
         return [retrieve_email_userro(i).email for i in self.assessor_group.get_system_group_member_ids()]
 
     @property
     def approver_recipients(self):
-        # return [i.email for i in self.approver_group.user_set.all()]
         return [retrieve_email_userro(i).email for i in self.approver_group.get_system_group_member_ids()]
 
     def is_assessor(self, user):
@@ -3406,6 +3402,7 @@ class MooringLicenceApplication(Proposal):
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
             mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
             created = None
+            approval_created = False
 
             if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                 approval = self.approval.child_obj
