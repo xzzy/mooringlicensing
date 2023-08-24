@@ -455,8 +455,6 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     # email to applicant upon successful payment of dcv permit application with details of issued dcv permit
     email = TemplateEmailBase(
         subject='Dcv Permit.',
-        # html_template='mooringlicensing/emails/dcv_permit_mail.html',
-        # txt_template='mooringlicensing/emails/dcv_permit_mail.txt',
         html_template='mooringlicensing/emails_2/email_26.html',
         txt_template='mooringlicensing/emails_2/email_26.txt',
     )
@@ -519,8 +517,6 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     # email to external user upon payment of dcv admission fees
     email = TemplateEmailBase(
         subject='DCV Admission fees',
-        # html_template='mooringlicensing/emails/dcv_admission_mail.html',
-        # txt_template='mooringlicensing/emails/dcv_admission_mail.txt',
         html_template='mooringlicensing/emails_2/email_27.html',
         txt_template='mooringlicensing/emails_2/email_27.txt',
     )
@@ -529,7 +525,7 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     context = {
         'public_url': get_public_url(request),
         'dcv_admission': dcv_admission,
-        'recipient': dcv_admission.submitter,
+        'recipient': dcv_admission.submitter_obj if dcv_admission.submitter_obj else dcv_admission.dcv_organisation.name,
         'summary': summary,
     }
 
