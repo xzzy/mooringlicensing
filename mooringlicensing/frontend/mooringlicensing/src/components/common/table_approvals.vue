@@ -271,7 +271,6 @@ export default {
                     'Holder',
                     'Status',
                     'Status 2',
-                    //'Mooring area',
                     'Bay',
                     'Allocation number in bay',
                     'Action',
@@ -282,6 +281,7 @@ export default {
                     'Vessel length',
                     'Vessel draft',
                     'Vessel Rego',
+                    'Grace period end date',
                     'Mooring Site Licence Applications',
                     'Mooring Offered',
                 ]
@@ -716,21 +716,35 @@ export default {
                         }
                     }
         },
+        columnGracePeriod: function(){
+            return {
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.grace_period_details.grace_period_end_date){
+                        return moment(full.grace_period_details.grace_period_end_date).format('DD/MM/YYYY') + ' (' + full.grace_period_details.days_left + ' days left)'
+                    }
+                    return 'N/A'
+                }
+            }
+        },
         columnVesselRegos: function() {
             return {
-                        data: "id",
-                        orderable: true,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let ret = ''
-                            for (let rego of full.vessel_regos){
-                                ret += rego + '<br/>'
-                            }
-                            return ret
-                            //return '';
-                        }
+                data: "id",
+                orderable: true,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    let ret = ''
+                    for (let rego of full.vessel_regos){
+                        ret += rego + '<br/>'
                     }
+                    return ret
+                    //return '';
+                }
+            }
         },
         datatable_options: function() {
             let vm = this;
@@ -791,6 +805,7 @@ export default {
                     vm.columnVesselLength,
                     vm.columnVesselDraft,
                     vm.columnVesselRegos,
+                    vm.columnGracePeriod,
                     vm.columnRiaGeneratedProposals,
                     vm.columnMooringOffered,
                 ]

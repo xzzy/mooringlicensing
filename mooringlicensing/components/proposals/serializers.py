@@ -724,7 +724,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Insurance Certificate"] = "Please attach"
             if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
-            if data.get("mooring_authorisation_preference") == 'site_licensee':
+            if data.get("mooring_authorisation_preference") == 'site_licensee' and not data.get('keep_existing_mooring'):
                 site_licensee_email = data.get("site_licensee_email")
                 mooring_id = data.get("mooring_id")
                 if not site_licensee_email:
