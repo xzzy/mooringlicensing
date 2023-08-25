@@ -1,4 +1,4 @@
-
+from dateutil.relativedelta import relativedelta
 
 import ledger_api_client.utils
 from django.core.files.base import ContentFile
@@ -281,6 +281,10 @@ class Approval(RevisionedMixin):
         app_label = 'mooringlicensing'
         unique_together = ('lodgement_number', 'issue_date')
         ordering = ['-id',]
+
+    @property
+    def grace_period_end_date(self):
+        return self.child_obj.get_grace_period_end_date()
 
     def cancel_existing_annual_admission_permit(self, current_date):
         # Cancel existing annual admission permit for the same vessl if exists
@@ -1007,6 +1011,12 @@ class WaitingListAllocation(Approval):
         ])
         return approvals
 
+    def get_grace_period_end_date(self):
+        end_date = None
+        if self.current_proposal.vessel_ownership.end_date:
+            end_date = self.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
+        return end_date
+
     def get_context_for_licence_permit(self):
         try:
             # v_details = self.current_proposal.vessel_details
@@ -1109,6 +1119,12 @@ class AnnualAdmissionPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_grace_period_end_date(self):
+        end_date = None
+        # if self.current_proposal.vessel_ownership.end_date:
+        #     end_date = relativedelta(months=+6)
+        return end_date
 
     def process_after_discarded(self):
         logger.debug(f'in AAP called.')
@@ -1345,6 +1361,12 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def get_grace_period_end_date(self):
+        end_date = None
+        # if self.current_proposal.vessel_ownership.end_date:
+        #     end_date = relativedelta(months=+6)
+        return end_date
 
     def process_after_discarded(self):
         logger.debug(f'in AUP called.')
@@ -1701,6 +1723,12 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_CURRENT,
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
+
+    def get_grace_period_end_date(self):
+        end_date = None
+        if self.current_proposal.vessel_ownership.end_date:
+            end_date = self.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
+        return end_date
 
     def process_after_discarded(self):
         logger.debug(f'in ML called.')
