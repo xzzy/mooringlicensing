@@ -1726,8 +1726,11 @@ class MooringLicence(Approval):
 
     def get_grace_period_end_date(self):
         end_date = None
-        if self.current_proposal.vessel_ownership.end_date:
-            end_date = self.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
+        for vo in self.vesselownershiponapproval_set.all():
+            logger.debug(vo)
+
+        # TODO: Calculate end_date from possibly multiple vessels sold
+
         return end_date
 
     def process_after_discarded(self):
