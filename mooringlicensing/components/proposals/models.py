@@ -2947,8 +2947,9 @@ class AuthorisedUserApplication(Proposal):
         mooring_preference = self.get_mooring_authorisation_preference()
 
         # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
-        if mooring_preference.lower() != 'ria':
-            # When this application is new AUA application and the mooring authorisation preference is not RIA.
+        if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
+            (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
+            # Mooring preference is 'site_licensee' and which is new mooring applying for.
             self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
             self.save()
             # Email to endorser

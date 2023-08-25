@@ -670,6 +670,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     vessel_regos = serializers.SerializerMethodField()
     moorings = serializers.SerializerMethodField()
     mooring_offered = serializers.SerializerMethodField()
+    grace_period_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -713,6 +714,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_regos',
             'moorings',
             'mooring_offered',
+            'grace_period_details',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -756,19 +758,22 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'vessel_regos',
             'moorings',
             'mooring_offered',
+            'grace_period_details',
         )
 
-    # def get_mooring_licence_mooring(self, obj):
-    #     if type(obj.child_obj) == MooringLicence:
-    #         try:
-    #             return {
-    #                 'id': obj.child_obj.mooring.id,
-    #                 'name': obj.child_obj.mooring.name,
-    #             }
-    #         except Exception as e:
-    #             return None
-    #     else:
-    #         return None
+    def get_grace_period_details(self, obj):
+        grace_period_end_date = obj.grace_period_end_date
+
+        days_left = None
+        if grace_period_end_date:
+            today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+            days_left = (grace_period_end_date - today).days
+
+        return {
+            'grace_period_end_date': grace_period_end_date,
+            'days_left': days_left,
+        }
+
     def get_mooring_offered(self, obj):
         mooring = {}
         if type(obj.child_obj) == WaitingListAllocation:
