@@ -640,15 +640,17 @@ def submit_vessel_data(instance, request, vessel_data):
             instance.vessel_details.vessel_draft > mooring.vessel_draft_limit):
                 logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
                 raise serializers.ValidationError("Vessel unsuitable for mooring")
-        ## amend / renewal
-        #if instance.approval:
-        #    # check existing moorings against current vessel dimensions
-        #    for moa in instance.approval.mooringonapproval_set.filter(end_date__isnull=True):
-        #        mooring = Mooring.objects.get(id=moa.mooring_id)
-        #        if (instance.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
-        #        instance.vessel_details.vessel_draft > mooring.vessel_draft_limit):
-        #            logger.error("Proposal {}: Vessel unsuitable for one or more moorings".format(instance))
-        #            raise serializers.ValidationError("Vessel unsuitable for one or more moorings")
+        if instance.approval:
+            # Amend / Renewal
+            if proposal_data.get('keep_existing_mooring'):
+                # check existing moorings against current vessel dimensions
+                for moa in instance.approval.mooringonapproval_set.filter(end_date__isnull=True):
+                    if instance.vessel_details.vessel_applicable_length > moa.mooring.vessel_size_limit:
+                        logger.error(f"Vessel applicable lentgh: [{instance.vessel_details.vessel_applicable_length}] is not suitable for the mooring: [{moa.mooring}]")
+                        raise serializers.ValidationError(f"Vessel length: {instance.vessel_details.vessel_applicable_length}[m] is not suitable for the vessel size limit: {moa.mooring.vessel_size_limit} [m] of the mooring: [{moa.mooring}]")
+                    if instance.vessel_details.vessel_draft > moa.mooring.vessel_draft_limit:
+                        logger.error(f"Vessel draft: [{instance.vessel_details.vessel_draft}] is not suitable for the mooring: [{moa.mooring}]")
+                        raise serializers.ValidationError(f"Vessel draft: {instance.vessel_details.vessel_draft} [m] is not suitable for the vessel draft limit: {moa.mooring.vessel_draft_limit} [m] of the mooring: [{moa.mooring}]")
 
     elif type(instance.child_obj) == WaitingListApplication:
         if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:

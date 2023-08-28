@@ -13,7 +13,7 @@ from mooringlicensing.components.proposals.models import (
 logger = logging.getLogger(__name__)
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
-    logger.info(f'Processing document... Data: {request.data}')
+    logger.info(f'Processing document... Data: [{request.data}] ...')
     try:
         action = request.data.get('action')
 
@@ -51,18 +51,20 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                 documents_qs = instance.insurance_certificate_documents
             elif document_type == 'hull_identification_number_document':
                 documents_qs = instance.hull_identification_number_documents
+            elif document_type == 'waiting_list_offer_document':
+                documents_qs = instance.waiting_list_offer_documents
+            # Mooring Licence
+            elif document_type == 'signed_licence_agreement_document':
+                documents_qs = instance.signed_licence_agreement_documents
             elif document_type == 'mooring_report_document':
                 documents_qs = instance.mooring_report_documents
             elif document_type == 'written_proof_document':
                 documents_qs = instance.written_proof_documents
-            elif document_type == 'signed_licence_agreement_document':
-                documents_qs = instance.signed_licence_agreement_documents
             elif document_type == 'proof_of_identity_document':
                 documents_qs = instance.proof_of_identity_documents
-            elif document_type == 'waiting_list_offer_document':
-                documents_qs = instance.waiting_list_offer_documents
+
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
-            return { 'filedata': returned_file_data }
+            return {'filedata': returned_file_data }
         else:
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name, ) for d in instance.documents.all() if d._file]
             return {'filedata': returned_file_data}
