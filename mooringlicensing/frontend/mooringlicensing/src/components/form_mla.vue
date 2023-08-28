@@ -213,7 +213,7 @@
                 } else if (this.proposal.amendment_requests){
                     return true
                 } else {
-                    return false
+                    return true
                 }
             },
             profileVar: function() {

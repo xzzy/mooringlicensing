@@ -208,6 +208,8 @@ export default {
                 'Bay',
                 '',
                 'Status',
+                'Length limit',
+                'Draft limit',
             ],
             mooringsDtOptions: {
                 serverSide: false,
@@ -267,6 +269,7 @@ export default {
                         //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
+                            console.log({full})
                             return full.mooring_name;
                             //return '';
                         }
@@ -297,6 +300,20 @@ export default {
                         mRender: function (data, type, full) {
                             return full.status;
                             //return '';
+                        }
+                    },
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            console.log({full})
+                            return full.vessel_size_limit;
+                        }
+                    },
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            console.log({full})
+                            return full.vessel_draft_limit;
                         }
                     },
                 ],
