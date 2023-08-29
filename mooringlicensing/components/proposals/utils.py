@@ -835,13 +835,13 @@ def store_vessel_ownership(request, vessel, instance=None):
         # Check if we need to create a new CO record
         create_company_ownership = False
         edit_company_ownership = True
-        if company_ownership_set.filter(status="draft"):
-            company_ownership = company_ownership_set.filter(status="draft")[0]
+        if company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT):
+            company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT)[0]
             ## cannot edit draft record with blocking_proposal
             if company_ownership.blocking_proposal:
                 edit_company_ownership = False
-        elif company_ownership_set.filter(status="approved"):
-            company_ownership = company_ownership_set.filter(status="approved")[0]
+        elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
+            company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
             existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
             for key in existing_company_ownership_data.keys():
                 if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:

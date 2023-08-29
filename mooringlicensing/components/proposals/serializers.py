@@ -1369,7 +1369,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_owner_name(self, obj):
-        if obj.company_ownership:
+        if obj.company_ownership and obj.company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
             return obj.company_ownership.company.name
         else:
             return str(obj.owner)

@@ -4009,12 +4009,16 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
 
 class CompanyOwnership(RevisionedMixin):
+    COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
+    COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
+    COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
     STATUS_TYPES = (
-            ('approved', 'Approved'),
-            ('draft', 'Draft'),
-            ('old', 'Old'),
-            ('declined', 'Declined'),
-            )
+        (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
+        (COMPANY_OWNERSHIP_STATUS_DRAFT, 'Draft'),
+        (COMPANY_OWNERSHIP_STATUS_OLD, 'Old'),
+        (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
+    )
     blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
@@ -4040,9 +4044,9 @@ class CompanyOwnership(RevisionedMixin):
         if not self.pk:
             vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
             for vd in vessel_details_set:
-                if vd.status == "draft":
+                if vd.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT:
                     raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
-                elif vd.status == "approved" and self.status == "approved":
+                elif vd.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED and self.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
                     raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
         existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
         if existing_record:
@@ -4052,14 +4056,15 @@ class CompanyOwnership(RevisionedMixin):
         if existing_record and not prev_end_date and self.end_date:
             aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership__company_ownership=self)
             for aup in aup_set:
-                if aup.status == 'current':
+                from mooringlicensing.components.approvals.models import Approval
+                if aup.status == Approval.APPROVAL_STATUS_CURRENT:
                     aup.internal_reissue()
             ## ML
             vo_set = self.vesselownership_set.all()
             for vo in vo_set:
                 proposal_set = vo.proposal_set.all()
                 for proposal in proposal_set:
-                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == Approval.APPROVAL_STATUS_CURRENT:
                         proposal.approval.internal_reissue()
 
 
@@ -4577,7 +4582,7 @@ def clone_proposal_with_status_reset(original_proposal):
     with transaction.atomic():
         try:
             proposal = type(original_proposal.child_obj).objects.create()
-            proposal.processing_status = 'draft'
+            proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
             proposal.previous_application = original_proposal
             proposal.approval = original_proposal.approval
             proposal.null_vessel_on_create = not original_proposal.vessel_on_proposal()
@@ -4594,7 +4599,8 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
     qs = []
     application_types=[ApplicationType.TCLASS, ApplicationType.EVENT, ApplicationType.FILMING]
     if is_internal:
-        proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=['discarded','draft'])
+        # proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=['discarded','draft'])
+        proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT,])
         approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         compliance_list = Compliance.objects.all()
     if searchWords:
