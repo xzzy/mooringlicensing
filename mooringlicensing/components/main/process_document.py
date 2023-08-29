@@ -7,8 +7,9 @@ import traceback
 from django.conf import settings
 
 from mooringlicensing.components.proposals.models import (
-        Proposal
-        )
+    ProposalMooringReportDocument, ProposalWrittenProofDocument, ProposalSignedLicenceAgreementDocument,
+    ProposalProofOfIdentityDocument
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             comms_instance = instance.comms_logs.create()
 
         if action == 'list':
+            # Retrieve list later of this function
             pass
         elif action == 'delete':
             delete_document(request, instance, comms_instance, document_type, input_name)
@@ -36,11 +38,12 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             save_document(request, instance, comms_instance, document_type, input_name)
 
         # HTTP Response varies by action and instance type
+        ret = None
         if comms_instance and action == 'cancel' and deleted:
-            return deleted
+            ret = deleted
         elif comms_instance:
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in comms_instance.documents.all() if d._file]
-            return {'filedata': returned_file_data, 'comms_instance_id': comms_instance.id}
+            ret = {'filedata': returned_file_data, 'comms_instance_id': comms_instance.id}
         # example document_type
         elif input_name:
             if document_type == 'electoral_roll_document':
@@ -55,21 +58,24 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                 documents_qs = instance.waiting_list_offer_documents
             # Mooring Licence
             elif document_type == 'signed_licence_agreement_document':
-                documents_qs = instance.signed_licence_agreement_documents
+                documents_qs = instance.signed_licence_agreement_documents.filter(proposalsignedlicenceagreementdocument__enabled=True)
             elif document_type == 'mooring_report_document':
-                documents_qs = instance.mooring_report_documents
+                documents_qs = instance.mooring_report_documents.filter(proposalmooringreportdocument__enabled=True)
             elif document_type == 'written_proof_document':
-                documents_qs = instance.written_proof_documents
+                documents_qs = instance.written_proof_documents.filter(proposalwrittenproofdocument__enabled=True)
             elif document_type == 'proof_of_identity_document':
-                documents_qs = instance.proof_of_identity_documents
+                documents_qs = instance.proof_of_identity_documents.filter(proposalproofofidentitydocument__enabled=True)
 
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
-            return {'filedata': returned_file_data }
+            ret = {'filedata': returned_file_data }
         else:
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name, ) for d in instance.documents.all() if d._file]
-            return {'filedata': returned_file_data}
+            ret = {'filedata': returned_file_data}
+
+        return ret
 
     except Exception as e:
+        logger.error(e)
         print(traceback.print_exc())
         raise e
 
@@ -92,15 +98,31 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         elif document_type == 'mooring_report_document':
             document_id = request.data.get('document_id')
             document = instance.mooring_report_documents.get(id=document_id)
+            link_item = ProposalMooringReportDocument.objects.get(proposal=instance, mooring_report_document=document)
+            link_item.enabled = False
+            link_item.save()
+            return
         elif document_type == 'written_proof_document':
             document_id = request.data.get('document_id')
             document = instance.written_proof_documents.get(id=document_id)
+            link_item = ProposalWrittenProofDocument.objects.get(proposal=instance, written_proof_document=document)
+            link_item.enabled = False
+            link_item.save()
+            return
         elif document_type == 'signed_licence_agreement_document':
             document_id = request.data.get('document_id')
             document = instance.signed_licence_agreement_documents.get(id=document_id)
+            link_item = ProposalSignedLicenceAgreementDocument.objects.get(proposal=instance, signed_licence_agreement_document=document)
+            link_item.enabled = False
+            link_item.save()
+            return
         elif document_type == 'proof_of_identity_document':
             document_id = request.data.get('document_id')
             document = instance.proof_of_identity_documents.get(id=document_id)
+            link_item = ProposalProofOfIdentityDocument.objects.get(proposal=instance, proof_of_identity_document=document)
+            link_item.enabled = False
+            link_item.save()
+            return
         elif document_type == 'waiting_list_offer_document':
             document_id = request.data.get('document_id')
             document = instance.waiting_list_offer_documents.get(id=document_id)
@@ -168,28 +190,28 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'electoral_roll_document':
             document = instance.electoral_roll_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/electoral_roll_documents/{}'
-        if document_type == 'vessel_registration_document':
+        elif document_type == 'vessel_registration_document':
             document = instance.vessel_registration_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
-        if document_type == 'insurance_certificate_document':
+        elif document_type == 'insurance_certificate_document':
             document = instance.insurance_certificate_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/insurance_certificate_documents/{}'
-        if document_type == 'hull_identification_number_document':
+        elif document_type == 'hull_identification_number_document':
             document = instance.hull_identification_number_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/hull_identification_number_documents/{}'
-        if document_type == 'mooring_report_document':
+        elif document_type == 'mooring_report_document':
             document = instance.mooring_report_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/mooring_report_documents/{}'
-        if document_type == 'written_proof_document':
+        elif document_type == 'written_proof_document':
             document = instance.written_proof_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/written_proof_documents/{}'
-        if document_type == 'signed_licence_agreement_document':
+        elif document_type == 'signed_licence_agreement_document':
             document = instance.signed_licence_agreement_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/signed_licence_agreement_documents/{}'
-        if document_type == 'proof_of_identity_document':
+        elif document_type == 'proof_of_identity_document':
             document = instance.proof_of_identity_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/proposals/{}/proof_of_identity_documents/{}'
-        if document_type == 'waiting_list_offer_document':
+        elif document_type == 'waiting_list_offer_document':
             document = instance.waiting_list_offer_documents.get_or_create(input_name=input_name, name=filename)[0]
             path_format_string = '{}/approvals/{}/waiting_list_offer_documents/{}'
         path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, filename), ContentFile(_file.read()))
