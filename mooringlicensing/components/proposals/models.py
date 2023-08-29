@@ -408,6 +408,34 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         verbose_name = "Application"
         verbose_name_plural = "Applications"
 
+    def copy_proof_of_identity_documents(self, proposal):
+        for doc in self.proof_of_identity_documents.all():
+            link_item = ProposalProofOfIdentityDocument.objects.get(proposal=self, proof_of_identity_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalProofOfIdentityDocument.objects.create(proposal=proposal, proof_of_identity_document=doc)
+
+    def copy_mooring_report_documents(self, proposal):
+        for doc in self.mooring_report_documents.all():
+            link_item = ProposalMooringReportDocument.objects.get(proposal=self, mooring_report_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalMooringReportDocument.objects.create(proposal=proposal, mooring_report_document=doc)
+
+    def copy_written_proof_documents(self, proposal):
+        for doc in self.written_proof_documents.all():
+            link_item = ProposalWrittenProofDocument.objects.get(proposal=self, written_proof_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalWrittenProofDocument.objects.create(proposal=proposal, written_proof_document=doc)
+
+    def copy_signed_licence_agreement_documents(self, proposal):
+        for doc in self.signed_licence_agreement_documents.all():
+            link_item = ProposalSignedLicenceAgreementDocument.objects.get(proposal=self, signed_licence_agreement_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalSignedLicenceAgreementDocument.objects.create(proposal=proposal, signed_licence_agreement_document=doc)
+
     def __str__(self):
         return str(self.lodgement_number)
 
@@ -2067,10 +2095,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     proposal.allocated_mooring = self.approval.child_obj.mooring
 
                     # Copy links to the documents so that the documents are shown on the amendment application form
-                    proposal.proof_of_identity_documents.set(self.proof_of_identity_documents.all())
-                    proposal.mooring_report_documents.set(self.mooring_report_documents.all())
-                    proposal.written_proof_documents.set(self.written_proof_documents.all())
-                    proposal.signed_licence_agreement_documents.set(self.signed_licence_agreement_documents.all())
+                    self.copy_proof_of_identity_documents(proposal)
+                    self.copy_mooring_report_documents(proposal)
+                    self.copy_written_proof_documents(proposal)
+                    self.copy_signed_licence_agreement_documents(proposal)
 
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
@@ -3237,7 +3265,8 @@ class MooringLicenceApplication(Proposal):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def process_after_discarded(self):
-        self.waiting_list_allocation.process_after_discarded()
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.process_after_discarded()
 
     class Meta:
         app_label = 'mooringlicensing'
