@@ -185,6 +185,41 @@ class ProposalType(RevisionedMixin):
 #     class Meta:
 #         app_label = 'mooringlicensing'
 
+class ProposalProofOfIdentityDocument(models.Model):
+    proof_of_identity_document = models.ForeignKey('ProofOfIdentityDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class ProposalMooringReportDocument(models.Model):
+    mooring_report_document = models.ForeignKey('MooringReportDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class ProposalWrittenProofDocument(models.Model):
+    written_proof_document = models.ForeignKey('WrittenProofDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class ProposalSignedLicenceAgreementDocument(models.Model):
+    signed_licence_agreement_document = models.ForeignKey('SignedLicenceAgreementDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
@@ -348,6 +383,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
     temporary_document_collection_id = models.IntegerField(blank=True, null=True)
+    # MLA documents
+    proof_of_identity_documents = models.ManyToManyField('ProofOfIdentityDocument', through=ProposalProofOfIdentityDocument)
+    mooring_report_documents = models.ManyToManyField('MooringReportDocument', through=ProposalMooringReportDocument)
+    written_proof_documents = models.ManyToManyField('WrittenProofDocument', through=ProposalWrittenProofDocument)
+    signed_licence_agreement_documents = models.ManyToManyField('SignedLicenceAgreementDocument', through=ProposalSignedLicenceAgreementDocument)
+
     # AUA amendment
     listed_moorings = models.ManyToManyField('Mooring', related_name='listed_on_proposals')
     keep_existing_mooring = models.BooleanField(default=True)
@@ -359,8 +400,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To prevent that, fee_season is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
-
     personal_details = models.JSONField(null=True, blank=True)
+
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2024,6 +2065,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 from mooringlicensing.components.approvals.models import MooringLicence
                 if self.approval.child_obj.code == MooringLicence.code:
                     proposal.allocated_mooring = self.approval.child_obj.mooring
+
+                    # Copy links to the documents so that the documents are shown on the amendment application form
+                    proposal.proof_of_identity_documents.set(self.proof_of_identity_documents.all())
+                    proposal.mooring_report_documents.set(self.mooring_report_documents.all())
+                    proposal.written_proof_documents.set(self.written_proof_documents.all())
+                    proposal.signed_licence_agreement_documents.set(self.signed_licence_agreement_documents.all())
 
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
@@ -4186,7 +4233,7 @@ class ElectoralRollDocument(Document):
 
 
 class MooringReportDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -4199,7 +4246,7 @@ class MooringReportDocument(Document):
 
 
 class WrittenProofDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='written_proof_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='written_proof_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -4212,7 +4259,7 @@ class WrittenProofDocument(Document):
 
 
 class SignedLicenceAgreementDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True)
@@ -4225,7 +4272,7 @@ class SignedLicenceAgreementDocument(Document):
 
 
 class ProofOfIdentityDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True)
