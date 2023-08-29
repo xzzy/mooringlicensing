@@ -207,11 +207,13 @@
         },
         computed:{
             showDocumentsTab: function(){
-                // return true
+                // return true (processing_status, proposal_type)
                 if (this.is_internal){
                     return true
                 } else if (this.proposal.amendment_requests){
                     return true
+                } else if (this.proposal.processing_status === 'Draft' && this.proposal.proposal_type.code === 'new'){
+                    return false
                 } else {
                     return true
                 }

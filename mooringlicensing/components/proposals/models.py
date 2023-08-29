@@ -185,6 +185,41 @@ class ProposalType(RevisionedMixin):
 #     class Meta:
 #         app_label = 'mooringlicensing'
 
+class ProposalProofOfIdentityDocument(models.Model):
+    proof_of_identity_document = models.ForeignKey('ProofOfIdentityDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class ProposalMooringReportDocument(models.Model):
+    mooring_report_document = models.ForeignKey('MooringReportDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class ProposalWrittenProofDocument(models.Model):
+    written_proof_document = models.ForeignKey('WrittenProofDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
+class ProposalSignedLicenceAgreementDocument(models.Model):
+    signed_licence_agreement_document = models.ForeignKey('SignedLicenceAgreementDocument', on_delete=models.CASCADE)
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
@@ -348,6 +383,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
     temporary_document_collection_id = models.IntegerField(blank=True, null=True)
+    # MLA documents
+    proof_of_identity_documents = models.ManyToManyField('ProofOfIdentityDocument', through=ProposalProofOfIdentityDocument)
+    mooring_report_documents = models.ManyToManyField('MooringReportDocument', through=ProposalMooringReportDocument)
+    written_proof_documents = models.ManyToManyField('WrittenProofDocument', through=ProposalWrittenProofDocument)
+    signed_licence_agreement_documents = models.ManyToManyField('SignedLicenceAgreementDocument', through=ProposalSignedLicenceAgreementDocument)
+
     # AUA amendment
     listed_moorings = models.ManyToManyField('Mooring', related_name='listed_on_proposals')
     keep_existing_mooring = models.BooleanField(default=True)
@@ -359,13 +400,41 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To prevent that, fee_season is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
-
     personal_details = models.JSONField(null=True, blank=True)
+
 
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Application"
         verbose_name_plural = "Applications"
+
+    def copy_proof_of_identity_documents(self, proposal):
+        for doc in self.proof_of_identity_documents.all():
+            link_item = ProposalProofOfIdentityDocument.objects.get(proposal=self, proof_of_identity_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalProofOfIdentityDocument.objects.create(proposal=proposal, proof_of_identity_document=doc)
+
+    def copy_mooring_report_documents(self, proposal):
+        for doc in self.mooring_report_documents.all():
+            link_item = ProposalMooringReportDocument.objects.get(proposal=self, mooring_report_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalMooringReportDocument.objects.create(proposal=proposal, mooring_report_document=doc)
+
+    def copy_written_proof_documents(self, proposal):
+        for doc in self.written_proof_documents.all():
+            link_item = ProposalWrittenProofDocument.objects.get(proposal=self, written_proof_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalWrittenProofDocument.objects.create(proposal=proposal, written_proof_document=doc)
+
+    def copy_signed_licence_agreement_documents(self, proposal):
+        for doc in self.signed_licence_agreement_documents.all():
+            link_item = ProposalSignedLicenceAgreementDocument.objects.get(proposal=self, signed_licence_agreement_document=doc)
+            if link_item.enabled:
+                # Create link to the proposal only when the doc is not deleted.
+                ProposalSignedLicenceAgreementDocument.objects.create(proposal=proposal, signed_licence_agreement_document=doc)
 
     def __str__(self):
         return str(self.lodgement_number)
@@ -2025,6 +2094,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if self.approval.child_obj.code == MooringLicence.code:
                     proposal.allocated_mooring = self.approval.child_obj.mooring
 
+                    # Copy links to the documents so that the documents are shown on the amendment application form
+                    self.copy_proof_of_identity_documents(proposal)
+                    self.copy_mooring_report_documents(proposal)
+                    self.copy_written_proof_documents(proposal)
+                    self.copy_signed_licence_agreement_documents(proposal)
+
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
                 if req:
@@ -3190,7 +3265,8 @@ class MooringLicenceApplication(Proposal):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def process_after_discarded(self):
-        self.waiting_list_allocation.process_after_discarded()
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.process_after_discarded()
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -3933,12 +4009,16 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
 
 class CompanyOwnership(RevisionedMixin):
+    COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
+    COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
+    COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
     STATUS_TYPES = (
-            ('approved', 'Approved'),
-            ('draft', 'Draft'),
-            ('old', 'Old'),
-            ('declined', 'Declined'),
-            )
+        (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
+        (COMPANY_OWNERSHIP_STATUS_DRAFT, 'Draft'),
+        (COMPANY_OWNERSHIP_STATUS_OLD, 'Old'),
+        (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
+    )
     blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
@@ -3964,9 +4044,9 @@ class CompanyOwnership(RevisionedMixin):
         if not self.pk:
             vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
             for vd in vessel_details_set:
-                if vd.status == "draft":
+                if vd.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT:
                     raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
-                elif vd.status == "approved" and self.status == "approved":
+                elif vd.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED and self.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
                     raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
         existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
         if existing_record:
@@ -3976,14 +4056,15 @@ class CompanyOwnership(RevisionedMixin):
         if existing_record and not prev_end_date and self.end_date:
             aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership__company_ownership=self)
             for aup in aup_set:
-                if aup.status == 'current':
+                from mooringlicensing.components.approvals.models import Approval
+                if aup.status == Approval.APPROVAL_STATUS_CURRENT:
                     aup.internal_reissue()
             ## ML
             vo_set = self.vesselownership_set.all()
             for vo in vo_set:
                 proposal_set = vo.proposal_set.all()
                 for proposal in proposal_set:
-                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
+                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == Approval.APPROVAL_STATUS_CURRENT:
                         proposal.approval.internal_reissue()
 
 
@@ -4186,7 +4267,7 @@ class ElectoralRollDocument(Document):
 
 
 class MooringReportDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -4199,7 +4280,7 @@ class MooringReportDocument(Document):
 
 
 class WrittenProofDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='written_proof_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='written_proof_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -4212,7 +4293,7 @@ class WrittenProofDocument(Document):
 
 
 class SignedLicenceAgreementDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True)
@@ -4225,7 +4306,7 @@ class SignedLicenceAgreementDocument(Document):
 
 
 class ProofOfIdentityDocument(Document):
-    proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents', on_delete=models.CASCADE)
+    # proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents', on_delete=models.CASCADE)
     _file = models.FileField(max_length=512)
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True)
@@ -4501,7 +4582,7 @@ def clone_proposal_with_status_reset(original_proposal):
     with transaction.atomic():
         try:
             proposal = type(original_proposal.child_obj).objects.create()
-            proposal.processing_status = 'draft'
+            proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
             proposal.previous_application = original_proposal
             proposal.approval = original_proposal.approval
             proposal.null_vessel_on_create = not original_proposal.vessel_on_proposal()
@@ -4518,7 +4599,8 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
     qs = []
     application_types=[ApplicationType.TCLASS, ApplicationType.EVENT, ApplicationType.FILMING]
     if is_internal:
-        proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=['discarded','draft'])
+        # proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=['discarded','draft'])
+        proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT,])
         approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         compliance_list = Compliance.objects.all()
     if searchWords:
