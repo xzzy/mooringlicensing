@@ -212,7 +212,7 @@
                     return true
                 } else if (this.proposal.amendment_requests){
                     return true
-                } else if (this.proposal.processing_status === 'Draft' && this.proposal.proposal_type === 'new'){
+                } else if (this.proposal.processing_status === 'Draft' && this.proposal.proposal_type.code === 'new'){
                     return false
                 } else {
                     return true
