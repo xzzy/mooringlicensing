@@ -4026,9 +4026,9 @@ class CompanyOwnership(RevisionedMixin):
     percentage = models.IntegerField(null=True, blank=True)
     ## TODO: delete start and end dates if no longer required
     start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Company Ownership"
@@ -4092,6 +4092,7 @@ class VesselOwnership(RevisionedMixin):
     filtered_objects = VesselOwnershipManager()
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
+    company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships')
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
@@ -4222,8 +4223,7 @@ class Company(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return "{}: {}".format(self.name, self.id)
-
+        return f'{self.name} (id: {self.id})'
 
 
 class InsuranceCertificateDocument(Document):
