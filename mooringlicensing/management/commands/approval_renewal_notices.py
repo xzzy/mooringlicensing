@@ -11,13 +11,14 @@ from mooringlicensing.components.approvals.models import (
     MooringLicence,
     DcvPermit, ApprovalUserAction,
 )
-from ledger.accounts.models import EmailUser
+# from ledger.accounts.models import EmailUser
+from ledger_api_client.ledger_models import EmailUserRO
 from datetime import timedelta
 from mooringlicensing.components.proposals.email import send_approval_renewal_email_notification
 
 import logging
 
-from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
+from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting, ApplicationType
 from mooringlicensing.management.commands.utils import construct_email_message
 from mooringlicensing.settings import (
     CODE_DAYS_FOR_RENEWAL_WLA,
@@ -32,7 +33,7 @@ cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'Send Approval renewal notice when approval is due to expire in 30 days'
+    help = 'Send Approval renewal notice when approval is due to expire in X days'
 
     def perform_per_type(self, number_of_days_code, approval_class, updates, errors):
         today = timezone.localtime(timezone.now()).date()
@@ -48,7 +49,7 @@ class Command(BaseCommand):
 
         expiry_notification_date = today + timedelta(days=days_setting.number_of_days)
 
-        logger.info('Running command {}'.format(__name__))
+        logger.info(f'Running command {__name__} for the approval type: {approval_class.description}.')
 
         # Construct queries
         queries = Q()
@@ -60,7 +61,7 @@ class Command(BaseCommand):
             queries &= Q(expiry_date__lte=expiry_notification_date)
             queries &= Q(renewal_sent=False)
             queries &= Q(replaced_by__isnull=True)
-            queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
+            queries &= Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
         approvals = approval_class.objects.filter(queries)
         for a in approvals:
@@ -68,12 +69,21 @@ class Command(BaseCommand):
                 if approval_class == DcvPermit:
                     pass
                 else:
-                    a.generate_renewal_doc()
+                    v_details = a.current_proposal.latest_vessel_details
+                    v_ownership = a.current_proposal.vessel_ownership
+                    if (not v_details or v_ownership.end_date) and a.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
+                        # Null vessel is not allowed for both the annual admission permit application and authorised user permit application.
+                        continue
+                    else:
+                        a.generate_renewal_doc()
+                        logger.info(f'Renewal document has been generated for the approval: [{a}]')
+
                 send_approval_renewal_email_notification(a)
                 a.renewal_sent = True
                 a.save()
-                a.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a.id),)
-                logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a.id))
+
+                a.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a),)
+                logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a))
                 updates.append(a.lodgement_number)
             except Exception as e:
                 err_msg = 'Error sending renewal notice for Approval {}'.format(a.lodgement_number)
@@ -82,9 +92,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
+            # user = EmailUser.objects.get(email=settings.CRON_EMAIL)
+            user = EmailUserRO.objects.get(email=settings.CRON_EMAIL)
         except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
+            # user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
+            user = EmailUserRO.objects.create(email=settings.CRON_EMAIL, password='')
 
         updates, errors = [], []
 

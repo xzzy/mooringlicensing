@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):
     basket_params = {
         'products': make_serializable(lines),
+        # 'products': [{'ledger_description': 'test', 'oracle_code': 'T1 EXEMPT', 'price_incl_tax': 138.0, 'price_excl_tax': 125.454545454545, 'quantity': 1}],
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
@@ -29,9 +30,8 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
         'booking_reference': booking_reference,
     }
 
-    # basket, basket_hash = create_basket_session(request, basket_params)
-    # basket, basket_hash = create_basket_session(request, request.user.id, basket_params)
-    basket_hash = create_basket_session(request, request.user.id, basket_params)
+    email_user_id = email_user.id if request.user.is_anonymous else request.user.id
+    basket_hash = create_basket_session(request, email_user_id, basket_params)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
@@ -74,6 +74,8 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
 
 
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime, v_rego_no=''):
+    from mooringlicensing.components.proposals.models import WaitingListApplication
+
     target_datetime_str = target_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
     application_type_display = fee_constructor.application_type.description
     application_type_display = application_type_display.replace('Application', '')
@@ -87,18 +89,29 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
         vessel_rego_no = 'no vessel'
 
     proposal_type_text = '{}'.format(instance.proposal_type.description) if hasattr(instance, 'proposal_type') else ''
-    return {
-        # 'ledger_description': '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
-        'ledger_description': '{} fee ({}, {}): {} @{}'.format(
-            # fee_constructor.application_type.description,
+
+    if application_type.code != WaitingListApplication.code:
+        # Keep season dates on the Waiting List
+        ledger_description = '{} fee ({}, {}): {} (Season: {} to {}) @{}'.format(
             application_type_display,
             proposal_type_text,
             vessel_rego_no,
             instance.lodgement_number,
-            # fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-            # fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
+            fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
+            fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
             target_datetime_str,
-        ),
+        )
+    else:
+        ledger_description = '{} fee ({}, {}): {} @{}'.format(
+            application_type_display,
+            proposal_type_text,
+            vessel_rego_no,
+            instance.lodgement_number,
+            target_datetime_str,
+        )
+
+    return {
+        'ledger_description': ledger_description,
         'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
         'price_incl_tax': float(fee_amount_adjusted),
         'price_excl_tax': float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted),
@@ -233,11 +246,13 @@ def make_serializable(line_items):
 def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
 
     basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
+    return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse(return_url_ns)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
         'return_url': request.build_absolute_uri(reverse(return_url_ns)),
-        'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
+        # 'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
+        'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice.text,
     }

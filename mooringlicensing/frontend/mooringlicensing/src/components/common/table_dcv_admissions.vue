@@ -155,9 +155,9 @@ export default {
                     let links = ''
                     if (full.invoices){
                         for (let invoice of full.invoices){
-                            links +=  `<div><a href='${invoice.invoice_url}df' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
+                            links +=  `<div><a href='${invoice.invoice_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (!vm.is_external){
-                                links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
+                                links +=  `<div><a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a></div>`;
                             }
                         }
                     }
@@ -236,11 +236,7 @@ export default {
                     let links = '';
                     if (full.invoices){
                         for (let invoice of full.invoices){
-                            //links += '<div>'
-                            //if (!vm.is_external){
-                            //    links +=  `&nbsp;&nbsp;&nbsp;<a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a><br/>`;
-                            //}
-                            //links += '</div>'
+
                         }
                     }
                     return links

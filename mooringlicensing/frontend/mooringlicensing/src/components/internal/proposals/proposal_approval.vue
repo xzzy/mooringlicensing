@@ -19,132 +19,58 @@
             <p>The proposal was declined. The decision was emailed to {{ proposal.submitter.email }}</p>
         </div>
 
-<!--
-        <template v-if="proposal.proposal_apiary">
-            <FormSection :formCollapse="false" label="Site(s)" Index="sites">
-                <ComponentSiteSelection
-                    :apiary_sites="apiary_sites_prop"
-                    :is_internal="true"
-                    :is_external="false"
-                    :key="component_site_selection_key"
-                    :show_col_checkbox="showColCheckbox"
-                    :enable_col_checkbox="false"
-                    :show_col_site="false"
-                    :show_col_site_when_submitted="true"
-                    :show_col_status_when_submitted="true"
-                />
-            </FormSection>
-        </template>
-        <template v-else>
-            <div class="col-md-12">
-                <div class="row">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Level of Approval
-                                <a class="panelClicker" :href="'#'+proposedLevel" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="proposedLevel">
-                                    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                                </a>
-                            </h3>
-                        </div>
-                        <div class="panel-body panel-collapse collapse in" :id="proposedLevel">
-
-                            <div class="row">
-                                <div class="col-sm-12">
-                                        <template v-if="!isFinalised">
-                                            <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
-
-                                        <div v-if="isApprovalLevel">
-                                            <p v-if="proposal.approval_level_document"><strong>Attach documents:</strong> <a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
-                                            <span>
-                                            <a @click="removeFile()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;"></a>
-                                            </span></p>
-                                            <div v-else>
-                                                <p><strong>Attach documents:</strong></p>
-                                                <div class="col-sm-12">
-                                                <span class="btn btn-info btn-file pull-left">
-                                                Attach File <input type="file" ref="uploadedFile" @change="readFile()"/>
-                                                </span>
-                                                <span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedFileName()}}</span>
-
-                                                </div>
-                                                <div class="row"><p></p></div>
-                                                <div class="row"><p></p></div>
-                                                <div class="row"><p></p></div>
-
-                                                <p>
-                                                <strong>Comments (if no approval attached)</strong>
-                                                </p>
-                                                <p>
-                                                <textarea name="approval_level_comments"  v-model="proposal.approval_level_comment" class="form-control" style="width:70%;"></textarea>
-                                                </p>
-                                            </div>
-
-                                        </div>
-                                        </template>
-
-                                        <template v-if="isFinalised">
-                                            <p><strong>Level of approval: {{proposal.approval_level}}</strong></p>
-
-                                            <div v-if="isApprovalLevel">
-                                                <p v-if="proposal.approval_level_document"><strong>Attach documents: </strong><a :href="proposal.approval_level_document[1]" target="_blank">{{proposal.approval_level_document[0]}}</a>
-                                                </p>
-                                                <p v-if="proposal.approval_level_comment"><strong>Comments: {{proposal.approval_level_comment}}</strong>
-                                                </p>
-                                            </div>
-                                        </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 v-if="!isFinalised" class="panel-title">Proposed Decision
+                    <a class="panelClicker" :href="'#'+proposedDecision" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="proposedDecision">
+                        <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                    </a>
+                </h3>
+                <h3 v-else class="panel-title">Decision
+                    <a class="panelClicker" :href="'#'+proposedDecision" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="proposedDecision">
+                        <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                    </a>
+                </h3>
             </div>
-        </template>
--->
-
-        <!--div class="col-md-12"-->
-            <!--div class="row"-->
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 v-if="!isFinalised" class="panel-title">Proposed Decision
-                            <a class="panelClicker" :href="'#'+proposedDecision" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="proposedDecision">
-                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                            </a>
-                        </h3>
-                        <h3 v-else class="panel-title">Decision
-                            <a class="panelClicker" :href="'#'+proposedDecision" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="proposedDecision">
-                                <span class="glyphicon glyphicon-chevron-down pull-right "></span>
-                            </a>
-                        </h3>
-                    </div>
-                    <div class="panel-body panel-collapse collapse in" :id="proposedDecision">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <template v-if="!proposal.proposed_decline_status">
-                                    <template v-if="isFinalised">
-                                        <p><strong>Decision: Issue</strong></p>
-                                        <!--p><strong>Start date: {{proposal.proposed_issuance_approval.start_date}}</strong></p>
-                                        <p><strong>Expiry date: {{proposal.proposed_issuance_approval.expiry_date}}</strong></p-->
-                                        <p><strong>CC emails: {{ displayCCEmail }}</strong></p>
-                                    </template>
-                                    <template v-else>
-                                        <p><strong>Proposed decision: Issue</strong></p>
-<!--
-                                        <p><strong>Proposed start date: {{proposal.proposed_issuance_approval.start_date}}</strong></p>
-                                        <p><strong>Proposed expiry date: {{proposal.proposed_issuance_approval.expiry_date}}</strong></p>
--->
-                                        <p><strong>Proposed cc emails: {{ displayCCEmail }}</strong></p>
-                                    </template>
-                                </template>
-                                <template v-else>
-                                    <strong v-if="!isFinalised">Proposed decision: Decline</strong>
-                                    <strong v-else>Decision: Decline</strong>
-                                </template>
+            <div class="panel-body panel-collapse collapse in" :id="proposedDecision">
+                <template v-if="!proposal.proposed_decline_status">
+                    <div class="row"><div :class="title_class_name">{{ decisionTitle }}: </div><div :class="value_class_name">Issue</div></div>
+                    <div class="row"><div :class="title_class_name">{{ ccEmailTitle }}: </div><div :class="value_class_name">{{ displayCCEmail }}</div></div>
+                    <div class="row"><div :class="title_class_name">Bay: </div><div :class="value_class_name">{{ targetMooringBayDetails.bay_name }}</div></div>
+                    <div class="row"><div :class="title_class_name">Mooring Site ID: </div><div :class="value_class_name">{{ targetMooringBayDetails.mooring_name }}</div></div>
+                    <div class="row"><div :class="title_class_name">Max vessel draft: </div><div :class="value_class_name">{{ targetMooringBayDetails.vessel_draft_limit }}</div></div>
+                    <div class="row"><div :class="title_class_name">Max vessel length: </div><div :class="value_class_name">{{ targetMooringBayDetails.vessel_size_limit }}</div></div>
+                    <div class="row"><div :class="title_class_name">Proposed details: </div><div :class="value_class_name">{{ proposal.proposed_issuance_approval.details }}</div></div>
+                    <template v-if="proposal.authorised_user_moorings.length > 0">
+                        <div class="currently_listed_moorings"><strong>Currently listed moorings</strong></div>
+                        <template v-for="item in proposal.authorised_user_moorings">
+                            <div class="mooring_box">
+                                <div class="row"><div :class="title_class_name">Selected: </div><div :class="value_class_name"><input type="checkbox" v-model="item.checked" disabled /></div></div>
+                                <div class="row"><div :class="title_class_name">Bay: </div><div :class="value_class_name">{{ item.bay }}</div></div>
+                                <div class="row"><div :class="title_class_name">Mooring Site ID: </div><div :class="value_class_name">{{ item.mooring_name }}</div></div>
+                                <div class="row"><div :class="title_class_name">Max vessel draft: </div><div :class="value_class_name">{{ (item.vessel_draft_limit) }}</div></div>
+                                <div class="row"><div :class="title_class_name">Max vessel length: </div><div :class="value_class_name">{{ (item.vessel_size_limit) }}</div></div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            <!--/div-->
-        <!--/div-->
+                        </template>
+                    </template>
+                    <template v-if="proposal.mooring_licence_vessels.length > 0">
+                        <div class="currently_listed_moorings"><strong>Currently listed vessels</strong></div>
+                        <template v-for="item in proposal.mooring_licence_vessels">
+                            <div class="mooring_box">
+                                <div class="row"><div :class="title_class_name">Selected: </div><div :class="value_class_name"><input type="checkbox" v-model="item.checked" disabled /></div></div>
+                                <div class="row"><div :class="title_class_name">Vessel rego: </div><div :class="value_class_name">{{ item.rego }}</div></div>
+                                <div class="row"><div :class="title_class_name">Vessel name: </div><div :class="value_class_name">{{ item.vessel_name }}</div></div>
+                            </div>
+                        </template>
+                    </template>
+                    
+                </template>
+                <template v-else>
+                    <strong v-if="!isFinalised">Proposed decision: Decline</strong>
+                    <strong v-else>Decision: Decline</strong>
+                </template>
+            </div>
+        </div>
     </div>
 </template>
 <script>
@@ -153,9 +79,6 @@ import {
     helpers
 }
 from '@/utils/hooks'
-import datatable from '@vue-utils/datatable.vue'
-import RequirementDetail from './proposal_add_requirement.vue'
-//import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import uuid from 'uuid'
 import { constants } from '@/utils/hooks'
@@ -163,7 +86,9 @@ import { constants } from '@/utils/hooks'
 export default {
     name: 'InternalProposalApproval',
     props: {
-        proposal: Object
+        mooringBays: Array,
+        proposal: Object,
+        siteLicenseeMooring: Object,
     },
     data: function() {
         let vm = this;
@@ -172,6 +97,9 @@ export default {
             proposedLevel: "proposal-level-"+vm._uid,
             uploadedFile: null,
             component_site_selection_key: '',
+            mooring: {},
+            title_class_name: 'col-sm-3 proposed-decision-title',
+            value_class_name: 'col-sm-9 proposed-decision-value',
         }
     },
     watch:{
@@ -181,6 +109,49 @@ export default {
         //ComponentSiteSelection,
     },
     computed:{
+        decisionTitle: function(){
+            if (this.isFinalised){
+                return 'Dicision'
+            } else {
+                return 'Proposed decision'
+            }
+        },
+        ccEmailTitle: function(){
+            if (this.isFinalised){
+                return 'CC emails'
+            } else {
+                return 'Proposed cc emails'
+            }
+        },
+        targetMooringBayDetails: function(){
+            let mooringBayDetail = {}
+            if (this.proposal.mooring_authorisation_preference == 'ria'){
+                console.log('RIA')
+                mooringBayDetail = {
+                    'bay_name': this.proposal.proposed_issuance_approval.bay_name,
+                    'mooring_name': this.proposal.proposed_issuance_approval.ria_mooring_name,
+                    'vessel_draft_limit': this.mooring.vessel_draft_limit,
+                    'vessel_size_limit': this.mooring.vessel_size_limit
+                }
+            } else if (this.proposal.mooring_authorisation_preference == 'site_licensee'){
+                console.log('SITE LICENSEE')
+                mooringBayDetail = {
+                    'bay_name': this.siteLicenseeMooring.mooring_bay_name,
+                    'mooring_name': this.siteLicenseeMooring.name,
+                    'vessel_draft_limit': this.siteLicenseeMooring.vessel_draft_limit,
+                    'vessel_size_limit': this.siteLicenseeMooring.vessel_size_limit
+                }                       
+            } else {                    
+                console.log('ELSE')
+                mooringBayDetail = {
+                    'bay_name': this.mooring.mooring_bay_name,
+                    'mooring_name': this.mooring.name,
+                    'vessel_draft_limit': this.mooring.vessel_draft_limit,
+                    'vessel_size_limit': this.mooring.vessel_size_limit
+                }
+            }
+            return mooringBayDetail
+        },
         displayCCEmail: function() {
             let ccEmail = ''
             if (this.proposal && this.proposal.proposed_issuance_approval) {
@@ -242,34 +213,28 @@ export default {
         isApprovalLevel:function(){
             return this.proposal.approval_level != null ? true : false;
         },
-        apiary_sites: function() {
-            if (this.proposal && this.proposal.proposal_apiary) {
-                return this.proposal.proposal_apiary.apiary_sites;
-            }
-        },
-        apiary_sites_prop: function() {
-            let apiary_sites = [];
-            if (this.proposal.application_type === 'Site Transfer') {
-                for (let site of this.proposal.proposal_apiary.site_transfer_apiary_sites) {
-                    if (site.selected) {
-                        apiary_sites.push(site.apiary_site);
-                    }
-                }
-            } else {
-                apiary_sites = this.proposal.proposal_apiary.apiary_sites;
-            }
-            return apiary_sites;
-        },
-        showColCheckbox: function() {
-            let checked = true;
-            if (this.proposal.proposal_apiary.application_type !== 'Site Transfer') {
-                checked = false;
-            }
-            return checked;
-        },
-
     },
     methods:{
+        stripHtmlTag: function(myString){
+            let html = myString
+            let div = document.createElement("div")
+            div.innerHTML = html
+            let text = div.textContent || div.innerText || ''
+            return text
+        },
+        retrieveMooringDetails: async function(){
+            console.log('%cAHO', 'color: #370;')
+            let mooring_id = null
+            if (this.proposal.proposed_issuance_approval.mooring_id){
+                mooring_id = this.proposal.proposed_issuance_approval.mooring_id
+            } else if (this.proposal.allocated_mooring){
+                mooring_id = this.proposal.allocated_mooring
+            }
+            if (mooring_id){
+                const res = await this.$http.get(`${api_endpoints.mooring}${mooring_id}`);
+                this.mooring = res.body
+            }
+        },
         updateComponentSiteSelectionKey: function(){
             console.log('in updateComponentSiteSelectionKey')
             this.component_site_selection_key = uuid()
@@ -346,8 +311,23 @@ export default {
     mounted: function(){
         let vm = this;
         this.updateComponentSiteSelectionKey()
+        this.retrieveMooringDetails()
     }
 }
 </script>
 <style scoped>
+.proposed-decision-title {
+    font-weight: bold;
+    text-align: right;
+}
+.proposed-decision-value {
+    font-weight: bold;
+}
+.currently_listed_moorings {
+    margin: 2em 0 0 0;
+}
+.mooring_box {
+    border: 1px solid lightgray;
+    border-radius: 0.5em;
+}
 </style>

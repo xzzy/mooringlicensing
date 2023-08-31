@@ -1,3 +1,4 @@
+import django.forms
 from django.contrib import admin
 from django.utils.html import mark_safe
 
@@ -9,7 +10,8 @@ from mooringlicensing.components.main.models import (
 )
 from reversion.admin import VersionAdmin
 from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse, \
-    StickerPrintingContact, StickerPrintedContact
+    StickerPrintingContact, StickerPrintedContact, MooringBay, Mooring
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
 
 class ProposalDocumentInline(admin.TabularInline):
@@ -22,11 +24,40 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
     list_display = ['reason']
 
 
+@admin.register(models.Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name',]
+    list_display_links = ['id', 'name',]
+    search_fields = ['name',]
+
+
+@admin.register(models.VesselRegistrationDocument)
+class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
+    list_display = ['original_file_name', 'original_file_ext', 'proposal', 'vessel_ownership', '_file']
+
+
+@admin.register(models.VesselOwnership)
+class VesselOwnershipAdmin(admin.ModelAdmin):
+    list_display = ['owner', 'vessel', 'company_ownership', 'percentage', 'start_date', 'end_date',]
+
+
+@admin.register(models.CompanyOwnership)
+class CompanyOwnershipAdmin(admin.ModelAdmin):
+    list_display = ['id', 'company', 'vessel', 'percentage', 'start_date', 'end_date',]
+
+
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
-    list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'submitter', 'approval',]
+    list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'get_submitter', 'approval',]
     list_display_links = ['id', 'lodgement_number', ]
     inlines =[ProposalDocumentInline,]
+    search_fields = ['id', 'lodgement_number', 'approval__lodgement_number',]
+
+    def get_submitter(self, obj):
+        if obj.submitter:
+            return retrieve_email_userro(obj.submitter)
+        else:
+            return '---'
 
 
 @admin.register(models.ProposalStandardRequirement)
@@ -55,10 +86,33 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
     form = forms.SystemMaintenanceAdminForm
 
 
+@admin.register(MooringBay)
+class MooringBayAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'mooring_bookings_id', 'active',]
+    list_filter = ('active',)
+
+
+@admin.register(Mooring)
+class MooringAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', 'mooring_bay', 'active', 'vessel_size_limit', 'vessel_draft_limit', 'mooring_licence',]
+    list_filter = ('active',)
+    search_fields = ['name',]
+
+
+class GlobalSettingsForm(django.forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(GlobalSettingsForm, self).__init__(*args, **kwargs)
+        instance = kwargs.get('instance', None)
+        if instance:
+            if instance.key == GlobalSettings.KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST:
+                self.fields['value'].help_text = 'Arrange the table names below in the order in which you want them to appear on the external dashboard page:<ul><li>LicencesAndPermitsTable</li><li>ApplicationsTable</li><li>CompliancesTable</li><li>WaitingListTable</li><li>AuthorisedUserApplicationsTable</li></ul>'
+
+
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value', '_file',]
     ordering = ('key',)
+    form = GlobalSettingsForm
 
     def get_fields(self, request, obj=None):
         if obj and obj.key in GlobalSettings.keys_for_file:
@@ -95,10 +149,13 @@ class StickersPrintedContactAdmin(admin.ModelAdmin):
 class StickersPrintingBatchAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', '_file', 'uploaded_date', 'emailed_datetime',]
     list_display_links = ['id', 'name', '_file',]
+    search_fields = ['name',]
+    # list_filter = ('processed', 'no_errors_when_process',)
 
     def get_actions(self, request):
         actions = super(StickersPrintingBatchAdmin, self).get_actions(request)
-        del actions["delete_selected"]
+        if 'delete_selected' in actions:
+            del actions["delete_selected"]
         return actions
 
     def has_add_permission(self, request):
@@ -137,6 +194,8 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
         'processed',
         'no_errors_when_process',
     ]
+    search_fields = ['name',]
+    list_filter = ('processed', 'no_errors_when_process',)
 
     def get_attached_file(self, obj):
         if obj._file:
@@ -146,7 +205,8 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
 
     def get_actions(self, request):
         actions = super(StickersPrintingResponseAdmin, self).get_actions(request)
-        del actions["delete_selected"]
+        if 'delete_selected' in actions:
+            del actions["delete_selected"]
         return actions
 
     def has_add_permission(self, request):

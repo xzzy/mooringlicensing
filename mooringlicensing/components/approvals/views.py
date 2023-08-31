@@ -28,7 +28,7 @@ class DcvAdmissionFormView(TemplateView):
 
     def get(self, request, *args, **kwargs):
 
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             return redirect('/external/dcv_admission')
 
         context = {}

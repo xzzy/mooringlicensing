@@ -7,6 +7,9 @@ import logging
 import ledger_api_client
 
 from rest_framework import serializers
+
+from mooringlicensing.components.proposals.models import Proposal
+
 logger = logging.getLogger(__name__)
 
 def belongs_to(user, group_name):
@@ -19,10 +22,8 @@ def belongs_to(user, group_name):
     belongs_to_value = cache.get(
         "User-belongs_to" + str(user.id) + "group_name:" + group_name
     )
-    if belongs_to_value:
-        print(
-            "From Cache - User-belongs_to" + str(user.id) + "group_name:" + group_name
-        )
+    # if belongs_to_value:
+    #     logger.info(f'From Cache - User-belongs_to: {str(user.id)}, group_name: {group_name}')
     if belongs_to_value is None:
     #     belongs_to_value = user.groups().filter(name=group_name).exists()
         belongs_to_value = False
@@ -79,11 +80,12 @@ def is_authorised_to_modify(request, instance):
 
     if is_customer(request):
         # the status of the application must be DRAFT for customer to modify
-        authorised &= instance.processing_status in ['draft', 'awaiting_documents', 'printing_sticker']
+        authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_DRAFT, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]
         # the applicant and submitter must be the same
         authorised &= request.user.email == instance.applicant_email
 
     if not authorised:
+        logger.warning(f'User: [{request.user}] is not authorised to modify this proposal: [{instance}].  Raise an error.')
         raise serializers.ValidationError('You are not authorised to modify this application.')
 
 

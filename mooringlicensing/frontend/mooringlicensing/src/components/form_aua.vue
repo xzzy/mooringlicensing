@@ -24,7 +24,7 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" id="pills-mooring-tab" data-toggle="pill" href="#pills-mooring" role="tab" aria-controls="pills-mooring" aria-selected="false">
-                  Mooring
+                  Mooring Bay
                 </a>
               </li>
               <li v-show="showPaymentTab" class="nav-item" id="li-payment">
@@ -42,14 +42,14 @@
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
                     <Profile
-                    :isApplication="true"
-                    v-if="applicantType == 'SUB'"
-                    ref="profile"
-                    @profile-fetched="populateProfile"
-                    :showElectoralRoll="showElectoralRoll"
-                    :proposalId="proposal.id"
-                    :readonly="readonly"
-                    :submitterId="submitterId"
+                        :isApplication="true"
+                        v-if="applicantType == 'SUB'"
+                        ref="profile"
+                        @profile-fetched="populateProfile"
+                        :showElectoralRoll="showElectoralRoll"
+                        :proposalId="proposal.id"
+                        :readonly="readonly"
+                        :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
@@ -58,6 +58,7 @@
                         :applicantType="proposal.applicant_type"
                         id="proposalStartApplicant"
                         :readonly="readonly"
+                        :proposal="proposal"
                     />
                   </div>
               </div>
@@ -71,19 +72,20 @@
                           />
                   </div>
                   <Vessels
-                  :proposal="proposal"
-                  :profile="profileVar"
-                  :id="'proposalStartVessels' + uuid"
-                  :key="'proposalStartVessels' + uuid"
-                  :keep_current_vessel=keepCurrentVessel
-                  ref="vessels"
-                  :readonly="readonly"
-                  :is_internal="is_internal"
-                  @updateVesselLength="updateVesselLength"
-                  @vesselChanged="vesselChanged"
-                  @noVessel="noVessel"
-                  @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
-                  @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
+                    :proposal="proposal"
+                    :profile="profileVar"
+                    :id="'proposalStartVessels' + uuid"
+                    :key="'proposalStartVessels' + uuid"
+                    :keep_current_vessel=keepCurrentVessel
+                    ref="vessels"
+                    :readonly="readonly"
+                    :is_internal="is_internal"
+                    @updateVesselLength="updateVesselLength"
+                    @vesselChanged="vesselChanged"
+                    @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                    @noVessel="noVessel"
+                    @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
+                    @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -200,6 +202,7 @@
                 max_vessel_length_with_no_payment: 0,
                 max_vessel_length_for_main_component: 0,
                 max_vessel_length_for_aa_component: 0,
+                vesselOwnershipChanged: false,
             }
         },
         watch: {
@@ -220,6 +223,7 @@
             Profile,
         },
         computed:{
+
             profileVar: function() {
                 if (this.is_external) {
                     return this.profile;
@@ -244,19 +248,13 @@
                 }
                 return newApp;
             },
-            /*
-            showInsuranceTab: function(){
-                let show=true;
-                if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !=='new' && this.keep_current_vessel)
-                {
-                    show=false;
-                }
-                return show;
-
-            },
-            */
         },
         methods:{
+            updateVesselOwnershipChanged: async function(changed){
+                await this.$emit("updateVesselOwnershipChanged", changed)
+                this.vesselOwnershipChanged = changed
+                this.updateAmendmentRenewalProperties();
+            },
             updateMaxVesselLength: function(max_length) {
                 console.log('updateMaxVesselLength')
                 //this.max_vessel_length_with_no_payment = max_length
@@ -321,18 +319,22 @@
                 }
             },
             */
-            updateVesselLength: function(length) {
+            updateVesselLength: function (length) {
+                console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
                     //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                     //    this.proposal.max_vessel_length_with_no_payment <= length) {
                     if (this.max_vessel_length_with_no_payment !== null &&
-                        this.max_vessel_length_with_no_payment <= length) {
+                        (this.max_vessel_length_with_no_payment.max_length < length ||
+                            this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
                         // vessel length is in higher category
                         this.higherVesselCategory = true;
                     } else {
                         this.higherVesselCategory = false;
                     }
                 }
+                console.log('%cthis.higherVesselCategory:', 'color: #44aa33')
+                console.log(this.higherVesselCategory)
                 this.updateAmendmentRenewalProperties();
             },
             resetCurrentVessel: function(keep) {
@@ -359,8 +361,12 @@
                             this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
                         }
+                        if (this.proposal.null_vessel_on_create && this.$refs.vessels.vessel.rego_no){
+                            // NullVessel when this application was created.  But now it has a value in the vessel-registration field.
+                            this.showInsuranceTab = true;
+                        }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
@@ -372,20 +378,17 @@
                             this.showPaymentTab = true;
                             this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Pay / Submit");
-                            //this.$emit("updateAutoRenew", true);
                         } else if (!this.keepCurrentVessel) {
                             this.showPaymentTab = false;
                             this.showInsuranceTab = true;
                             this.$emit("updateSubmitText", "Submit");
-                            //this.$emit("updateAutoRenew", false);
                         } else {
                             this.showPaymentTab = false;
                             this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
-                            //this.$emit("updateAutoRenew", false);
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.changeMooring || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);

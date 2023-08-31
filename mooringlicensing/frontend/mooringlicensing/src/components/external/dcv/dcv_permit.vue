@@ -23,7 +23,7 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel registration number</label>
+                <label for="" class="col-sm-3 control-label">Unique Vessel Identifier (UVI)</label>
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
                     </select>
@@ -248,8 +248,37 @@ export default {
                 await helpers.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
                 this.paySubmitting = false
             } catch(err) {
-                helpers.processError(err)
+                // helpers.processError(err)
+                this.processError(err)
                 this.paySubmitting = false
+            }
+        },
+        processError: async function(err){
+            console.log({err})
+            let errorText = '';
+            if (err.hasOwnProperty('body')){
+                if (err.body.hasOwnProperty('non_field_errors')) {
+                    // When non field errors raised
+                    for (let i=0; i<err.body.non_field_errors.length; i++){
+                        errorText += err.body.non_field_errors[i] + '<br />'
+                    }
+                } else if(Array.isArray(err.body)) {
+                    // When serializers.ValidationError raised
+                    for (let i=0; i<err.body.length; i++){
+                        errorText += err.body[i] + '<br />'
+                    }
+                } else {
+                    // When field errors raised
+                    for (let field_name in err.body){
+                        if (err.body.hasOwnProperty(field_name)){
+                            // errorText += field_name + ':<br />';  // As requested by RIA, we don't display the field name.
+                            for (let j=0; j<err.body[field_name].length; j++){
+                                errorText += err.body[field_name][j] + '<br />'
+                            }
+                        }
+                    }
+                }
+                await swal("Error", errorText, "error")
             }
         },
         save: async function(withConfirm=true, url){
@@ -264,7 +293,7 @@ export default {
                 };
                 return res;
             } catch(err){
-                helpers.processError(err)
+                this.processError(err)
             }
         },
         fetchFilterLists: function(){

@@ -12,7 +12,7 @@
                                     <label class="control-label pull-left" for="mooring_bay_lookup">Bay</label>
                                 </div>
                                 <div class="col-sm-6">
-                                    <select class="form-control" v-model="selectedMooringBayId" id="mooring_bay_lookup">
+                                    <select class="form-control" v-model="selectedMooringBayId" id="mooring_bay_lookup" disabled>
                                         <option v-for="bay in mooringBays" v-bind:value="bay.id">
                                         {{ bay.name }}
                                         </option>
@@ -26,11 +26,11 @@
                                     <label class="control-label pull-left" for="mooring_site_id">Mooring Site ID</label>
                                 </div>
                                 <div class="col-sm-6">
-                                    <select 
-                                        id="mooring_lookup"  
-                                        name="mooring_lookup"  
-                                        ref="mooring_lookup" 
-                                        class="form-control" 
+                                    <select
+                                        id="mooring_lookup"
+                                        name="mooring_lookup"
+                                        ref="mooring_lookup"
+                                        class="form-control"
                                         style="width: 100%"
                                     />
                                 </div>
@@ -67,7 +67,7 @@
                         <div class="row form-group">
                             <label for="" class="col-sm-3 control-label">Document</label>
                             <div class="col-sm-9">
-                                <FileField 
+                                <FileField
                                     ref="waiting_list_offer_documents"
                                     name="waiting-list-offer-documents"
                                     :isRepeatable="true"
@@ -82,7 +82,7 @@
 
             <div slot="footer">
                 <button type="button" v-if="savingOffer" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!ok_button_enabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -134,6 +134,12 @@ export default {
         }
     },
     computed: {
+        ok_button_enabled: function(){
+            if (this.selectedMooringBayId && this.selectedMooringId){
+                return true
+            }
+            return false
+        },
         waitingListOfferSubmitUrl: function() {
           return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application.json`;
           //return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application/`;
@@ -156,7 +162,7 @@ export default {
         },
         title: function(){
             //return this.processing_status == 'With Approver' ? 'Grant' : 'Propose grant';
-            return "Offer Mooring Licence";
+            return "Offer Mooring Site Licence";
         },
         csrf_token: function() {
           return helpers.getCookie('csrftoken')

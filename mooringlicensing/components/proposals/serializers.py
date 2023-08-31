@@ -1,4 +1,5 @@
 import logging
+from django.db.models import Q
 # from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE
 import pytz
@@ -36,10 +37,10 @@ from mooringlicensing.components.proposals.models import (
     Mooring, MooringLicenceApplication, AuthorisedUserApplication
 )
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
-from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval
+from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
     EmailUserSerializer
-from mooringlicensing.components.users.serializers import UserSerializer
+from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
 from mooringlicensing.components.users.serializers import UserAddressSerializer
 from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
@@ -90,6 +91,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class CompanyOwnershipSerializer(serializers.ModelSerializer):
     company = CompanySerializer()
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = CompanyOwnership
@@ -106,6 +108,13 @@ class CompanyOwnershipSerializer(serializers.ModelSerializer):
                 'updated',
                 )
 
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 
 class MooringSerializer(serializers.ModelSerializer):
     mooring_bay_name = serializers.SerializerMethodField()
@@ -158,6 +167,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     # max_vessel_length_with_no_payment = serializers.SerializerMethodField()
     approval_reissued = serializers.SerializerMethodField()
     vessel_on_proposal = serializers.SerializerMethodField()
+    proposal_applicant = ProposalApplicantSerializer()
+    uuid = serializers.SerializerMethodField()
+    amendment_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -238,8 +250,25 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'approval_reissued',
                 'vessel_on_proposal',
                 'null_vessel_on_create',
+                'proposal_applicant',
+                'uuid',
+                'amendment_requests',
                 )
         read_only_fields=('documents',)
+
+    def get_amendment_requests(self, obj):
+        data = None
+        if obj.proposalrequest_set.count():
+            amendment_requests = obj.proposalrequest_set.all()
+            serializer = AmendmentRequestSerializer(amendment_requests, many=True)
+            data = serializer.data
+        return data
+
+    def get_uuid(self, obj):
+        if hasattr(obj.child_obj, 'uuid'):
+            return obj.child_obj.uuid
+        else:
+            return ''
 
     def get_allowed_assessors(self, obj):
         serializer = EmailUserSerializer(obj.allowed_assessors, many=True)
@@ -363,167 +392,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             serializer = InvoiceSerializer(invoices, many=True)
             return serializer.data
 
-#    def get_max_vessel_length_with_no_payment(self, proposal):
-#        # Find out minimum max_vessel_length, which doesn't require payments.
-#        max_length = 0  # Store minimum Max length which doesn't require payment
-#        now_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
-#        target_date = proposal.get_target_date(now_date)
-#
-#        if proposal.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW,]:
-#            # New/Renewal means starting a new season, nothing paid for any vessel.  Return 0[m]
-#            pass
-#        else:
-#            # Amendment
-#            # Max amount paid for this season
-#            max_amount_paid = proposal.get_max_amounts_paid_in_this_season(target_date)
-#
-#            # FeeConstructor to use
-#            fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, now_date)
-#
-#            max_length = self._calculate_max_length(fee_constructor, max_amount_paid[fee_constructor.application_type])
-#
-#            if proposal.application_type.code in [MooringLicenceApplication.code, AuthorisedUserApplication.code,]:
-#                # When AU/ML, we have to take account into AA component, too
-#                application_type_aa = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
-#                fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type_aa, now_date)
-#                max_length_aa = self._calculate_max_length(fee_constructor, max_amount_paid[application_type_aa])
-#                max_length = max_length if max_length < max_length_aa else max_length_aa  # Note: we are trying to find MINIMUM max length, which don't require payment.
-#
-#        logger.info('Minimum max length with no payments is {} [m]'.format(max_length))
-#        return max_length
-#
-#    def _calculate_max_length(self, fee_constructor, max_amount_paid):
-#        # All the amendment FeeItems interested
-#        # Ordered by 'start_size' ascending order, which means the cheapest fee_item first.
-#        fee_items_interested = fee_constructor.feeitem_set.filter(
-#            proposal_type=ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-#            ).order_by('vessel_size_category__start_size')
-#        max_length = self._calculate_minimum_max_length(fee_items_interested, max_amount_paid)
-#        return max_length
-#
-#    def _calculate_minimum_max_length(self, fee_items_interested, max_amount_paid):
-#        """
-#        Find out MINIMUM max-length from fee_items_interested by max_amount_paid
-#        """
-#        max_length = 0
-#        for fee_item in fee_items_interested:
-#            if fee_item.incremental_amount:
-#                smallest_vessel_size = float(fee_item.vessel_size_category.start_size)
-#
-#                larger_category = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(
-#                    fee_item.vessel_size_category
-#                    )
-#                if larger_category:
-#                    max_number_of_increment = round(
-#                        larger_category.start_size - fee_item.vessel_size_category.start_size
-#                        )
-#                else:
-#                    max_number_of_increment = 1000  # We probably would like to cap the number of increments
-#
-#                increment = 0.0
-#                while increment <= max_number_of_increment:
-#                    test_vessel_size = smallest_vessel_size + increment
-#                    fee_amount_to_pay = fee_item.get_absolute_amount(test_vessel_size)
-#                    if fee_amount_to_pay <= max_amount_paid:
-#                        if not max_length or test_vessel_size > max_length:
-#                            max_length = test_vessel_size
-#                    increment += 1
-#            else:
-#                fee_amount_to_pay = fee_item.get_absolute_amount()
-#                if fee_amount_to_pay <= max_amount_paid:
-#                    # Find out start size of one larger category
-#                    larger_category = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(
-#                        fee_item.vessel_size_category
-#                        )
-#                    if larger_category:
-#                        if not max_length or larger_category.start_size > max_length:
-#                            if larger_category.include_start_size:
-#                                max_length = float(larger_category.start_size) - 0.00001
-#                            else:
-#                                max_length = float(larger_category.start_size)
-#                    else:
-#                        max_length = None
-#                else:
-#                    # The amount to pay is now more than the max amount paid
-#                    # Assuming larger vessel is more expensive, the all the fee_items left are more expensive than max_amount_paid
-#                    break
-#        return max_length
-
-
-#                vessel_length = fee_item.vessel_details.vessel_applicable_length  # This is the vessel length when paid for this fee_item
-#                amount_paid = fee_item.get_absolute_amount(vessel_length)
-#
-#                if fee_item.incremental_amount:
-#                    vessel_length = fee_item.vessel_details.vessel_applicable_length  # This is the vessel length when paid for this fee_item
-#                    number_of_increment = ceil(vessel_length - fee_item.vessel_size_category.start_size)
-#                    m_length = self.vessel_size_category.start_size + number_of_increment
-#                    if not max_length or m_length < max_length:
-#                        if fee_item.vessel_size_category.include_start_size:
-#                            max_length = float(m_length) - 0.00001
-#                        else:
-#                            max_length = float(m_length)
-#
-#                else:
-#                    vessel_size_category = fee_item.vessel_size_category
-#                    larger_category = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(
-#                        vessel_size_category
-#                    )
-#                    if larger_category:
-#                        if not max_length or larger_category.start_size < max_length:
-#                            if larger_category.include_start_size:
-#                                max_length = float(larger_category.start_size) - 0.00001
-#                            else:
-#                                max_length = float(larger_category.start_size)
-#                    else:
-#                        if not max_length:
-#                            max_length = 99999
-#
-#        return max_length
-
-
-#            # no need to specify current proposal type due to previous_application check
-#            if proposal.previous_application and proposal.previous_application.application_fees.count():
-#                # app_fee = proposal.previous_application.application_fees.first()
-#                for application_fee in proposal.previous_application.application_fees.all():
-#                    if application_fee.fee_constructor:
-#                        app_fee = application_fee
-#                        break
-#
-#                for fee_item in app_fee.fee_items.all():
-#
-#                    # TEST
-#                    corresponding_fee_item = fee_item.get_corresponding_fee_item(Proposal.objects.get(code=PROPOSAL_TYPE_AMENDMENT))
-#
-#                    if fee_item.incremental_amount:
-#                        # Determine vessel length
-#                        vessel_length = proposal.previous_application.latest_vessel_details.vessel_length
-#                        number_of_increment = ceil(vessel_length - fee_item.vessel_size_category.start_size)
-#                        m_length = self.vessel_size_category.start_size + number_of_increment
-#                        if not max_length or m_length < max_length:
-#                            if fee_item.vessel_size_category.include_start_size:
-#                                max_length = float(m_length) - 0.00001
-#                            else:
-#                                max_length = float(m_length)
-#
-#                    else:
-#                        vessel_size_category = fee_item.vessel_size_category
-#                        larger_category = fee_item.vessel_size_category.vessel_size_category_group.get_one_larger_category(vessel_size_category)
-#                        if larger_category:
-#                            if not max_length or larger_category.start_size < max_length:
-#                                if larger_category.include_start_size:
-#                                    max_length = float(larger_category.start_size) - 0.00001
-#                                else:
-#                                    max_length = float(larger_category.start_size)
-#
-#                # no larger categories
-#                if not max_length:
-#                    # for fee_item in app_fee.fee_items.all():
-#                    #     vessel_size_category = fee_item.vessel_size_category
-#                    #     if not max_length or vessel_size_category.start_size < max_length:
-#                    #         max_length = vessel_size_category.start_size
-#                    max_length = 9999
-#        return max_length
-
 
 class ListProposalSerializer(BaseProposalSerializer):
     # submitter = EmailUserSerializer()
@@ -619,12 +487,12 @@ class ListProposalSerializer(BaseProposalSerializer):
             for inv in proposal.invoices_display():
                 payment_status = get_invoice_payment_status(inv.id)
                 if payment_status == 'paid':
-                    invoices_str += 'invoice={}&'.format(inv.reference)
+                    invoices_str += 'invoice_no={}&'.format(inv.reference)
             if invoices_str:
                 invoices_str = invoices_str[:-1]
-                links += "<div><a href='/ledger/payments/invoice/payment?{}' target='_blank'>View Payment</a></div>".format(invoices_str)
+                links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
                 # refund url
-                links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
+                # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
         return links
 
     def get_can_view_payment_details(self, proposal):
@@ -646,12 +514,14 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_assigned_officer(self,obj):
         if obj.assigned_officer:
-            return obj.assigned_officer.get_full_name()
+            # return obj.assigned_officer.get_full_name()
+            return retrieve_email_userro(obj.assigned_officer).get_full_name() if obj.assigned_officer else ''
         return None
 
     def get_assigned_approver(self,obj):
         if obj.assigned_approver:
-            return obj.assigned_approver.get_full_name()
+            # return obj.assigned_approver.get_full_name()
+            return retrieve_email_userro(obj.assigned_approver).get_full_name() if obj.assigned_approver else ''
         return None
 
     def get_assessor_process(self,obj):
@@ -662,7 +532,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             '''if (obj.assigned_officer and obj.assigned_officer == user) or (user in obj.allowed_assessors):
                 return True'''
             if obj.assigned_officer:
-                if obj.assigned_officer == user:
+                if obj.assigned_officer == user.id:
                     return True
             elif user in obj.allowed_assessors:
                 return True
@@ -854,7 +724,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Insurance Certificate"] = "Please attach"
             if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
-            if data.get("mooring_authorisation_preference") == 'site_licensee':
+            if data.get("mooring_authorisation_preference") == 'site_licensee' and not data.get('keep_existing_mooring'):
                 site_licensee_email = data.get("site_licensee_email")
                 mooring_id = data.get("mooring_id")
                 if not site_licensee_email:
@@ -864,7 +734,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 # check that the site_licensee_email matches the Mooring Licence holder
                 if mooring_id and Mooring.objects.get(id=mooring_id):
                     mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                    if mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
+                    if not mooring_licence or mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
                         custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -872,6 +742,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = Proposal
@@ -894,6 +765,14 @@ class SaveDraftProposalVesselSerializer(serializers.ModelSerializer):
                 #'keep_existing_mooring',
                 #'keep_existing_vessel',
                 )
+
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 
 
 class ProposalDeclinedDetailsSerializer(serializers.ModelSerializer):
@@ -930,6 +809,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_vessel_rego_no = serializers.SerializerMethodField()
     vessel_on_proposal = serializers.SerializerMethodField()
+    proposed_issuance_approval = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -968,6 +848,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'comment_data',
                 'allowed_assessors',
                 'proposed_issuance_approval',
+                # 'proposed_issuance_approval2',
                 'proposed_decline_status',
                 'proposaldeclineddetails',
                 'permit',
@@ -1026,11 +907,22 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'approval_vessel_rego_no',
                 'vessel_on_proposal',
                 'null_vessel_on_create',
+                'proposal_applicant',
+                'amendment_requests',
+                'uuid',
+                'allocated_mooring',
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_proposed_issuance_approval(self, obj):
+        if obj.proposed_issuance_approval and obj.proposed_issuance_approval.get('mooring_bay_id', None):
+            # Add bay_name when possible to display on the frontend
+            bay = MooringBay.objects.get(id=obj.proposed_issuance_approval.get('mooring_bay_id'))
+            obj.proposed_issuance_approval['bay_name'] = bay.name
+        return obj.proposed_issuance_approval
 
     def get_submitter(self, obj):
         if obj.submitter:
@@ -1040,7 +932,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
             return UserSerializer(email_user).data
         else:
             return ""
-
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
@@ -1108,23 +999,52 @@ class InternalProposalSerializer(BaseProposalSerializer):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
             for moa in obj.approval.mooringonapproval_set.all():
+                # if moa.mooring.mooring_licence is not None:
+                #     suitable_for_mooring = True
+                #     # only do check if vessel details exist
+                #     if obj.vessel_details:
+                #         suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
+                #     color = '#000000' if suitable_for_mooring else '#FF0000'
+                #     #import ipdb; ipdb.set_trace()
+                #     moorings.append({
+                #         "id": moa.id,
+                #         "mooring_name": '<span style="color:{}">{}</span>'.format(color, moa.mooring.name),
+                #         "bay": '<span style="color:{}">{}</span>'.format(color, str(moa.mooring.mooring_bay)),
+                #         "site_licensee": '<span style="color:{}">RIA Allocated</span>'.format(color) if not moa.site_licensee else
+                #             '<span style="color:{}">User Requested</span>'.format(color),
+                #         "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else
+                #             '<span style="color:{}">Historical</span>'.format(color),
+                #         "checked": True if suitable_for_mooring and not moa.end_date else False,
+                #         "suitable_for_mooring": suitable_for_mooring,
+                #         #"mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'] if moa.mooring.mooring_licence else False,
+                #         "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
+                #         })
                 suitable_for_mooring = True
                 # only do check if vessel details exist
                 if obj.vessel_details:
                     suitable_for_mooring = moa.mooring.suitable_vessel(obj.vessel_details)
-                color = '#000000' if suitable_for_mooring else '#FF0000'
+                # color = '#000000' if suitable_for_mooring else '#FF0000'
+                #import ipdb; ipdb.set_trace()
+
+                # Retrieve checkbox status for this mooring (moa.mooring)
+                checked = True
+                if obj.proposed_issuance_approval and 'mooring_on_approval' in obj.proposed_issuance_approval:
+                    for item in obj.proposed_issuance_approval['mooring_on_approval']:
+                        if  moa.id == item['id']:
+                            checked = item['checked']
+
                 moorings.append({
                     "id": moa.id,
-                    "mooring_name": '<span style="color:{}">{}</span>'.format(color, moa.mooring.name),
-                    "bay": '<span style="color:{}">{}</span>'.format(color, str(moa.mooring.mooring_bay)),
-                    "site_licensee": '<span style="color:{}">RIA Allocated</span>'.format(color) if not moa.site_licensee else
-                        '<span style="color:{}">User Requested</span>'.format(color),
-                    "status": '<span style="color:{}">Current</span>'.format(color) if not moa.end_date else
-                        '<span style="color:{}">Historical</span>'.format(color),
-                    "checked": True if suitable_for_mooring and not moa.end_date else False,
+                    "mooring_name": moa.mooring.name,
+                    "bay": str(moa.mooring.mooring_bay),
+                    "site_licensee": 'RIA Allocated' if not moa.site_licensee else 'User Requested',
+                    "status": 'Current' if not moa.end_date else 'Historical',
+                    "checked": checked,
+                    'vessel_size_limit': str(moa.mooring.vessel_size_limit),
+                    'vessel_draft_limit': str(moa.mooring.vessel_draft_limit),
                     "suitable_for_mooring": suitable_for_mooring,
-                    "mooring_licence_current": moa.mooring.mooring_licence.status in ['current', 'suspended'],
-                    })
+                    "mooring_licence_current": moa.mooring.mooring_licence.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED] if moa.mooring.mooring_licence else None,
+                })
         return moorings
 
     def get_mooring_licence_vessels(self, obj):
@@ -1136,13 +1056,21 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 vessels.append(vessel)
                 status = 'Current' if not vooa.end_date else 'Historical'
 
+                # Retrieve checkbox status for this mooring (moa.mooring)
+                checked = True
+                if obj.proposed_issuance_approval and 'vessel_ownership' in obj.proposed_issuance_approval:
+                    for item in obj.proposed_issuance_approval['vessel_ownership']:
+                        if  vooa.vessel_ownership.id == item['id']:
+                            checked = item['checked']
+
                 vessel_details.append({
                     "id": vooa.vessel_ownership.id,
                     "rego": vooa.vessel_ownership.vessel.rego_no,
                     "vessel_name": vooa.vessel_ownership.vessel.latest_vessel_details.vessel_name,
                     "status": status,
-                    "checked": True if not vooa.end_date else False,
-                    })
+                    # "checked": True if not vooa.end_date else False,
+                    'checked': checked,
+                })
         return vessel_details
 
     def get_previous_application_vessel_details_id(self, obj):
@@ -1207,7 +1135,7 @@ class ProposalUserActionSerializer(serializers.ModelSerializer):
     def get_who(self, obj):
         ret_name = 'System'
         if obj.who:
-            name = retrieve_email_userro(obj.who).get_full_name()
+            name = obj.who_obj.get_full_name()
             name = name.strip()
             if name:
                 ret_name = name
@@ -1337,6 +1265,13 @@ class AmendmentRequestSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+# class BackToAssessorSerializer(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = BackToAssessor
+#         fields = '__all__'
+
+
 class AmendmentRequestDisplaySerializer(serializers.ModelSerializer):
     reason = serializers.SerializerMethodField()
 
@@ -1434,7 +1369,7 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_owner_name(self, obj):
-        if obj.company_ownership:
+        if obj.company_ownership and obj.company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
             return obj.company_ownership.company.name
         else:
             return str(obj.owner)
@@ -1545,7 +1480,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
 
     def get_owner_full_name(self, obj):
         # return obj.owner.emailuser.get_full_name()
-        owner = retrieve_email_userro(obj.owner.emailuser)
+        owner = obj.owner.emailuser_obj
         return owner.get_full_name()
 
     def get_applicable_percentage(self, obj):
@@ -1568,7 +1503,7 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
 
     def get_owner_phone_number(self, obj):
         # return obj.owner.emailuser.phone_number if obj.owner.emailuser.phone_number else obj.owner.emailuser.mobile_number
-        owner = retrieve_email_userro(obj.owner.emailuser)
+        owner = obj.owner.emailuser_obj
         return owner.phone_number if owner.phone_number else owner.mobile_number
 
     def get_individual_owner(self, obj):
@@ -1604,6 +1539,7 @@ class VesselOwnershipSaleDateSerializer(serializers.ModelSerializer):
 
 
 class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = VesselOwnership
@@ -1628,6 +1564,14 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
+
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 
 
 class MooringBaySerializer(serializers.ModelSerializer):
@@ -1671,8 +1615,24 @@ class ListMooringSerializer(serializers.ModelSerializer):
         return obj.mooring_bay.name
 
     def get_authorised_user_permits(self, obj):
-        preference_count_ria = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=False).count()
-        preference_count_site_licensee = MooringOnApproval.objects.filter(mooring=obj, approval__status='current', site_licensee=True).count()
+        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+
+        query = Q()
+        query &= Q(mooring=obj)
+        query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+        query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))
+
+        preference_count_ria = MooringOnApproval.objects.filter(
+            query,
+            site_licensee=False,
+        ).count()
+
+        preference_count_site_licensee = MooringOnApproval.objects.filter(
+            query,
+            site_licensee=True,
+        ).count()
+
         return {
             'ria': preference_count_ria,
             'site_licensee': preference_count_site_licensee
@@ -1683,6 +1643,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
 
 
 class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
+    percentage = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = CompanyOwnership
@@ -1691,4 +1652,12 @@ class SaveCompanyOwnershipSerializer(serializers.ModelSerializer):
                 'vessel',
                 'percentage',
                 )
+
+    def validate_percentage(self, value):
+        if not value:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise serializers.ValidationError('You must supply an integer value.')
 

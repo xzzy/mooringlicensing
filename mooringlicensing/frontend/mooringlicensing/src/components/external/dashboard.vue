@@ -59,6 +59,7 @@
         </FormSection>
  -->
 
+        <!-- <span @click="recalc">test</span> -->
         <template v-for="component in components_ordered">
             <FormSection 
                 :formCollapse="component.formCollapse"
@@ -115,7 +116,8 @@ export default {
                     formCollapse: true,
                     label: "Applications",
                     // subtitle: "View existing applications and lodge new ones",
-                    subtitle: "View unapproved applications or lodge new ones",
+                    // subtitle: "View unapproved applications or lodge new ones",
+                    subtitle: "- Lodge new applications or view pending applications",
                     Index: "applications",
                     subtitle_class_name: "subtitle-l",
                 },
@@ -124,32 +126,40 @@ export default {
                     approvalTypeFilter: ['wla',],
                     formCollapse: true,
                     label: "Waiting List",
-                    subtitle: "- View and amend your waiting list allocation",
+                    // subtitle: "- View and amend your waiting list allocation",
+                    subtitle: "- View or amend your waiting list allocation",
                     Index: "waiting_list",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'LicencesAndPermitsTable': {
                     type: 'LicencesAndPermitsTable',
                     approvalTypeFilter: ['ml', 'aap', 'aup'],
                     formCollapse: true,
                     label: "Licences and Permits", 
-                    subtitle: "- View existing licences / permits and renew them",
+                    // subtitle: "- View existing licences / permits and renew them",
+                    subtitle: "- View or renew licences or permits",
                     Index: "licences_and_permits",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'CompliancesTable': {
                     type: 'CompliancesTable',
                     approvalTypeFilter: [],
                     formCollapse: true,
                     label: "Compliances", 
-                    subtitle: "- View submitted Compliances and submit new ones",
+                    // subtitle: "- View submitted Compliances and submit new ones",
+                    subtitle: "- Manage compliance requirements",
                     Index: "compliances",
+                    subtitle_class_name: "subtitle-l",
                 },
                 'AuthorisedUserApplicationsTable': {
                     type: 'AuthorisedUserApplicationsTable',
                     approvalTypeFilter: [],
                     formCollapse: true,
-                    label: "Authorised User Applications for my Endorsement",
-                    subtitle: "", 
+                    // label: "Authorised User Applications for my Endorsement",
+                    label: "Endorsements (licensees only)",
+                    subtitle: "- View or approve mooring authorisations", 
                     Index: "authorised_user_applications_for_my_endorsement",
+                    subtitle_class_name: "subtitle-l",
                 },
             }
         }
@@ -172,6 +182,10 @@ export default {
 
     },
     methods: {
+        recalc: function(){
+            console.log('test')
+            console.log(this.components['WaitingListTable'])
+        }
     },
     mounted: function () {
 

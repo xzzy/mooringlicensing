@@ -6,27 +6,27 @@
                     <label for="" class="col-sm-12 control-label">{{ currentMooringDisplayText }}</label>
 
                         <div class="col-sm-9">
-                            <input 
-                            @change="resetCurrentMooring" 
-                            :disabled="readonly" 
-                            type="radio" 
-                            id="changeMooringFalse" 
-                            name="changeMooringFalse" 
-                            :value="false" 
-                            v-model="changeMooring" 
+                            <input
+                            @change="resetCurrentMooring"
+                            :disabled="readonly"
+                            type="radio"
+                            id="changeMooringFalse"
+                            name="changeMooringFalse"
+                            :value="false"
+                            v-model="changeMooring"
                             required
                             />
                             <label for="changeMooringFalse" class="control-label">No</label>
                         </div>
                         <div class="col-sm-9">
-                            <input 
-                            @change="resetCurrentMooring" 
-                            :disabled="readonly" 
-                            type="radio" 
-                            id="changeMooringTrue" 
-                            name="changeMooringTrue" 
-                            :value="true" 
-                            v-model="changeMooring" 
+                            <input
+                            @change="resetCurrentMooring"
+                            :disabled="readonly"
+                            type="radio"
+                            id="changeMooringTrue"
+                            name="changeMooringTrue"
+                            :value="true"
+                            v-model="changeMooring"
                             required
                             />
                             <label for="changeMooringTrue" class="control-label">Yes</label>
@@ -79,7 +79,7 @@ from '@/utils/hooks'
             mooringLicenceCurrentVesselDisplayText: function() {
                 let displayText = '';
                 if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                    displayText += `Your mooring licence ${this.proposal.approval_lodgement_number} 
+                    displayText += `Your mooring site licence ${this.proposal.approval_lodgement_number}
                     currently lists the following vessels ${this.proposal.mooring_licence_vessels.toString()}.`;
                 }
                 return displayText;
@@ -88,13 +88,13 @@ from '@/utils/hooks'
             currentMooringDisplayText: function() {
                 let displayText = '';
                 if (this.proposal && this.proposal.authorised_user_moorings_str) {
-                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number} 
-                    lists moorings ${this.proposal.authorised_user_moorings_str}. 
+                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
+                    lists moorings ${this.proposal.authorised_user_moorings_str}.
                         Do you want to apply to add another mooring to your Authorised User Permit?`;
                 }
                 /*
                 if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                    displayText += `Your Authorised User Permit ${this.proposal.approval_lodgement_number} 
+                    displayText += `Your Authorised User Permit ${this.proposal.approval_lodgement_number}
                     lists the following vessel ${this.proposal.mooring_licence_vessels.toString()}.`;
                 }
                 */

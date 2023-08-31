@@ -31,6 +31,7 @@ from ledger_api_client.urls import urlpatterns as ledger_patterns
 
 # API patterns
 from mooringlicensing.management.default_data_manager import DefaultDataManager
+from mooringlicensing.settings import PRIVATE_MEDIA_DIR_NAME
 from mooringlicensing.utils import are_migrations_running
 from django.urls import path
 
@@ -61,6 +62,7 @@ router.register(r'organisation_contacts', org_api.OrganisationContactViewSet)
 router.register(r'my_organisations', org_api.MyOrganisationsViewSet)
 router.register(r'users', users_api.UserViewSet)
 router.register(r'amendment_request', proposal_api.AmendmentRequestViewSet)
+# router.register(r'back_to_assessor', proposal_api.BackToAssessorViewSet)
 router.register(r'compliance_amendment_request', compliances_api.ComplianceAmendmentRequestViewSet)
 router.register(r'global_settings', main_api.GlobalSettingsViewSet)
 router.register(r'payment', main_api.PaymentViewSet)
@@ -87,6 +89,7 @@ api_patterns = [
     url(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
     url(r'^api/application_types$', proposal_api.GetApplicationTypeDescriptions.as_view(), name='get-application-type-descriptions'),
     url(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
+    url(r'^api/application_categories_dict$', proposal_api.GetApplicationCategoryDict.as_view(), name='get-application-category-dict'),
     # url(r'^api/applicants_dict$', proposal_api.GetApplicantsDict.as_view(), name='get-applicants-dict'),
     url(r'^api/payment_system_id$', proposal_api.GetPaymentSystemId.as_view(), name='get-payment-system-id'),
     url(r'^api/fee_item_sticker_replacement$', proposal_api.GetStickerReplacementFeeItem.as_view(), name='get-sticker-replacement-fee-item'),
@@ -105,6 +108,7 @@ api_patterns = [
     url(r'^api/application_statuses_dict$', proposal_api.GetApplicationStatusesDict.as_view(), name='get-application-statuses-dict'),
     url(r'^api/approval_types_dict$', approval_api.GetApprovalTypeDict.as_view(), name='get-approval-type-dict'),
     url(r'^api/wla_allowed$', approval_api.GetWlaAllowed.as_view(), name='get-wla-allowed'),
+    url(r'^api/current_season$', approval_api.GetCurrentSeason.as_view(), name='get-current-season'),
     url(r'^api/approval_statuses_dict$', approval_api.GetApprovalStatusesDict.as_view(), name='get-approval-statuses-dict'),
     url(r'^api/fee_seasons_dict$', approval_api.GetFeeSeasonsDict.as_view(), name='get-fee-seasons-dict'),
     url(r'^api/sticker_status_dict$', approval_api.GetStickerStatusDict.as_view(), name='get-sticker-status-dict'),
@@ -165,6 +169,7 @@ urlpatterns = [
     url(r'^sticker_replacement_fee/$', StickerReplacementFeeView.as_view(), name='sticker_replacement_fee'),
     url(r'^sticker_replacement_fee_success/(?P<uuid>.+)/$', StickerReplacementFeeSuccessView.as_view(), name='sticker_replacement_fee_success'),
     url(r'^sticker_replacement_fee_success_preload/(?P<uuid>.+)/$', StickerReplacementFeeSuccessViewPreload.as_view(), name='sticker_replacement_fee_success_preload'),
+    url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/view/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'view'}, name='view-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     url(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     url(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
@@ -191,6 +196,9 @@ urlpatterns = [
     url(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
     url(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
+
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+
 ] + ledger_patterns + media_serv_patterns
 
 if settings.DEBUG:  # Serve media locally in development.

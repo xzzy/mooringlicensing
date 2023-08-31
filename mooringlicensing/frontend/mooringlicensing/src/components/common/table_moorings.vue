@@ -26,12 +26,8 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable 
-                    ref="moorings_datatable" 
-                    :id="datatable_id" 
-                    :dtOptions="mooringsOptions" 
-                    :dtHeaders="mooringsHeaders"
-                />
+                <datatable ref="moorings_datatable" :id="datatable_id" :dtOptions="mooringsOptions"
+                    :dtHeaders="mooringsHeaders" />
             </div>
         </div>
     </div>
@@ -40,7 +36,7 @@
 <script>
 import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
-import { api_endpoints, helpers }from '@/utils/hooks'
+import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
     name: 'TableMoorings',
     /*
@@ -68,130 +64,139 @@ export default {
 
         }
     },
-    components:{
+    components: {
         datatable
     },
     watch: {
-        filterMooringStatus: function(){
+        filterMooringStatus: function () {
             this.$refs.moorings_datatable.vmDataTable.ajax.reload()
         },
-        filterMooringBay: function(){
+        filterMooringBay: function () {
             this.$refs.moorings_datatable.vmDataTable.ajax.reload()
         },
     },
     computed: {
-        is_external: function() {
+        is_external: function () {
             return this.level == 'external'
         },
-        mooringsHeaders: function() {
+        mooringsHeaders: function () {
             /*
             let headers = ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'];
             if (this.level === 'internal') {
                 headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
             }
             */
-            return ['Mooring', 'Bay', 'Type', 'Status', 'Authorised User Permits', 'Max Vessel Length', 'Max Vessel Draft', 'Action'];
+            return ['Mooring', 'Bay', 'Type', 'Status', 'Authorised User Permits (RIA/LIC)', 'Max Vessel Length', 'Max Vessel Draft', 'Action'];
         },
-        mooringNameColumn: function() {
+        mooringNameColumn: function () {
             return {
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.name;
-                        }
-                    }
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    return full.name;
+                },
+                name: 'name',
+            }
         },
-        mooringBayColumn: function() {
+        mooringBayColumn: function () {
             return {
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.mooring_bay_name;
-                        }
-                    }
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    return full.mooring_bay_name;
+                },
+                name: 'mooring_bay__name',
+            }
         },
-        mooringTypeColumn: function() {
+        mooringTypeColumn: function () {
             return {
-                        // 2. Lodgement Number
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'Mooring';
-                        }
-                    }
+                // 2. Lodgement Number
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    return 'Mooring';
+                }
+            }
         },
-        statusColumn: function() {
+        statusColumn: function () {
             return {
-                        // 3. Licence/Permit
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            //return 'not implemented';
-                            return full.status;
-                        }
-                    }
+                // 3. Licence/Permit
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    //return 'not implemented';
+                    return full.status;
+                }
+            }
         },
-        authorisedUserPermitsColumn: function() {
+        authorisedUserPermitsColumn: function () {
             return {
-                        // 4. Condition
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            //return 'not implemented';
-                            let total = full.authorised_user_permits.ria + full.authorised_user_permits.site_licensee
-                            return total + ' (' + full.authorised_user_permits.ria + '/' + full.authorised_user_permits.site_licensee + ')'
-                        }
-                    }
+                // 4. Condition
+                data: "id",
+                orderable: true,
+                searchable: true,
+                createdCell: function (td, cellData, rowData, row, col) {
+                    $(td).css("text-align", "center")
+                },
+                visible: true,
+                'render': function (row, type, full) {
+                    //return 'not implemented';
+                    let total = full.authorised_user_permits.ria + full.authorised_user_permits.site_licensee
+                    return total + ' (' + full.authorised_user_permits.ria + '/' + full.authorised_user_permits.site_licensee + ')'
+                }
+            }
         },
-        maxVesselLengthColumn: function() {
+        maxVesselLengthColumn: function () {
             return {
-                        // 5. Due Date
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.vessel_size_limit;
-                        }
-                    }
+                // 5. Due Date
+                data: "id",
+                orderable: true,
+                searchable: true,
+                className: "aho",
+                createdCell: function (td, cellData, rowData, row, col) {
+                    $(td).css("text-align", "right").css("padding", "0 1em 0 0")
+                },
+                visible: true,
+                'render': function (row, type, full) {
+                    return full.vessel_size_limit;
+                }
+            }
         },
-        maxVesselDraftColumn: function() {
+        maxVesselDraftColumn: function () {
             return {
-                        // 6. Status
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.vessel_draft_limit;
-                        }
-                    }
+                // 6. Status
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    return full.vessel_draft_limit;
+                }
+            }
         },
-        actionColumn: function() {
+        actionColumn: function () {
             let vm = this;
             return {
-                        // 7. Action
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return `<a href='/internal/moorings/${full.id}'>View</a><br/>`;
-                        }
-                    }
+                // 7. Action
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    return `<a href='/internal/moorings/${full.id}'>View</a><br/>`;
+                }
+            }
         },
 
-        applicableColumns: function() {
+        applicableColumns: function () {
             let columns = [
                 this.mooringNameColumn,
                 this.mooringBayColumn,
@@ -201,10 +206,10 @@ export default {
                 this.maxVesselLengthColumn,
                 this.maxVesselDraftColumn,
                 this.actionColumn,
-                ]
+            ]
             return columns;
         },
-        mooringsOptions: function() {
+        mooringsOptions: function () {
             let vm = this;
             return {
                 searching: false,
@@ -214,7 +219,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
                 searching: true,
 
                 ajax: {
@@ -225,14 +230,14 @@ export default {
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
+                    "data": function (d) {
                         // Add filters selected
                         d.filter_mooring_status = vm.filterMooringStatus;
                         d.filter_mooring_bay = vm.filterMooringBay;
                     }
                 },
                 dom: 'lBfrtip',
-                buttons:[
+                buttons: [
                     {
                         extend: 'excel',
                         exportOptions: {
@@ -258,7 +263,7 @@ export default {
                 */
                 columns: vm.applicableColumns,
                 processing: true,
-                initComplete: function() {
+                initComplete: function () {
                     console.log('in initComplete')
                 },
             }
@@ -266,29 +271,29 @@ export default {
 
     },
     methods: {
-        fetchFilterLists: function(){
+        fetchFilterLists: function () {
             let vm = this;
 
             // Statuses
             vm.$http.get(api_endpoints.mooring_statuses_dict).then((response) => {
                 vm.mooringStatuses = response.body
-            },(error) => {
+            }, (error) => {
                 console.log(error);
             })
             // Mooring Bays
             vm.$http.get(api_endpoints.mooring_bays).then((response) => {
                 //for (let bay of response.body) {
                 vm.mooringBays = response.body
-            },(error) => {
+            }, (error) => {
                 console.log(error);
             })
 
         },
     },
-    created: function(){
+    created: function () {
         this.fetchFilterLists()
     },
-    mounted: function(){
+    mounted: function () {
 
     }
 }

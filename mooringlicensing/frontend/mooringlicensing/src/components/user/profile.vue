@@ -23,7 +23,7 @@
                   <div class="panel-heading">
                     <i v-if="showCompletion && profile.personal_details" class="fa fa-check fa-2x pull-left" style="color:green"></i>
                     <i v-else-if="showCompletion && !profile.personal_details" class="fa fa-times fa-2x pull-left" style="color:red"></i>
-                    <h3 class="panel-title">Personal Details <small>Provide your personal details</small>
+                    <h3 class="panel-title">Personal Details <small>Provide your full legal name</small>
                         <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
@@ -230,7 +230,8 @@
                     <input :disabled="readonly" type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
                     <label for="electoral_roll_yes">
                         Yes, I am on the
-                        <a href="/" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a>
+                        <!-- <a href="https://www.elections.wa.gov.au/oes#/oec" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a> -->
+                        <a target="_blank" href="https://www.elections.wa.gov.au/oes#/oec">WA state electoral roll</a>
                     </label>
                 </div>
                 <div class="col-sm-8">
@@ -488,9 +489,9 @@ export default {
             });
         },
 
-        uploadProofElectoralRoll: function() {
-            console.log("proof");
-        },
+        // uploadProofElectoralRoll: function() {
+        //     console.log("proof");
+        // },
         readFile: function() {
             let vm = this;
             let _file = null;
@@ -974,21 +975,23 @@ export default {
         },
         fetchProfile: async function(){
             let response = null;
-            //let submitter_id = 666;
             if (this.submitterId) {
-                console.log('submitterId')
                 response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
             } else {
-                console.log(api_endpoints.profile)
                 response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
             }
             this.profile = Object.assign(response.body);
-            if (this.profile.residential_address == null){ this.profile.residential_address = Object.assign({country:'AU'}); }
-            if (this.profile.postal_address == null){ this.profile.postal_address = Object.assign({}); }
-            if (this.profile.dob) { this.profile.dob = moment(this.profile.dob).format('DD/MM/YYYY'); }
+            if (this.profile.residential_address == null){
+                this.profile.residential_address = Object.assign({country:'AU'})
+            }
+            if (this.profile.postal_address == null){
+                this.profile.postal_address = Object.assign({})
+            }
+            if (this.profile.dob) {
+                this.profile.dob = moment(this.profile.dob).format('DD/MM/YYYY')
+            }
             this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
             this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
-
         },
     },
     beforeRouteEnter: function(to,from,next){

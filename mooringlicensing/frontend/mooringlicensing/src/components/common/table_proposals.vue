@@ -10,6 +10,15 @@
                     </select>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="">Category</label>
+                    <select class="form-control" v-model="filterApplicationCategory">
+                        <option value="All">All</option>
+                        <option v-for="category in application_categories" :value="category.code">{{ category.description }}</option>
+                    </select>
+                </div>
+            </div>
             <div class="col-md-3" v-if="is_internal">
                 <div class="form-group">
                     <label for="">Applicant</label>
@@ -77,11 +86,13 @@ export default {
 
             // selected values for filtering
             filterApplicationType: null,
+            filterApplicationCategory: null,
             filterApplicationStatus: null,
             filterApplicant: null,
 
             // filtering options
             application_types: [],
+            application_categories: [],
             application_statuses: [],
             applicants: [],
         }
@@ -100,6 +111,10 @@ export default {
             //}
         },
         filterApplicationType: function() {
+            let vm = this;
+            vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
+        },
+        filterApplicationCategory: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
@@ -137,7 +152,6 @@ export default {
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
-                    console.log(full)
                     return full.id
                 }
             }
@@ -226,37 +240,6 @@ export default {
                 name: "lodgement_date",
             }
         },
-        /*
-        column_invoice: function(){
-            let vm = this
-            return {
-                // 7. Invoice
-                data: "id",
-                orderable: true,
-                searchable: true,
-                visible: true,
-                'render': function(row, type, full){
-                    let links = '';
-                    if (full.invoices){
-                        for (let invoice of full.invoices){
-                            links += '<div>'
-                            links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
-                            if (vm.is_internal && full.can_view_payment_details){
-                                if (invoice.payment_status.toLowerCase() === 'paid'){
-                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
-                                    links +=  `<div><a href='/proposal-payment-history-refund/${full.id}' target='_blank'>Refund Payment</a></div>`;
-                                } else {
-                                    //links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
-                                }
-                            }
-                            links += '</div>'
-                        }
-                    }
-                    return links
-                }
-            }
-        },
-        */
         column_invoice: function(){
             let vm = this
             return {
@@ -304,7 +287,6 @@ export default {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
                         for (let invoice of full.invoices){
-                            console.log({invoice})
                             if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){
                                 links +=  `<a href='/application_fee_existing/${invoice.reference}'>Pay</a>`
                             }
@@ -320,8 +302,8 @@ export default {
         column_applicant: function(){
             return {
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.submitter){
@@ -335,8 +317,8 @@ export default {
         column_assigned_to: function(){
             return {
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     let ret_str = ''
@@ -437,6 +419,7 @@ export default {
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         d.filter_application_type = vm.filterApplicationType
+                        d.filter_application_category = vm.filterApplicationCategory
                         d.filter_application_status = vm.filterApplicationStatus
                         d.filter_applicant = vm.filterApplicant
                         d.level = vm.level
@@ -490,6 +473,12 @@ export default {
             // Application Types
             vm.$http.get(api_endpoints.application_types_dict+'?apply_page=False').then((response) => {
                 vm.application_types = response.body
+            },(error) => {
+            })
+
+            // Application Categories
+            vm.$http.get(api_endpoints.application_categories_dict+'?apply_page=False').then((response) => {
+                vm.application_categories = response.body
             },(error) => {
             })
 

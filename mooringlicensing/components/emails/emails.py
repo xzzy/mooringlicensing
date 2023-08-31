@@ -59,6 +59,8 @@ class TemplateEmailBase(object):
         :param cc:
         :return:
         """
+        logger.info(f'TemplateEmailBase.send() is called with the subject: {self.subject}')
+
         email_instance = env('EMAIL_INSTANCE','DEV')
         # The next line will throw a TemplateDoesNotExist if html template cannot be found
         html_template = loader.get_template(self.html_template)
@@ -99,9 +101,10 @@ class TemplateEmailBase(object):
         try:
             if not settings.DISABLE_EMAIL:
                 msg.send(fail_silently=False)
+                logger.info(f'Email has been sent. Subject: [{msg.subject}], to: [{msg.to}], cc: [{msg.cc}], bcc: [{msg.bcc}], attachments: [{[attachment[0] for attachment in attachments]}].')
             return msg
         except Exception as e:
-            logger.exception("Error while sending email to {}: {}".format(to_addresses, e))
+            logger.exception(f'Error while sending email: To [{to_addresses}] with Subject: [{self.subject}], cc: [{cc}], bcc: [{bcc}], attachments: [{[attachment[0] for attachment in attachments]}], error: [{e}]')
             return None
 
 

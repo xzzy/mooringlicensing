@@ -54,6 +54,7 @@
                         :applicantType="proposal.applicant_type" 
                         id="proposalStartApplicant"
                         :readonly="readonly"
+                        :proposal="proposal"
                     />
                   </div>
               </div>
@@ -77,6 +78,7 @@
                   :is_internal="is_internal"
                   @updateVesselLength="updateVesselLength"
                   @vesselChanged="vesselChanged"
+                  @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                   @noVessel="noVessel"
                   @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
                   @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
@@ -205,22 +207,27 @@
             noVessel: async function(noVessel) {
                 await this.$emit("noVessel", noVessel);
             },
+            updateVesselOwnershipChanged: async function(changed){
+                await this.$emit("updateVesselOwnershipChanged", changed)
+            },
             vesselChanged: async function(vesselChanged) {
                 await this.$emit("vesselChanged", vesselChanged);
             },
-            updateVesselLength: function(length) {
-                console.log('updateVesselLength')
+            updateVesselLength: function (length) {
+                console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
                     //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                     //    this.proposal.max_vessel_length_with_no_payment <= length) {
                     if (this.max_vessel_length_with_no_payment !== null &&
-                        this.max_vessel_length_with_no_payment <= length) {
+                        (this.max_vessel_length_with_no_payment.max_length < length ||
+                            this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
                         // vessel length is in higher category
                         this.higherVesselCategory = true;
                     } else {
                         this.higherVesselCategory = false;
                     }
                 }
+                console.log('%cthis.higherVesselCategory: ' + this.higherVesselCategory, 'color: #44aa33')
                 this.updateAmendmentRenewalProperties();
             },
             resetCurrentVessel: function(keep) {
@@ -323,13 +330,9 @@
             vm.set_tabs();
             vm.form = document.forms.new_proposal;
             await this.$emit("updateSubmitText", "Pay / Submit");
-            await this.$emit("updateAutoApprove", true);
+            await this.$emit("updateAutoApprove", true);  // Auto approve at all times
             await this.updateAmendmentRenewalProperties();
-            //window.addEventListener('beforeunload', vm.leaving);
-            //indow.addEventListener('onblur', vm.leaving);
-
         }
-
     }
 </script>
 

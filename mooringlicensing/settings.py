@@ -174,6 +174,20 @@ PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
 ]
+PROPOSAL_TYPES = [
+    {
+        'code': PROPOSAL_TYPE_NEW,
+        'description': 'New Application',
+    },
+    {
+        'code': PROPOSAL_TYPE_AMENDMENT,
+        'description': 'Amendment',
+    },
+    {
+        'code': PROPOSAL_TYPE_RENEWAL,
+        'description': 'Renewal',
+    },
+]
 
 HTTP_HOST_FOR_TEST = 'localhost:8071'
 APPLICATION_TYPE_DCV_PERMIT = {
@@ -203,23 +217,16 @@ APPLICATION_TYPES = [
     APPLICATION_TYPE_MOORING_SWAP,
 ]
 
-# Add a formatter for the contents of the cron email
+# Logging: Formatter
 LOGGING['formatters']['msg_only'] = {
     'format': '{message}',
     'style': '{',
 }
 
-# Add a handler
+# Logging: Handler
 CRON_EMAIL_FILE_NAME = 'cron_email.log'
-LOGGING['handlers']['file_mooringlicensing'] = {
-    'level': 'INFO',
-    'class': 'logging.handlers.RotatingFileHandler',
-    'filename': os.path.join(BASE_DIR, 'logs', 'mooringlicensing.log'),
-    'formatter': 'verbose',
-    'maxBytes': 5242880
-}
 # logs/run_cron_tasks.log file is temporarily used in cron_tasks.py, and it's cleared whenever cron runs.
-# Therefore we need persistent log files for cron job
+# Therefore, we need persistent log files for cron job
 LOGGING['handlers']['file_cron_tasks'] = {
     'level': 'INFO',
     'class': 'logging.handlers.RotatingFileHandler',
@@ -235,18 +242,14 @@ LOGGING['handlers']['file_cron_email'] = {
     'formatter': 'msg_only',
     'maxBytes': 5242880
 }
-# LOGGING['handlers']['console'] = {
-#     'level': 'DEBUG',
-#     'class': 'logging.StreamHandler',
-#     'stream': sys.stdout,
-#     'formatter': 'verbose',
-# }
 
-# Define loggers
-LOGGING['loggers']['mooringlicensing'] = {
-    'handlers': ['file_mooringlicensing',],
-    'level': 'DEBUG',
+# Update formatter of the existing loggers
+LOGGING['formatters']['verbose2'] = {
+    "format": "%(levelname)s %(asctime)s %(name)s [Line:%(lineno)s][%(funcName)s] %(message)s"
 }
+LOGGING['handlers']['console']['formatter'] = 'verbose2'
+LOGGING['handlers']['file']['formatter'] = 'verbose2'
+
 LOGGING['loggers']['cron_tasks'] = {
     'handlers': ['file_cron_tasks'],
     'level': 'INFO',
@@ -256,9 +259,8 @@ LOGGING['loggers']['cron_email'] = {
     'level': 'INFO',
     'propagate': True,
 }
+LOGGING['disable_existing_loggers'] = False  # Without this line, any loggers retrieved by getLogger(__name__) are disabled.  This line should be probably placed in the settings_base.py
 
-# Logging all to mooringlicensing.log file
-LOGGING['loggers']['']['handlers'].append('file_mooringlicensing')
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
@@ -266,9 +268,9 @@ GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
 GROUP_ASSESSOR_WAITING_LIST = 'Mooring Licensing - Assessors: Waiting List'
 GROUP_ASSESSOR_ANNUAL_ADMISSION = 'Mooring Licensing - Assessors: Annual Admission'
 GROUP_ASSESSOR_AUTHORISED_USER = 'Mooring Licensing - Assessors: Authorised User'
-GROUP_ASSESSOR_MOORING_LICENCE = 'Mooring Licensing - Assessors: Mooring Licence'
+GROUP_ASSESSOR_MOORING_LICENCE = 'Mooring Licensing - Assessors: Mooring Site Licence'
 GROUP_APPROVER_AUTHORISED_USER = 'Mooring Licensing - Approvers: Authorised User'
-GROUP_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Licence'
+GROUP_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Site Licence'
 GROUP_DCV_PERMIT_ADMIN = 'Mooring Licensing - DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
 CUSTOM_GROUPS = [
     GROUP_MOORING_LICENSING_ADMIN,
@@ -318,19 +320,19 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     {
         'code': CODE_DAYS_BEFORE_PERIOD_MLA,
         'name': 'MLA application submit notification',
-        'description': 'Number of days before end of period in which the mooring licence application needs to be submitted',
+        'description': 'Number of days before end of period in which the mooring site licence application needs to be submitted',
         'default': 14
     },
     {
         'code': CODE_DAYS_IN_PERIOD_MLA,
         'name': 'MLA application submit period',
-        'description': 'Number of days in which the mooring licence application needs to be submitted.',
+        'description': 'Number of days in which the mooring site licence application needs to be submitted.',
         'default': 28
     },  ### 1
     {
         'code': CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA,
         'name': 'MLA documents submit period',
-        'description': 'Number of days in which the additional documents for a mooring licence application needs to be submitted.',
+        'description': 'Number of days in which the additional documents for a mooring site licence application needs to be submitted.',
         'default': 28
     },  ### 2
     {
@@ -395,7 +397,7 @@ ORACLE_CODES = [
     },
     {
         'identifier': ORACLE_CODE_ID_ML,
-        'name': 'Mooring licence fees',
+        'name': 'Mooring site licence fees',
     },
     {
         'identifier': ORACLE_CODE_ID_DCV_PERMIT,
@@ -448,14 +450,29 @@ GIT_COMMIT_DATE = ''
 #    if len(GIT_COMMIT_HASH) == 0:
 #       print ("ERROR: No git hash provided")
 LEDGER_TEMPLATE = 'bootstrap5'
-SESSION_COOKIE_NAME = "pp_sessionid"
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+#SESSION_COOKIE_NAME = "pp_sessionid"
+#SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+# Change to file session backend to improve web application speed
+SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+if EMAIL_INSTANCE == 'DEV' or EMAIL_INSTANCE == 'UAT' or EMAIL_INSTANCE == 'TEST':
+    SESSION_FILE_PATH = env('SESSION_FILE_PATH', BASE_DIR+'/session_store/')
+    if not os.path.isdir(SESSION_FILE_PATH):
+        os.mkdir(SESSION_FILE_PATH)       
+else:
+    SESSION_FILE_PATH = env('SESSION_FILE_PATH', '/app/session_store/')
+
 LEDGER_UI_ACCOUNTS_MANAGEMENT = [
-           {'first_name': {'options' : {'view': True, 'edit': True}}},
-           {'last_name': {'options' : {'view': True, 'edit': True}}},
-           {'residential_address': {'options' : {'view': True, 'edit': True}}},
-           {'postal_address': {'options' : {'view': True, 'edit': True}}},
-           {'phone_number' : {'options' : {'view': True, 'edit': True}}},
-           {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
+    {'first_name': {'options' : {'view': True, 'edit': True}}},
+    {'last_name': {'options' : {'view': True, 'edit': True}}},
+    {'residential_address': {'options' : {'view': True, 'edit': True}}},
+    {'postal_address': {'options' : {'view': True, 'edit': True}}},
+    {'phone_number' : {'options' : {'view': True, 'edit': True}}},
+    {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
+    {'dob' : {'options' : {'view': True, 'edit': True}}},
+    {'postal_same_as_residential' : {'options' : {'view': True, 'edit': True}}},
 ]
 MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
+PRIVATE_MEDIA_DIR_NAME = env('PRIVATE_MEDIA_DIR_NAME', 'private-media')
+MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE = env('MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE', False)
+LEDGER_UI_CARDS_MANAGEMENT = env('LEDGER_UI_CARDS_MANAGEMENT', True)
+SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', 3600)

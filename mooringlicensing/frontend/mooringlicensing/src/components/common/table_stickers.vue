@@ -117,7 +117,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Number', 'Permit or Licence', 'Date sent / printed / mailed', 'Status', 'Season', 'Invoice', 'Action']
+                return ['id', 'Number', 'Permit or Licence', 'Vessel rego', 'Date sent / printed / mailed', 'Status', 'Season', 'Invoice', 'Action']
             }
         },
         column_id: function(){
@@ -130,6 +130,20 @@ export default {
                 'render': function(row, type, full){
                     return full.id
                 }
+            }
+        },
+        column_vessel_rego_no: function(){
+            return {
+                // 2. Number
+                data: "vessel_rego_no",
+                orderable: true,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    // return full.vessel.rego_no
+                    return '<a href="/internal/vessel/' + full.vessel.id + '" target="_blank">' + full.vessel.rego_no + '</a>'
+                },
+                name: 'vessel_rego_number',
             }
         },
         column_number: function(){
@@ -153,7 +167,7 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     if (full.approval){
-                        return '<a href="/internal/approval/' + full.approval.id + '">' + full.approval.lodgement_number + '</a>'
+                        return '<a href="/internal/approval/' + full.approval.id + '" target="_blank">' + full.approval.lodgement_number + '</a>'
                     } else if (full.dcv_permit) {
                         return '<span class="dcv_permit_lodgement_number">' + full.dcv_permit.lodgement_number + '</span>'
                     } else {
@@ -240,7 +254,7 @@ export default {
                             links +=  `<div><a href='${invoice.invoice_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (vm.is_internal && full.can_view_payment_details){
                                 if (invoice.payment_status.toLowerCase() === 'paid'){
-                                    links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>View Payment</a></div>`;
+                                    links +=  `<div><a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a></div>`;
                                 } else {
                                     //links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
                                 }
@@ -284,6 +298,7 @@ export default {
                     vm.column_id,
                     vm.column_number,
                     vm.column_permit_or_licence,
+                    vm.column_vessel_rego_no,
                     vm.column_printing_company,
                     vm.column_status,
                     vm.column_year,

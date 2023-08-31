@@ -1,8 +1,7 @@
 <template lang="html">
     <div class="">
-
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
-            <h4>Mooring Licence {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
+            <h4>Mooring Site Licence {{applicationTypeText}} Application: {{proposal.lodgement_number}}</h4>
         </div>
 
         <div class="">
@@ -22,6 +21,11 @@
                   Insurance
                 </a>
               </li>
+              <li v-show="showDocumentsTab" class="nav-item">
+                <a class="nav-link" id="pills-documents-tab" data-toggle="pill" href="#pills-documents" role="tab" aria-controls="pills-documents" aria-selected="false">
+                  Documents
+                </a>
+              </li>
               <li v-show="showPaymentTab" class="nav-item" id="li-payment">
                 <a class="nav-link disabled" id="pills-payment-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-payment" aria-selected="false">
                   Payment
@@ -36,62 +40,71 @@
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
-                    <Profile 
-                    :isApplication="true" 
-                    v-if="applicantType == 'SUB'" 
-                    ref="profile"
-                    @profile-fetched="populateProfile"
-                    :showElectoralRoll="showElectoralRoll"
-                    :storedSilentElector="silentElector"
-                    :proposalId="proposal.id"
-                    :readonly="readonly"
-                    :submitterId="submitterId"
+                    <Profile
+                        :isApplication="true"
+                        v-if="applicantType == 'SUB'"
+                        ref="profile"
+                        @profile-fetched="populateProfile"
+                        :showElectoralRoll="showElectoralRoll"
+                        :storedSilentElector="silentElector"
+                        :proposalId="proposal.id"
+                        :readonly="readonly"
+                        :submitterId="submitterId"
                     />
                   </div>
                   <div v-else>
-                    <Applicant 
-                        :email_user="proposal.submitter" 
-                        :applicantType="proposal.applicant_type" 
+                    <Applicant
+                        :email_user="proposal.submitter"
+                        :applicantType="proposal.applicant_type"
                         id="proposalStartApplicant"
                         :readonly="readonly"
                         :showElectoralRoll="showElectoralRoll"
                         :storedSilentElector="silentElector"
                         :proposalId="proposal.id"
+                        :proposal="proposal"
                     />
                   </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                   <div v-if="proposal">
-                      <CurrentVessels 
+                      <CurrentVessels
                           :proposal=proposal
                           :readonly=readonly
                           :is_internal=is_internal
                           @resetCurrentVessel=resetCurrentVessel
                           />
                   </div>
-                  <Vessels 
-                  :proposal="proposal" 
-                  :profile="profileVar" 
-                  :id="'proposalStartVessels' + uuid"
-                  :key="'proposalStartVessels' + uuid"
-                  :keep_current_vessel=keepCurrentVessel
-                  ref="vessels"
-                  :readonly="readonlyMLA"
-                  :is_internal="is_internal"
-                  @updateVesselLength="updateVesselLength"
-                  @vesselChanged="vesselChanged"
-                  @noVessel="noVessel"
-                  @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
-                  @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
+                  <Vessels
+                    :proposal="proposal"
+                    :profile="profileVar"
+                    :id="'proposalStartVessels' + uuid"
+                    :key="'proposalStartVessels' + uuid"
+                    :keep_current_vessel=keepCurrentVessel
+                    ref="vessels"
+                    :readonly="readonlyMLA"
+                    :is_internal="is_internal"
+                    @updateVesselLength="updateVesselLength"
+                    @vesselChanged="vesselChanged"
+                    @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
+                    @noVessel="noVessel"
+                    @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
+                    @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
                   <Insurance
-                  :proposal="proposal" 
-                  id="insurance" 
-                  ref="insurance"
-                  :readonly="readonly"
+                    :proposal="proposal"
+                    id="insurance"
+                    ref="insurance"
+                    :readonly="readonly"
                   />
+              </div>
+              <div class="tab-pane fade" id="pills-documents" role="tabpanel" aria-labelledby="pills-documents-tab">
+                <MooringSiteLicenceDocumentsUpload
+                    :uuid_props="proposal.uuid"
+                    :readonly="readonly"
+                    :wrapping_class_name="''"
+                />
               </div>
               <div class="tab-pane fade" id="pills-confirm" role="tabpanel" aria-labelledby="pills-confirm-tab">
                 <Confirmation :proposal="proposal" id="proposalStartConfirmation"></Confirmation>
@@ -108,6 +121,7 @@
     import Vessels from '@/components/common/vessels.vue'
     import CurrentVessels from '@/components/common/current_vessels.vue'
     import Insurance from '@/components/common/insurance.vue'
+    import MooringSiteLicenceDocumentsUpload from '@/components/external/mooring_licence_documents_upload.vue'
     export default {
         name: 'MooringLicenceApplication',
         props:{
@@ -162,6 +176,10 @@
                 type: Boolean,
                 default: true,
             },
+            // add_vessel: {
+            //     type: Boolean,
+            //     default: false,
+            // },
         },
         data:function () {
             return{
@@ -175,6 +193,7 @@
                 max_vessel_length_with_no_payment: 0,
                 max_vessel_length_for_main_component: 0,
                 max_vessel_length_for_aa_component: 0,
+                vesselOwnershipChanged: false,
             }
         },
         components: {
@@ -184,8 +203,21 @@
             CurrentVessels,
             Insurance,
             Profile,
+            MooringSiteLicenceDocumentsUpload,
         },
         computed:{
+            showDocumentsTab: function(){
+                // return true (processing_status, proposal_type)
+                if (this.is_internal){
+                    return true
+                } else if (this.proposal.amendment_requests){
+                    return true
+                } else if (this.proposal.processing_status === 'Draft' && this.proposal.proposal_type.code === 'new'){
+                    return false
+                } else {
+                    return true
+                }
+            },
             profileVar: function() {
                 if (this.is_external) {
                     return this.profile;
@@ -235,6 +267,11 @@
             */
         },
         methods:{
+            updateVesselOwnershipChanged: async function(changed){
+                await this.$emit("updateVesselOwnershipChanged", changed)
+                this.vesselOwnershipChanged = changed
+                this.updateAmendmentRenewalProperties();
+            },
             updateMaxVesselLength: function(max_length) {
                 console.log('updateMaxVesselLength')
                 //this.max_vessel_length_with_no_payment = max_length
@@ -286,7 +323,7 @@
                         // new application
                         //higherCategory = true;
                         //pass
-                    } else if (this.proposal.max_vessel_length_with_no_payment && 
+                    } else if (this.proposal.max_vessel_length_with_no_payment &&
                         this.proposal.max_vessel_length_with_no_payment <= length) {
                         // vessel length is in higher category
                         higherCategory = true;
@@ -299,18 +336,22 @@
                 }
             },
             */
-            updateVesselLength: function(length) {
+            updateVesselLength: function (length) {
+                console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
-                    //if (this.proposal.max_vessel_length_with_no_payment !== null && 
+                    //if (this.proposal.max_vessel_length_with_no_payment !== null &&
                     //    this.proposal.max_vessel_length_with_no_payment <= length) {
-                    if (this.max_vessel_length_with_no_payment !== null && 
-                        this.max_vessel_length_with_no_payment <= length) {
+                    if (this.max_vessel_length_with_no_payment !== null &&
+                        (this.max_vessel_length_with_no_payment.max_length < length ||
+                            this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
                         // vessel length is in higher category
                         this.higherVesselCategory = true;
                     } else {
                         this.higherVesselCategory = false;
                     }
                 }
+                console.log('%cthis.higherVesselCategory:', 'color: #44aa33')
+                console.log(this.higherVesselCategory)
                 this.updateAmendmentRenewalProperties();
             },
             resetCurrentVessel: function(keep) {
@@ -332,7 +373,7 @@
                             this.$emit("updateSubmitText", "Submit");
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
@@ -358,7 +399,7 @@
                             this.$emit("updateAutoRenew", false);
                         }
                         // auto approve
-                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel) {
+                        if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.vesselOwnershipChanged) {
                             this.$emit("updateAutoApprove", false);
                         } else {
                             this.$emit("updateAutoApprove", true);
@@ -389,7 +430,7 @@
             vm.form = document.forms.new_proposal;
             this.updateAmendmentRenewalProperties();
         }
- 
+
     }
 </script>
 

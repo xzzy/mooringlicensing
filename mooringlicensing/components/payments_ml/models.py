@@ -18,7 +18,7 @@ from mooringlicensing.settings import TIME_ZONE
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
 from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
-    AuthorisedUserApplication, VesselDetails, WaitingListApplication
+    AuthorisedUserApplication, VesselDetails, WaitingListApplication, Proposal, MooringLicenceApplication
 from smart_selects.db_fields import ChainedForeignKey
 
 # logger = logging.getLogger('mooringlicensing')
@@ -103,7 +103,7 @@ class DcvAdmissionFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_admission_fees')
+    dcv_admission = models.ForeignKey('DcvAdmission', on_delete=models.CASCADE, blank=True, null=True, related_name='dcv_admission_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_admission_fee')
@@ -143,7 +143,7 @@ class DcvPermitFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.PROTECT, blank=True, null=True, related_name='dcv_permit_fees')
+    dcv_permit = models.ForeignKey('DcvPermit', on_delete=models.CASCADE, blank=True, null=True, related_name='dcv_permit_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # created_by = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, related_name='created_by_dcv_permit_fee')
@@ -229,6 +229,12 @@ class FeeItemApplicationFee(models.Model):
     def application_type(self):
         return self.fee_item.application_type
 
+    def get_max_allowed_length(self):
+        vessel_length = None
+        if self.vessel_details:
+            vessel_length = float(self.vessel_details.vessel_length)
+        return self.fee_item.get_max_allowed_length(vessel_length)
+
 
 class ApplicationFee(Payment):
     PAYMENT_TYPE_INTERNET = 0
@@ -242,7 +248,7 @@ class ApplicationFee(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    proposal = models.ForeignKey('Proposal', on_delete=models.PROTECT, blank=True, null=True, related_name='application_fees')
+    proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE, blank=True, null=True, related_name='application_fees')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     # created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_application_fee')
@@ -333,13 +339,20 @@ class FeePeriod(models.Model):
             return self.fee_season.is_editable
         return True
 
+    @property
+    def is_first_period(self):
+        first_period = self.fee_season.get_first_period()
+        if self == first_period:
+            return True
+        return False
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['start_date']
 
 
 class FeeConstructor(models.Model):
-    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.PROTECT)
+    application_type = models.ForeignKey(ApplicationType, null=False, blank=False, limit_choices_to={'fee_by_fee_constructor': True}, on_delete=models.CASCADE)
     fee_season = ChainedForeignKey(FeeSeason,
                                    chained_field='application_type',
                                    chained_model_field='application_type',
@@ -349,7 +362,7 @@ class FeeConstructor(models.Model):
                                    null=True,
                                    blank=True,
                                    related_name='fee_constructors')
-    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.PROTECT)
+    vessel_size_category_group = models.ForeignKey(VesselSizeCategoryGroup, null=False, blank=False, related_name='fee_constructors', on_delete=models.CASCADE)
     incur_gst = models.BooleanField(default=True)
     enabled = models.BooleanField(default=True)
 
@@ -357,23 +370,30 @@ class FeeConstructor(models.Model):
         return 'ApplicationType: {}, Season: {}, VesselSizeCategoryGroup: {}'.format(self.application_type.description, self.fee_season, self.vessel_size_category_group)
 
     def get_fee_item(self, vessel_length, proposal_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date(), age_group=None, admission_type=None, accept_null_vessel=False):
+        logger.info(f'Getting FeeItem for vessel_length:[{vessel_length}], proposal_type: [{proposal_type}], target_date: [{target_date}], accept_null_vessel: [{accept_null_vessel}], age_group: [{age_group}], admission_type: [{admission_type}]...')
         fee_period = self.fee_season.fee_periods.filter(start_date__lte=target_date).order_by('start_date').last()
         if accept_null_vessel:
             vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(null_vessel=True)
             if vessel_size_category.count() == 1:
                 vessel_size_category = vessel_size_category[0]
             else:
-                raise ValueError('Null vessel size category not found under the vessel size category group: {}'.format(self.vessel_size_category_group))
+                msg = f'Null vessel size category not found under the vessel size category group: {self.vessel_size_category_group}'
+                logger.error(msg)
+                raise ValueError(msg)
         else:
             vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length, null_vessel=False).order_by('start_size').last()
+            if float(vessel_size_category.start_size) == vessel_length and not vessel_size_category.include_start_size:
+                vessel_size_category = vessel_size_category.get_one_smaller_category()
         fee_item = self.get_fee_item_for_adjustment(vessel_size_category, fee_period, proposal_type=proposal_type, age_group=age_group, admission_type=admission_type)
 
+        if fee_item:
+            logger.info(f'FeeItem: [{fee_item}] has been retrieved.')
+        else:
+            logger.exception(f'FeeItem not found for  vessel_length:[{vessel_length}], proposal_type: [{proposal_type}], target_date: [{target_date}], accept_null_vessel: [{accept_null_vessel}], age_group: [{age_group}], admission_type: [{admission_type}]...')
         return fee_item
 
     def get_fee_item_for_adjustment(self, vessel_size_category, fee_period, proposal_type=None, age_group=None, admission_type=None):
-        logger.info('Getting fee_item for the fee_constructor: {}, fee_period: {}, vessel_size_category: {}, proposal_type: {}, age_group: {}, admission_type: {}'.format(
-            self, fee_period, vessel_size_category, proposal_type, age_group, admission_type,
-        ))
+        logger.info(f'Getting fee_item for the fee_constructor: [{self}], fee_period: [{fee_period}], vessel_size_category: [{vessel_size_category}], proposal_type: [{proposal_type}], age_group: [{age_group}], admission_type: [{admission_type}]')
 
         fee_item = FeeItem.objects.filter(
             fee_constructor=self,
@@ -388,6 +408,7 @@ class FeeConstructor(models.Model):
             return fee_item[0]
         else:
             # Fees are probably not configured yet...
+            logger.info(f'FeeItem not found for the fee_constructor: [{self}], fee_period: [{fee_period}], vessel_size_category: [{vessel_size_category}], proposal_type: [{proposal_type}], age_group: [{age_group}], admission_type: [{admission_type}]')
             return None
 
     @property
@@ -472,7 +493,33 @@ class FeeConstructor(models.Model):
             raise
 
     @classmethod
-    def get_fee_constructor_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+    def get_fee_constructor_by_date(self, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
+        fee_constructors = []
+        for item in Proposal.__subclasses__():
+            if hasattr(item, 'code'):
+                myType = ApplicationType.objects.filter(code=item.code)
+                if myType:
+                    try:
+                        fc = self.get_fee_constructor_by_application_type_and_date(myType[0], target_date)
+                        fee_constructors.append(fc)
+                    except:
+                        logger.warning(f'FeeConstructor of the ApplicationType: {myType[0]} for the time: {target_date} may not have been configured yet.')
+        for app_type in settings.APPLICATION_TYPES:
+            if not app_type['fee_by_fee_constructor']:
+                continue
+            myType = ApplicationType.objects.filter(code=app_type['code'])
+            if myType:
+                try:
+                    fc = self.get_fee_constructor_by_application_type_and_date(myType[0], target_date)
+                    fee_constructors.append(fc)
+                except:
+                    logger.warning(f'FeeConstructor of the ApplicationType: {myType[0]} for the time: {target_date} may not have been configured yet.')
+        logger.info(fee_constructors)
+        return fee_constructors
+
+
+    @classmethod
+    def get_fee_constructor_by_application_type_and_date(cls, application_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
         # logger = logging.getLogger('mooringlicensing')
         logger = logging.getLogger(__name__)
 
@@ -491,7 +538,7 @@ class FeeConstructor(models.Model):
                 fee_constructor = fee_constructor_qs.last()
 
             if target_date <= fee_constructor.fee_season.end_date:
-                # fee_constructor object selected above has not ended yet
+                # Found. fee_constructor object selected above has not ended yet
                 return fee_constructor
             else:
                 # fee_constructor object selected above has already ended
@@ -502,7 +549,7 @@ class FeeConstructor(models.Model):
 
     def reconstruct_fees(self):
         # When fee_constructor object is created/updated, all the fee_items are recreated unless
-        proposal_types = ProposalType.objects.all()
+        proposal_types = ProposalType.objects.all()  # New/Amendment/Renewal
         valid_fee_item_ids = []  # We want to keep these fee items under this fee constructor object.
 
         try:
@@ -510,10 +557,12 @@ class FeeConstructor(models.Model):
                 for vessel_size_category in self.vessel_size_category_group.vessel_size_categories.all():
                     if self.application_type.code == settings.APPLICATION_TYPE_DCV_PERMIT['code']:
                         # For DcvPermit, no proposal type for-loop
-                        fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
-                                                                          fee_period=fee_period,
-                                                                          vessel_size_category=vessel_size_category,
-                                                                          proposal_type=None)
+                        fee_item, created = FeeItem.objects.get_or_create(
+                            fee_constructor=self,
+                            fee_period=fee_period,
+                            vessel_size_category=vessel_size_category,
+                            proposal_type=None
+                        )
                         valid_fee_item_ids.append(fee_item.id)
                         if created:
                             logger.info(
@@ -526,12 +575,14 @@ class FeeConstructor(models.Model):
                         for age_gruop in AgeGroup.objects.all():
                             from mooringlicensing.components.approvals.models import AdmissionType
                             for admission_type in AdmissionType.objects.all():
-                                fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
-                                                                                  fee_period=fee_period,
-                                                                                  vessel_size_category=vessel_size_category,
-                                                                                  age_group=age_gruop,
-                                                                                  admission_type=admission_type,
-                                                                                  proposal_type=None)
+                                fee_item, created = FeeItem.objects.get_or_create(
+                                    fee_constructor=self,
+                                    fee_period=fee_period,
+                                    vessel_size_category=vessel_size_category,
+                                    age_group=age_gruop,
+                                    admission_type=admission_type,
+                                    proposal_type=None
+                                )
                                 valid_fee_item_ids.append(fee_item.id)
                                 if created:
                                     logger.info(
@@ -541,18 +592,31 @@ class FeeConstructor(models.Model):
                                                                                     admission_type))
                     else:
                         for proposal_type in proposal_types:
-                            if vessel_size_category.null_vessel and \
-                                    ((self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
-                                     proposal_type.code in [settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_AMENDMENT,]):
-                                # When WLA/AAA and renewal application
-                                # When new/amendment application
-                                # No fee_items created
+                            # if vessel_size_category.null_vessel and \
+                            #         ((self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
+                            #          proposal_type.code in [settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_AMENDMENT,]):
+                            #     # When WLA/AAA and renewal application
+                            #     # When new/amendment application
+                            #     # No fee_items created
+                            #     continue
+                            if (
+                                    (vessel_size_category.null_vessel and proposal_type.code in [settings.PROPOSAL_TYPE_NEW,]) or
+                                    (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,]) or
+                                    (not fee_period.is_first_period and proposal_type.code in [settings.PROPOSAL_TYPE_RENEWAL,])
+                                    # When null vessel and new proposal (any application type), OR
+                                    # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication <== When renew the ML with null vessel, do we need nul vessel AA fee_item...???
+                                    # When first period and renewal proposal
+                            ):
+                                # No need to create fee_items
                                 continue
+
                             else:
-                                fee_item, created = FeeItem.objects.get_or_create(fee_constructor=self,
-                                                                                  fee_period=fee_period,
-                                                                                  vessel_size_category=vessel_size_category,
-                                                                                  proposal_type=proposal_type)
+                                fee_item, created = FeeItem.objects.get_or_create(
+                                    fee_constructor=self,
+                                    fee_period=fee_period,
+                                    vessel_size_category=vessel_size_category,
+                                    proposal_type=proposal_type
+                                )
                                 valid_fee_item_ids.append(fee_item.id)
                                 if created:
                                     logger.info('FeeItem created: {} - {} - {}'.format(fee_period.name,
@@ -605,7 +669,28 @@ class FeeItem(models.Model):
     admission_type = models.ForeignKey('AdmissionType', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return '${}: {}, {}, {}, {}'.format(self.amount, self.fee_constructor.application_type, self.fee_period, self.vessel_size_category, self.proposal_type)
+        return f'${self.amount}(incremental:{self.incremental_amount}): {self.fee_constructor.application_type}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
+
+    def get_max_allowed_length(self, vessel_length):
+        logger.info(f'get_max_allowed_length() is called in the fee_item: {self}')
+
+        if self.incremental_amount:
+            # max_length = ceil(vessel_length + 1.00)  # When fee_item is incremental_amount, the amount is incremented per 1.00 meter.
+
+            if vessel_length.is_integer():
+                # vessel_size is on the borderline of changing fees
+                if self.vessel_size_category.include_start_size:
+                    max_length = vessel_length + 1.00
+                else:
+                    max_length = vessel_length
+            else:
+                max_length = ceil(vessel_length)
+            max_length_tuple = max_length, not self.vessel_size_category.include_start_size
+        else:
+            max_length_tuple = self.vessel_size_category.get_max_allowed_length()
+
+        logger.info(f'{self} {max_length_tuple}')
+        return max_length_tuple
 
     @property
     def application_type(self):
@@ -624,13 +709,18 @@ class FeeItem(models.Model):
             raise Exception('FeeItem for fee_period: {}, vessel_size_category: {}, proposal_type: {} not found.'.format(self.fee_period, self.vessel_size_category, self.proposal_type))
 
     def get_absolute_amount(self, vessel_size=None):
+        logger.info(f'Calculating the absolute amount of the FeeItem: [{self}].')
+
         if not self.incremental_amount or not vessel_size:
+            logger.info(f'Absolute amount calculated: $[{self.amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
             return self.amount
         else:
             # This self.amount is the incremental amount.  Therefore the absolute amount must be calculated based on the fee_item of one smaller vessel size category
             vessel_size = float(vessel_size)
             smaller_vessel_size_category = self.vessel_size_category.get_one_smaller_category()
             if smaller_vessel_size_category:
+                # There is a smaller vessel size category of this incremental fee item.
+                # Absolute amount of this fee item is calculated by adding the incremental amount per meter to the absolute amount of the previous fee item.
                 smaller_fee_item = self.fee_constructor.feeitem_set.filter(fee_period=self.fee_period, proposal_type=self.proposal_type, vessel_size_category=smaller_vessel_size_category)
                 if smaller_fee_item.count() == 1:
                     smaller_fee_item = smaller_fee_item.first()
@@ -640,14 +730,25 @@ class FeeItem(models.Model):
                         # In this case, 'vessel_size' is at the first step of this fee_item object.
                         number_of_increment += 1
                     absolute_amount = smaller_fee_item.get_absolute_amount(self.vessel_size_category.start_size) + number_of_increment * self.amount
+                    logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
                     return absolute_amount
                 else:
                     # Should not reach here
                     raise Exception('FeeItem object not found in the FeeConstructor: {} for {}, {} and {}'.format(self.fee_constructor, self.fee_period, self.proposal_type, smaller_vessel_size_category))
             else:
-                # This fee_item is for the smallest vessel size category and also incremental
-                number_of_increment = ceil(vessel_size - float(self.vessel_size_category.start_size))
+                # This fee_item is for the smallest vessel size category and also incremental fee item
+                # Because of this is the smallest fee item, absolute amount is calculated from the size 0 meter, not the start size of this item.
+
+                calculate_from_zero_meter = True
+                if calculate_from_zero_meter:
+                    # Calculate from 0.00 meter
+                    number_of_increment = ceil(vessel_size - 0.00)
+                else:
+                    # Calculate from the start size of this fee item
+                    number_of_increment = ceil(vessel_size - float(self.vessel_size_category.start_size))
+
                 absolute_amount = self.amount * number_of_increment
+                logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
                 return absolute_amount
 
     @property

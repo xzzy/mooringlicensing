@@ -11,6 +11,7 @@ from datetime import datetime
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 from mooringlicensing import settings
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
 
 class UserSystemSettings(models.Model):
@@ -35,6 +36,9 @@ class UserAction(models.Model):
             who=self.who,
             when=self.when
         )
+    @property
+    def who_obj(self):
+        return retrieve_email_userro(self.who)
 
     class Meta:
         abstract = True
@@ -163,8 +167,8 @@ class GlobalSettings(models.Model):
         (KEY_WLA_TEMPLATE_FILE, 'Waiting List Allocation template file'),
         (KEY_AAP_TEMPLATE_FILE, 'Annual Admission Permit template file'),
         (KEY_AUP_TEMPLATE_FILE, 'Authorised User Permit template file'),
-        (KEY_ML_TEMPLATE_FILE, 'Mooring Licence template file'),
-        (KEY_ML_AU_LIST_TEMPLATE_FILE, 'Mooring Licence Authorised User Summary template file'),
+        (KEY_ML_TEMPLATE_FILE, 'Mooring Site Licence template file'),
+        (KEY_ML_AU_LIST_TEMPLATE_FILE, 'Mooring Site Licence Authorised User Summary template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit'),
@@ -179,8 +183,8 @@ class GlobalSettings(models.Model):
         KEY_AUP_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - AUP.docx'),
         KEY_ML_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML.docx'),
         KEY_ML_AU_LIST_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML - AU Summary.docx'),
-        KEY_MINIMUM_VESSEL_LENGTH: 3.75,
-        KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.50,
+        KEY_MINIMUM_VESSEL_LENGTH: 3.76,
+        KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.40,
         KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
         KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST: 'LicencesAndPermitsTable, ApplicationsTable, CompliancesTable, WaitingListTable, AuthorisedUserApplicationsTable',
     }
@@ -324,6 +328,24 @@ class VesselSizeCategory(RevisionedMixin):
     def get_one_smaller_category(self):
         smaller_category = self.vessel_size_category_group.get_one_smaller_category(self)
         return smaller_category
+
+    def get_max_allowed_length(self):
+        one_larger_category = self.get_one_larger_category()
+        if one_larger_category:
+            max_allowed_length = one_larger_category.start_size
+            if one_larger_category.include_start_size:
+                include_max_allowed_length = False
+            else:
+                include_max_allowed_length = True
+        else:
+            max_allowed_length = 999999
+            include_max_allowed_length = True
+
+        return max_allowed_length, include_max_allowed_length
+
+    def get_one_larger_category(self):
+        larger_category = self.vessel_size_category_group.get_one_larger_category(self)
+        return larger_category
 
     def __str__(self):
         if self.null_vessel:

@@ -42,25 +42,28 @@
                             </div>
 
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
+                                <!-- <div class="col-sm-12">
                                     <strong>Proposal</strong><br/>
                                     <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Application</a>
                                     <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Application</a>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
-                                </div>
+                                </div> -->
                             </template>
                             <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                                <div class="col-sm-12">
+                                <!-- <div class="col-sm-12">
                                     <strong>Requirements</strong><br/>
                                     <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
                                     <a class="actionBtn" v-else @click.prevent="toggleRequirements()">Hide Requirements</a>
                                 </div>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
-                                </div>
+                                </div> -->
                             </template>
+                                <div class="col-sm-12">
+                                    <div class="separator"></div>
+                                </div>
                             <div class="col-sm-12 top-buffer-s" v-if="display_actions">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -147,11 +150,16 @@
 -->
                                     <div class="row" v-if="display_action_back_to_assessor_requirements">
                                         <div class="col-sm-12">
-                                            <button 
+                                            <!-- <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
                                                 @click.prevent="switchStatus('with_assessor_requirements')"
-                                            ><!-- Back To Requirements -->Back To Assessor</button><br/>
+                                            ><Back To Requirements>Back To Assessor</button><br/ -->
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="can_user_edit" 
+                                                @click.prevent="backToAssessorRequirements()"
+                                            >Back To Assessor</button><br/>
                                         </div>
                                     </div>
 
@@ -339,6 +347,9 @@ export default {
         }
     },
     methods: {
+        backToAssessorRequirements: function(){
+            this.$emit('backToAssessorRequirements')
+        },
         assignRequestUser: function(){
             this.$emit('assignRequestUser')
         },

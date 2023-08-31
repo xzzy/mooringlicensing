@@ -20,14 +20,9 @@ cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'Expire mooring licence application if additional documents are not submitted within a configurable number of days from the initial submit of the mooring licence application and email to inform the applicant'
+    help = 'Expire mooring site licence application if additional documents are not submitted within a configurable number of days from the initial submit of the mooring licence application and email to inform the applicant'
 
     def handle(self, *args, **options):
-        try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-        except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
-
         errors = []
         updates = []
         today = timezone.localtime(timezone.now()).date()
@@ -64,9 +59,9 @@ class Command(BaseCommand):
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.save()
                 # update WLA internal_status and queue date
-                a.waiting_list_allocation.internal_status = 'waiting'
-                a.waiting_list_allocation.wla_queue_date = today
-                a.waiting_list_allocation.save()
+                # a.waiting_list_allocation.internal_status = 'waiting'
+                # a.waiting_list_allocation.wla_queue_date = today
+                # a.waiting_list_allocation.save()
                 # reset Waiting List order
                 a.waiting_list_allocation.set_wla_order()
                 due_date = a.lodgement_date + timedelta(days=days_setting.number_of_days)
