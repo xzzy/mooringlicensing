@@ -9,9 +9,10 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage_ml.py",
+            "python": "${workspaceFolder}/venv/bin/python",
             "args": [
                 "runserver",
-                "0.0.0.0:9002"
+                "0.0.0.0:9121"
             ],
             "django": true
             
