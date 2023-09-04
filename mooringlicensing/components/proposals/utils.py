@@ -1,5 +1,4 @@
 import re
-import pytz
 from decimal import Decimal
 
 from django.db import transaction
@@ -10,12 +9,7 @@ from mooringlicensing import settings
 import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
-from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
-from mooringlicensing.components.main.decorators import (
-        basic_exception_handler, 
-        timeit, 
-        query_debugger
-        )
+from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
 from mooringlicensing.components.proposals.models import (
     WaitingListApplication,
     AnnualAdmissionApplication,
@@ -39,8 +33,6 @@ from mooringlicensing.components.proposals.serializers import (
     SaveMooringLicenceApplicationSerializer,
     SaveAuthorisedUserApplicationSerializer,
     SaveAnnualAdmissionApplicationSerializer,
-    VesselSerializer,
-    VesselOwnershipSerializer,
     VesselDetailsSerializer, CompanyOwnershipSerializer,
 )
 
@@ -55,10 +47,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 import traceback
-import os
 from copy import deepcopy
-from datetime import datetime
-import time
 from rest_framework import serializers
 
 import logging
@@ -604,9 +593,6 @@ def submit_vessel_data(instance, request, vessel_data):
     min_vessel_size = float(min_vessel_size_str)
     min_mooring_vessel_size = float(min_mooring_vessel_size_str)
 
-    #if (not vessel_data.get('rego_no') and instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and
-     #       type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication, AnnualAdmissionApplication]):
-      #  return
     if not vessel_data.get('rego_no'):
         if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
             if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
@@ -651,7 +637,6 @@ def submit_vessel_data(instance, request, vessel_data):
                     if instance.vessel_details.vessel_draft > moa.mooring.vessel_draft_limit:
                         logger.error(f"Vessel draft: [{instance.vessel_details.vessel_draft}] is not suitable for the mooring: [{moa.mooring}]")
                         raise serializers.ValidationError(f"Vessel draft: {instance.vessel_details.vessel_draft} [m] is not suitable for the vessel draft limit: {moa.mooring.vessel_draft_limit} [m] of the mooring: [{moa.mooring}]")
-
     elif type(instance.child_obj) == WaitingListApplication:
         if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
             logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
