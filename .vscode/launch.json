@@ -14,8 +14,8 @@
                 "runserver",
                 "0.0.0.0:9121"
             ],
-            "django": true
-            
+            "django": true,
+            "justMyCode": false
         }
     ]
 }
