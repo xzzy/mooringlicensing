@@ -397,7 +397,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     keep_existing_vessel = models.BooleanField(default=True)
 
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, on_delete=models.SET_NULL)  # In some case, proposal doesn't have any fee related objects.  Which results in the impossibility to retrieve season, start_date, end_date, etc.
-                                                                        # To prevent that, fee_season is used in order to store those data.
+                                                                        # To avoid that, this fee_season field is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
     personal_details = models.JSONField(null=True, blank=True)

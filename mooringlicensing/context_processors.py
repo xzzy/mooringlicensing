@@ -13,5 +13,3 @@ def mooringlicensing_processor(request):
         'LEDGER_UI_URL': f'{settings.LEDGER_UI_URL}',
         'LEDGER_SYSTEM_ID': f'{settings.LEDGER_SYSTEM_ID}',
     }
-
-

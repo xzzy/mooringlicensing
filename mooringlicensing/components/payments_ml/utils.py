@@ -35,13 +35,10 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
-        # 'return_url': request.build_absolute_uri(reverse(return_url_ns)),
-        # 'return_preload_url': request.build_absolute_uri(reverse(return_preload_url_ns)),
         'return_url': return_url,
         'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice_text,  # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
-        # 'basket_owner': email_user,
         'basket_owner': email_user.id,
         'session_type': 'ledger_api',
     }
@@ -251,7 +248,6 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
         'system': settings.PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
         'return_url': request.build_absolute_uri(reverse(return_url_ns)),
-        # 'return_preload_url': request.build_absolute_uri(reverse(return_url_ns)),
         'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice.text,
