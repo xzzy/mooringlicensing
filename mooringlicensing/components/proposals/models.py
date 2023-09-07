@@ -4127,7 +4127,6 @@ class VesselOwnership(RevisionedMixin):
 
         return excludable
 
-
     def get_fee_items_paid(self):
         # Return all the fee_items for this vessel
         fee_items = []

@@ -856,8 +856,10 @@ def store_vessel_ownership(request, vessel, instance=None):
             logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
 
     ## add to vessel_ownership_data
+    vessel_ownership_data['company_ownership'] = None  # This is temp solution.  We will remove the VesselOwnership.company_ownership field once VesselOwnership.company_ownerships starts working. 
     if company_ownership and company_ownership.id:
-        vessel_ownership_data['company_ownership'] = company_ownership.id
+        # vessel_ownership_data['company_ownership'] = company_ownership.id
+        vessel_ownership_data['company_ownerships'] = [company_ownership.id,]
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -865,7 +867,8 @@ def store_vessel_ownership(request, vessel, instance=None):
 
             logger.info(f'BlockingProposal: [{instance.lodgement_number}] has been set to the CompanyOwnership: [{company_ownership}]')
     else:
-        vessel_ownership_data['company_ownership'] = None
+        # vessel_ownership_data['company_ownership'] = None
+        pass
     vessel_ownership_data['vessel'] = vessel.id
 
     owner, created = Owner.objects.get_or_create(emailuser=request.user.id)  # Is owner accessing user...??? Correct???
@@ -987,17 +990,23 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     min_percent_fail = False
     vessel_ownership_percentage = 0
     ## First ensure applicable % >= 25
-    if hasattr(vessel_ownership.company_ownership, 'id'):
-        company_ownership_id = vessel_ownership.company_ownership.id
-        if not vessel_ownership.company_ownership.percentage:
+    # if hasattr(vessel_ownership.company_ownership, 'id'):
+    if vessel_ownership.company_ownerships.count():
+        company_ownership = vessel_ownership.company_ownerships.get(vessel=vessel_ownership.vessel)
+        # company_ownership_id = vessel_ownership.company_ownership.id
+        company_ownership_id = company_ownership.id
+        # if not vessel_ownership.company_ownership.percentage:
+        if not company_ownership.percentage:
             raise serializers.ValidationError({
                 "Ownership Percentage": "You must specify a percentage"
                 })
         else:
-            if vessel_ownership.company_ownership.percentage < 25:
+            # if vessel_ownership.company_ownership.percentage < 25:
+            if company_ownership.percentage < 25:
                 min_percent_fail = True
             else:
-                vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
+                # vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
+                vessel_ownership_percentage = company_ownership.percentage
     elif not vessel_ownership.percentage:
         raise serializers.ValidationError({
             "Ownership Percentage": "You must specify a percentage"
