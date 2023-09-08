@@ -251,7 +251,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (CUSTOMER_STATUS_EXPIRED, 'Expired'),
-        )
+    )
 
     # List of statuses from above that allow a customer to edit an application.
     CUSTOMER_EDITABLE_STATE = [
@@ -4072,14 +4072,14 @@ class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
         #latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
         # Do not show sold vessels
-        latest_ids = VesselOwnership.objects.filter(end_date__isnull=True).values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
+        latest_ids = VesselOwnership.objects.filter(end_date__isnull=True).values("owner", "vessel", "company_ownerships").annotate(id=Max('id')).values_list('id', flat=True)
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
 
 
 class VesselOwnership(RevisionedMixin):
     owner = models.ForeignKey('Owner', on_delete=models.CASCADE)
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
-    company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True, on_delete=models.CASCADE)
+    # company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True, on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     # date of sale
@@ -4098,8 +4098,18 @@ class VesselOwnership(RevisionedMixin):
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
 
+    def get_latest_company_ownership(self, status_list=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,]):
+        if self.company_ownerships.count():
+            return self.company_ownerships.filter(status__in=status_list).order_by('created').last()
+        return CompanyOwnership.objects.none()
+
+    @property
+    def company_ownership_latest(self):
+        if self.company_ownerships.count():
+            return self.company_ownerships.order_by('created').last()
+
     def __str__(self):
-        return f'id:{self.id}, owner: {self.owner}, company: {self.company_ownership}, vessel: {self.vessel}'
+        return f'id:{self.id}, owner: {self.owner}, company: {self.company_ownerships}, vessel: {self.vessel}'
 
     def excludable(self, originated_proposal):
         # Return True if self is excludable from the percentage calculation
@@ -4719,7 +4729,7 @@ reversion.register(VesselLogDocument, follow=[])
 reversion.register(VesselLogEntry, follow=['documents'])
 reversion.register(VesselDetails, follow=['proposal_set'])
 reversion.register(CompanyOwnership, follow=['blocking_proposal', 'vessel', 'company'])
-reversion.register(VesselOwnership, follow=['owner', 'vessel', 'company_ownership'])
+reversion.register(VesselOwnership, follow=['owner', 'vessel', 'company_ownerships'])
 reversion.register(VesselRegistrationDocument, follow=[])
 reversion.register(Owner, follow=['vesselownership_set'])
 reversion.register(Company, follow=['companyownership_set'])

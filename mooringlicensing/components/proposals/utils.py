@@ -883,11 +883,18 @@ def store_vessel_ownership(request, vessel, instance=None):
     vo_created = False
     q_for_approvals_check = Q()  # We want to check if there is a current approval which links to the vessel_ownership retrieved below
     if instance.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
-        vessel_ownership, vo_created = VesselOwnership.objects.get_or_create(
+        vessel_ownerships = VesselOwnership.objects.filter(
             owner=owner,  # Owner is actually the accessing user (request.user) as above.
             vessel=vessel,
-            company_ownership=company_ownership
+            company_ownerships=company_ownership,
         )
+        if not vessel_ownerships:
+            vessel_ownership = VesselOwnership.objects.create(
+                owner=owner,
+                vessel=vessel,
+            )
+            vessel_ownership.company_ownerships.set([company_ownership,])
+            vo_created = True
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
         # Retrieve a vessel_ownership from the previous proposal
         vessel_ownership = instance.previous_application.vessel_ownership
@@ -952,7 +959,8 @@ def store_vessel_ownership(request, vessel, instance=None):
     handle_vessel_registrarion_documents_in_limbo(instance.id, vessel_ownership)
 
     # Vessel docs
-    if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
+    # if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
+    if vessel_ownership.company_ownerships and not vessel_ownership.vessel_registration_documents.all():
         raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 
@@ -1031,13 +1039,16 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     for vo in vessel.filtered_vesselownership_set.all():
         if vo in vessel_ownerships_to_excluded:
             continue
-        if hasattr(vo.company_ownership, 'id'):
-            if (vo.company_ownership.id != company_ownership_id and 
-                    vo.company_ownership.percentage and
-                    vo.company_ownership.blocking_proposal
-                    ):
-                total_percent += vo.company_ownership.percentage
-                logger.info(f'Vessel ownership to be taken into account in the calculation: {vo.company_ownership}')
+        # if hasattr(vo.company_ownership, 'id'):
+        if vo.company_ownerships.count():
+            company_ownership = vo.get_latest_company_ownership()
+            if company_ownership:
+                if (company_ownership.id != company_ownership_id and 
+                        company_ownership.percentage and
+                        company_ownership.blocking_proposal
+                ):
+                    total_percent += vo.company_ownership.percentage
+                    logger.info(f'Vessel ownership to be taken into account in the calculation: {vo.company_ownership}')
         elif vo.percentage and vo.id != individual_ownership_id:
             total_percent += vo.percentage
             logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
