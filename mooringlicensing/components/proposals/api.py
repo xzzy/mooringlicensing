@@ -1355,7 +1355,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if instance.vessel_ownership:
                     vessel_ownership_serializer = VesselOwnershipSerializer(instance.vessel_ownership)
                     vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.company_ownership else True
+                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.company_ownerships else True
                 else:
                     vessel_ownership_data["percentage"] = instance.percentage
                     vessel_ownership_data["individual_owner"] = instance.individual_owner
@@ -2001,7 +2001,8 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel = self.get_object()
         owner_set = Owner.objects.filter(emailuser=request.user.id)
         if owner_set:
-            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
+            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
+            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             if vo_set:
                 serializer = VesselOwnershipSerializer(vo_set[0])
                 return Response(serializer.data)
@@ -2036,7 +2037,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownerships else True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 

@@ -893,7 +893,8 @@ def store_vessel_ownership(request, vessel, instance=None):
                 owner=owner,
                 vessel=vessel,
             )
-            vessel_ownership.company_ownerships.set([company_ownership,])
+            if company_ownership:
+                vessel_ownership.company_ownerships.add(company_ownership)
             vo_created = True
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
         # Retrieve a vessel_ownership from the previous proposal
@@ -960,7 +961,7 @@ def store_vessel_ownership(request, vessel, instance=None):
 
     # Vessel docs
     # if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
-    if vessel_ownership.company_ownerships and not vessel_ownership.vessel_registration_documents.all():
+    if vessel_ownership.company_ownerships.count() and not vessel_ownership.vessel_registration_documents.all():
         raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 

@@ -4100,13 +4100,37 @@ class VesselOwnership(RevisionedMixin):
 
     def get_latest_company_ownership(self, status_list=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,]):
         if self.company_ownerships.count():
-            return self.company_ownerships.filter(status__in=status_list).order_by('created').last()
+            company_ownership = self.company_ownerships.filter(status__in=status_list).order_by('created').last()
+            return company_ownership
         return CompanyOwnership.objects.none()
+    
+    @property
+    def applicable_owner_name(self):
+        co = self.get_latest_company_ownership([CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,])
+        if co:
+            return co.company.name
+        else:
+            return str(self.owner)
+
+    @property
+    def applicable_percentage(self):
+        co = self.get_latest_company_ownership([CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,])
+        if co:
+            return co.percentage
+        else:
+            return self.percentage
 
     @property
     def company_ownership_latest(self):
         if self.company_ownerships.count():
             return self.company_ownerships.order_by('created').last()
+
+    @property
+    def individual_owner(self):
+        if self.get_latest_company_ownership():
+            return False
+        else:
+            return True
 
     def __str__(self):
         return f'id:{self.id}, owner: {self.owner}, company: {self.company_ownerships}, vessel: {self.vessel}'

@@ -1369,16 +1369,10 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_owner_name(self, obj):
-        if obj.company_ownership and obj.company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
-            return obj.company_ownership.company.name
-        else:
-            return str(obj.owner)
+        return obj.applicable_owner_name
 
     def get_percentage(self, obj):
-        if obj.company_ownership:
-            return obj.company_ownership.percentage
-        else:
-            return obj.percentage
+        return obj.applicable_percentage
 
     def get_record_sale_link(self, obj):
         return '<a href=# data-id="{}">Record Sale</a><br/>'.format(obj.id, obj.id)
@@ -1441,15 +1435,25 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
 
 
 class VesselOwnershipSerializer(serializers.ModelSerializer):
-    company_ownership = CompanyOwnershipSerializer()
+    # company_ownership = CompanyOwnershipSerializer()
+    company_ownership = serializers.SerializerMethodField()
 
     class Meta:
         model = VesselOwnership
         fields = '__all__'
 
+    def get_company_ownership(self, obj):
+        co = obj.get_latest_company_ownership()
+        data = None
+        if co:
+            serializer = CompanyOwnershipSerializer(co)
+            data = serializer.data
+        return data
+
 
 class VesselFullOwnershipSerializer(serializers.ModelSerializer):
-    company_ownership = CompanyOwnershipSerializer()
+    # company_ownership = CompanyOwnershipSerializer()
+    company_ownership = serializers.SerializerMethodField()
     owner_full_name = serializers.SerializerMethodField()
     applicable_percentage = serializers.SerializerMethodField()
     start_date = serializers.SerializerMethodField()
@@ -1473,6 +1477,13 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
                 'dot_name',
                 'action_link',
                 )
+    
+    def get_company_ownership(self, obj):
+        co = obj.get_latest_company_ownership()
+        if co:
+            serializer = CompanyOwnershipSerializer(co)
+            return serializer.data
+        return {}
 
     def get_action_link(self, obj):
         # return '/internal/person/{}'.format(obj.owner.emailuser.id)
@@ -1484,10 +1495,11 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
         return owner.get_full_name()
 
     def get_applicable_percentage(self, obj):
-        if obj.company_ownership:
-            return obj.company_ownership.percentage
-        else:
-            return obj.percentage
+        return obj.applicable_percentage
+        # if obj.company_ownership:
+        #     return obj.company_ownership.percentage
+        # else:
+        #     return obj.percentage
 
     def get_start_date(self, obj):
         start_date_str = ''
@@ -1507,10 +1519,11 @@ class VesselFullOwnershipSerializer(serializers.ModelSerializer):
         return owner.phone_number if owner.phone_number else owner.mobile_number
 
     def get_individual_owner(self, obj):
-        individual_owner = True
-        if obj.company_ownership:
-            individual_owner = False
-        return individual_owner
+        return obj.individual_owner
+        # individual_owner = True
+        # if obj.company_ownership:
+        #     individual_owner = False
+        # return individual_owner
 
 
 class SaveVesselOwnershipSaleDateSerializer(serializers.ModelSerializer):

@@ -55,7 +55,8 @@
                 <div v-else-if="companyOwner" class="col-sm-2">
                     <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
                         id="ownership_percentage_company" placeholder="" :key="companyOwnershipName"
-                        v-model="vessel.vessel_ownership.company_ownership.percentage" required="" />
+                        v-model="vessel.vessel_ownership.company_ownership.percentage" required="" 
+                    />
                 </div>
 
             </div>
@@ -323,6 +324,7 @@ export default {
             if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
                 return true;
             }
+            return false
         },
         individualOwner: function () {
             if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
@@ -441,7 +443,7 @@ export default {
                                         }
                                     }
                                 }
-                                if (this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.percentage) {
+                                if (this.previousApplicationVesselOwnership.company_ownership && this.previousApplicationVesselOwnership.company_ownership.percentage && this.vesselOwnership.company_ownership.percentage) {
                                     if (Number(this.previousApplicationVesselOwnership.company_ownership.percentage) !== Number(this.vesselOwnership.company_ownership.percentage)) {
                                         // Company percentage changed
                                         vesselOwnershipChanged = true
@@ -723,7 +725,7 @@ export default {
                 // read first company ownership data
                 vm.vessel.vessel_ownership.individual_owner = false;
                 const vo = res.body[0]
-                const companyId = vo.company_ownership.company.id;
+                const companyId = vo.company_ownership.company.id
                 await vm.lookupCompanyOwnership(companyId);
                 vm.readCompanyName();
             }
