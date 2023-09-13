@@ -4023,7 +4023,7 @@ class CompanyOwnership(RevisionedMixin):
         (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
     )
     blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True, on_delete=models.SET_NULL)
-    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default=COMPANY_OWNERSHIP_STATUS_DRAFT) # can be approved, old, draft, declined
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
     company = models.ForeignKey('Company', on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
@@ -4088,6 +4088,9 @@ class VesselOwnershipCompanyOwnership(RevisionedMixin):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return f'id:{self.id}, vessel_ownership: [{self.vessel_ownership}], company_ownership: [{self.company_ownership}], status: [{self.status}]'
 
 
 class VesselOwnershipManager(models.Manager):

@@ -859,7 +859,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     # vessel_ownership_data['company_ownership'] = None
     if company_ownership and company_ownership.id:
         # vessel_ownership_data['company_ownership'] = company_ownership.id
-        vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # TODO: is this line correct?
+        vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # This line is doesn't work at all, due to through table???
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -951,6 +951,11 @@ def store_vessel_ownership(request, vessel, instance=None):
     serializer.is_valid(raise_exception=True)
     vessel_ownership = serializer.save()
     logger.info(f'VesselOwnership: [{vessel_ownership}] has been updated with the data: [{vessel_ownership_data}].')
+
+    #####
+    if company_ownership:
+        vessel_ownership.company_ownerships.add(company_ownership)
+    #####
 
     # check and set blocking_owner
     if instance:
