@@ -48,6 +48,9 @@ class ProposalListener(object):
                     status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,],
                 )
                 for company_ownership in company_ownerships:
+
+                    # TODO: This company_ownership may be used from other vessel_ownerships other than instance.vessel_ownership.  In those cases,
+
                     company_ownership.status = CompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
                     company_ownership.save()
                     logger.info(f'Status: [{CompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the CompanyOwnership: [{company_ownership}].')
