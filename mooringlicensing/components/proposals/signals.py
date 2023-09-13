@@ -25,14 +25,32 @@ class ProposalListener(object):
 
         # Update the status of the company_ownership
         if instance.vessel_ownership:
-            latest_company_ownership = instance.vessel_ownership.get_latest_company_ownership([CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,])
-            if latest_company_ownership:
+            # latest_company_ownership = instance.vessel_ownership.get_latest_company_ownership([CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,])
+            company_ownerships = instance.vessel_ownership.company_ownerships.filter(
+                vessel=instance.vessel_ownership.vessel, 
+                status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
+            )
+            for company_ownership in company_ownerships:
                 # There is a 'draft' company_ownership
                 if instance.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]:
-                    latest_company_ownership.status = CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
-                    latest_company_ownership.save()
-                    logger.info(f'Status: [{CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED}] has been set to the CompanyOwnership: [{latest_company_ownership}].')
+                    company_ownership.status = CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
+                    company_ownership.save()
+                    logger.info(f'Status: [{CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED}] has been set to the CompanyOwnership: [{company_ownership}].')
                 elif instance.processing_status in [Proposal.PROCESSING_STATUS_DECLINED,]:
-                    latest_company_ownership.status = CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED
-                    latest_company_ownership.save()
-                    logger.info(f'Status: [{CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED}] has been set to the CompanyOwnership: [{latest_company_ownership}].')
+                    company_ownership.status = CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED
+                    company_ownership.save()
+                    logger.info(f'Status: [{CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED}] has been set to the CompanyOwnership: [{company_ownership}].')
+
+            if instance.individual_owner:
+                # The proposal saved just now is for individual owner
+                company_ownerships = instance.vessel_ownership.company_ownerships.filter(
+                    vessel=instance.vessel_ownership.vessel, 
+                    status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,],
+                )
+                for company_ownership in company_ownerships:
+                    company_ownership.status = CompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
+                    company_ownership.save()
+                    logger.info(f'Status: [{CompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the CompanyOwnership: [{company_ownership}].')
+
+
+

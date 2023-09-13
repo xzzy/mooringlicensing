@@ -4009,6 +4009,9 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
 
 class CompanyOwnership(RevisionedMixin):
+    # Possible status flow
+    # 'draft' --> 'approved' --> 'old'
+    #         \-> 'declined'
     COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
     COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
     COMPANY_OWNERSHIP_STATUS_OLD = 'old'
@@ -4035,7 +4038,7 @@ class CompanyOwnership(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return "{}: {}".format(self.company, self.percentage)
+        return f"{self.company}: {self.status}, {self.percentage}%"
 
     def save(self, *args, **kwargs):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
@@ -4133,7 +4136,7 @@ class VesselOwnership(RevisionedMixin):
             return True
 
     def __str__(self):
-        return f'id:{self.id}, owner: {self.owner}, company: {self.company_ownerships}, vessel: {self.vessel}'
+        return f'id:{self.id}, owner: {self.owner}, company_ownership: [{self.get_latest_company_ownership([CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,])}], vessel: {self.vessel}'
 
     def excludable(self, originated_proposal):
         # Return True if self is excludable from the percentage calculation

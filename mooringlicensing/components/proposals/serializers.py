@@ -1573,6 +1573,11 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         owner = data.get("owner")
         vessel = data.get("vessel")
         total = 0
+        
+        # Append existing company_ownerships, otherwise they are removed when save()
+        for co in self.instance.company_ownerships.all():
+            data['company_ownerships'].append(co.id)
+
         if data.get("percentage") and data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
         if custom_errors.keys():

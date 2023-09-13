@@ -2097,6 +2097,11 @@ class VesselViewSet(viewsets.ModelViewSet):
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
                 vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+            
+            index = 0
+            for vo in vessel_ownership_list:
+                logger.debug(f'vessel_ownership [{index}]: [{vo}].')
+                index += 1
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
             return Response(serializer.data)

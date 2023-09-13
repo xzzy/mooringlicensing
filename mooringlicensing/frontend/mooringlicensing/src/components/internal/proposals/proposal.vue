@@ -417,8 +417,10 @@ export default {
     methods: {
         fetchSiteLicenseeMooring: async function() {
             console.log('%cin fetchSiteLicenseeMooring', 'color:#f33;')
-            const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.mooring_id}`);
-            this.siteLicenseeMooring = Object.assign({}, res.body);
+            if (this.proposal.mooring_id){
+                const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.mooring_id}`);
+                this.siteLicenseeMooring = Object.assign({}, res.body);
+            }
         },
         fetchMooringBays: async function() {
             console.log('%cin fetchMooringBays', 'color:#f33;')

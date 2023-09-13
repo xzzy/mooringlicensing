@@ -856,10 +856,10 @@ def store_vessel_ownership(request, vessel, instance=None):
             logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
 
     ## add to vessel_ownership_data
-    vessel_ownership_data['company_ownership'] = None  # This is temp solution.  We will remove the VesselOwnership.company_ownership field once VesselOwnership.company_ownerships starts working. 
+    # vessel_ownership_data['company_ownership'] = None
     if company_ownership and company_ownership.id:
         # vessel_ownership_data['company_ownership'] = company_ownership.id
-        vessel_ownership_data['company_ownerships'] = [company_ownership.id,]
+        vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # TODO: is this line correct?
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -1001,7 +1001,8 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     ## First ensure applicable % >= 25
     # if hasattr(vessel_ownership.company_ownership, 'id'):
     if vessel_ownership.company_ownerships.count():
-        company_ownership = vessel_ownership.company_ownerships.get(vessel=vessel_ownership.vessel)
+        # company_ownership = vessel_ownership.company_ownerships.get(vessel=vessel_ownership.vessel)  # TODO: may return more than 2 company_ownerships
+        company_ownership = vessel_ownership.company_ownerships.filter(vessel=vessel_ownership.vessel, status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]).order_by('created').last()
         # company_ownership_id = vessel_ownership.company_ownership.id
         company_ownership_id = company_ownership.id
         # if not vessel_ownership.company_ownership.percentage:
