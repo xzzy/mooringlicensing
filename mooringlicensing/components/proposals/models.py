@@ -4071,6 +4071,25 @@ class CompanyOwnership(RevisionedMixin):
                         proposal.approval.internal_reissue()
 
 
+class VesselOwnershipCompanyOwnership(RevisionedMixin):
+    COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
+    COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
+    COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
+    STATUS_TYPES = (
+        (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
+        (COMPANY_OWNERSHIP_STATUS_DRAFT, 'Draft'),
+        (COMPANY_OWNERSHIP_STATUS_OLD, 'Old'),
+        (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
+    )
+    vessel_ownership = models.ForeignKey('VesselOwnership', null=True, on_delete=models.SET_NULL)
+    company_ownership = models.ForeignKey(CompanyOwnership, null=True, on_delete=models.SET_NULL)
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default=COMPANY_OWNERSHIP_STATUS_DRAFT) # can be approved, old, draft, declined
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
         #latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
@@ -4095,7 +4114,8 @@ class VesselOwnership(RevisionedMixin):
     filtered_objects = VesselOwnershipManager()
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
-    company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships')
+    # company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
+    company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
