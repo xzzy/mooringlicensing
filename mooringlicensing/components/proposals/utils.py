@@ -11,6 +11,7 @@ from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
 from mooringlicensing.components.proposals.models import (
+    VesselOwnershipCompanyOwnership,
     WaitingListApplication,
     AnnualAdmissionApplication,
     AuthorisedUserApplication,
@@ -812,6 +813,8 @@ def store_vessel_ownership(request, vessel, instance=None):
 
         ## CompanyOwnership
         company_ownership_data = vessel_ownership_data.get("company_ownership")
+        company_ownership_data.update({"company": company.id}) # update company key from dict to pk
+        company_ownership_data.update({"vessel": vessel.id}) # add vessel to company_ownership_data
         company_ownership_set = CompanyOwnership.objects.filter(
             company=company,
             vessel=vessel,
@@ -820,46 +823,46 @@ def store_vessel_ownership(request, vessel, instance=None):
         # Check if we need to create a new CO record
         create_company_ownership = False
         edit_company_ownership = True
-        if company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT):
-            company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT)[0]
+        if company_ownership_set.count():
+            company_ownership = company_ownership_set.first()
+        else:
+            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)  # TODO: percentage should be saved in a vessel_ownership_company_ownership object temporarily until it gets 'approved' status...???
+            serializer.is_valid(raise_exception=True)
+            company_ownership = serializer.save()
+            logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
+
+        if company_ownership_set.filter(vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT):
+            company_ownership = company_ownership_set.filter(vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT)[0]
             ## cannot edit draft record with blocking_proposal
             if company_ownership.blocking_proposal:
                 edit_company_ownership = False
-        elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
-            company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
-            existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
-            for key in existing_company_ownership_data.keys():
-                if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:
-                    # At least one field has a different value.
-                    create_company_ownership = True
-        else:
-            create_company_ownership = True
+        # elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
+        #     company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
+        #     existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
+        #     for key in existing_company_ownership_data.keys():
+        #         if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:
+        #             # At least one field has a different value.
+        #             create_company_ownership = True
+        # else:
+        #     create_company_ownership = True
 
-        # update company key from dict to pk
-        company_ownership_data.update({"company": company.id})
+        # if create_company_ownership:
+        #     serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
+        #     serializer.is_valid(raise_exception=True)
+        #     company_ownership = serializer.save()
+        #     logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
 
-        # add vessel to company_ownership_data
-        company_ownership_data.update({"vessel": vessel.id})
-
-        if create_company_ownership:
-            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
-            serializer.is_valid(raise_exception=True)
-            company_ownership = serializer.save()
-
-            logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
-
-        elif edit_company_ownership:
+        if edit_company_ownership:
             serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
             serializer.is_valid(raise_exception=True)
             company_ownership = serializer.save()
-
             logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
 
     ## add to vessel_ownership_data
     # vessel_ownership_data['company_ownership'] = None
     if company_ownership and company_ownership.id:
         # vessel_ownership_data['company_ownership'] = company_ownership.id
-        vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # This line is doesn't work at all, due to through table???
+        # vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # This line is doesn't work at all, due to through table???
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -1007,7 +1010,11 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     # if hasattr(vessel_ownership.company_ownership, 'id'):
     if vessel_ownership.company_ownerships.count():
         # company_ownership = vessel_ownership.company_ownerships.get(vessel=vessel_ownership.vessel)  # TODO: may return more than 2 company_ownerships
-        company_ownership = vessel_ownership.company_ownerships.filter(vessel=vessel_ownership.vessel, status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]).order_by('created').last()
+        company_ownership = vessel_ownership.company_ownerships.filter(
+            vessel=vessel_ownership.vessel, 
+            # status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
+            vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
+        ).order_by('created').last()
         # company_ownership_id = vessel_ownership.company_ownership.id
         company_ownership_id = company_ownership.id
         # if not vessel_ownership.company_ownership.percentage:

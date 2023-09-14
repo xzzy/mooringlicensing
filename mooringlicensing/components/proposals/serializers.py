@@ -1568,6 +1568,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def validate(self, data):
+        logger.info(f'Validating data: [{data}]...')
         custom_errors = {}
         percentage = data.get("percentage")
         owner = data.get("owner")
@@ -1575,8 +1576,8 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         total = 0
         
         # Append existing company_ownerships, otherwise they are removed when save()
-        for co in self.instance.company_ownerships.all():
-            data['company_ownerships'].append(co.id)
+        # for co in self.instance.company_ownerships.all():
+            # data['company_ownerships'].append(co.id)
 
         if data.get("percentage") and data.get("percentage") < 25:
             custom_errors["Ownership Percentage"] = "Minimum of 25 percent"
@@ -1585,6 +1586,7 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
         return data
 
     def validate_percentage(self, value):
+        logger.info(f'Validating percentage: [{value}]...')
         if not value:
             return 0
         try:
