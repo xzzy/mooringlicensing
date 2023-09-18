@@ -88,12 +88,7 @@ class DcvAdmissionFeeView(TemplateView):
                     request,
                     dcv_admission.submitter_obj,
                     lines,
-                    # return_url_ns='dcv_admission_fee_success',
-                    # return_preload_url_ns='dcv_admission_fee_success',
-                    # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
-                    # request.build_absolute_uri(reverse('dcv_admission_fee_success')),
                     return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
-                    # return_preload_url=request.build_absolute_uri(reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
                     booking_reference=str(dcv_admission_fee.uuid),
                     invoice_text='DCV Admission Fee',
@@ -133,10 +128,7 @@ class DcvPermitFeeView(TemplateView):
                     request,
                     dcv_permit.submitter_obj,
                     lines,
-                    # request.build_absolute_uri(reverse('dcv_permit_fee_success')),  # return url
-                    # request.build_absolute_uri(reverse('dcv_permit_fee_success')),  # return preload url
                     return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
-                    # return_preload_url=request.build_absolute_uri(reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid}),
                     booking_reference=str(dcv_permit_fee.uuid),
                     invoice_text='DCV Permit Fee',
@@ -267,11 +259,7 @@ class StickerReplacementFeeView(TemplateView):
                     request,
                     request.user,
                     lines,
-                    # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
-                    # request.build_absolute_uri(reverse('sticker_replacement_fee_success')),
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
-                    # return_preload_url=request.build_absolute_uri(reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid})),
-                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
                     booking_reference=str(sticker_action_fee.uuid),
                     invoice_text='{}'.format(application_type.description),
                 )
@@ -380,7 +368,7 @@ class ApplicationFeeView(TemplateView):
     def post(self, request, *args, **kwargs):
         proposal = self.get_object()
         application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=request.user.id, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
-        logger.info('ApplicationFee.id: {} has been created for the Proposal: {}'.format(application_fee.id, proposal))
+        logger.info(f'ApplicationFee: [{application_fee}] has been created for the Proposal: [{proposal}].')
 
         try:
             with transaction.atomic():
@@ -402,7 +390,6 @@ class ApplicationFeeView(TemplateView):
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
-                # return_preload_url = request.build_absolute_uri(reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
                 reference = proposal.previous_application.lodgement_number if proposal.previous_application else proposal.lodgement_number
                 checkout_response = checkout(
@@ -732,7 +719,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
-                        logger.info(f'FeeItemApplicationFee: {fee_item_application_fee} created')
+                        logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] created.')
                 if isinstance(db_operations, list):
                     # This is used for AU/ML's auto renewal
                     for item in db_operations:
@@ -742,13 +729,14 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         amount_paid = amount_to_be_paid
                         vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
-                        FeeItemApplicationFee.objects.create(
+                        fee_item_application_fee = FeeItemApplicationFee.objects.create(
                             fee_item=fee_item,
                             application_fee=application_fee,
                             vessel_details=vessel_details,
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
+                        logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')
 
             application_fee.invoice_reference = invoice_reference
             application_fee.save()

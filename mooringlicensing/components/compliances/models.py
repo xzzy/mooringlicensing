@@ -116,15 +116,14 @@ class Compliance(RevisionedMixin):
         """
         :return: True if the compliance is not in the editable status for external user.
         """
-        return self.customer_status == 'with_assessor' or self.customer_status == 'approved'
+        return self.customer_status == Compliance.CUSTOMER_STATUS_WITH_ASSESSOR or self.customer_status == Compliance.CUSTOMER_STATUS_APPROVED
 
     @property
     def can_process(self):
         """
         :return: True if the compliance is ready for assessment.
         """
-        return self.processing_status == 'with_assessor'
-
+        return self.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR
 
     @property
     def amendment_requests(self):
@@ -209,17 +208,14 @@ class Compliance(RevisionedMixin):
 
     def accept(self, request):
         with transaction.atomic():
-            self.processing_status = 'approved'
-            self.customer_status = 'approved'
+            self.processing_status = Compliance.PROCESSING_STATUS_APPROVED
+            self.customer_status = Compliance.CUSTOMER_STATUS_APPROVED
             self.save()
             self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
             send_compliance_accept_email_notification(self,request)
 
     def send_reminder(self, user):
         with transaction.atomic():
-            # today = timezone.localtime(timezone.now()).date()
-            # days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
-            # days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
             try:
                 if self.processing_status == Compliance.PROCESSING_STATUS_DUE and self.reminder_sent is False:
                     send_due_email_notification(self)

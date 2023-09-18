@@ -837,7 +837,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             return False
 
     def get_current_proposal_approved(self, obj):
-        return obj.current_proposal.processing_status == 'approved'
+        from mooringlicensing.components.proposals.models import Proposal
+        return obj.current_proposal.processing_status == Proposal.PROCESSING_STATUS_APPROVED
 
     def get_is_assessor(self, obj):
         request = self.context.get('request')

@@ -2811,9 +2811,14 @@ class Sticker(models.Model):
     def get_invoices(self):
         invoices = []
         for action_detail in self.sticker_action_details.all():
-            if action_detail.sticker_action_fee and action_detail.sticker_action_fee.invoice_reference:
-                inv = Invoice.objects.get(reference=action_detail.sticker_action_fee.invoice_reference)
-                invoices.append(inv)
+            try:
+                if action_detail.sticker_action_fee and action_detail.sticker_action_fee.invoice_reference:
+                    inv = Invoice.objects.get(reference=action_detail.sticker_action_fee.invoice_reference)
+                    invoices.append(inv)
+            except Invoice.DoesNotExist:
+                logger.error(f'Invoice: [{action_detail.sticker_action_fee.invoice_reference}]) does not exist for the Sticker: [{self}].')
+            except Exception as e:
+                logger.error(f'Error raised when retrieving invoice(s) for the Sticker: [{self}]')
         return invoices
 
     def get_moorings(self):

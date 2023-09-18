@@ -251,7 +251,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         (CUSTOMER_STATUS_DISCARDED, 'Discarded'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (CUSTOMER_STATUS_EXPIRED, 'Expired'),
-        )
+    )
 
     # List of statuses from above that allow a customer to edit an application.
     CUSTOMER_EDITABLE_STATE = [
@@ -397,7 +397,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     keep_existing_vessel = models.BooleanField(default=True)
 
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, on_delete=models.SET_NULL)  # In some case, proposal doesn't have any fee related objects.  Which results in the impossibility to retrieve season, start_date, end_date, etc.
-                                                                        # To prevent that, fee_season is used in order to store those data.
+                                                                        # To avoid that, this fee_season field is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
     personal_details = models.JSONField(null=True, blank=True)
@@ -4009,6 +4009,9 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
 
 class CompanyOwnership(RevisionedMixin):
+    # Possible status flow
+    # 'draft' --> 'approved' --> 'old'
+    #         \-> 'declined'
     COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
     COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
     COMPANY_OWNERSHIP_STATUS_OLD = 'old'
@@ -4020,34 +4023,34 @@ class CompanyOwnership(RevisionedMixin):
         (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
     )
     blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True, on_delete=models.SET_NULL)
-    status = models.CharField(max_length=50, choices=STATUS_TYPES, default="draft") # can be approved, old, draft, declined
+    # status = models.CharField(max_length=50, choices=STATUS_TYPES, default=COMPANY_OWNERSHIP_STATUS_DRAFT) # can be approved, old, draft, declined
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
     company = models.ForeignKey('Company', on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
     ## TODO: delete start and end dates if no longer required
     start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Company Ownership"
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return "{}: {}".format(self.company, self.percentage)
+        return f"{self.company}: {self.percentage}%"
 
     def save(self, *args, **kwargs):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
         ## do not allow multiple draft or approved status per vessel_id
         # restrict multiple draft records
-        if not self.pk:
-            vessel_details_set = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
-            for vd in vessel_details_set:
-                if vd.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT:
-                    raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
-                elif vd.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED and self.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
-                    raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
+        # if not self.pk:
+        #     company_ownerships = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
+        #     for company_ownership in company_ownerships:
+        #         if company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT:
+        #             raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
+        #         elif company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED and self.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
+        #             raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
         existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
         if existing_record:
             prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
@@ -4068,18 +4071,40 @@ class CompanyOwnership(RevisionedMixin):
                         proposal.approval.internal_reissue()
 
 
+class VesselOwnershipCompanyOwnership(RevisionedMixin):
+    COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
+    COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
+    COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
+    STATUS_TYPES = (
+        (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
+        (COMPANY_OWNERSHIP_STATUS_DRAFT, 'Draft'),
+        (COMPANY_OWNERSHIP_STATUS_OLD, 'Old'),
+        (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
+    )
+    vessel_ownership = models.ForeignKey('VesselOwnership', null=True, on_delete=models.SET_NULL)
+    company_ownership = models.ForeignKey(CompanyOwnership, null=True, on_delete=models.SET_NULL)
+    status = models.CharField(max_length=50, choices=STATUS_TYPES, default=COMPANY_OWNERSHIP_STATUS_DRAFT) # can be approved, old, draft, declined
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def __str__(self):
+        return f'id:{self.id}, vessel_ownership: [{self.vessel_ownership}], company_ownership: [{self.company_ownership}], status: [{self.status}]'
+
+
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
         #latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
         # Do not show sold vessels
-        latest_ids = VesselOwnership.objects.filter(end_date__isnull=True).values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
+        latest_ids = VesselOwnership.objects.filter(end_date__isnull=True).values("owner", "vessel", "company_ownerships").annotate(id=Max('id')).values_list('id', flat=True)
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
 
 
 class VesselOwnership(RevisionedMixin):
     owner = models.ForeignKey('Owner', on_delete=models.CASCADE)
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
-    company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True, on_delete=models.CASCADE)
+    # company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True, on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     # date of sale
@@ -4092,13 +4117,48 @@ class VesselOwnership(RevisionedMixin):
     filtered_objects = VesselOwnershipManager()
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
+    company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
 
     class Meta:
         verbose_name_plural = "Vessel Details Ownership"
         app_label = 'mooringlicensing'
 
+    def get_latest_company_ownership(self, status_list=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,]):
+        if self.company_ownerships.count():
+            company_ownership = self.company_ownerships.filter(vesselownershipcompanyownership__status__in=status_list).order_by('created').last()
+            return company_ownership
+        return CompanyOwnership.objects.none()
+    
+    @property
+    def applicable_owner_name(self):
+        co = self.get_latest_company_ownership([VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,])
+        if co:
+            return co.company.name
+        else:
+            return str(self.owner)
+
+    @property
+    def applicable_percentage(self):
+        co = self.get_latest_company_ownership([VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,])
+        if co:
+            return co.percentage
+        else:
+            return self.percentage
+
+    @property
+    def company_ownership_latest(self):
+        if self.company_ownerships.count():
+            return self.company_ownerships.order_by('created').last()
+
+    @property
+    def individual_owner(self):
+        if self.get_latest_company_ownership():
+            return False
+        else:
+            return True
+
     def __str__(self):
-        return f'id:{self.id}, owner: {self.owner}, company: {self.company_ownership}, vessel: {self.vessel}'
+        return f'id:{self.id}, owner: {self.owner}, company_ownership: [{self.get_latest_company_ownership([VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,])}], vessel: {self.vessel}'
 
     def excludable(self, originated_proposal):
         # Return True if self is excludable from the percentage calculation
@@ -4125,7 +4185,6 @@ class VesselOwnership(RevisionedMixin):
                 excludable = False
 
         return excludable
-
 
     def get_fee_items_paid(self):
         # Return all the fee_items for this vessel
@@ -4222,8 +4281,7 @@ class Company(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return "{}: {}".format(self.name, self.id)
-
+        return f'{self.name} (id: {self.id})'
 
 
 class InsuranceCertificateDocument(Document):
@@ -4720,7 +4778,7 @@ reversion.register(VesselLogDocument, follow=[])
 reversion.register(VesselLogEntry, follow=['documents'])
 reversion.register(VesselDetails, follow=['proposal_set'])
 reversion.register(CompanyOwnership, follow=['blocking_proposal', 'vessel', 'company'])
-reversion.register(VesselOwnership, follow=['owner', 'vessel', 'company_ownership'])
+reversion.register(VesselOwnership, follow=['owner', 'vessel', 'company_ownerships'])
 reversion.register(VesselRegistrationDocument, follow=[])
 reversion.register(Owner, follow=['vesselownership_set'])
 reversion.register(Company, follow=['companyownership_set'])
