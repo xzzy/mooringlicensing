@@ -565,19 +565,6 @@ export default {
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
         },
-        // fetchMooringBays: async function() {
-        //     console.log('%cin fetchMooringBays', 'color:#f33;')
-        //     //const res = await this.$http.get(api_endpoints.mooring_bays);
-        //     const res = await this.$http.get(api_endpoints.mooring_bays_lookup);
-        //     console.log(res.body)
-        //     for (let bay of res.body) {
-        //         this.mooringBays.push(bay)
-        //     }
-        // },
-        // fetchSiteLicenseeMooring: async function() {
-        //     const res = await this.$http.get(`${api_endpoints.mooring}${this.proposal.mooring_id}`);
-        //     this.siteLicenseeMooring = Object.assign({}, res.body);
-        // },
 
         fetchContact: function (id) {
             let vm = this;

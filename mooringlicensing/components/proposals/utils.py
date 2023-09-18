@@ -1,5 +1,4 @@
 import re
-import pytz
 from decimal import Decimal
 
 from django.db import transaction
@@ -10,13 +9,9 @@ from mooringlicensing import settings
 import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
-from mooringlicensing.components.main.process_document import save_default_document_obj, save_vessel_registration_document_obj
-from mooringlicensing.components.main.decorators import (
-        basic_exception_handler, 
-        timeit, 
-        query_debugger
-        )
+from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
 from mooringlicensing.components.proposals.models import (
+    VesselOwnershipCompanyOwnership,
     WaitingListApplication,
     AnnualAdmissionApplication,
     AuthorisedUserApplication,
@@ -39,8 +34,6 @@ from mooringlicensing.components.proposals.serializers import (
     SaveMooringLicenceApplicationSerializer,
     SaveAuthorisedUserApplicationSerializer,
     SaveAnnualAdmissionApplicationSerializer,
-    VesselSerializer,
-    VesselOwnershipSerializer,
     VesselDetailsSerializer, CompanyOwnershipSerializer,
 )
 
@@ -55,10 +48,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
 import traceback
-import os
 from copy import deepcopy
-from datetime import datetime
-import time
 from rest_framework import serializers
 
 import logging
@@ -604,9 +594,6 @@ def submit_vessel_data(instance, request, vessel_data):
     min_vessel_size = float(min_vessel_size_str)
     min_mooring_vessel_size = float(min_mooring_vessel_size_str)
 
-    #if (not vessel_data.get('rego_no') and instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and
-     #       type(instance.child_obj) in [WaitingListApplication, MooringLicenceApplication, AnnualAdmissionApplication]):
-      #  return
     if not vessel_data.get('rego_no'):
         if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
             if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
@@ -651,7 +638,6 @@ def submit_vessel_data(instance, request, vessel_data):
                     if instance.vessel_details.vessel_draft > moa.mooring.vessel_draft_limit:
                         logger.error(f"Vessel draft: [{instance.vessel_details.vessel_draft}] is not suitable for the mooring: [{moa.mooring}]")
                         raise serializers.ValidationError(f"Vessel draft: {instance.vessel_details.vessel_draft} [m] is not suitable for the vessel draft limit: {moa.mooring.vessel_draft_limit} [m] of the mooring: [{moa.mooring}]")
-
     elif type(instance.child_obj) == WaitingListApplication:
         if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
             logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
@@ -827,6 +813,8 @@ def store_vessel_ownership(request, vessel, instance=None):
 
         ## CompanyOwnership
         company_ownership_data = vessel_ownership_data.get("company_ownership")
+        company_ownership_data.update({"company": company.id}) # update company key from dict to pk
+        company_ownership_data.update({"vessel": vessel.id}) # add vessel to company_ownership_data
         company_ownership_set = CompanyOwnership.objects.filter(
             company=company,
             vessel=vessel,
@@ -835,44 +823,45 @@ def store_vessel_ownership(request, vessel, instance=None):
         # Check if we need to create a new CO record
         create_company_ownership = False
         edit_company_ownership = True
-        if company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT):
-            company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT)[0]
-            ## cannot edit draft record with blocking_proposal
-            if company_ownership.blocking_proposal:
-                edit_company_ownership = False
-        elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
-            company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
-            existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
-            for key in existing_company_ownership_data.keys():
-                if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:
-                    # At least one field has a different value.
-                    create_company_ownership = True
+        if company_ownership_set.count():
+            company_ownership = company_ownership_set.first()
         else:
-            create_company_ownership = True
-
-        # update company key from dict to pk
-        company_ownership_data.update({"company": company.id})
-
-        # add vessel to company_ownership_data
-        company_ownership_data.update({"vessel": vessel.id})
-
-        if create_company_ownership:
-            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
+            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)  # TODO: percentage should be saved in a vessel_ownership_company_ownership object temporarily until it gets 'approved' status...???
             serializer.is_valid(raise_exception=True)
             company_ownership = serializer.save()
-
             logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
 
-        elif edit_company_ownership:
-            serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
-            serializer.is_valid(raise_exception=True)
-            company_ownership = serializer.save()
+        if company_ownership_set.filter(vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT):
+            company_ownership = company_ownership_set.filter(vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT)[0]
+            ## cannot edit draft record with blocking_proposal
+            if edit_company_ownership:
+                if not company_ownership.blocking_proposal:
+                    serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
+                    serializer.is_valid(raise_exception=True)
+                    company_ownership = serializer.save()
+                    logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
+        # elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
+        #     company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
+        #     existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
+        #     for key in existing_company_ownership_data.keys():
+        #         if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:
+        #             # At least one field has a different value.
+        #             create_company_ownership = True
+        # else:
+        #     create_company_ownership = True
 
-            logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
+        # if create_company_ownership:
+        #     serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
+        #     serializer.is_valid(raise_exception=True)
+        #     company_ownership = serializer.save()
+        #     logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
+
 
     ## add to vessel_ownership_data
+    # vessel_ownership_data['company_ownership'] = None
     if company_ownership and company_ownership.id:
-        vessel_ownership_data['company_ownership'] = company_ownership.id
+        # vessel_ownership_data['company_ownership'] = company_ownership.id
+        # vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # This line is doesn't work at all, due to through table???
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -880,7 +869,8 @@ def store_vessel_ownership(request, vessel, instance=None):
 
             logger.info(f'BlockingProposal: [{instance.lodgement_number}] has been set to the CompanyOwnership: [{company_ownership}]')
     else:
-        vessel_ownership_data['company_ownership'] = None
+        # vessel_ownership_data['company_ownership'] = None
+        pass
     vessel_ownership_data['vessel'] = vessel.id
 
     owner, created = Owner.objects.get_or_create(emailuser=request.user.id)  # Is owner accessing user...??? Correct???
@@ -895,11 +885,21 @@ def store_vessel_ownership(request, vessel, instance=None):
     vo_created = False
     q_for_approvals_check = Q()  # We want to check if there is a current approval which links to the vessel_ownership retrieved below
     if instance.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
-        vessel_ownership, vo_created = VesselOwnership.objects.get_or_create(
+        vessel_ownerships = VesselOwnership.objects.filter(
             owner=owner,  # Owner is actually the accessing user (request.user) as above.
             vessel=vessel,
-            company_ownership=company_ownership
+            company_ownerships=company_ownership,
         )
+        if vessel_ownerships.count():
+            vessel_ownership = vessel_ownerships.first()
+        else:
+            vessel_ownership = VesselOwnership.objects.create(
+                owner=owner,
+                vessel=vessel,
+            )
+            if company_ownership:
+                vessel_ownership.company_ownerships.add(company_ownership)
+            vo_created = True
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
         # Retrieve a vessel_ownership from the previous proposal
         vessel_ownership = instance.previous_application.vessel_ownership
@@ -956,6 +956,11 @@ def store_vessel_ownership(request, vessel, instance=None):
     vessel_ownership = serializer.save()
     logger.info(f'VesselOwnership: [{vessel_ownership}] has been updated with the data: [{vessel_ownership_data}].')
 
+    #####
+    if company_ownership:
+        vessel_ownership.company_ownerships.add(company_ownership)
+    #####
+
     # check and set blocking_owner
     if instance:
         vessel.check_blocking_ownership(vessel_ownership, instance)
@@ -964,7 +969,8 @@ def store_vessel_ownership(request, vessel, instance=None):
     handle_vessel_registrarion_documents_in_limbo(instance.id, vessel_ownership)
 
     # Vessel docs
-    if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
+    # if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
+    if vessel_ownership.company_ownerships.count() and not vessel_ownership.vessel_registration_documents.all():
         raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 
@@ -1002,17 +1008,28 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     min_percent_fail = False
     vessel_ownership_percentage = 0
     ## First ensure applicable % >= 25
-    if hasattr(vessel_ownership.company_ownership, 'id'):
-        company_ownership_id = vessel_ownership.company_ownership.id
-        if not vessel_ownership.company_ownership.percentage:
+    # if hasattr(vessel_ownership.company_ownership, 'id'):
+    if vessel_ownership.company_ownerships.count():
+        # company_ownership = vessel_ownership.company_ownerships.get(vessel=vessel_ownership.vessel)  # TODO: may return more than 2 company_ownerships
+        company_ownership = vessel_ownership.company_ownerships.filter(
+            vessel=vessel_ownership.vessel, 
+            # status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
+            vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
+        ).order_by('created').last()
+        # company_ownership_id = vessel_ownership.company_ownership.id
+        company_ownership_id = company_ownership.id
+        # if not vessel_ownership.company_ownership.percentage:
+        if not company_ownership.percentage:
             raise serializers.ValidationError({
                 "Ownership Percentage": "You must specify a percentage"
                 })
         else:
-            if vessel_ownership.company_ownership.percentage < 25:
+            # if vessel_ownership.company_ownership.percentage < 25:
+            if company_ownership.percentage < 25:
                 min_percent_fail = True
             else:
-                vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
+                # vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
+                vessel_ownership_percentage = company_ownership.percentage
     elif not vessel_ownership.percentage:
         raise serializers.ValidationError({
             "Ownership Percentage": "You must specify a percentage"
@@ -1037,13 +1054,16 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     for vo in vessel.filtered_vesselownership_set.all():
         if vo in vessel_ownerships_to_excluded:
             continue
-        if hasattr(vo.company_ownership, 'id'):
-            if (vo.company_ownership.id != company_ownership_id and 
-                    vo.company_ownership.percentage and
-                    vo.company_ownership.blocking_proposal
-                    ):
-                total_percent += vo.company_ownership.percentage
-                logger.info(f'Vessel ownership to be taken into account in the calculation: {vo.company_ownership}')
+        # if hasattr(vo.company_ownership, 'id'):
+        if vo.company_ownerships.count():
+            company_ownership = vo.get_latest_company_ownership()
+            if company_ownership:
+                if (company_ownership.id != company_ownership_id and 
+                        company_ownership.percentage and
+                        company_ownership.blocking_proposal
+                ):
+                    total_percent += vo.company_ownership.percentage
+                    logger.info(f'Vessel ownership to be taken into account in the calculation: {vo.company_ownership}')
         elif vo.percentage and vo.id != individual_ownership_id:
             total_percent += vo.percentage
             logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
