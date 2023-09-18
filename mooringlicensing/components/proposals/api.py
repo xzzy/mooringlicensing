@@ -25,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
     save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
 )
-from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
@@ -1355,7 +1355,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if instance.vessel_ownership:
                     vessel_ownership_serializer = VesselOwnershipSerializer(instance.vessel_ownership)
                     vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.company_ownership else True
+                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.company_ownerships else True
                 else:
                     vessel_ownership_data["percentage"] = instance.percentage
                     vessel_ownership_data["individual_owner"] = instance.individual_owner
@@ -2001,7 +2001,9 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel = self.get_object()
         owner_set = Owner.objects.filter(emailuser=request.user.id)
         if owner_set:
-            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
+            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
+            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
+            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             if vo_set:
                 serializer = VesselOwnershipSerializer(vo_set[0])
                 return Response(serializer.data)
@@ -2036,7 +2038,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
+                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownerships else True
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
@@ -2096,6 +2098,11 @@ class VesselViewSet(viewsets.ModelViewSet):
                         ):
                         search_text_vessel_ownership_ids.append(vo.id)
                 vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+            
+            index = 0
+            for vo in vessel_ownership_list:
+                logger.debug(f'vessel_ownership [{index}]: [{vo}].')
+                index += 1
 
             serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
             return Response(serializer.data)
