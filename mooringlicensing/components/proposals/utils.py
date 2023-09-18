@@ -834,8 +834,12 @@ def store_vessel_ownership(request, vessel, instance=None):
         if company_ownership_set.filter(vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT):
             company_ownership = company_ownership_set.filter(vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT)[0]
             ## cannot edit draft record with blocking_proposal
-            if company_ownership.blocking_proposal:
-                edit_company_ownership = False
+            if edit_company_ownership:
+                if not company_ownership.blocking_proposal:
+                    serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
+                    serializer.is_valid(raise_exception=True)
+                    company_ownership = serializer.save()
+                    logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
         # elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
         #     company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
         #     existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
@@ -852,11 +856,6 @@ def store_vessel_ownership(request, vessel, instance=None):
         #     company_ownership = serializer.save()
         #     logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
 
-        if edit_company_ownership:
-            serializer = SaveCompanyOwnershipSerializer(company_ownership, company_ownership_data)
-            serializer.is_valid(raise_exception=True)
-            company_ownership = serializer.save()
-            logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
 
     ## add to vessel_ownership_data
     # vessel_ownership_data['company_ownership'] = None
@@ -891,7 +890,9 @@ def store_vessel_ownership(request, vessel, instance=None):
             vessel=vessel,
             company_ownerships=company_ownership,
         )
-        if not vessel_ownerships:
+        if vessel_ownerships.count():
+            vessel_ownership = vessel_ownerships.first()
+        else:
             vessel_ownership = VesselOwnership.objects.create(
                 owner=owner,
                 vessel=vessel,

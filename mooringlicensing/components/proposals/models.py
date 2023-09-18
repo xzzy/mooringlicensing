@@ -4038,7 +4038,7 @@ class CompanyOwnership(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        return f"{self.company}: {self.status}, {self.percentage}%"
+        return f"{self.company}: {self.percentage}%"
 
     def save(self, *args, **kwargs):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence

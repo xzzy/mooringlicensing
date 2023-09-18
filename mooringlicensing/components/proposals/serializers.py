@@ -98,7 +98,7 @@ class CompanyOwnershipSerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'blocking_proposal',
-                'status',
+                # 'status',
                 'vessel',
                 'company',
                 'percentage',

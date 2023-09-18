@@ -25,7 +25,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
     save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
 )
-from mooringlicensing.components.proposals.models import searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
@@ -2002,7 +2002,8 @@ class VesselViewSet(viewsets.ModelViewSet):
         owner_set = Owner.objects.filter(emailuser=request.user.id)
         if owner_set:
             # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
-            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
+            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
+            vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             if vo_set:
                 serializer = VesselOwnershipSerializer(vo_set[0])
                 return Response(serializer.data)

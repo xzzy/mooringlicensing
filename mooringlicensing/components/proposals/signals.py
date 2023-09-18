@@ -44,28 +44,37 @@ class ProposalListener(object):
             #         vessel_ownership_company_ownership.status = new_status
             #         vessel_ownership_company_ownership.save()
             #         logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{vessel_ownership_company_ownership}].')
+
             vocos_draft = VesselOwnershipCompanyOwnership.objects.filter(
                 vessel_ownership=instance.vessel_ownership, 
                 status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT
             )
-            vocos_approved = VesselOwnershipCompanyOwnership.objects.filter(
-                vessel_ownership=instance.vessel_ownership, 
-                status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
-            )
             for voco_draft in vocos_draft:
+                new_status = ''
                 if instance.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]:
-                    new_status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
-                elif instance.processing_status in [Proposal.PROCESSING_STATUS_DECLINED,]:
-                    new_status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED
-                voco_draft.status = new_status
-                voco_draft.save()
-                logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
-            
-            for voco_approved in vocos_approved:
-                if voco_approved not in vocos_draft:  # Check just in case
-                    voco_approved.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
-                    voco_approved.save()
+                    voco_draft.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
+                    voco_draft.save()
                     logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
+
+                    # Set status 'old' to the previous 'approved' voco
+                    vocos_approved = VesselOwnershipCompanyOwnership.objects.filter(
+                        vessel_ownership=instance.vessel_ownership, 
+                        status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
+                    ).exclude(id=voco_draft.id)
+                    for voco_approved in vocos_approved:
+                        voco_approved.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
+                        voco_approved.save()
+                        logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the VesselOwnershipCompanyOwnership: [{voco_approved}].')
+                elif instance.processing_status in [Proposal.PROCESSING_STATUS_DECLINED,]:
+                    voco_draft.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED
+                    voco_draft.save()
+                    logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
+
+            # for voco_approved in vocos_approved:
+            #     if voco_approved.id not in vocos_approved_ids:  # Avoid the vocos approved just now
+            #         voco_approved.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
+            #         voco_approved.save()
+            #         logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the VesselOwnershipCompanyOwnership: [{voco_approved}].')
 
             
 
