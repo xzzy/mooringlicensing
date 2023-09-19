@@ -1355,7 +1355,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if instance.vessel_ownership:
                     vessel_ownership_serializer = VesselOwnershipSerializer(instance.vessel_ownership)
                     vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.company_ownerships else True
+                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.individual_owner else True
                 else:
                     vessel_ownership_data["percentage"] = instance.percentage
                     vessel_ownership_data["individual_owner"] = instance.individual_owner
@@ -2038,7 +2038,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownerships else True
+                vessel_ownership_data["individual_owner"] = True if vessel_ownership.individual_owner else False
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
