@@ -1739,7 +1739,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_data = {}
         vessel_ownership_serializer = VesselOwnershipSerializer(vo)
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-        vessel_ownership_data["individual_owner"] = False if vo.company_ownership else True
+        vessel_ownership_data["individual_owner"] = True if vo.individual_owner else False
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
