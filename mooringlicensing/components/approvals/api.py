@@ -354,7 +354,7 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                all = all.filter(Q(submitter=target_user))
+                all = all.filter(Q(submitter=target_user.id))
             return all
         elif is_customer(self.request):
             qs = all.filter(Q(submitter=request_user.id))

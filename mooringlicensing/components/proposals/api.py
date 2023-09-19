@@ -2050,7 +2050,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
         if target_email_user_id:
             target_user = EmailUser.objects.get(id=target_email_user_id)
-            owner_qs = Owner.objects.filter(emailuser=target_user)
+            owner_qs = Owner.objects.filter(emailuser=target_user.id)
 
         if owner_qs:
             owner = owner_qs[0]

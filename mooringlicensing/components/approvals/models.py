@@ -1236,8 +1236,13 @@ class AnnualAdmissionPermit(Approval):
                 existing_sticker = existing_stickers.order_by('number').last()  # There should be just one existing sticker
                 if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
                     # There is an existing sticker to be replaced
-                    existing_sticker_to_be_returned = existing_sticker
-                    new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
+                    if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
+                        # Same vessel_ownership means the same vessel.  In the case no other vessel related, existing sticker does not need to be returned.
+                        existing_sticker_to_be_expired = existing_sticker
+                    else:
+                        # Different vessel related.  In this case, existing sticker needs to be returned.
+                        existing_sticker_to_be_returned = existing_sticker
+                        new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
                 elif proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                     # There is an existing sticker to be replaced
                     existing_sticker_to_be_expired = existing_sticker
