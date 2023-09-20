@@ -4104,7 +4104,6 @@ class VesselOwnershipManager(models.Manager):
 class VesselOwnership(RevisionedMixin):
     owner = models.ForeignKey('Owner', on_delete=models.CASCADE)
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
-    # company_ownership = models.ForeignKey(CompanyOwnership, null=True, blank=True, on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
     start_date = models.DateTimeField(default=timezone.now)
     # date of sale
@@ -4127,6 +4126,10 @@ class VesselOwnership(RevisionedMixin):
         if self.company_ownerships.count():
             company_ownership = self.company_ownerships.filter(vesselownershipcompanyownership__status__in=status_list).order_by('created').last()
             return company_ownership
+            # company_ownership = self.company_ownerships.all().order_by('updated').last()
+            # for voco in VesselOwnershipCompanyOwnership.objects.filter(vessel_ownership=self, company_ownership=company_ownership):
+            #     if voco.status in status_list:
+            #         return company_ownership
         return CompanyOwnership.objects.none()
     
     @property
