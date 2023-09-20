@@ -861,7 +861,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return list_return
 
     def get_stickers(self, obj):
-        stickers = obj.stickers.filter(status__in=[
+        stickers = obj.stickers.order_by('id').filter(status__in=[
             Sticker.STICKER_STATUS_CURRENT,
             Sticker.STICKER_STATUS_AWAITING_PRINTING]
         )

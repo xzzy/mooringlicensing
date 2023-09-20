@@ -72,15 +72,3 @@ class ProposalListener(object):
                         voco_approved.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
                         voco_approved.save()
                         logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the VesselOwnershipCompanyOwnership: [{voco_approved}].')
-
-
-
-            # for voco_approved in vocos_approved:
-            #     if voco_approved.id not in vocos_approved_ids:  # Avoid the vocos approved just now
-            #         voco_approved.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
-            #         voco_approved.save()
-            #         logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the VesselOwnershipCompanyOwnership: [{voco_approved}].')
-
-            
-
-
