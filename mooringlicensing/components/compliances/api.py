@@ -414,7 +414,7 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                qs = Compliance.objects.filter(Q(approval__submitter=target_user))
+                qs = Compliance.objects.filter(Q(approval__submitter=target_user.id))
             else:
                 qs = Compliance.objects.all()
         elif is_customer(self.request):

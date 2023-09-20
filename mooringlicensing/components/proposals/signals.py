@@ -2,14 +2,23 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from mooringlicensing.components.proposals.models import Proposal, CompanyOwnership, VesselOwnershipCompanyOwnership
+from mooringlicensing.components.proposals.models import AuthorisedUserApplication, MooringLicenceApplication, Proposal, CompanyOwnership, VesselOwnershipCompanyOwnership
 
 logger = logging.getLogger(__name__)
 
-class ProposalListener(object):
 
+# class TestListener(object):
+#     @staticmethod
+#     @receiver(post_save, sender=MooringLicenceApplication)
+#     def _post_save(sender, instance, **kwargs):
+#         logger.info(f'sender: [{sender}]')
+#         logger.info(f'instance: [{instance}]')
+
+class ProposalListener(object):
     @staticmethod
     @receiver(post_save, sender=Proposal)
+    @receiver(post_save, sender=MooringLicenceApplication)  # To make sure this signal is called, register 'MooringLicenceApplication' too as well as 'Proposal'.
+                                                            # Without this line, in some case this _post_save() signal is not called even after saving the MLApplication.
     def _post_save(sender, instance, **kwargs):
         if instance.processing_status in [
             Proposal.PROCESSING_STATUS_APPROVED,
@@ -25,36 +34,15 @@ class ProposalListener(object):
 
         # Update the status of the vessel_ownersip_company_ownership
         if instance.vessel_ownership:
-            # company_ownerships = instance.vessel_ownership.company_ownerships.filter(
-            #     vessel=instance.vessel_ownership.vessel, 
-            #     vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
-            # )
-            # for company_ownership in company_ownerships:
-            #     # For each company_ownership with the 'draft' status
-            #     vessel_ownership_company_ownerships = VesselOwnershipCompanyOwnership.objects.filter(
-            #         company_ownership=company_ownership, 
-            #         vessel_ownership=instance.vessel_ownership, 
-            #         status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT
-            #     )
-            #     for vessel_ownership_company_ownership in vessel_ownership_company_ownerships:
-            #         if instance.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]:
-            #             new_status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
-            #         elif instance.processing_status in [Proposal.PROCESSING_STATUS_DECLINED,]:
-            #             new_status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED
-            #         vessel_ownership_company_ownership.status = new_status
-            #         vessel_ownership_company_ownership.save()
-            #         logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{vessel_ownership_company_ownership}].')
-
             vocos_draft = VesselOwnershipCompanyOwnership.objects.filter(
                 vessel_ownership=instance.vessel_ownership, 
                 status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT
             )
             for voco_draft in vocos_draft:
-                new_status = ''
                 if instance.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]:
                     voco_draft.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
                     voco_draft.save()
-                    logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
+                    logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
 
                     # Set status 'old' to the previous 'approved' voco
                     vocos_approved = VesselOwnershipCompanyOwnership.objects.filter(
@@ -68,7 +56,24 @@ class ProposalListener(object):
                 elif instance.processing_status in [Proposal.PROCESSING_STATUS_DECLINED,]:
                     voco_draft.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED
                     voco_draft.save()
-                    logger.info(f'Status: [{new_status}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
+                    logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
+
+            if instance.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]:
+                # if instance.vessel_ownership.individual_owner:
+                if instance.individual_owner:
+                    # Proposal.status is 'approved'/'printing_sticker' and the vessel is individually owned.
+
+                    # Change company_ownership with the 'approved' status to 'old' status
+                    vocos_approved = VesselOwnershipCompanyOwnership.objects.filter(
+                        vessel_ownership=instance.vessel_ownership, 
+                        status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED
+                    )
+                    for voco_approved in vocos_approved:
+                        voco_approved.status = VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD
+                        voco_approved.save()
+                        logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_OLD}] has been set to the VesselOwnershipCompanyOwnership: [{voco_approved}].')
+
+
 
             # for voco_approved in vocos_approved:
             #     if voco_approved.id not in vocos_approved_ids:  # Avoid the vocos approved just now
