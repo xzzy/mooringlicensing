@@ -1355,7 +1355,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if instance.vessel_ownership:
                     vessel_ownership_serializer = VesselOwnershipSerializer(instance.vessel_ownership)
                     vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.company_ownerships else True
+                    vessel_ownership_data["individual_owner"] = False if instance.vessel_ownership.individual_owner else True
                 else:
                     vessel_ownership_data["percentage"] = instance.percentage
                     vessel_ownership_data["individual_owner"] = instance.individual_owner
@@ -1739,7 +1739,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         vessel_ownership_data = {}
         vessel_ownership_serializer = VesselOwnershipSerializer(vo)
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-        vessel_ownership_data["individual_owner"] = False if vo.company_ownership else True
+        vessel_ownership_data["individual_owner"] = True if vo.individual_owner else False
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
@@ -2038,7 +2038,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 vessel_ownership = vo_qs[0]
                 vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
                 vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownerships else True
+                vessel_ownership_data["individual_owner"] = True if vessel_ownership.individual_owner else False
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
@@ -2050,7 +2050,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
         if target_email_user_id:
             target_user = EmailUser.objects.get(id=target_email_user_id)
-            owner_qs = Owner.objects.filter(emailuser=target_user)
+            owner_qs = Owner.objects.filter(emailuser=target_user.id)
 
         if owner_qs:
             owner = owner_qs[0]

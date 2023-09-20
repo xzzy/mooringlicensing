@@ -899,6 +899,7 @@ def store_vessel_ownership(request, vessel, instance=None):
             )
             if company_ownership:
                 vessel_ownership.company_ownerships.add(company_ownership)
+                logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
             vo_created = True
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
         # Retrieve a vessel_ownership from the previous proposal
@@ -922,8 +923,11 @@ def store_vessel_ownership(request, vessel, instance=None):
             vessel_ownership = VesselOwnership.objects.create(
                 owner=owner,  # Owner is actually the accessing user (request.user) as above.
                 vessel=vessel,
-                company_ownership=company_ownership
+                # company_ownership=company_ownership
             )
+            if company_ownership:
+                vessel_ownership.company_ownerships.add(company_ownership)
+                logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
             vo_created = True
 
         q_for_approvals_check &= ~Q(id=instance.approval.id)  # We want to exclude the approval we are currently processing for
@@ -959,6 +963,7 @@ def store_vessel_ownership(request, vessel, instance=None):
     #####
     if company_ownership:
         vessel_ownership.company_ownerships.add(company_ownership)
+        logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
     #####
 
     # check and set blocking_owner
