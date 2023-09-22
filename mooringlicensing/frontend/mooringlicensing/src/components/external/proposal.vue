@@ -207,24 +207,9 @@ export default {
       disableSubmit: function() {
           console.log('%cdisableSubmit() is being called...', 'color: #FF0000')
           let disable = false;
-          // if (this.proposal && this.proposal.proposal_type.code ==='amendment' && this.missingVessel) {
-          //     console.log('%cHere1', 'color: #FF0000')
-          //     disable = true;
-          // } else if (this.proposal && this.proposal.proposal_type.code ==='amendment') {
-          //     if (['aaa', 'mla'].includes(this.proposal.application_type_code) && !this.vesselChanged) {
-          //         console.log('%cHere2', 'color: #FF0000')
-          //         disable = true;
-          //     } else if (this.proposal.application_type_code === 'wla' && !this.vesselChanged && !this.mooringPreferenceChanged) {
-          //         console.log('%cHere3', 'color: #FF0000')
-          //         disable = true;
-          //     } else if (this.proposal.application_type_code === 'aua' && !this.vesselChanged && !this.mooringOptionsChanged) {
-          //         console.log('%cHere4', 'color: #FF0000')
-          //         disable = true;
-          //     }
-          // }
           if (this.proposal){
               if (this.proposal.proposal_type.code ==='amendment'){
-                  if (this.missingVessel){
+                  if (this.missingVessel && ['aaa', 'aua'].includes(this.proposal.application_type_code)){
                       disable = true;
                   } else {
                       if (['aaa', 'mla'].includes(this.proposal.application_type_code)){

@@ -933,10 +933,10 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
             _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender)
 
 
-def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice_reference):
+def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoice_reference):
     # 36
     # email to licence/permit holder when sticker replacement request has been submitted (with payment)
-    approval = new_sticker.approval
+    # approval = new_sticker.approval
     proposal = approval.current_proposal
 
     email = TemplateEmailBase(
@@ -954,7 +954,7 @@ def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice_re
     url = f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'
     invoice_pdf = requests.get(url=url)
     if invoice_pdf.status_code == 200:
-        attachment = ('invoice#{}.pdf'.format(proposal.invoice.reference), invoice_pdf.content, 'application/pdf')
+        attachment = ('invoice#{}.pdf'.format(invoice_reference), invoice_pdf.content, 'application/pdf')
 
     # url = get_invoice_url(invoice.reference, request)
     # invoice_pdf = requests.get(url=url)
@@ -965,7 +965,7 @@ def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice_re
     context = {
         'public_url': get_public_url(request),
         'recipient': approval.submitter_obj,
-        'sticker': old_sticker,
+        'old_sticker_numbers': ','.join(old_sticker_numbers),
         'dashboard_external_url': get_public_url(request),
     }
 
@@ -975,7 +975,9 @@ def send_sticker_replacement_email(request, old_sticker, new_sticker, invoice_re
         if cc_list:
             all_ccs = [cc_list]
 
-    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
+    bcc = proposal.assessor_recipients
+
+    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, bcc=bcc, context=context, attachments=attachments)
     if msg:
         sender = request.user if request else settings.DEFAULT_FROM_EMAIL
         _log_approval_email(msg, approval, sender=sender, attachments=attachments)

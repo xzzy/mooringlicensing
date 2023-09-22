@@ -260,6 +260,7 @@ export default {
                     'Start Date',
                     'Expiry Date',
                     'Vessel Rego',
+                    'Mooring',
                     'Action',
                     'Approval letter',
                     'Sticker replacement',
@@ -364,6 +365,7 @@ export default {
                     }
         },
         columnMooring: function(){
+            let vm = this
             return {
                 data: "id",
                 orderable: true,
@@ -372,7 +374,11 @@ export default {
                 'render': function(row, type, full){
                     let links = ''
                     for (let mooring of full.moorings){
-                        links +=  `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.mooring_name}</a><br/>`;
+                        if (vm.is_internal){
+                            links += `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.mooring_name}</a><br/>`
+                        } else {
+                            links += `${mooring.mooring_name}<br/>`
+                        }
                     }
                     return links
                 },
@@ -641,9 +647,7 @@ export default {
                         'render': function(row, type, full){
                             let ret_str = ''
                             for (let sticker of full.stickers){
-                                console.log('sticker')
-                                console.log(sticker)
-                                ret_str += sticker.number + '<br />'
+                                ret_str += sticker.number + ' (' + sticker.vessel_rego_no + ')<br />'
                             }
                             return ret_str
                         },
@@ -780,6 +784,7 @@ export default {
                     vm.columnExpiryDate,
                     // vm.columnVesselRegistration,
                     vm.columnVesselRegos,
+                    vm.columnMooring,
                     vm.columnAction,
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,

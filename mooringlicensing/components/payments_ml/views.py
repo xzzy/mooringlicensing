@@ -260,6 +260,7 @@ class StickerReplacementFeeView(TemplateView):
                     request.user,
                     lines,
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
+                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
                     booking_reference=str(sticker_action_fee.uuid),
                     invoice_text='{}'.format(application_type.description),
                 )
@@ -306,15 +307,21 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
                 sticker_action_fee.expiry_time = None
                 sticker_action_fee.save()
 
-                # for sticker_action_detail in sticker_action_details.all():
-                #     old_sticker = sticker_action_detail.sticker
-                #     new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
-                sticker_action_detail = sticker_action_details.first()
-                old_sticker = sticker_action_detail.sticker
-                new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+
+                old_sticker_numbers = []
+                for sticker_action_detail in sticker_action_details.all():
+                    old_sticker = sticker_action_detail.sticker
+                    new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+                    old_sticker_numbers.append(old_sticker.number)
+                    # Send email with the invoice
+                send_sticker_replacement_email(request, old_sticker_numbers, new_sticker.approval, invoice.reference)
+
+                # sticker_action_detail = sticker_action_details.first()
+                # old_sticker = sticker_action_detail.sticker
+                # new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
 
                 # Send email with the invoice
-                send_sticker_replacement_email(request, old_sticker, new_sticker, invoice.reference)
+                # send_sticker_replacement_email(request, old_sticker, new_sticker, invoice.reference)
 
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
@@ -338,7 +345,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
             # invoice_url = get_invoice_url(invoice.reference, request)
             # api_key = settings.LEDGER_API_KEY
             # invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
-            invoice_url = f'/ledger-toolkit-api/invoice-pdf/{self.invoice.reference}/'
+            invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
             # invoice_pdf = requests.get(url=url)
             submitter = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
 

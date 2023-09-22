@@ -6,7 +6,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
 @admin.register(models.Sticker)
 class StickerAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'status', 'approval', 'dcv_permit', 'printing_date', 'mailing_date', 'fee_season',]
+    list_display = ['id', 'number', 'status', 'approval', 'dcv_permit', 'printing_date', 'mailing_date', 'fee_season', 'date_created', 'date_updated',]
     search_fields = ['id', 'number', 'approval__lodgement_number',]
     list_filter = ['status',]
     list_display_links = ['id', 'number',]
