@@ -1232,6 +1232,7 @@ class StickerForDcvSaveSerializer(serializers.ModelSerializer):
 
 class StickerSerializerSimple(serializers.ModelSerializer):
     invoices = serializers.SerializerMethodField()
+    vessel_rego_no = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1240,6 +1241,7 @@ class StickerSerializerSimple(serializers.ModelSerializer):
             'number',
             'mailing_date',
             'invoices',
+            'vessel_rego_no',
         )
 
     def get_invoices(self, obj):
@@ -1249,6 +1251,12 @@ class StickerSerializerSimple(serializers.ModelSerializer):
         else:
             serializer = InvoiceSerializer(invoices, many=True)
             return serializer.data
+
+    def get_vessel_rego_no(self, obj):
+        if obj.vessel_ownership and obj.vessel_ownership.vessel:
+            return obj.vessel_ownership.vessel.rego_no
+        else:
+            return ''
 
 
 class StickerSerializer(serializers.ModelSerializer):
@@ -1286,6 +1294,8 @@ class StickerSerializer(serializers.ModelSerializer):
             'fee_season',
             'invoices',
             'can_view_payment_details',
+            'date_created',
+            'date_updated',
         )
         datatables_always_serialize = (
             'id',
@@ -1304,6 +1314,8 @@ class StickerSerializer(serializers.ModelSerializer):
             'fee_season',
             'invoices',
             'can_view_payment_details',
+            'date_created',
+            'date_updated',
         )
 
     def get_fee_season(self, obj):

@@ -117,7 +117,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Number', 'Permit or Licence', 'Vessel rego', 'Date sent / printed / mailed', 'Status', 'Season', 'Invoice', 'Action']
+                return ['id', 'Date Updated', 'Number', 'Permit or Licence', 'Vessel rego', 'Date sent / printed / mailed', 'Status', 'Season', 'Invoice', 'Action']
             }
         },
         column_id: function(){
@@ -129,6 +129,17 @@ export default {
                 visible: this.debug,
                 'render': function(row, type, full){
                     return full.id
+                }
+            }
+        },
+        column_date_updated: function(){
+            return {
+                data: "date_updated",
+                orderable: true,
+                searchable: false,
+                visible: this.debug,
+                'render': function(row, type, full){
+                    return full.date_updated
                 }
             }
         },
@@ -296,6 +307,7 @@ export default {
             if(vm.is_internal){
                 columns = [
                     vm.column_id,
+                    vm.column_date_updated,
                     vm.column_number,
                     vm.column_permit_or_licence,
                     vm.column_vessel_rego_no,
@@ -325,7 +337,7 @@ export default {
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: search,
                 ordering: true,
-                // order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
+                order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
                 ajax: {
                     "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
                     "dataSrc": 'data',
