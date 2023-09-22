@@ -975,7 +975,9 @@ def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoi
         if cc_list:
             all_ccs = [cc_list]
 
-    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context, attachments=attachments)
+    bcc = proposal.assessor_recipients
+
+    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, bcc=bcc, context=context, attachments=attachments)
     if msg:
         sender = request.user if request else settings.DEFAULT_FROM_EMAIL
         _log_approval_email(msg, approval, sender=sender, attachments=attachments)
