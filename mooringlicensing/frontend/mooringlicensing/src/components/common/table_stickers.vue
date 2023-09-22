@@ -325,7 +325,7 @@ export default {
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: search,
                 ordering: true,
-                order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
+                // order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
                 ajax: {
                     "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
                     "dataSrc": 'data',

@@ -2808,10 +2808,12 @@ class Sticker(models.Model):
     vessel_ownership = models.ForeignKey('VesselOwnership', blank=True, null=True, on_delete=models.SET_NULL)
     proposal_initiated = models.ForeignKey('Proposal', blank=True, null=True, on_delete=models.SET_NULL)  # This propposal created this sticker object.  Can be None when sticker created by RequestNewSticker action or so.
     sticker_to_replace = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)  # This sticker object replaces the sticker_to_replace for renewal
+    date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+    date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
 
     class Meta:
         app_label = 'mooringlicensing'
-        ordering = ['-number']
+        ordering = ['-date_updated', '-date_created', '-number',]
 
     def get_invoices(self):
         invoices = []

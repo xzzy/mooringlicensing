@@ -1230,7 +1230,7 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
             if debug:
                 qs = Sticker.objects.all()
             else:
-                qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS)
+                qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
         return qs
 
 
