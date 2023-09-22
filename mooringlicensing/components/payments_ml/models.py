@@ -193,7 +193,7 @@ class StickerActionFee(Payment):
     def __str__(self):
         stickers = []
         for sticker_action_detail in self.sticker_action_details.all():
-            stickers. append(sticker_action_detail.sticker.number)
+            stickers.append(sticker_action_detail.sticker.number)
         return 'Sticker(s): [{}] : Invoice {}'.format(','.join(stickers), self.invoice_reference)
 
     class Meta:
