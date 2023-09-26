@@ -116,13 +116,24 @@ class FeeSeasonSerializer(serializers.ModelSerializer):
 
 class DcvPermitSimpleSerializer(serializers.ModelSerializer):
     fee_season = FeeSeasonSerializer()
+    dcv_organisation_name = serializers.SerializerMethodField()
 
     class Meta:
         model = DcvPermit
         fields = (
             'lodgement_number',
             'fee_season',
+            'dcv_organisation_name',
         )
+
+    def get_dcv_organisation_name(self, obj):
+        try:
+            if obj.dcv_organisation:
+                return obj.dcv_organisation.name
+            else:
+                return obj.submitter_obj.get_full_name() + ' (P)'
+        except:
+            return ''
 
 
 class DcvPermitSerializer(serializers.ModelSerializer):

@@ -1165,6 +1165,7 @@ class ApprovalSimpleSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'approval_type_dict',
+            'applicant',
         )
 
     def get_approval_type_dict(self, obj):

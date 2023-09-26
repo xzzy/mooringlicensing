@@ -117,7 +117,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Date Updated', 'Number', 'Permit or Licence', 'Vessel rego', 'Date sent / printed / mailed', 'Status', 'Season', 'Invoice', 'Action']
+                return ['id', 'Date Updated', 'Number', 'Permit or Licence', 'Vessel rego', 'Holder', 'Date sent / printed / mailed', 'Status', 'Season', 'Invoice', 'Action']
             }
         },
         column_id: function(){
@@ -155,6 +155,24 @@ export default {
                     return '<a href="/internal/vessel/' + full.vessel.id + '" target="_blank">' + full.vessel.rego_no + '</a>'
                 },
                 name: 'vessel_rego_number',
+            }
+        },
+        column_holder: function(){
+            return {
+                data: "approval",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.approval){
+                        return full.approval.applicant
+                    } else if (full.dcv_permit) {
+                        return full.dcv_permit.dcv_organisation_name
+                    } else {
+                        return ''
+                    }
+                },
+                name: 'approval__applicant'
             }
         },
         column_number: function(){
@@ -311,6 +329,7 @@ export default {
                     vm.column_number,
                     vm.column_permit_or_licence,
                     vm.column_vessel_rego_no,
+                    vm.column_holder,
                     vm.column_printing_company,
                     vm.column_status,
                     vm.column_year,

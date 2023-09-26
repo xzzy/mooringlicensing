@@ -13,7 +13,7 @@ Failure to return stickers to RIA upon request, or prior to the sale or disposal
 {% endif %}
 If you wish to substitute your vessel this can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}. Annual admission fees paid for {{ vessel_rego_no }} can be transferred to your new vessel and will remain active until the end of the current boating season.
 If a new vessel is not nominated prior to the end of the season on 31 August, your annual admission permit will expire and
-If you do not intend to substitute your vessel and wish to surrender your authorised user permit, this can be done by logging into your account here: {{ dashboard_external_url }}. Any refunds that may be applicable to you will be calculated in accordance with the date your vessel sticker(s) are received by RIA. You can view our Cancellation and Refund Policy at www.rottnestisland.com.
+If you do not intend to substitute your vessel and wish to surrender your authorised user permit, this can be done by logging into your account here: {{ dashboard_external_url }}. Any refunds that may be applicable to you will be calculated in accordance with the date your vessel sticker(s) are received by RIA. You can view our Cancellation and Refund Policy at {{ cancelation_policy_url }}.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}
 
