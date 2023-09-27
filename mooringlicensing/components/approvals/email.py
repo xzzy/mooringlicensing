@@ -871,6 +871,7 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
         'stickers_to_be_returned': stickers_to_be_returned,
         'due_date': due_date,
         'dashboard_external_url': get_public_url(request),
+        'cancelation_policy_url': settings.CANCELATION_POLICY_URL,
     }
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
@@ -916,6 +917,7 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
         'stickers_to_be_returned': stickers_to_be_returned,
         'due_date': due_date,
         'dashboard_external_url': get_public_url(request),
+        'cancelation_policy_url': settings.CANCELATION_POLICY_URL,
     }
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
