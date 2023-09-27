@@ -368,8 +368,8 @@ export default {
             let vm = this
             return {
                 data: "id",
-                orderable: true,
-                searchable: false,
+                orderable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     let links = ''
@@ -382,7 +382,7 @@ export default {
                     }
                     return links
                 },
-                name: "status",
+                name: "moorings__name, mooringlicence__mooring__name",
             }
         },
         columnStatusInternal: function() {
