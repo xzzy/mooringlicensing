@@ -2643,7 +2643,10 @@ class DcvPermit(RevisionedMixin):
         invoice = None
         for dcv_permit_fee in self.dcv_permit_fees.all():
             if dcv_permit_fee.fee_items.count():
-                invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
+                try:
+                    invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
+                except Invoice.DoesNotExist:
+                    logger.error(f'Invoice: [{dcv_permit_fee.invoice_reference}] not found.')
         return invoice
 
         # if self.dcv_permit_fees.count() < 1:
@@ -2853,18 +2856,22 @@ class Sticker(models.Model):
             return f'ID: {self.id} (#---, {self.status})'
 
     def record_lost(self):
+        logger.info(f'record_lost() is being accessed for the sticker: [{self}].')
         self.status = Sticker.STICKER_STATUS_LOST
         self.save()
-        # self.update_other_stickers()
+        logger.info(f'Status: [{Sticker.STICKER_STATUS_LOST}] has been set to the sticker: [{self}].')
 
     def record_returned(self):
+        logger.info(f'record_returned() is being accessed for the sticker: [{self}].')
         self.status = Sticker.STICKER_STATUS_RETURNED
         self.save()
-        # self.update_other_stickers()
+        logger.info(f'Status: [{Sticker.STICKER_STATUS_RETURNED}] has been set to the sticker: [{self}].')
 
     def request_replacement(self, new_status):
+        logger.info(f'record_replacement() is being accessed for the sticker: [{self}].')
         self.status = new_status
         self.save()
+        logger.info(f'Status: [{new_status}] has been set to the sticker: [{self}].')
 
         # Create replacement sticker
         new_sticker = Sticker.objects.create(
@@ -2873,6 +2880,7 @@ class Sticker(models.Model):
             fee_constructor=self.fee_constructor,
             fee_season=self.approval.latest_applied_season,
         )
+        logger.info(f'New sticker: [{new_sticker}] has been created.')
 
         return new_sticker
 

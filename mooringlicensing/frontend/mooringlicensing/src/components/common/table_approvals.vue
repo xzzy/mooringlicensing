@@ -368,8 +368,8 @@ export default {
             let vm = this
             return {
                 data: "id",
-                orderable: true,
-                searchable: false,
+                orderable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     let links = ''
@@ -382,7 +382,7 @@ export default {
                     }
                     return links
                 },
-                name: "status",
+                name: "moorings__name, mooringlicence__mooring__name",
             }
         },
         columnStatusInternal: function() {
@@ -417,7 +417,7 @@ export default {
                         // 7. Vessel Name
                         data: "id",
                         orderable: true,
-                        searchable: false,
+                        searchable: true,
                         visible: true,
                         'render': function(row, type, full){
                             return full.vessel_name;
@@ -642,7 +642,7 @@ export default {
             return {
                         data: "id",
                         orderable: false,
-                        searchable: false,
+                        searchable: true,
                         visible: true,
                         'render': function(row, type, full){
                             let ret_str = ''
@@ -738,7 +738,7 @@ export default {
             return {
                 data: "id",
                 orderable: true,
-                searchable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     let ret = ''
@@ -747,7 +747,8 @@ export default {
                     }
                     return ret
                     //return '';
-                }
+                },
+                name: "current_proposal__vessel_details__vessel__rego_no"
             }
         },
         datatable_options: function() {
