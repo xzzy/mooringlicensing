@@ -642,7 +642,7 @@ export default {
             return {
                         data: "id",
                         orderable: false,
-                        searchable: false,
+                        searchable: true,
                         visible: true,
                         'render': function(row, type, full){
                             let ret_str = ''
