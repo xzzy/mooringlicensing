@@ -323,7 +323,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         try:
             queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
         except Exception as e:
-            print(e)
+            logger.error(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
