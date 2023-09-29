@@ -522,21 +522,29 @@ class Approval(RevisionedMixin):
 
     @property
     def applicant(self):
-        if self.org_applicant:
-            return self.org_applicant.organisation.name
-        elif self.proxy_applicant:
-            applicant = retrieve_email_userro(self.proxy_applicant)
-            return "{} {}".format(
-                applicant.first_name,
-                applicant.last_name)
-        else:
-            try:
-                submitter = retrieve_email_userro(self.submitter)
-                return "{} {}".format(
-                    submitter.first_name,
-                    submitter.last_name)
-            except:
-                return "Applicant Not Set"
+        # if self.org_applicant:
+        #     return self.org_applicant.organisation.name
+        # elif self.proxy_applicant:
+        #     applicant = retrieve_email_userro(self.proxy_applicant)
+        #     return "{} {}".format(
+        #         applicant.first_name,
+        #         applicant.last_name)
+        # else:
+        #     try:
+        #         submitter = retrieve_email_userro(self.submitter)
+        #         return "{} {}".format(
+        #             submitter.first_name,
+        #             submitter.last_name)
+        #     except:
+        #         return "Applicant Not Set"
+        applicant = ''
+        try:
+            if self.current_proposal and self.current_proposal.proposal_applicant:
+                applicant = f'{self.current_proposal.proposal_applicant.first_name} {self.current_proposal.proposal_applicant.last_name}'
+        except Exception as e:
+            logger.error(e)
+
+        return applicant
 
     @property
     def linked_applications(self):
